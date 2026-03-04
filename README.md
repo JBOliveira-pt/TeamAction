@@ -69,7 +69,7 @@ To simplify sports club management by providing an all-in-one digital solution f
 ## 📦 Installation
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/TeamAction.git
+git clone https://github.com/JBOliveira-pt/TeamAction.git
 cd TeamAction
 npm install
 npm run dev
