@@ -79,23 +79,9 @@ Open:
 
 http://localhost:3000
 
-📄 License
-
-This project is currently under development.
-
-TeamAction – Empowering Sports Management.
-
 ---
 
-If you'd like, I can also create:
+## 📄 License
 
-- 🔥 A more startup/investor-focused README
-- 🎓 A more academic/project-based version
-- 🏢 A SaaS-commercial style version
-- 🧠 A more technical README with architecture details
-
-Tell me which direction you want.
-
-```
-
-```
+This project is currently under development.
+TeamAction – Empowering Sports Management.
