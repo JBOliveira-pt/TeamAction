@@ -73,10 +73,12 @@ git clone https://github.com/YOUR-USERNAME/TeamAction.git
 cd TeamAction
 npm install
 npm run dev
+```
 
 Open:
 
 http://localhost:3000
+
 📄 License
 
 This project is currently under development.
@@ -93,4 +95,7 @@ If you'd like, I can also create:
 - 🧠 A more technical README with architecture details
 
 Tell me which direction you want.
+
+```
+
 ```
