@@ -18,6 +18,28 @@ jobs:
                 node-version: [20.x, 22.x]
                 # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
+        env:
+            # Clerk Public Variables (required at build time)
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXRlcm5hbC11cmNoaW4tNjMuY2xlcmsuYWNjb3VudHMuZGV2JA
+            NEXT_PUBLIC_CLERK_SIGN_IN_URL: /login
+            NEXT_PUBLIC_CLERK_SIGN_UP_URL: /signup
+            NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+            NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /onboarding
+
+            # R2 Public URL
+            NEXT_PUBLIC_R2_IMAGES_URL: https://pub-b07f842ba4ae41bc8cf97ca6adeff08b.r2.dev/primeflow-images
+
+            # Secrets (add these to GitHub Secrets: Settings -> Secrets and variables -> Actions)
+            DATABASE_URL: ${{ secrets.DATABASE_URL }}
+            CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+            CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
+            AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+            R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+            R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+            R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+            R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+            R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+
         steps:
             - uses: actions/checkout@v4
             - name: Use Node.js ${{ matrix.node-version }}
