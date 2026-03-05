@@ -28,7 +28,7 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                 <div className="text-center mb-8">
                     <div className="flex items-center justify-center mx-auto mb-4">
                         <Image
-                            src="https://pub-b07f842ba4ae41bc8cf97ca6adeff08b.r2.dev/primeflow-images/primeflow-whiteroundlogo-nobg.png"
+                            src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-whiteroundlogo-nobg.png"
                             width={70}
                             height={50}
                             alt="PrimeFlow Logo"

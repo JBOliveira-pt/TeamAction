@@ -14,7 +14,7 @@ export const metadata: Metadata = {
         description: "PrimeFlow finance operations dashboard.",
         images: [
             {
-                url: "https://pub-b07f842ba4ae41bc8cf97ca6adeff08b.r2.dev/primeflow-images/primeflow-ecrans.png",
+                url: "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-ecrans.png",
                 width: 1000,
                 height: 760,
                 alt: "PrimeFlow Dashboard Preview",
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
         title: "PrimeFlow Dashboard",
         description: "PrimeFlow finance operations dashboard.",
         images: [
-            "https://pub-b07f842ba4ae41bc8cf97ca6adeff08b.r2.dev/primeflow-images/primeflow-ecrans.png",
+            "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-ecrans.png",
         ],
     },
 };
@@ -55,8 +55,8 @@ export default function RootLayout({
                                     // Update favicon based on SYSTEM preferences (not saved theme)
                                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                                     const faviconUrl = prefersDark
-                                        ? 'https://pub-b07f842ba4ae41bc8cf97ca6adeff08b.r2.dev/primeflow-images/favicon-white.ico'
-                                        : 'https://pub-b07f842ba4ae41bc8cf97ca6adeff08b.r2.dev/primeflow-images/favicon-black.ico';
+                                        ? 'https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/favicon-white.ico'
+                                        : 'https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/favicon-black.ico';
                                     
                                     // Remove existing favicons
                                     const existingLinks = document.querySelectorAll("link[rel*='icon']");
