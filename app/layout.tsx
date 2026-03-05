@@ -1,9 +1,9 @@
 import "@/app/ui/global.css";
 import { inter } from "@/app/ui/fonts";
 import { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/app/components/theme-provider";
 import { FaviconManager } from "@/app/components/favicon-manager";
+import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
     title: "PrimeFlow Dashboard",
@@ -37,14 +37,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <ClerkProvider
-            signInUrl="/login"
-            signUpUrl="/signup"
-            afterSignInUrl="/dashboard"
-            afterSignUpUrl="/dashboard"
-            signInFallbackRedirectUrl="/dashboard"
-            signUpFallbackRedirectUrl="/dashboard"
-        >
+        <Providers>
             <html lang="en" className="h-full">
                 <head>
                     <script
@@ -91,6 +84,6 @@ export default function RootLayout({
                     </ThemeProvider>
                 </body>
             </html>
-        </ClerkProvider>
+        </Providers>
     );
 }
