@@ -11,7 +11,9 @@ import {
     User,
 } from "./definitions";
 import { formatCurrency, formatCurrencyPTBR, formatDateToLocal } from "./utils";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+
+const isDev = process.env.NODE_ENV !== "production";
 
 export async function fetchUsers() {
     try {
@@ -73,14 +75,51 @@ async function getOrganizationId(): Promise<string> {
         throw new Error("User not authenticated");
     }
 
-    // Fetch organization_id from database using clerk_user_id
+    // Fetch organization_id from database using clerk_user_id.
+    // If not found (e.g. user recreated in Clerk), fallback by email and repair clerk_user_id.
     try {
         const user = await sql<
             { organization_id: string }[]
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        const orgId = user[0]?.organization_id;
+        const foundByClerkId = user.length > 0;
+        let orgId = user[0]?.organization_id;
 
         if (!orgId) {
+            const client = await clerkClient();
+            const clerkUser = await client.users.getUser(userId);
+            const email = clerkUser.emailAddresses[0]?.emailAddress;
+
+            if (email) {
+                const fallbackUser = await sql<
+                    { id: string; organization_id: string }[]
+                >`SELECT id, organization_id FROM users WHERE email = ${email} LIMIT 1`;
+
+                if (fallbackUser[0]?.organization_id) {
+                    await sql`
+                        UPDATE users
+                        SET clerk_user_id = ${userId}
+                        WHERE id = ${fallbackUser[0].id}
+                    `;
+
+                    orgId = fallbackUser[0].organization_id;
+                    if (isDev) {
+                        console.log(
+                            `[AUTH] Re-linked user by email (${email}) to clerk_user_id ${userId}`,
+                        );
+                    }
+                }
+            }
+        }
+
+        // Keep request logs quiet; only explicit re-link events are logged.
+
+        if (!orgId) {
+            if (isDev) {
+                console.error(
+                    `[AUTH] No orgId found. Direct match user:`,
+                    user[0],
+                );
+            }
             throw new Error("No organization found for user");
         }
 
@@ -97,8 +136,6 @@ const DEFAULT_AVATAR = "https://avatar.vercel.sh/placeholder.png";
 
 export async function fetchRevenue() {
     try {
-        console.log("Fetching revenue data...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         const organizationId = await getOrganizationId();
 
         const data = await sql<Revenue[]>`
@@ -113,12 +150,7 @@ export async function fetchRevenue() {
             ORDER BY DATE_TRUNC('month', payment_date) DESC
             LIMIT 12`;
 
-        console.log("Data fetch completed after 3 seconds.");
-        console.log("Revenue records found:", data.length);
         const orderedData = data.slice().reverse();
-
-        console.log("First month:", orderedData[0]?.month);
-        console.log("Last month:", orderedData[orderedData.length - 1]?.month);
 
         return orderedData;
     } catch (error) {
@@ -129,8 +161,6 @@ export async function fetchRevenue() {
 
 export async function fetchPendingRevenue() {
     try {
-        console.log("Fetching pending revenue data...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
         const organizationId = await getOrganizationId();
 
         const data = await sql<Revenue[]>`
@@ -144,7 +174,6 @@ export async function fetchPendingRevenue() {
             ORDER BY DATE_TRUNC('month', date) DESC
             LIMIT 12`;
 
-        console.log("Pending revenue records found:", data.length);
         const orderedData = data.slice().reverse();
 
         return orderedData;
@@ -155,17 +184,11 @@ export async function fetchPendingRevenue() {
 }
 
 export async function fetchLatestInvoices() {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<
-            (Omit<LatestInvoiceRaw, "image_url"> & {
-                customer_id: string;
-                image_url: string | null;
-                status: "pending" | "paid";
-            })[]
-        >`
+        const data = (await sql.unsafe(
+            `
             SELECT 
                 invoices.amount, 
                 invoices.date,
@@ -178,9 +201,15 @@ export async function fetchLatestInvoices() {
                 invoices.id
             FROM invoices
             JOIN customers ON invoices.customer_id = customers.id
-            WHERE invoices.organization_id = ${organizationId}
+            WHERE invoices.organization_id = $1
             ORDER BY invoices.date DESC
-            LIMIT 6`;
+            LIMIT 6`,
+            [organizationId],
+        )) as (Omit<LatestInvoiceRaw, "image_url"> & {
+            customer_id: string;
+            image_url: string | null;
+            status: "pending" | "paid";
+        })[];
 
         const latestInvoices = data.map((invoice) => ({
             ...invoice,
@@ -199,23 +228,49 @@ export async function fetchLatestInvoices() {
 }
 
 export async function fetchCardData() {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
     try {
         const organizationId = await getOrganizationId();
-        const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices WHERE organization_id = ${organizationId}`;
-        const customerCountPromise = sql`SELECT COUNT(*) FROM customers WHERE organization_id = ${organizationId}`;
-        const receiptCountPromise = sql`SELECT COUNT(*) FROM receipts WHERE organization_id = ${organizationId}`;
-        const invoiceStatusPromise = sql`SELECT
+        const invoiceCountPromise = sql.unsafe(
+            `SELECT COUNT(*) FROM invoices WHERE organization_id = $1`,
+            [organizationId],
+        );
+        const customerCountPromise = sql.unsafe(
+            `SELECT COUNT(*) FROM customers WHERE organization_id = $1`,
+            [organizationId],
+        );
+        const receiptCountPromise = sql.unsafe(
+            `SELECT COUNT(*) FROM receipts WHERE organization_id = $1`,
+            [organizationId],
+        );
+        const invoiceStatusPromise = sql.unsafe(
+            `SELECT
          SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
          SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
          FROM invoices
-         WHERE organization_id = ${organizationId}`;
-        const pendingCountPromise = sql`SELECT COUNT(*) FROM invoices WHERE organization_id = ${organizationId} AND status = 'pending'`;
+         WHERE organization_id = $1`,
+            [organizationId],
+        );
+        const pendingCountPromise = sql.unsafe(
+            `SELECT COUNT(*) FROM invoices WHERE organization_id = $1 AND status = 'pending'`,
+            [organizationId],
+        );
 
-        const paidCurrentPromise = sql`SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid_current FROM invoices WHERE organization_id = ${organizationId} AND date >= date_trunc('month', current_date)`;
-        const paidPrevPromise = sql`SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid_prev FROM invoices WHERE organization_id = ${organizationId} AND date >= date_trunc('month', current_date - interval '1 month') AND date < date_trunc('month', current_date)`;
-        const customersCurrentPromise = sql`SELECT COUNT(*) AS count FROM customers WHERE organization_id = ${organizationId} AND created_at >= date_trunc('month', current_date)`;
-        const customersPrevPromise = sql`SELECT COUNT(*) AS count FROM customers WHERE organization_id = ${organizationId} AND created_at >= date_trunc('month', current_date - interval '1 month') AND created_at < date_trunc('month', current_date)`;
+        const paidCurrentPromise = sql.unsafe(
+            `SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid_current FROM invoices WHERE organization_id = $1 AND date >= date_trunc('month', current_date)`,
+            [organizationId],
+        );
+        const paidPrevPromise = sql.unsafe(
+            `SELECT COALESCE(SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END), 0) AS paid_prev FROM invoices WHERE organization_id = $1 AND date >= date_trunc('month', current_date - interval '1 month') AND date < date_trunc('month', current_date)`,
+            [organizationId],
+        );
+        const customersCurrentPromise = sql.unsafe(
+            `SELECT COUNT(*) AS count FROM customers WHERE organization_id = $1 AND created_at >= date_trunc('month', current_date)`,
+            [organizationId],
+        );
+        const customersPrevPromise = sql.unsafe(
+            `SELECT COUNT(*) AS count FROM customers WHERE organization_id = $1 AND created_at >= date_trunc('month', current_date - interval '1 month') AND created_at < date_trunc('month', current_date)`,
+            [organizationId],
+        );
 
         const data = await Promise.all([
             invoiceCountPromise,

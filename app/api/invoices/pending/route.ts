@@ -36,7 +36,8 @@ export async function GET() {
         `;
 
         // Fetch pending invoices with customer info (limit to 5 for dropdown)
-        const pendingInvoices = await sql`
+        const pendingInvoices = await sql.unsafe(
+            `
             SELECT 
                 invoices.id,
                 invoices.amount,
@@ -45,11 +46,13 @@ export async function GET() {
                 customers.name as customer_name
             FROM invoices
             JOIN customers ON invoices.customer_id = customers.id
-            WHERE invoices.organization_id = ${organizationId}
+            WHERE invoices.organization_id = $1
             AND invoices.status = 'pending'
             ORDER BY invoices.date DESC
             LIMIT 5
-        `;
+        `,
+            [organizationId],
+        );
 
         // Format response
         const formatted = pendingInvoices.map((inv: any) => ({
