@@ -2,7 +2,7 @@
     "private": true,
     "scripts": {
         "build": "next build",
-        "dev": "next dev --turbopack",
+        "dev": "next dev",
         "start": "next start",
         "lint": "eslint ."
     },
@@ -13,6 +13,7 @@
         "@heroicons/react": "^2.2.0",
         "@react-pdf/renderer": "^4.3.2",
         "@tailwindcss/forms": "^0.5.10",
+        "autoprefixer": "^10.4.27",
         "bcrypt": "^5.1.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -20,7 +21,7 @@
         "lucide-react": "^0.563.0",
         "next": "^16.1.6",
         "pdfkit": "^0.15.0",
-        "postcss": "8.5.1",
+        "postcss": "^8.5.1",
         "postgres": "^3.4.6",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
@@ -41,7 +42,7 @@
         "@types/react-dom": "19.0.3",
         "eslint": "^9.39.2",
         "eslint-config-next": "^16.1.2",
-        "tailwindcss": "^4.0.0"
+        "tailwindcss": "^4.2.1"
     },
     "pnpm": {
         "onlyBuiltDependencies": [
