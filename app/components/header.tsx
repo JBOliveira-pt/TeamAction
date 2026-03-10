@@ -1,16 +1,17 @@
 // app/ui/dashboard/navbar.tsx
-"use client";
+'use client';
 
-import { Bell, Moon, Search, Sun } from "lucide-react";
-import { ReactNode, useState } from "react";
-import { Avatar } from "@/app/components/avatar";
-import { Button } from "@/app/components/button";
-import { useTheme } from "@/app/components/theme-provider";
-import { NotificationDropdown } from "@/app/components/notification-dropdown";
+import { Avatar } from '@/app/components/avatar';
+import { Button } from '@/app/components/button';
+import { NotificationDropdown } from '@/app/components/notification-dropdown';
+import { useTheme } from '@/app/components/theme-provider';
+import { Moon, Sun } from 'lucide-react';
+import { ReactNode, useState } from 'react';
 
 interface DashboardHeaderProps {
     mobileMenuTrigger?: ReactNode;
     actionButton?: ReactNode;
+    profileTabs?: ReactNode;
     user?: {
         name: string;
         role: string;
@@ -21,6 +22,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
     mobileMenuTrigger,
     actionButton,
+    profileTabs,
     user,
 }: DashboardHeaderProps) {
     const { theme, toggleTheme } = useTheme();
@@ -29,9 +31,9 @@ export function DashboardHeader({
     // Pega as iniciais do name para o fallback do avatar
     const getInitials = (name: string) => {
         return name
-            .split(" ")
+            .split(' ')
             .map((n) => n[0])
-            .join("")
+            .join('')
             .toUpperCase()
             .slice(0, 2);
     };
@@ -48,6 +50,10 @@ export function DashboardHeader({
                 {mobileMenuTrigger && (
                     <div className="lg:hidden">{mobileMenuTrigger}</div>
                 )}
+                {/* Tabs de perfil — visíveis apenas no desktop */}
+                {profileTabs && (
+                    <div className="hidden lg:flex">{profileTabs}</div>
+                )}
             </div>
 
             {/* Lado Direito */}
@@ -60,7 +66,7 @@ export function DashboardHeader({
                         onClick={toggleTheme}
                         className="rounded-full cursor-pointer"
                     >
-                        {theme === "dark" ? (
+                        {theme === 'dark' ? (
                             <Moon size={20} />
                         ) : (
                             <Sun size={20} />
@@ -78,16 +84,16 @@ export function DashboardHeader({
                 <div className="flex items-center gap-3 border-l border-gray-200 dark:border-gray-800 pl-4 ml-2">
                     <div className="text-right hidden md:block">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {user?.name || "Utilizador"}
+                            {user?.name || 'Utilizador'}
                         </p>
                         <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
-                            {user?.role || "Guest"}
+                            {user?.role || 'Guest'}
                         </p>
                     </div>
                     <Avatar
                         src={user?.foto}
-                        alt={user?.name || "Avatar"}
-                        fallback={user?.name ? getInitials(user.name) : "US"}
+                        alt={user?.name || 'Avatar'}
+                        fallback={user?.name ? getInitials(user.name) : 'US'}
                     />
                 </div>
             </div>

@@ -1,27 +1,28 @@
-"use server";
+'use server';
 
-import { uploadImageToR2, deleteImageFromR2 } from "./r2-storage";
-import { auth } from "@clerk/nextjs/server";
-import { canEditResource } from "./auth-helpers";
+import { auth } from '@clerk/nextjs/server';
+import { canEditResource } from './auth-helpers';
+import {
+    deleteImageFromR2,
+    uploadAtletaPhotoToR2,
+    uploadImageToR2,
+} from './r2-storage';
 
-import { z } from "zod";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import postgres from "postgres";
-import { promises as fs } from "fs";
-import path from "path";
-import crypto from "crypto";
-import bcrypt from "bcrypt";
-import type { Customer, Invoice } from "./definitions";
-import { createReceiptForPaidInvoice } from "./receipt-service";
+import bcrypt from 'bcryptjs';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import postgres from 'postgres';
+import { z } from 'zod';
+import type { AtletaState, Customer, Invoice } from './definitions';
+import { createReceiptForPaidInvoice } from './receipt-service';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 // Helper function to check admin permissions
 async function checkAdminPermission() {
     const { userId } = await auth();
     if (!userId) {
-        throw new Error("Unauthorized: No session");
+        throw new Error('Unauthorized: No session');
     }
 
     // Query database to check user role using Clerk ID
@@ -30,39 +31,39 @@ async function checkAdminPermission() {
     `;
 
     if (user.length === 0) {
-        throw new Error("User not found in database");
+        throw new Error('User not found in database');
     }
 
-    if (user[0].role !== "admin") {
-        throw new Error("Unauthorized: Admin access required");
+    if (user[0].role !== 'admin') {
+        throw new Error('Unauthorized: Admin access required');
     }
 }
 
 const FormSchema = z.object({
     id: z.string(),
     customerId: z.string({
-        invalid_type_error: "Please select a customer.",
+        invalid_type_error: 'Please select a customer.',
     }),
     amount: z.coerce.number().gt(0, {
-        message: "Please enter an amount greater than $0.",
+        message: 'Please enter an amount greater than $0.',
     }),
-    status: z.enum(["pending", "paid"], {
-        invalid_type_error: "Please select an invoice status.",
+    status: z.enum(['pending', 'paid'], {
+        invalid_type_error: 'Please select an invoice status.',
     }),
     date: z.coerce.date({
-        invalid_type_error: "Please select a valid date.",
-        required_error: "Please select a date.",
+        invalid_type_error: 'Please select a valid date.',
+        required_error: 'Please select a date.',
     }),
     paymentDate: z.coerce
         .date({
-            invalid_type_error: "Please select a valid payment date.",
+            invalid_type_error: 'Please select a valid payment date.',
         })
         .optional(),
     activityCode: z
         .string({
-            invalid_type_error: "Please select an activity.",
+            invalid_type_error: 'Please select an activity.',
         })
-        .min(1, "Please select an activity."),
+        .min(1, 'Please select an activity.'),
 });
 
 const CreateInvoice = FormSchema.omit({
@@ -90,24 +91,24 @@ const CustomerFormSchema = z.object({
     firstName: z
         .string()
         .trim()
-        .min(1, { message: "Please enter a first name." }),
+        .min(1, { message: 'Please enter a first name.' }),
     lastName: z
         .string()
         .trim()
-        .min(1, { message: "Please enter a last name." }),
-    email: z.string().email({ message: "Please enter a valid email." }),
+        .min(1, { message: 'Please enter a last name.' }),
+    email: z.string().email({ message: 'Please enter a valid email.' }),
     nif: z
         .string()
         .trim()
         .regex(/^\d{9}$/, {
-            message: "NIF deve ter exatamente 9 dígitos numéricos.",
+            message: 'NIF deve ter exatamente 9 dígitos numéricos.',
         }),
     endereco_fiscal: z
         .string()
         .trim()
-        .min(1, { message: "Por favor, insira o endereço fiscal." })
+        .min(1, { message: 'Por favor, insira o endereço fiscal.' })
         .max(255, {
-            message: "Endereço fiscal não pode exceder 255 caracteres.",
+            message: 'Endereço fiscal não pode exceder 255 caracteres.',
         }),
 });
 
@@ -130,15 +131,15 @@ export type CustomerState = {
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
 const SignUpSchema = z.object({
-    orgName: z.string().min(1, "Organization name is required"),
-    adminName: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    orgName: z.string().min(1, 'Organization name is required'),
+    adminName: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 async function persistPhotoToR2(
     file: File | null,
-    entityType: "customer" | "user",
+    entityType: 'customer' | 'user',
     entityId: string,
 ): Promise<string | null> {
     if (!file || file.size === 0) {
@@ -151,7 +152,7 @@ async function persistPhotoToR2(
         );
     }
 
-    const tableName = entityType === "customer" ? "customers" : "users";
+    const tableName = entityType === 'customer' ? 'customers' : 'users';
 
     let previousImageUrl: string | null = null;
     try {
@@ -160,7 +161,7 @@ async function persistPhotoToR2(
         `;
         previousImageUrl = previous[0]?.image_url ?? null;
     } catch (error) {
-        console.error("Failed to fetch previous image URL:", error);
+        console.error('Failed to fetch previous image URL:', error);
     }
 
     // Upload to R2
@@ -182,7 +183,7 @@ async function persistPhotoToR2(
         try {
             await deleteImageFromR2(previousImageUrl);
         } catch (error) {
-            console.error("Failed to delete previous image:", error);
+            console.error('Failed to delete previous image:', error);
         }
     }
 
@@ -193,14 +194,14 @@ async function saveCustomerPhoto(
     file: File | null,
     customerId: string,
 ): Promise<string | null> {
-    return persistPhotoToR2(file, "customer", customerId);
+    return persistPhotoToR2(file, 'customer', customerId);
 }
 
 async function saveUserPhoto(
     file: File | null,
     userId: string,
 ): Promise<string | null> {
-    return persistPhotoToR2(file, "user", userId);
+    return persistPhotoToR2(file, 'user', userId);
 }
 
 // Authentication is now handled by Clerk
@@ -224,7 +225,7 @@ export async function createInvoice(
     if (!userId) {
         return {
             errors: {},
-            message: "Unauthorized",
+            message: 'Unauthorized',
         };
     }
 
@@ -238,44 +239,44 @@ export async function createInvoice(
         creatorId = user[0]?.id;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch user:", error);
+        console.error('Failed to fetch user:', error);
         return {
             errors: {},
-            message: "Failed to fetch user information.",
+            message: 'Failed to fetch user information.',
         };
     }
 
     if (!creatorId) {
         return {
             errors: {},
-            message: "User not found in database.",
+            message: 'User not found in database.',
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "User not found or no organization assigned.",
+            message: 'User not found or no organization assigned.',
         };
     }
 
     const validatedFields = CreateInvoice.safeParse({
-        customerId: formData.get("customerId"),
-        amount: formData.get("amount"),
-        date: formData.get("date"),
-        activityCode: formData.get("activityCode"),
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        date: formData.get('date'),
+        activityCode: formData.get('activityCode'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to Create Invoice.",
+            message: 'Missing Fields. Failed to Create Invoice.',
         };
     }
 
     const { customerId, amount, date, activityCode } = validatedFields.data;
     const amountInCents = Math.round(amount * 100);
-    const formattedDate = date.toISOString().split("T")[0];
+    const formattedDate = date.toISOString().split('T')[0];
 
     let invoiceId: string | undefined;
     try {
@@ -289,12 +290,12 @@ export async function createInvoice(
         console.error(error);
         return {
             errors: {},
-            message: "Database Error: Failed to Create Invoice.",
+            message: 'Database Error: Failed to Create Invoice.',
         };
     }
 
-    revalidatePath("/dashboard/invoices");
-    redirect("/dashboard/invoices");
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
 }
 
 export async function updateInvoice(
@@ -307,7 +308,7 @@ export async function updateInvoice(
     if (!userId) {
         return {
             errors: {},
-            message: "Unauthorized",
+            message: 'Unauthorized',
         };
     }
 
@@ -319,17 +320,17 @@ export async function updateInvoice(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch user organization:", error);
+        console.error('Failed to fetch user organization:', error);
         return {
             errors: {},
-            message: "Failed to fetch user organization.",
+            message: 'Failed to fetch user organization.',
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "User not found or no organization assigned.",
+            message: 'User not found or no organization assigned.',
         };
     }
 
@@ -343,14 +344,14 @@ export async function updateInvoice(
     } catch (error) {
         return {
             errors: {},
-            message: "Invoice not found.",
+            message: 'Invoice not found.',
         };
     }
 
     if (!invoice) {
         return {
             errors: {},
-            message: "Invoice not found.",
+            message: 'Invoice not found.',
         };
     }
 
@@ -359,30 +360,30 @@ export async function updateInvoice(
     if (!canEdit) {
         return {
             errors: {},
-            message: "Unauthorized: You can only edit invoices you created.",
+            message: 'Unauthorized: You can only edit invoices you created.',
         };
     }
 
     // Prevent editing paid invoices
-    if (invoice.status === "paid") {
+    if (invoice.status === 'paid') {
         return {
             errors: {},
-            message: "Cannot edit paid invoices.",
+            message: 'Cannot edit paid invoices.',
         };
     }
 
     const validatedFields = UpdateInvoice.safeParse({
-        customerId: formData.get("customerId"),
-        amount: formData.get("amount"),
-        status: formData.get("status"),
-        date: formData.get("date"),
-        paymentDate: formData.get("paymentDate") || undefined,
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        status: formData.get('status'),
+        date: formData.get('date'),
+        paymentDate: formData.get('paymentDate') || undefined,
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to Update Invoice.",
+            message: 'Missing Fields. Failed to Update Invoice.',
         };
     }
 
@@ -399,31 +400,31 @@ export async function updateInvoice(
             return {
                 errors: {
                     paymentDate: [
-                        "Payment date must be between launch date and today.",
+                        'Payment date must be between launch date and today.',
                     ],
                 },
-                message: "Invalid payment date.",
+                message: 'Invalid payment date.',
             };
         }
     }
 
     const shouldCreateReceipt =
-        invoice.status === "pending" && status === "paid";
+        invoice.status === 'pending' && status === 'paid';
 
-    console.log("🔍 shouldCreateReceipt evaluation:", {
+    console.log('🔍 shouldCreateReceipt evaluation:', {
         condition: `invoice.status === "pending" && status === "paid"`,
-        "invoice.status": invoice.status,
+        'invoice.status': invoice.status,
         status: status,
         shouldCreateReceipt,
     });
 
     const amountInCents = Math.round(amount * 100); // Converter euros para centavos
-    const formattedDate = date.toISOString().split("T")[0];
+    const formattedDate = date.toISOString().split('T')[0];
     const formattedPaymentDate = paymentDate
-        ? paymentDate.toISOString().split("T")[0]
+        ? paymentDate.toISOString().split('T')[0]
         : null;
 
-    console.log("🔧 UPDATE Values:", {
+    console.log('🔧 UPDATE Values:', {
         customerId,
         amountInCents,
         status,
@@ -443,12 +444,12 @@ export async function updateInvoice(
             WHERE id = ${id}
         `;
 
-        console.log("✅ UPDATE Result:", result);
+        console.log('✅ UPDATE Result:', result);
     } catch (error) {
-        console.error("❌ UPDATE Error:", error);
+        console.error('❌ UPDATE Error:', error);
         return {
             errors: {},
-            message: "Database Error: Failed to Update Invoice.",
+            message: 'Database Error: Failed to Update Invoice.',
         };
     }
 
@@ -456,24 +457,24 @@ export async function updateInvoice(
         try {
             await createReceiptForPaidInvoice(id);
         } catch (error) {
-            console.error("Receipt creation failed:", error);
+            console.error('Receipt creation failed:', error);
             return {
                 errors: {},
                 message:
-                    "Invoice updated, but failed to generate receipt. Please check IBAN and try again.",
+                    'Invoice updated, but failed to generate receipt. Please check IBAN and try again.',
             };
         }
     }
 
-    revalidatePath("/dashboard/invoices");
-    redirect("/dashboard/invoices");
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
 }
 
 export async function deleteInvoice(id: string) {
     const { userId } = await auth();
 
     if (!userId) {
-        throw new Error("Unauthorized");
+        throw new Error('Unauthorized');
     }
 
     // Get user's organization_id
@@ -484,12 +485,12 @@ export async function deleteInvoice(id: string) {
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        throw new Error("Failed to fetch user organization.");
+        console.error('Failed to fetch user organization:', error);
+        throw new Error('Failed to fetch user organization.');
     }
 
     if (!organizationId) {
-        throw new Error("User not found or no organization assigned.");
+        throw new Error('User not found or no organization assigned.');
     }
 
     // Fetch invoice to check permissions and organization
@@ -500,33 +501,33 @@ export async function deleteInvoice(id: string) {
         >`SELECT * FROM invoices WHERE id = ${id} AND organization_id = ${organizationId}`;
         invoice = data[0];
     } catch (error) {
-        throw new Error("Invoice not found.");
+        throw new Error('Invoice not found.');
     }
 
     if (!invoice) {
-        throw new Error("Invoice not found.");
+        throw new Error('Invoice not found.');
     }
 
     // Check if user can delete this invoice
     const canDelete = await canEditResource(invoice.created_by);
     if (!canDelete) {
         throw new Error(
-            "Unauthorized: You can only delete invoices you created.",
+            'Unauthorized: You can only delete invoices you created.',
         );
     }
 
     // Prevent deleting paid invoices
-    if (invoice.status === "paid") {
-        throw new Error("Cannot delete paid invoices.");
+    if (invoice.status === 'paid') {
+        throw new Error('Cannot delete paid invoices.');
     }
 
     try {
         await sql`DELETE FROM invoices WHERE id = ${id}`;
     } catch (error) {
-        throw new Error("Database Error: Failed to delete invoice.");
+        throw new Error('Database Error: Failed to delete invoice.');
     }
 
-    revalidatePath("/dashboard/invoices");
+    revalidatePath('/dashboard/invoices');
 }
 
 export async function createCustomer(
@@ -538,7 +539,7 @@ export async function createCustomer(
     if (!userId) {
         return {
             errors: {},
-            message: "Unauthorized",
+            message: 'Unauthorized',
         };
     }
 
@@ -552,53 +553,53 @@ export async function createCustomer(
         organizationId = user[0]?.organization_id;
         creatorId = user[0]?.id;
     } catch (error) {
-        console.error("Failed to fetch user organization:", error);
+        console.error('Failed to fetch user organization:', error);
         return {
             errors: {},
-            message: "Failed to retrieve user organization.",
+            message: 'Failed to retrieve user organization.',
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "User not found or no organization assigned.",
+            message: 'User not found or no organization assigned.',
         };
     }
 
     if (!creatorId) {
         return {
             errors: {},
-            message: "User not found in database.",
+            message: 'User not found in database.',
         };
     }
 
     const validatedFields = CreateCustomer.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        nif: formData.get("nif"),
-        endereco_fiscal: formData.get("endereco_fiscal"),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        nif: formData.get('nif'),
+        endereco_fiscal: formData.get('endereco_fiscal'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to create customer.",
+            message: 'Missing or invalid fields. Failed to create customer.',
         };
     }
 
-    const imageFile = formData.get("imageFile");
+    const imageFile = formData.get('imageFile');
     if (!(imageFile instanceof File) || imageFile.size === 0) {
         return {
             errors: {},
-            message: "Please upload a customer photo.",
+            message: 'Please upload a customer photo.',
         };
     }
 
     const { firstName, lastName, email, nif, endereco_fiscal } =
         validatedFields.data;
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
+    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
 
     let customerId: string;
     try {
@@ -612,7 +613,7 @@ export async function createCustomer(
         console.error(error);
         return {
             errors: {},
-            message: "Database Error: Failed to create customer.",
+            message: 'Database Error: Failed to create customer.',
         };
     }
 
@@ -622,14 +623,14 @@ export async function createCustomer(
         console.error(error);
         return {
             errors: {},
-            message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
+            message: `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
     }
 
-    revalidatePath("/dashboard/customers");
-    revalidatePath("/dashboard/invoices");
-    revalidatePath("/dashboard/(overview)");
-    redirect("/dashboard/customers");
+    revalidatePath('/dashboard/customers');
+    revalidatePath('/dashboard/invoices');
+    revalidatePath('/dashboard/(overview)');
+    redirect('/dashboard/customers');
 }
 
 export async function updateCustomer(
@@ -642,7 +643,7 @@ export async function updateCustomer(
     if (!userId) {
         return {
             errors: {},
-            message: "Unauthorized",
+            message: 'Unauthorized',
         };
     }
 
@@ -654,17 +655,17 @@ export async function updateCustomer(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch user organization:", error);
+        console.error('Failed to fetch user organization:', error);
         return {
             errors: {},
-            message: "Failed to fetch user organization.",
+            message: 'Failed to fetch user organization.',
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "User not found or no organization assigned.",
+            message: 'User not found or no organization assigned.',
         };
     }
 
@@ -678,14 +679,14 @@ export async function updateCustomer(
     } catch (error) {
         return {
             errors: {},
-            message: "Customer not found.",
+            message: 'Customer not found.',
         };
     }
 
     if (!customer) {
         return {
             errors: {},
-            message: "Customer not found.",
+            message: 'Customer not found.',
         };
     }
 
@@ -694,36 +695,36 @@ export async function updateCustomer(
     if (!canEdit) {
         return {
             errors: {},
-            message: "Unauthorized: You can only edit customers you created.",
+            message: 'Unauthorized: You can only edit customers you created.',
         };
     }
 
     const validatedFields = UpdateCustomer.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        nif: formData.get("nif"),
-        endereco_fiscal: formData.get("endereco_fiscal"),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        nif: formData.get('nif'),
+        endereco_fiscal: formData.get('endereco_fiscal'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to update customer.",
+            message: 'Missing or invalid fields. Failed to update customer.',
         };
     }
 
-    const imageFile = formData.get("imageFile");
+    const imageFile = formData.get('imageFile');
     if (!(imageFile instanceof File) || imageFile.size === 0) {
         return {
             errors: {},
-            message: "Please upload a new customer photo.",
+            message: 'Please upload a new customer photo.',
         };
     }
 
     const { firstName, lastName, email, nif, endereco_fiscal } =
         validatedFields.data;
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
+    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
 
     try {
         await sql`
@@ -735,7 +736,7 @@ export async function updateCustomer(
         console.error(error);
         return {
             errors: {},
-            message: "Database Error: Failed to update customer.",
+            message: 'Database Error: Failed to update customer.',
         };
     }
 
@@ -745,21 +746,21 @@ export async function updateCustomer(
         console.error(error);
         return {
             errors: {},
-            message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
+            message: `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
         };
     }
 
-    revalidatePath("/dashboard/customers");
-    revalidatePath("/dashboard/invoices");
-    revalidatePath("/dashboard/(overview)");
-    redirect("/dashboard/customers");
+    revalidatePath('/dashboard/customers');
+    revalidatePath('/dashboard/invoices');
+    revalidatePath('/dashboard/(overview)');
+    redirect('/dashboard/customers');
 }
 
 export async function deleteCustomer(id: string) {
     const { userId } = await auth();
 
     if (!userId) {
-        throw new Error("Unauthorized");
+        throw new Error('Unauthorized');
     }
 
     // Get user's organization_id
@@ -770,12 +771,12 @@ export async function deleteCustomer(id: string) {
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        throw new Error("Failed to fetch user organization.");
+        console.error('Failed to fetch user organization:', error);
+        throw new Error('Failed to fetch user organization.');
     }
 
     if (!organizationId) {
-        throw new Error("User not found or no organization assigned.");
+        throw new Error('User not found or no organization assigned.');
     }
 
     // Fetch customer to check permissions and organization
@@ -786,18 +787,18 @@ export async function deleteCustomer(id: string) {
         >`SELECT * FROM customers WHERE id = ${id} AND organization_id = ${organizationId}`;
         customer = data[0];
     } catch (error) {
-        throw new Error("Customer not found.");
+        throw new Error('Customer not found.');
     }
 
     if (!customer) {
-        throw new Error("Customer not found.");
+        throw new Error('Customer not found.');
     }
 
     // Check if user can delete this customer
     const canDelete = await canEditResource(customer.created_by);
     if (!canDelete) {
         throw new Error(
-            "Unauthorized: You can only delete customers you created.",
+            'Unauthorized: You can only delete customers you created.',
         );
     }
 
@@ -806,49 +807,49 @@ export async function deleteCustomer(id: string) {
     } catch (error) {
         console.error(error);
         throw new Error(
-            "Database Error: Failed to delete customer. Remove related invoices first.",
+            'Database Error: Failed to delete customer. Remove related invoices first.',
         );
     }
 
-    revalidatePath("/dashboard/customers");
-    revalidatePath("/dashboard/invoices");
-    revalidatePath("/dashboard/(overview)");
+    revalidatePath('/dashboard/customers');
+    revalidatePath('/dashboard/invoices');
+    revalidatePath('/dashboard/(overview)');
 }
 
 const UserFormSchema = z.object({
     firstName: z
         .string()
         .trim()
-        .min(1, { message: "Please enter a first name." }),
+        .min(1, { message: 'Please enter a first name.' }),
     lastName: z
         .string()
         .trim()
-        .min(1, { message: "Please enter a last name." }),
-    email: z.string().email({ message: "Please enter a valid email." }),
+        .min(1, { message: 'Please enter a last name.' }),
+    email: z.string().email({ message: 'Please enter a valid email.' }),
     iban: z
         .string()
         .trim()
         .regex(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/, {
-            message: "Please enter a valid IBAN.",
+            message: 'Please enter a valid IBAN.',
         })
         .optional()
-        .or(z.literal("")),
+        .or(z.literal('')),
     password: z
         .string()
-        .min(6, { message: "Password must be at least 6 characters." })
+        .min(6, { message: 'Password must be at least 6 characters.' })
         .optional()
-        .or(z.literal("")),
+        .or(z.literal('')),
     role: z
-        .enum(["admin", "user"], {
-            invalid_type_error: "Please select a valid role.",
+        .enum(['admin', 'user'], {
+            invalid_type_error: 'Please select a valid role.',
         })
-        .default("user"),
+        .default('user'),
 });
 
 const CreateUser = UserFormSchema.extend({
     password: z
         .string()
-        .min(6, { message: "Password must be at least 6 characters." }),
+        .min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
 const UpdateUser = UserFormSchema.omit({ role: true });
@@ -875,50 +876,50 @@ export async function createUser(
     } catch (error) {
         return {
             errors: {},
-            message: "Unauthorized: Only admins can create users.",
+            message: 'Unauthorized: Only admins can create users.',
         };
     }
 
     const validatedFields = CreateUser.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        iban: formData.get("iban"),
-        password: formData.get("password"),
-        role: formData.get("role"),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        iban: formData.get('iban'),
+        password: formData.get('password'),
+        role: formData.get('role'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to create user.",
+            message: 'Missing or invalid fields. Failed to create user.',
         };
     }
 
-    const imageFile = formData.get("imageFile");
+    const imageFile = formData.get('imageFile');
     const { firstName, lastName, email, iban, password, role } =
         validatedFields.data;
 
     // IBAN é obrigatório para admins
-    if (role === "admin" && (!iban || iban.length === 0)) {
+    if (role === 'admin' && (!iban || iban.length === 0)) {
         return {
-            errors: { iban: ["IBAN is required for admin users."] },
-            message: "IBAN is required for admin users.",
+            errors: { iban: ['IBAN is required for admin users.'] },
+            message: 'IBAN is required for admin users.',
         };
     }
 
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
+    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user in Clerk first
     let clerkUserId: string;
     try {
-        const clerkResponse = await fetch("https://api.clerk.com/v1/users", {
-            method: "POST",
+        const clerkResponse = await fetch('https://api.clerk.com/v1/users', {
+            method: 'POST',
             headers: {
                 Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 email_address: [email],
@@ -933,20 +934,20 @@ export async function createUser(
 
         if (!clerkResponse.ok) {
             const errorData = await clerkResponse.json();
-            console.error("Clerk API Error:", errorData);
+            console.error('Clerk API Error:', errorData);
             return {
                 errors: {},
-                message: `Failed to create user in Clerk: ${errorData.errors?.[0]?.message || "Unknown error"}`,
+                message: `Failed to create user in Clerk: ${errorData.errors?.[0]?.message || 'Unknown error'}`,
             };
         }
 
         const clerkUser = await clerkResponse.json();
         clerkUserId = clerkUser.id;
     } catch (error) {
-        console.error("Clerk API Error:", error);
+        console.error('Clerk API Error:', error);
         return {
             errors: {},
-            message: "Failed to create user authentication account.",
+            message: 'Failed to create user authentication account.',
         };
     }
 
@@ -959,24 +960,24 @@ export async function createUser(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${adminClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch admin organization:", error);
+        console.error('Failed to fetch admin organization:', error);
         return {
             errors: {},
-            message: "Failed to fetch admin organization.",
+            message: 'Failed to fetch admin organization.',
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "Admin not found or no organization assigned.",
+            message: 'Admin not found or no organization assigned.',
         };
     }
 
     // Now create user in database with clerk_user_id
     let userId: string;
     try {
-        const normalizedIban = iban ? iban.replace(/\s+/g, "") : null;
+        const normalizedIban = iban ? iban.replace(/\s+/g, '') : null;
         const result = await sql`
             INSERT INTO users (id, name, email, password, role, clerk_user_id, organization_id, iban)
             VALUES (gen_random_uuid(), ${fullName}, ${email}, ${hashedPassword}, ${role}, ${clerkUserId}, ${organizationId}, ${normalizedIban})
@@ -988,17 +989,17 @@ export async function createUser(
         // Rollback: delete Clerk user if DB insert fails
         try {
             await fetch(`https://api.clerk.com/v1/users/${clerkUserId}`, {
-                method: "DELETE",
+                method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
                 },
             });
         } catch (rollbackError) {
-            console.error("Failed to rollback Clerk user:", rollbackError);
+            console.error('Failed to rollback Clerk user:', rollbackError);
         }
         return {
             errors: {},
-            message: "Database Error: Failed to create user.",
+            message: 'Database Error: Failed to create user.',
         };
     }
 
@@ -1009,13 +1010,13 @@ export async function createUser(
             console.error(error);
             return {
                 errors: {},
-                message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
+                message: `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
             };
         }
     }
 
-    revalidatePath("/dashboard/users");
-    redirect("/dashboard/users");
+    revalidatePath('/dashboard/users');
+    redirect('/dashboard/users');
 }
 
 export async function updateUser(
@@ -1028,7 +1029,7 @@ export async function updateUser(
     } catch (error) {
         return {
             errors: {},
-            message: "Unauthorized: Only admins can update users.",
+            message: 'Unauthorized: Only admins can update users.',
         };
     }
 
@@ -1041,17 +1042,17 @@ export async function updateUser(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${adminClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch admin organization:", error);
+        console.error('Failed to fetch admin organization:', error);
         return {
             errors: {},
-            message: "Failed to fetch admin organization.",
+            message: 'Failed to fetch admin organization.',
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "Admin not found or no organization assigned.",
+            message: 'Admin not found or no organization assigned.',
         };
     }
 
@@ -1064,47 +1065,47 @@ export async function updateUser(
             return {
                 errors: {},
                 message:
-                    "User not found or does not belong to your organization.",
+                    'User not found or does not belong to your organization.',
             };
         }
 
         // Se estiver atualizando um admin, IBAN é obrigatório
         const userRole = userCheck[0].role;
-        const iban = formData.get("iban");
+        const iban = formData.get('iban');
         if (
-            userRole === "admin" &&
-            (!iban || (typeof iban === "string" && iban.trim().length === 0))
+            userRole === 'admin' &&
+            (!iban || (typeof iban === 'string' && iban.trim().length === 0))
         ) {
             return {
-                errors: { iban: ["IBAN is required for admin users."] },
-                message: "IBAN is required for admin users.",
+                errors: { iban: ['IBAN is required for admin users.'] },
+                message: 'IBAN is required for admin users.',
             };
         }
     } catch (error) {
         return {
             errors: {},
-            message: "Failed to verify user organization.",
+            message: 'Failed to verify user organization.',
         };
     }
 
     const validatedFields = UpdateUser.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        iban: formData.get("iban"),
-        password: formData.get("password"),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        iban: formData.get('iban'),
+        password: formData.get('password'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to update user.",
+            message: 'Missing or invalid fields. Failed to update user.',
         };
     }
 
     const { firstName, lastName, email, iban, password } = validatedFields.data;
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
-    const normalizedIban = iban ? iban.replace(/\s+/g, "") : null;
+    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
+    const normalizedIban = iban ? iban.replace(/\s+/g, '') : null;
 
     try {
         if (password && password.length >= 6) {
@@ -1125,11 +1126,11 @@ export async function updateUser(
         console.error(error);
         return {
             errors: {},
-            message: "Database Error: Failed to update user.",
+            message: 'Database Error: Failed to update user.',
         };
     }
 
-    const imageFile = formData.get("imageFile");
+    const imageFile = formData.get('imageFile');
     if (imageFile instanceof File && imageFile.size > 0) {
         try {
             await saveUserPhoto(imageFile, id);
@@ -1137,20 +1138,20 @@ export async function updateUser(
             console.error(error);
             return {
                 errors: {},
-                message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
+                message: `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
             };
         }
     }
 
-    revalidatePath("/dashboard/users");
-    redirect("/dashboard/users");
+    revalidatePath('/dashboard/users');
+    redirect('/dashboard/users');
 }
 
 export async function deleteUser(id: string) {
     try {
         await checkAdminPermission();
     } catch (error) {
-        throw new Error("Unauthorized: Only admins can delete users.");
+        throw new Error('Unauthorized: Only admins can delete users.');
     }
 
     // Get current admin's organization_id
@@ -1162,12 +1163,12 @@ export async function deleteUser(id: string) {
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${adminClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch admin organization:", error);
-        throw new Error("Failed to fetch admin organization.");
+        console.error('Failed to fetch admin organization:', error);
+        throw new Error('Failed to fetch admin organization.');
     }
 
     if (!organizationId) {
-        throw new Error("Admin not found or no organization assigned.");
+        throw new Error('Admin not found or no organization assigned.');
     }
 
     // Verify that user belongs to admin's organization
@@ -1177,36 +1178,36 @@ export async function deleteUser(id: string) {
         >`SELECT id FROM users WHERE id = ${id} AND organization_id = ${organizationId}`;
         if (userCheck.length === 0) {
             throw new Error(
-                "User not found or does not belong to your organization.",
+                'User not found or does not belong to your organization.',
             );
         }
     } catch (error) {
-        throw new Error("Failed to verify user organization.");
+        throw new Error('Failed to verify user organization.');
     }
 
     try {
         await sql`DELETE FROM users WHERE id = ${id}`;
     } catch (error) {
         console.error(error);
-        throw new Error("Database Error: Failed to delete user.");
+        throw new Error('Database Error: Failed to delete user.');
     }
 
-    revalidatePath("/dashboard/users");
+    revalidatePath('/dashboard/users');
 }
 
 export async function createOrganizationAndAdmin(formData: FormData) {
     const validatedFields = SignUpSchema.safeParse({
-        orgName: formData.get("orgName"),
-        adminName: formData.get("adminName"),
-        email: formData.get("email"),
-        password: formData.get("password"),
+        orgName: formData.get('orgName'),
+        adminName: formData.get('adminName'),
+        email: formData.get('email'),
+        password: formData.get('password'),
     });
 
     if (!validatedFields.success) {
         return {
             success: false,
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Invalid input",
+            message: 'Invalid input',
         };
     }
 
@@ -1217,7 +1218,7 @@ export async function createOrganizationAndAdmin(formData: FormData) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 2. Create organization
-        const orgSlug = orgName.toLowerCase().replace(/\s+/g, "-");
+        const orgSlug = orgName.toLowerCase().replace(/\s+/g, '-');
 
         const orgResult = await sql`
             INSERT INTO organizations (name, slug)
@@ -1245,21 +1246,265 @@ export async function createOrganizationAndAdmin(formData: FormData) {
 
         return {
             success: true,
-            message: "Organization created successfully!",
+            message: 'Organization created successfully!',
         };
     } catch (error: any) {
-        if (error.code === "23505") {
+        if (error.code === '23505') {
             // Unique violation
             return {
                 success: false,
-                message: "Email or organization name already exists",
+                message: 'Email or organization name already exists',
             };
         }
 
-        console.error("SignUp error:", error);
+        console.error('SignUp error:', error);
         return {
             success: false,
-            message: "Failed to create organization",
+            message: 'Failed to create organization',
         };
     }
+}
+
+// ========================================
+// Atleta Actions
+// ========================================
+
+const AtletaFormSchema = z.object({
+    nome: z.string().trim().min(1, { message: 'Nome é obrigatório.' }),
+    sobrenome: z
+        .string()
+        .trim()
+        .min(1, { message: 'Sobrenome é obrigatório.' }),
+    data_nascimento: z
+        .string()
+        .min(1, { message: 'Data de nascimento é obrigatória.' }),
+    morada: z.string().trim().min(1, { message: 'Morada é obrigatória.' }),
+    telemovel: z
+        .string()
+        .trim()
+        .min(1, { message: 'Telemóvel é obrigatório.' })
+        .regex(/^[\d\s\+\-\(\)]{9,20}$/, { message: 'Telemóvel inválido.' }),
+    email: z.string().email({ message: 'Email inválido.' }),
+    peso_kg: z.coerce
+        .number({ invalid_type_error: 'Peso inválido.' })
+        .positive({ message: 'Peso deve ser positivo.' }),
+    altura_cm: z.coerce
+        .number({ invalid_type_error: 'Altura inválida.' })
+        .positive({ message: 'Altura deve ser positiva.' }),
+    nif: z
+        .string()
+        .trim()
+        .regex(/^\d{9}$/, {
+            message: 'NIF deve ter exatamente 9 dígitos numéricos.',
+        }),
+});
+
+export async function createAtletaProfile(
+    prevState: AtletaState,
+    formData: FormData,
+): Promise<AtletaState> {
+    const { userId } = await auth();
+    if (!userId) {
+        return { errors: {}, message: 'Não autenticado.' };
+    }
+
+    const validatedFields = AtletaFormSchema.safeParse({
+        nome: formData.get('nome'),
+        sobrenome: formData.get('sobrenome'),
+        data_nascimento: formData.get('data_nascimento'),
+        morada: formData.get('morada'),
+        telemovel: formData.get('telemovel'),
+        email: formData.get('email'),
+        peso_kg: formData.get('peso_kg'),
+        altura_cm: formData.get('altura_cm'),
+        nif: formData.get('nif'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Erro de validação. Verifique os campos.',
+        };
+    }
+
+    const {
+        nome,
+        sobrenome,
+        data_nascimento,
+        morada,
+        telemovel,
+        email,
+        peso_kg,
+        altura_cm,
+        nif,
+    } = validatedFields.data;
+
+    // Handle photo upload
+    const fotoFile = formData.get('foto_perfil') as File | null;
+    if (!fotoFile || fotoFile.size === 0) {
+        return {
+            errors: { foto_perfil: ['Foto de perfil é obrigatória.'] },
+            message: 'Foto de perfil é obrigatória.',
+        };
+    }
+    if (fotoFile.size > MAX_PHOTO_SIZE) {
+        return {
+            errors: { foto_perfil: ['Foto deve ter menos de 5MB.'] },
+            message: 'Foto muito grande.',
+        };
+    }
+
+    let foto_perfil_url: string;
+    try {
+        foto_perfil_url = await uploadAtletaPhotoToR2(
+            fotoFile,
+            nif,
+            nome,
+            sobrenome,
+        );
+    } catch (error) {
+        console.error('R2 upload error:', error);
+        return {
+            errors: {},
+            message: 'Erro ao fazer upload da foto. Tente novamente.',
+        };
+    }
+
+    try {
+        await sql`
+            INSERT INTO atletas
+                (nome, sobrenome, data_nascimento, morada, telemovel, email, foto_perfil_url, peso_kg, altura_cm, nif, estado)
+            VALUES
+                (${nome}, ${sobrenome}, ${data_nascimento}, ${morada}, ${telemovel},
+                 ${email}, ${foto_perfil_url}, ${peso_kg}, ${altura_cm}, ${nif}, 'Pendente')
+        `;
+    } catch (error: any) {
+        if (error.code === '23505') {
+            return {
+                errors: {},
+                message: 'Já existe um perfil com este email ou NIF.',
+            };
+        }
+        console.error('DB insert atleta error:', error);
+        return {
+            errors: {},
+            message: 'Erro ao guardar perfil. Tente novamente.',
+        };
+    }
+
+    revalidatePath('/dashboard/atleta/perfil');
+    redirect('/dashboard/atleta/perfil');
+}
+
+export async function updateAtletaProfile(
+    prevState: AtletaState,
+    formData: FormData,
+): Promise<AtletaState> {
+    const { userId } = await auth();
+    if (!userId) {
+        return { errors: {}, message: 'Não autenticado.' };
+    }
+
+    const validatedFields = AtletaFormSchema.safeParse({
+        nome: formData.get('nome'),
+        sobrenome: formData.get('sobrenome'),
+        data_nascimento: formData.get('data_nascimento'),
+        morada: formData.get('morada'),
+        telemovel: formData.get('telemovel'),
+        email: formData.get('email'),
+        peso_kg: formData.get('peso_kg'),
+        altura_cm: formData.get('altura_cm'),
+        nif: formData.get('nif'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            errors: validatedFields.error.flatten().fieldErrors,
+            message: 'Erro de validação. Verifique os campos.',
+        };
+    }
+
+    const {
+        nome,
+        sobrenome,
+        data_nascimento,
+        morada,
+        telemovel,
+        email,
+        peso_kg,
+        altura_cm,
+        nif,
+    } = validatedFields.data;
+
+    // Fetch existing profile to preserve photo if none uploaded
+    const existing = await sql<{ foto_perfil_url: string | null }[]>`
+        SELECT a.foto_perfil_url
+        FROM atletas a
+        JOIN users u ON u.email = a.email
+        WHERE u.clerk_user_id = ${userId}
+    `;
+    if (!existing.length) {
+        return { errors: {}, message: 'Perfil não encontrado.' };
+    }
+    let foto_perfil_url = existing[0].foto_perfil_url;
+
+    const fotoFile = formData.get('foto_perfil') as File | null;
+    if (fotoFile && fotoFile.size > 0) {
+        if (fotoFile.size > MAX_PHOTO_SIZE) {
+            return {
+                errors: { foto_perfil: ['Foto deve ter menos de 5MB.'] },
+                message: 'Foto muito grande.',
+            };
+        }
+        try {
+            foto_perfil_url = await uploadAtletaPhotoToR2(
+                fotoFile,
+                nif,
+                nome,
+                sobrenome,
+            );
+        } catch (error) {
+            console.error('R2 upload error:', error);
+            return {
+                errors: {},
+                message: 'Erro ao fazer upload da foto. Tente novamente.',
+            };
+        }
+    }
+
+    try {
+        await sql`
+            UPDATE atletas
+            SET
+                nome             = ${nome},
+                sobrenome        = ${sobrenome},
+                data_nascimento  = ${data_nascimento},
+                morada           = ${morada},
+                telemovel        = ${telemovel},
+                email            = ${email},
+                foto_perfil_url  = ${foto_perfil_url},
+                peso_kg          = ${peso_kg},
+                altura_cm        = ${altura_cm},
+                nif              = ${nif},
+                updated_at       = NOW()
+            WHERE email IN (
+                SELECT email FROM users WHERE clerk_user_id = ${userId}
+            )
+        `;
+    } catch (error: any) {
+        if (error.code === '23505') {
+            return {
+                errors: {},
+                message: 'Já existe um perfil com este email ou NIF.',
+            };
+        }
+        console.error('DB update atleta error:', error);
+        return {
+            errors: {},
+            message: 'Erro ao guardar perfil. Tente novamente.',
+        };
+    }
+
+    revalidatePath('/dashboard/atleta/perfil');
+    redirect('/dashboard/atleta/perfil');
 }

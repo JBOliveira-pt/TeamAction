@@ -19,7 +19,7 @@ export type User = {
     email: string;
     password: string;
     image_url: string;
-    role?: "admin" | "user";
+    role?: 'admin' | 'user';
     organization_id?: string;
     iban?: string | null;
 };
@@ -78,7 +78,7 @@ export type Invoice = {
     amount: number;
     date: string;
     payment_date?: string | null;
-    status: "pending" | "paid";
+    status: 'pending' | 'paid';
     organization_id?: string;
     created_by?: string;
 };
@@ -89,7 +89,7 @@ export type InvoiceForm = {
     amount: number;
     date: string;
     payment_date?: string | null;
-    status: "pending" | "paid";
+    status: 'pending' | 'paid';
 };
 
 export type InvoicesTable = {
@@ -101,7 +101,7 @@ export type InvoicesTable = {
     date: string;
     payment_date?: string | null;
     amount: number;
-    status: "pending" | "paid";
+    status: 'pending' | 'paid';
 };
 
 export type LatestInvoice = {
@@ -112,10 +112,10 @@ export type LatestInvoice = {
     amount: number;
     date: string;
     payment_date?: string | null;
-    status: "pending" | "paid";
+    status: 'pending' | 'paid';
 };
 
-export type LatestInvoiceRaw = Omit<LatestInvoice, "amount" | "date"> & {
+export type LatestInvoiceRaw = Omit<LatestInvoice, 'amount' | 'date'> & {
     amount: number;
     date: string;
     payment_date?: string | null;
@@ -133,7 +133,7 @@ export type Revenue = {
 // ========================================
 // Receipt Types
 // ========================================
-export type ReceiptStatus = "pending_send" | "sent_to_customer";
+export type ReceiptStatus = 'pending_send' | 'sent_to_customer';
 
 export type Receipt = {
     id: string;
@@ -171,4 +171,40 @@ export type ReceiptsTableRow = {
     pdf_url: string | null;
     receipt_created_by: string | null;
     invoice_id: string;
+};
+
+// ========================================
+// Atleta Types
+// ========================================
+export type Atleta = {
+    id: number;
+    nome: string;
+    sobrenome: string;
+    data_nascimento: string | Date;
+    morada: string | null;
+    telemovel: string | null;
+    email: string;
+    foto_perfil_url: string | null;
+    peso_kg: number | null;
+    altura_cm: number | null;
+    nif: string;
+    estado: 'Ativo' | 'Inativo' | 'Pendente';
+    created_at: string;
+    updated_at: string;
+};
+
+export type AtletaState = {
+    errors: {
+        nome?: string[];
+        sobrenome?: string[];
+        data_nascimento?: string[];
+        morada?: string[];
+        telemovel?: string[];
+        email?: string[];
+        peso_kg?: string[];
+        altura_cm?: string[];
+        nif?: string[];
+        foto_perfil?: string[];
+    };
+    message: string | null;
 };
