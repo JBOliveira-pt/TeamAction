@@ -22,38 +22,38 @@ export default function EstatisticasPage() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-white">Estatísticas</h1>
-                <p className="text-sm text-slate-400 mt-1">Época 2024/2025 · Todos os escalões</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Estatísticas</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Época 2024/2025 · Todos os escalões</p>
             </div>
 
             {/* Cards globais */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Jogos</p>
-                    <p className="text-3xl font-bold text-white mt-2">{totalJogos}</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total de Jogos</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{totalJogos}</p>
                 </div>
-                <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vitórias</p>
+                <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Vitórias</p>
                     <p className="text-3xl font-bold text-emerald-400 mt-2">{totalVitorias}</p>
                 </div>
-                <div className="bg-slate-900 border border-cyan-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Golos Marcados</p>
+                <div className="bg-white dark:bg-gray-900 border border-cyan-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Golos Marcados</p>
                     <p className="text-3xl font-bold text-cyan-400 mt-2">{totalGolos}</p>
                 </div>
-                <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assiduidade Média</p>
+                <div className="bg-white dark:bg-gray-900 border border-amber-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Assiduidade Média</p>
                     <p className="text-3xl font-bold text-amber-400 mt-2">{assiduidade}%</p>
                 </div>
             </div>
 
             {/* Tabela por equipa */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-800">
-                    <h2 className="text-sm font-semibold text-white">📊 Por Equipa</h2>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">📊 Por Equipa</h2>
                 </div>
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                             <th className="text-left px-6 py-4">Equipa</th>
                             <th className="text-left px-6 py-4">J</th>
                             <th className="text-left px-6 py-4">V</th>
@@ -66,20 +66,20 @@ export default function EstatisticasPage() {
                     </thead>
                     <tbody>
                         {estatisticasPorEquipa.map((e) => (
-                            <tr key={e.equipa} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-white">{e.equipa}</td>
-                                <td className="px-6 py-4 text-slate-400">{e.jogos}</td>
+                            <tr key={e.equipa} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{e.equipa}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{e.jogos}</td>
                                 <td className="px-6 py-4 text-emerald-400 font-semibold">{e.vitorias}</td>
                                 <td className="px-6 py-4 text-amber-400 font-semibold">{e.empates}</td>
                                 <td className="px-6 py-4 text-red-400 font-semibold">{e.derrotas}</td>
                                 <td className="px-6 py-4 text-cyan-400">{e.golos_marcados}</td>
-                                <td className="px-6 py-4 text-slate-400">{e.golos_sofridos}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{e.golos_sofridos}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                             <div className="h-full bg-amber-400 rounded-full" style={{ width: `${e.assiduidade}%` }} />
                                         </div>
-                                        <span className="text-slate-400 text-xs">{e.assiduidade}%</span>
+                                        <span className="text-gray-500 dark:text-gray-400 text-xs">{e.assiduidade}%</span>
                                     </div>
                                 </td>
                             </tr>
@@ -89,13 +89,13 @@ export default function EstatisticasPage() {
             </div>
 
             {/* Top atletas */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-800">
-                    <h2 className="text-sm font-semibold text-white">🏅 Top 5 Atletas</h2>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">🏅 Top 5 Atletas</h2>
                 </div>
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                             <th className="text-left px-6 py-4">#</th>
                             <th className="text-left px-6 py-4">Atleta</th>
                             <th className="text-left px-6 py-4">Equipa</th>
@@ -106,18 +106,18 @@ export default function EstatisticasPage() {
                     </thead>
                     <tbody>
                         {topAtletas.map((a, i) => (
-                            <tr key={a.nome} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 text-slate-500 font-bold">#{i + 1}</td>
-                                <td className="px-6 py-4 font-semibold text-white">{a.nome}</td>
-                                <td className="px-6 py-4 text-slate-400">{a.equipa}</td>
+                            <tr key={a.nome} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 text-gray-400 dark:text-gray-500 font-bold">#{i + 1}</td>
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{a.nome}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{a.equipa}</td>
                                 <td className="px-6 py-4 text-cyan-400 font-semibold">{a.golos}</td>
                                 <td className="px-6 py-4 text-violet-400 font-semibold">{a.assistencias}</td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                                        <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                             <div className="h-full bg-cyan-400 rounded-full" style={{ width: `${a.assiduidade}%` }} />
                                         </div>
-                                        <span className="text-slate-400 text-xs">{a.assiduidade}%</span>
+                                        <span className="text-gray-500 dark:text-gray-400 text-xs">{a.assiduidade}%</span>
                                     </div>
                                 </td>
                             </tr>

@@ -24,7 +24,7 @@ const estatisticasMock = [
 const estadoStyle: Record<string, string> = {
     "Ativo": "bg-emerald-500/10 text-emerald-400",
     "Suspenso": "bg-red-500/10 text-red-400",
-    "Inativo": "bg-slate-500/10 text-slate-400",
+    "Inativo": "bg-slate-500/10 text-gray-500 dark:text-gray-400",
 };
 
 const mensalidadeStyle: Record<string, { badge: string }> = {
@@ -40,7 +40,7 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
     if (!atleta) {
         return (
             <div className="p-6 flex flex-col items-center justify-center min-h-[400px] space-y-4">
-                <p className="text-slate-400 text-lg">Atleta não encontrado.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">Atleta não encontrado.</p>
                 <Link
                     href="/dashboard/presidente/atletas"
                     className="text-sm text-violet-400 hover:text-violet-300 font-medium transition-colors"
@@ -58,7 +58,7 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
             <div>
                 <Link
                     href="/dashboard/presidente/atletas"
-                    className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors mb-4"
+                    className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
                 >
                     <ArrowLeftIcon className="w-4 h-4" />
                     Voltar aos Atletas
@@ -71,8 +71,8 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                             <span className="text-2xl font-bold text-violet-400">#{atleta.numero}</span>
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white">{atleta.nome}</h1>
-                            <p className="text-sm text-slate-400 mt-1">{atleta.posicao} · {atleta.equipa}</p>
+                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{atleta.nome}</h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{atleta.posicao} · {atleta.equipa}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -89,8 +89,8 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
             {/* Estatísticas rápidas */}
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                 {estatisticasMock.map((stat) => (
-                    <div key={stat.label} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider leading-tight">{stat.label}</p>
+                    <div key={stat.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-center">
+                        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider leading-tight">{stat.label}</p>
                         <p className="text-2xl font-bold text-cyan-400 mt-2">{stat.valor}</p>
                     </div>
                 ))}
@@ -102,50 +102,50 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                 <div className="space-y-4">
 
                     {/* Dados pessoais */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                        <h2 className="text-sm font-semibold text-white">Dados Pessoais</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Dados Pessoais</h2>
                         <div className="space-y-3">
                             <div>
-                                <p className="text-xs text-slate-500">Idade</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.idade} anos</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Idade</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.idade} anos</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">NIF</p>
-                                <p className="text-sm font-medium text-white mt-0.5 font-mono">{atleta.nif}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">NIF</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 font-mono">{atleta.nif}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Morada</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.morada}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Morada</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.morada}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Contacto */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                        <h2 className="text-sm font-semibold text-white">Contacto</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Contacto</h2>
                         <div className="space-y-3">
                             <div>
-                                <p className="text-xs text-slate-500">Email</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.email}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Email</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.email}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Telemóvel</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.telemovel}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Telemóvel</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.telemovel}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Físico */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                        <h2 className="text-sm font-semibold text-white">Dados Físicos</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Dados Físicos</h2>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <p className="text-xs text-slate-500">Peso</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.peso} kg</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Peso</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.peso} kg</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Altura</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.altura} cm</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Altura</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.altura} cm</p>
                             </div>
                         </div>
                     </div>
@@ -155,10 +155,10 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                 <div className="lg:col-span-2 space-y-4">
 
                     {/* Assiduidade */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                        <h2 className="text-sm font-semibold text-white mb-4">Assiduidade</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Assiduidade</h2>
                         <div className="flex items-center gap-4">
-                            <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden">
+                            <div className="flex-1 h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-cyan-400 rounded-full transition-all"
                                     style={{ width: `${atleta.assiduidade}%` }}
@@ -166,29 +166,29 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                             </div>
                             <span className="text-lg font-bold text-cyan-400 w-14 text-right">{atleta.assiduidade}%</span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
                             {atleta.assiduidade >= 90 ? "✅ Excelente assiduidade" : atleta.assiduidade >= 75 ? "⚠️ Assiduidade razoável" : "🔴 Assiduidade baixa"}
                         </p>
                     </div>
 
                     {/* Desporto */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                        <h2 className="text-sm font-semibold text-white mb-4">Informações Desportivas</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Informações Desportivas</h2>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-xs text-slate-500">Equipa</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.equipa}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Equipa</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.equipa}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Posição</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{atleta.posicao}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Posição</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.posicao}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Número</p>
-                                <p className="text-sm font-medium text-white mt-0.5">#{atleta.numero}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Número</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">#{atleta.numero}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Estado</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Estado</p>
                                 <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-0.5 ${estadoStyle[atleta.estado]}`}>
                                     {atleta.estado}
                                 </span>
@@ -197,16 +197,16 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                     </div>
 
                     {/* Mensalidade */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                        <h2 className="text-sm font-semibold text-white mb-4">Mensalidade</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Mensalidade</h2>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs text-slate-500">Estado atual</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Estado atual</p>
                                 <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold mt-1 ${mensalidadeStyle[atleta.mensalidade].badge}`}>
                                     {atleta.mensalidade}
                                 </span>
                             </div>
-                            <button className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
                                 Registar Pagamento
                             </button>
                         </div>

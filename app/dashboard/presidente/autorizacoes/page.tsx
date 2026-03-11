@@ -18,8 +18,8 @@ export default function AutorizacoesPage() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-white">Autorizações</h1>
-                <p className="text-sm text-slate-400 mt-1">{pendentes.length} pendente(s) por aprovar</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Autorizações</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{pendentes.length} pendente(s) por aprovar</p>
             </div>
 
             {pendentes.length > 0 && (
@@ -27,15 +27,15 @@ export default function AutorizacoesPage() {
                     <span className="text-amber-400 text-lg">⏳</span>
                     <div>
                         <p className="text-amber-400 font-semibold text-sm">{pendentes.length} autorização(ões) aguardam a tua decisão</p>
-                        <p className="text-slate-400 text-xs mt-1">Verifica as autorizações pendentes abaixo e aprova ou recusa.</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Verifica as autorizações pendentes abaixo e aprova ou recusa.</p>
                     </div>
                 </div>
             )}
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                             <th className="text-left px-6 py-4">Atleta</th>
                             <th className="text-left px-6 py-4">Tipo</th>
                             <th className="text-left px-6 py-4">Descrição</th>
@@ -46,11 +46,11 @@ export default function AutorizacoesPage() {
                     </thead>
                     <tbody>
                         {autorizacoes.map((a) => (
-                            <tr key={a.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-white">{a.atleta}</td>
-                                <td className="px-6 py-4 text-slate-400">{a.tipo}</td>
-                                <td className="px-6 py-4 text-slate-400 max-w-xs truncate">{a.descricao}</td>
-                                <td className="px-6 py-4 text-slate-400">{a.solicitado}</td>
+                            <tr key={a.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{a.atleta}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{a.tipo}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{a.descricao}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{a.solicitado}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[a.estado]}`}>
                                         {a.estado}

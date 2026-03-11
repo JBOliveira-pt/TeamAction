@@ -27,7 +27,7 @@ export default async function OnboardingPage() {
             <div className="w-full max-w-md">
                 <div className="rounded-lg border border-gray-800 bg-gray-900 p-8">
                     <h1 className="text-2xl font-bold text-white mb-2">
-                        Bem-vindo à PrimeFlow
+                        Bem-vindo à TeamAction
                     </h1>
                     <p className="text-gray-400 mb-6">
                         Crie uma organização para começar

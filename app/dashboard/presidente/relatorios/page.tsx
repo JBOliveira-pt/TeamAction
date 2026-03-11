@@ -18,22 +18,22 @@ export default function RelatoriosPage() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-white">Relatórios</h1>
-                <p className="text-sm text-slate-400 mt-1">Exporta dados do clube em PDF ou Excel</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Relatórios</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Exporta dados do clube em PDF ou Excel</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {relatorios.map((r) => (
-                    <div key={r.id} className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-5 flex items-start gap-4 transition-colors group">
+                    <div key={r.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 rounded-xl p-5 flex items-start gap-4 transition-colors group">
                         <span className="text-3xl">{r.icone}</span>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold text-white">{r.nome}</p>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{r.nome}</p>
                                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoriaStyle[r.categoria]}`}>
                                     {r.categoria}
                                 </span>
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">{r.descricao}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{r.descricao}</p>
                             <div className="flex items-center gap-2 mt-3">
                                 <button className="text-xs text-violet-400 hover:text-violet-300 font-medium border border-violet-500/30 px-3 py-1.5 rounded-lg transition-colors">
                                     📄 Exportar PDF

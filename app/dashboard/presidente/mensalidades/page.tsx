@@ -24,26 +24,26 @@ export default function MensalidadesPage() {
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Mensalidades</h1>
-                    <p className="text-sm text-slate-400 mt-1">Março 2025 · Todos os escalões</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mensalidades</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Março 2025 · Todos os escalões</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Recebido</p>
+                <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total Recebido</p>
                     <p className="text-3xl font-bold text-emerald-400 mt-2">€{totalRecebido}</p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pagos</p>
-                    <p className="text-3xl font-bold text-white mt-2">{pago.length}</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Pagos</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{pago.length}</p>
                 </div>
-                <div className="bg-slate-900 border border-red-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Em Atraso</p>
+                <div className="bg-white dark:bg-gray-900 border border-red-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Em Atraso</p>
                     <p className="text-3xl font-bold text-red-400 mt-2">{emAtraso.length}</p>
                 </div>
-                <div className="bg-slate-900 border border-amber-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pendentes</p>
+                <div className="bg-white dark:bg-gray-900 border border-amber-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Pendentes</p>
                     <p className="text-3xl font-bold text-amber-400 mt-2">{mensalidades.filter(m => m.estado === "Pendente").length}</p>
                 </div>
             </div>
@@ -54,15 +54,15 @@ export default function MensalidadesPage() {
                     <span className="text-red-400 text-lg">⚠️</span>
                     <div>
                         <p className="text-red-400 font-semibold text-sm">{emAtraso.length} atleta(s) com mensalidade em atraso</p>
-                        <p className="text-slate-400 text-xs mt-1">Podes suspender o acesso aos treinos e jogos alterando o estado do atleta.</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Podes suspender o acesso aos treinos e jogos alterando o estado do atleta.</p>
                     </div>
                 </div>
             )}
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                             <th className="text-left px-6 py-4">Atleta</th>
                             <th className="text-left px-6 py-4">Equipa</th>
                             <th className="text-left px-6 py-4">Mês</th>
@@ -74,12 +74,12 @@ export default function MensalidadesPage() {
                     </thead>
                     <tbody>
                         {mensalidades.map((m) => (
-                            <tr key={m.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-white">{m.atleta}</td>
-                                <td className="px-6 py-4 text-slate-400">{m.equipa}</td>
-                                <td className="px-6 py-4 text-slate-400">{m.mes}</td>
-                                <td className="px-6 py-4 text-slate-400">€{m.valor}</td>
-                                <td className="px-6 py-4 text-slate-400">{m.data_pagamento ?? "—"}</td>
+                            <tr key={m.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{m.atleta}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{m.equipa}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{m.mes}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">€{m.valor}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{m.data_pagamento ?? "—"}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[m.estado]}`}>
                                         {m.estado}

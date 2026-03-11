@@ -20,35 +20,35 @@ export default function EquipasPage() {
             {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Equipas</h1>
-                    <p className="text-sm text-slate-400 mt-1">Época 2024/2025 · {equipas.length} escalões</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Equipas</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Época 2024/2025 · {equipas.length} escalões</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                     + Nova Equipa
                 </button>
             </div>
 
             {/* Cards resumo */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Equipas</p>
-                    <p className="text-3xl font-bold text-white mt-2">{equipas.length}</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total de Equipas</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{equipas.length}</p>
                 </div>
-                <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Equipas Ativas</p>
+                <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Equipas Ativas</p>
                     <p className="text-3xl font-bold text-emerald-400 mt-2">{equipas.filter(e => e.estado === "Ativa").length}</p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Atletas</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total de Atletas</p>
                     <p className="text-3xl font-bold text-cyan-400 mt-2">{equipas.reduce((acc, e) => acc + e.atletas, 0)}</p>
                 </div>
             </div>
 
             {/* Tabela */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800 bg-slate-900/80">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/80">
                             <th className="text-left px-6 py-4">Equipa</th>
                             <th className="text-left px-6 py-4">Escalão</th>
                             <th className="text-left px-6 py-4">Treinador</th>
@@ -60,12 +60,12 @@ export default function EquipasPage() {
                     </thead>
                     <tbody>
                         {equipas.map((e, i) => (
-                            <tr key={e.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-white">{e.nome}</td>
-                                <td className="px-6 py-4 text-slate-400">{e.escalao}</td>
-                                <td className="px-6 py-4 text-slate-400">{e.treinador}</td>
-                                <td className="px-6 py-4 text-slate-400">{e.atletas}</td>
-                                <td className="px-6 py-4 text-slate-400">{e.treinos}</td>
+                            <tr key={e.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{e.nome}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{e.escalao}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{e.treinador}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{e.atletas}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{e.treinos}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado]}`}>
                                         {e.estado}

@@ -14,7 +14,7 @@ import {
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Receipts | PrimeFlow Dashboard",
+    title: "Receipts | TeamAction Dashboard",
 };
 
 export const dynamic = "force-dynamic";
