@@ -68,7 +68,7 @@ export async function fetchFilteredUsers(query: string) {
 }
 
 // Helper para pegar organization_id da sessão
-async function getOrganizationId(): Promise<string> {
+export async function getOrganizationId(): Promise<string> {
     const { userId } = await auth();
 
     if (!userId) {
@@ -1152,6 +1152,126 @@ export async function fetchEpocaAtiva() {
         throw new Error("Failed to fetch epoca ativa.");
     }
 }
+
+// ---------- PERFIL ----------
+
+export async function fetchPerfilPresidente() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            iban: string | null;
+            org_name: string;
+            org_slug: string;
+            org_created_at: string;
+        }[]>`
+            SELECT
+                u.iban,
+                o.name   AS org_name,
+                o.slug   AS org_slug,
+                o.created_at AS org_created_at
+            FROM users u
+            JOIN organizations o ON o.id = u.organization_id
+            WHERE u.organization_id = ${organizationId}
+              AND u.role = 'admin'
+            LIMIT 1
+        `;
+
+        return data[0] ?? null;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch perfil presidente.");
+    }
+}
+
+// ---------- COMUNICADOS ----------
+
+export async function fetchComunicados() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            titulo: string;
+            conteudo: string;
+            destinatarios: string;
+            criado_por: string;
+            created_at: string;
+        }[]>`
+            SELECT id, titulo, conteudo, destinatarios, criado_por, created_at
+            FROM comunicados
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch comunicados.");
+    }
+}
+
+
+
+
+// ---------- AUTORIZAÇÕES ----------
+
+export async function fetchAutorizacoes() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            autorizado_a: string;
+            autorizado_por: string;
+            tipo_acao: string;
+            notas: string | null;
+            created_at: string;
+        }[]>`
+            SELECT id, autorizado_a, autorizado_por, tipo_acao, notas, created_at
+            FROM autorizacoes_log
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch autorizacoes.");
+    }
+}
+
+
+// ---------- DOCUMENTOS ----------
+
+export async function fetchDocumentos() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            nome: string;
+            tipo: string;
+            url_r2: string;
+            created_at: string;
+        }[]>`
+            SELECT id, nome, tipo, url_r2, created_at
+            FROM documentos
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch documentos.");
+    }
+}
+
+
+
+
+
 
 
 
