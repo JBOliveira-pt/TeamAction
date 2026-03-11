@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Editar Cliente | PrimeFlow Dashboard",
+    title: "Editar Cliente | TeamAction Dashboard",
 };
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {

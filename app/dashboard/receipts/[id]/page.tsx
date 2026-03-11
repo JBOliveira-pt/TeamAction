@@ -5,7 +5,7 @@ import Breadcrumbs from "@/app/ui/invoices/breadcrumbs";
 import { getCurrentUser } from "@/app/lib/auth-helpers";
 
 export const metadata: Metadata = {
-    title: "Receipt | PrimeFlow Dashboard",
+    title: "Receipt | TeamAction Dashboard",
 };
 
 export const dynamic = "force-dynamic";

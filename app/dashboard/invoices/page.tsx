@@ -16,7 +16,7 @@ import {
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Invoices | PrimeFlow Dashboard",
+    title: "Invoices | TeamAction Dashboard",
 };
 
 // Forçar renderização dinâmica

@@ -10,7 +10,7 @@ import { AddCustomerButton } from "@/app/ui/customers/buttons";
 import { FormattedCustomersTable } from "@/app/lib/definitions";
 
 export const metadata: Metadata = {
-    title: "Customers | PrimeFlow Dashboard",
+    title: "Customers | TeamAction Dashboard",
 };
 
 // Forçar renderização dinâmica

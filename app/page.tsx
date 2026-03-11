@@ -1,4 +1,4 @@
-import AcmeLogo from "@/app/ui/primeflow-logo";
+import TeamActionLogo from "@/app/ui/teamaction-logo";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { lusitana } from "@/app/ui/fonts";
@@ -16,15 +16,15 @@ export default function Page() {
                     fontFamily: "Atyp-Semibold, sans-serif",
                 }}
             >
-                <AcmeLogo />
-                <strong>PrimeFLOW</strong>
+                <TeamActionLogo />
+                <strong>TeamAction</strong>
             </div>
             <div className="mt-4 flex grow flex-col gap-4 md:flex-row">
                 <div className="flex flex-col justify-center gap-6 rounded-lg bg-gray-50 dark:bg-slate-900 px-6 py-10 md:w-2/5 md:px-20">
                     <p
                         className={`${lusitana.className} text-xl text-gray-800 dark:text-gray-100 md:text-3xl md:leading-normal`}
                     >
-                        Welcome to <strong>PrimeFLOW</strong>.
+                        Welcome to <strong>TeamAction</strong>.
                         <br />
                         The future of financial clarity starts here.
                     </p>

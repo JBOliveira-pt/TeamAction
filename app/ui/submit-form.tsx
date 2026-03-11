@@ -19,10 +19,10 @@ const RegisterView = ({ setView }: { setView: (v: "login") => void }) => (
             <div className="text-center mb-8">
                 <div className="w-18 h-18 flex items-center justify-center mx-auto">
                     <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-whiteroundlogo-nobg.png"
+                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
                         width={80}
                         height={80}
-                        alt="PrimeFlow Logo"
+                        alt="TeamAction Logo"
                     />
                 </div>
                 <h3 className="text-3xl font-bold text-white mb-2">

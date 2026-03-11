@@ -28,18 +28,18 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                 <div className="text-center mb-8">
                     <div className="flex items-center justify-center mx-auto mb-4">
                         <Image
-                            src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-whiteroundlogo-nobg.png"
+                            src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
                             width={70}
                             height={50}
-                            alt="PrimeFlow Logo"
+                            alt="TeamAction Logo"
                         />
                     </div>
                     <h2 className="text-3xl font-bold text-white mb-2">
                         Login
                     </h2>
                     <p className="text-slate-400 text-sm">
-                        Entre na sua conta corporativa Prime
-                        <span className="font-bold">Flow</span>
+                        Entre na sua conta corporativa Team
+                        <span className="font-bold">Action</span>
                     </p>
                 </div>
 

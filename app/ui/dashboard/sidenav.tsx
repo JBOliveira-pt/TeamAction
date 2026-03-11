@@ -1,39 +1,28 @@
 // app/ui/dashboard/sidenav.tsx
-'use client';
+"use client";
 
-import { DashboardHeader } from '@/app/components/header';
-import AcmeLogo from '@/app/ui/primeflow-logo';
-import { SignOutButton, useUser } from '@clerk/nextjs';
 import {
-    Activity,
-    BarChart2,
-    BarChart3,
-    Calendar,
-    CheckSquare,
-    CircleUserRound,
-    Clipboard,
-    FileText,
-    Leaf,
-    Lock,
     LogOut,
-    Map,
-    Menu,
-    Receipt,
-    TrendingUp,
-    Trophy,
     User,
     Users,
+    History,
+    Home,
+    Menu,
     X,
-} from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+    BarChart3,
+    FileText,
+    CircleUserRound,
+    Receipt,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import { SignOutButton, useUser } from "@clerk/nextjs";
+import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { DashboardHeader } from "@/app/components/header";
 
 export default function SideNav() {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeProfile, setActiveProfile] = useState<'atleta' | 'pai' | null>(
-        null,
-    );
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
     const [dbUser, setDbUser] = useState<{
@@ -48,8 +37,8 @@ export default function SideNav() {
             if (!isLoaded || !clerkUser) return;
 
             try {
-                const response = await fetch('/api/debug/user', {
-                    cache: 'no-store',
+                const response = await fetch("/api/debug/user", {
+                    cache: "no-store",
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -62,7 +51,7 @@ export default function SideNav() {
                     }
                 }
             } catch (error) {
-                console.error('Erro ao buscar dados do usuário:', error);
+                console.error("Erro ao buscar dados do usuário:", error);
             }
         }
 
@@ -80,48 +69,16 @@ export default function SideNav() {
         </button>
     );
 
-    // Tabs de perfil para o header
-    const profileTabsEl = (
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
-            <button
-                onClick={() =>
-                    setActiveProfile(
-                        activeProfile === 'atleta' ? null : 'atleta',
-                    )
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'atleta'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
-            >
-                🏃 Atleta
-            </button>
-            <button
-                onClick={() =>
-                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'pai'
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
-            >
-                👨‍👦 Pai/Enc.
-            </button>
-        </div>
-    );
-
     // Usa dados do banco de dados se disponíveis, senão usa do Clerk
     const userData = dbUser || {
         name:
             isLoaded && clerkUser
-                ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
-                : 'Usuario',
+                ? clerkUser.fullName || clerkUser.firstName || "Usuario"
+                : "Usuario",
         role:
             isLoaded && clerkUser
-                ? (clerkUser.publicMetadata?.role as string) || 'user'
-                : 'user',
+                ? (clerkUser.publicMetadata?.role as string) || "user"
+                : "user",
         foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
     };
 
@@ -138,7 +95,6 @@ export default function SideNav() {
             {/* Header */}
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
-                profileTabs={profileTabsEl}
                 user={userData}
             />
 
@@ -148,160 +104,59 @@ export default function SideNav() {
           fixed top-0 left-0 z-40
           w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
           transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
             >
                 {/* Logo */}
-                <div className="flex items-center gap-3 mb-10 px-2">
-                    <div className="w-15 h-10 flex items-center justify-center">
-                        <AcmeLogo />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold">PrimeFLOW</h1>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                            Dashboard
-                        </p>
-                    </div>
+                <div className="flex items-center mb-10 px-2">
+                    <Image
+                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
+                        alt="TeamAction"
+                        width={180}
+                        height={40}
+                        className="dark:hidden"
+                    />
+                    <Image
+                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-black.png"
+                        alt="TeamAction"
+                        width={180}
+                        height={40}
+                        className="hidden dark:block"
+                    />
                 </div>
 
                 {/* Menu de Navegação */}
-                <nav className="flex-1 space-y-1 overflow-y-auto">
-                    {activeProfile === 'atleta' && (
-                        <>
-                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
-                            <NavItem
-                                icon={<User size={20} />}
-                                label="O meu perfil"
-                                href="/dashboard/atleta/perfil"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<Calendar size={20} />}
-                                label="Agenda"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavSectionLabel>Equipa</NavSectionLabel>
-                            <NavItem
-                                icon={<Clipboard size={20} />}
-                                label="Treinos"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<Trophy size={20} />}
-                                label="Jogos"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<Map size={20} />}
-                                label="Táticas"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavSectionLabel>Evolução</NavSectionLabel>
-                            <NavItem
-                                icon={<Activity size={20} />}
-                                label="Condição Física"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<Leaf size={20} />}
-                                label="Plano Alimentar"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<TrendingUp size={20} />}
-                                label="As minhas stats"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                        </>
-                    )}
-                    {activeProfile === 'pai' && (
-                        <>
-                            <NavSectionLabel>O Meu Filho</NavSectionLabel>
-                            <NavItem
-                                icon={<User size={20} />}
-                                label="Perfil"
-                                href="/dashboard"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<Calendar size={20} />}
-                                label="Agenda"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<CheckSquare size={20} />}
-                                label="Assiduidade"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavSectionLabel>Equipa</NavSectionLabel>
-                            <NavItem
-                                icon={<Trophy size={20} />}
-                                label="Jogos"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<BarChart2 size={20} />}
-                                label="Estatísticas"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavSectionLabel>Saúde</NavSectionLabel>
-                            <NavItem
-                                icon={<Activity size={20} />}
-                                label="Condição Física"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <LockedNavItem
-                                icon={<Leaf size={20} />}
-                                label="Nutrição"
-                            />
-                        </>
-                    )}
-                    {!activeProfile && (
-                        <>
-                            <NavItem
-                                icon={<BarChart3 size={20} />}
-                                label="Home"
-                                href="/dashboard"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                href="/dashboard/invoices"
-                                icon={<FileText size={20} />}
-                                label="Faturas"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                href="/dashboard/receipts"
-                                icon={<Receipt size={20} />}
-                                label="Recibos"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                href="/dashboard/customers"
-                                icon={<Users size={20} />}
-                                label="Clientes"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                href="/dashboard/users"
-                                icon={<CircleUserRound size={20} />}
-                                label="Utilizadores"
-                                onClick={() => setIsOpen(false)}
-                            />
-                        </>
-                    )}
+                <nav className="flex-1 space-y-2">
+                    <NavItem
+                        icon={<BarChart3 size={20} />}
+                        label="Home"
+                        href="/dashboard"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <NavItem
+                        href="/dashboard/invoices"
+                        icon={<FileText size={20} />}
+                        label="Faturas"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <NavItem
+                        href="/dashboard/receipts"
+                        icon={<Receipt size={20} />}
+                        label="Recibos"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <NavItem
+                        href="/dashboard/customers"
+                        icon={<Users size={20} />}
+                        label="Clientes"
+                        onClick={() => setIsOpen(false)}
+                    />
+                    <NavItem
+                        href="/dashboard/users"
+                        icon={<CircleUserRound size={20} />}
+                        label="Utilizadores"
+                        onClick={() => setIsOpen(false)}
+                    />
                 </nav>
 
                 {/* Sign Out Button */}
@@ -324,30 +179,6 @@ export default function SideNav() {
     );
 }
 
-function NavSectionLabel({ children }: { children: string }) {
-    return (
-        <p className="text-[10px] font-bold tracking-widest text-gray-400 dark:text-gray-600 uppercase px-3 pt-4 pb-1">
-            {children}
-        </p>
-    );
-}
-
-function LockedNavItem({
-    icon,
-    label,
-}: {
-    icon: React.ReactNode;
-    label: string;
-}) {
-    return (
-        <div className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed text-gray-600 dark:text-gray-400">
-            <span className="text-gray-500 dark:text-gray-500">{icon}</span>
-            <span className="font-medium flex-1">{label}</span>
-            <Lock size={12} className="text-gray-400" />
-        </div>
-    );
-}
-
 function NavItem({
     href,
     icon,
@@ -363,8 +194,8 @@ function NavItem({
 
     // Para a página Home/Dashboard, só fica ativo quando está exatamente nela
     const active =
-        href === '/dashboard'
-            ? pathname === '/dashboard'
+        href === "/dashboard"
+            ? pathname === "/dashboard"
             : pathname === href || pathname.startsWith(`${href}/`);
 
     return (
@@ -373,15 +204,15 @@ function NavItem({
             onClick={onClick}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
                 active
-                    ? 'bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
+                    ? "bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
             }`}
         >
             <span
                 className={
                     active
-                        ? 'text-blue-500 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors'
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
                 }
             >
                 {icon}
