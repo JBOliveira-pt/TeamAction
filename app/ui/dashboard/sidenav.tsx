@@ -100,20 +100,6 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "atleta" ? null : "atleta",
-                    )
-                }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "atleta"
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                }`}
-            >
-                🏃 Atleta
-            </button>
-            <button
-                onClick={() =>
-                    setActiveProfile(
                         activeProfile === "treinador" ? null : "treinador",
                     )
                 }
@@ -124,6 +110,20 @@ export default function SideNav() {
                 }`}
             >
                 🧑‍🏫 Treinador
+            </button>
+            <button
+                onClick={() =>
+                    setActiveProfile(
+                        activeProfile === "atleta" ? null : "atleta",
+                    )
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeProfile === "atleta"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                }`}
+            >
+                🏃 Atleta
             </button>
             <button
                 onClick={() =>
@@ -366,7 +366,7 @@ export default function SideNav() {
                         </>
                     )}
 
-                    {activeProfile === "atleta" && (
+                    {activeProfile === "treinador" && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
