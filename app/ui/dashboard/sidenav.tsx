@@ -1,10 +1,9 @@
-// app/ui/dashboard/sidenav.tsx
-'use client';
+"use client";
 
-
-import { DashboardHeader } from '@/app/components/header';
-import AcmeLogo from '@/app/ui/primeflow-logo';
-import { SignOutButton, useUser } from '@clerk/nextjs';
+import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useUser, SignOutButton } from "@clerk/nextjs";
 import {
     Activity,
     BarChart2,
@@ -17,132 +16,137 @@ import {
     Leaf,
     Lock,
     LogOut,
-    Map,
-    Menu,
     Receipt,
     TrendingUp,
     Trophy,
     User,
     Users,
-    X,
-} from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+    MapPinned,
+} from "lucide-react";
+import PrimeflowLogo from "../primeflow-logo";
+import { DashboardHeader } from "../../components/header";
 
+function NavSectionLabel({ children }: { children: string }) {
+    return (
+        <p className="text-[10px] font-bold tracking-widest text-gray-400 dark:text-gray-600 uppercase px-3 pt-4 pb-1">
+            {children}
+        </p>
+    );
+}
+
+function LockedNavItem({
+    icon,
+    label,
+}: {
+    icon: React.ReactNode;
+    label: string;
+}) {
+    return (
+        <div className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed text-gray-600 dark:text-gray-400">
+            <span className="text-gray-500 dark:text-gray-500">{icon}</span>
+            <span className="font-medium flex-1">{label}</span>
+            <Lock size={12} className="text-gray-400" />
+        </div>
+    );
+}
+
+function NavItem({
+    href,
+    icon,
+    label,
+    onClick,
+}: {
+    href: string;
+    icon: React.ReactNode;
+    label: string;
+    onClick?: () => void;
+}) {
+    const pathname = usePathname();
+    const active =
+        href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname === href || pathname.startsWith(`${href}/`);
+    return (
+        <Link
+            href={href}
+            onClick={onClick}
+            className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
+                active
+                    ? "bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
+            }`}
+        >
+            <span
+                className={
+                    active
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
+                }
+            >
+                {icon}
+            </span>
+            <span className="font-medium">{label}</span>
+        </Link>
+    );
+}
 
 export default function SideNav() {
+    const [activeProfile, setActiveProfile] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(false);
-    const [activeProfile, setActiveProfile] = useState<'atleta' | 'pai' | 'presidente' | null>(
-        null,
-    );
-    const { isLoaded, user: clerkUser } = useUser();
-    const pathname = usePathname();
-    const [dbUser, setDbUser] = useState<{
-        name: string;
-        role: string;
-        foto?: string;
-    } | null>(null);
-
-
-    useEffect(() => {
-        async function fetchUserData() {
-            if (!isLoaded || !clerkUser) return;
-
-
-            try {
-                const response = await fetch('/api/debug/user', {
-                    cache: 'no-store',
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.user) {
-                        setDbUser({
-                            name: data.user.name,
-                            role: data.user.role,
-                            foto: data.user.image_url || clerkUser.imageUrl,
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Erro ao buscar dados do usuário:', error);
-            }
-        }
-
-
-        fetchUserData();
-    }, [isLoaded, clerkUser, pathname]);
-
-
-    const mobileMenuTrigger = (
-        <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="p-2 bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg border border-gray-300 dark:border-gray-800 hover:bg-gray-300 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Toggle menu"
-        >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-    );
-
-
+    const { user: clerkUser, isLoaded } = useUser();
+    const userData = {
+        name:
+            isLoaded && clerkUser
+                ? clerkUser.fullName || clerkUser.firstName || "Utilizador"
+                : "Utilizador",
+        role:
+            isLoaded && clerkUser
+                ? (clerkUser.publicMetadata?.role as string) || "user"
+                : "user",
+        foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
+    };
     const profileTabsEl = (
         <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'presidente' ? null : 'presidente',
+                        activeProfile === "presidente" ? null : "presidente",
                     )
                 }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'presidente'
-                        ? 'bg-violet-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeProfile === "presidente" ? "bg-violet-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
             >
                 🏛️ Presidente
             </button>
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'atleta' ? null : 'atleta',
+                        activeProfile === "treinador" ? null : "treinador",
                     )
                 }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'atleta'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeProfile === "treinador" ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
+            >
+                🎯 Treinador
+            </button>
+            <button
+                onClick={() =>
+                    setActiveProfile(
+                        activeProfile === "atleta" ? null : "atleta",
+                    )
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeProfile === "atleta" ? "bg-emerald-600 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
             >
                 🏃 Atleta
             </button>
             <button
                 onClick={() =>
-                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
+                    setActiveProfile(activeProfile === "pai" ? null : "pai")
                 }
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'pai'
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeProfile === "pai" ? "bg-amber-500 text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}`}
             >
                 👨‍👦 Pai/Enc.
             </button>
         </div>
     );
-
-
-    const userData = dbUser || {
-        name:
-            isLoaded && clerkUser
-                ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
-                : 'Usuario',
-        role:
-            isLoaded && clerkUser
-                ? (clerkUser.publicMetadata?.role as string) || 'user'
-                : 'user',
-        foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
-    };
-
 
     return (
         <>
@@ -153,25 +157,19 @@ export default function SideNav() {
                 />
             )}
 
-
-            <DashboardHeader
-                mobileMenuTrigger={mobileMenuTrigger}
-                profileTabs={profileTabsEl}
-                user={userData}
-            />
-
+            <DashboardHeader profileTabs={profileTabsEl} user={userData} />
 
             <aside
                 className={`
-          fixed top-0 left-0 z-40
-          w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
-          transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
+                    fixed top-0 left-0 z-40
+                    w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
+                    transition-transform duration-300 ease-in-out
+                    ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+                `}
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
                     <div className="w-15 h-10 flex items-center justify-center">
-                        <AcmeLogo />
+                        <PrimeflowLogo />
                     </div>
                     <div>
                         <h1 className="text-xl font-bold">PrimeFLOW</h1>
@@ -181,11 +179,8 @@ export default function SideNav() {
                     </div>
                 </div>
 
-
                 <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
-
-
-                    {activeProfile === 'presidente' && (
+                    {activeProfile === "presidente" && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -277,7 +272,6 @@ export default function SideNav() {
                                 href="/dashboard/presidente/definicoes"
                                 onClick={() => setIsOpen(false)}
                             />
-                            {/* ✅ NOVO — Perfil do Presidente */}
                             <NavItem
                                 icon={<User size={20} />}
                                 label="Perfil"
@@ -286,42 +280,83 @@ export default function SideNav() {
                             />
                         </>
                     )}
-
-
-                    {activeProfile === 'atleta' && (
+                    {activeProfile === "treinador" && (
                         <>
-                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
+                            <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
-                                icon={<User size={20} />}
-                                label="O meu perfil"
-                                href="/dashboard/atleta/perfil"
+                                icon={<BarChart3 size={20} />}
+                                label="Dashboard Treinador"
+                                href="/dashboard/treinador"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
                                 icon={<Calendar size={20} />}
-                                label="Agenda"
-                                href="#"
+                                label="Calendário"
+                                href="/dashboard/treinador/calendario"
                                 onClick={() => setIsOpen(false)}
                             />
-                            <NavSectionLabel>Equipa</NavSectionLabel>
+                            <NavSectionLabel>Treino</NavSectionLabel>
+                            <NavItem
+                                icon={<CheckSquare size={20} />}
+                                label="Sessões"
+                                href="/dashboard/treinador/sessoes"
+                                onClick={() => setIsOpen(false)}
+                            />
                             <NavItem
                                 icon={<Clipboard size={20} />}
-                                label="Treinos"
-                                href="#"
+                                label="Exercícios"
+                                href="/dashboard/treinador/exercicios"
                                 onClick={() => setIsOpen(false)}
                             />
+                            <NavItem
+                                icon={<CheckSquare size={20} />}
+                                label="Assiduidade"
+                                href="/dashboard/treinador/assiduidade"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Tático</NavSectionLabel>
+                            <NavItem
+                                icon={<MapPinned size={20} />}
+                                label="Quadro Tático"
+                                href="/dashboard/treinador/quadro-tatico"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Clipboard size={20} />}
+                                label="Biblioteca"
+                                href="/dashboard/treinador/biblioteca"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Jogo</NavSectionLabel>
                             <NavItem
                                 icon={<Trophy size={20} />}
                                 label="Jogos"
-                                href="#"
+                                href="/dashboard/treinador/jogos"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
-                                icon={<Map size={20} />}
-                                label="Táticas"
-                                href="#"
+                                icon={<BarChart2 size={20} />}
+                                label="Live Stats"
+                                href="/dashboard/treinador/estatisticas-ao-vivo"
                                 onClick={() => setIsOpen(false)}
                             />
+                            <NavSectionLabel>Atletas</NavSectionLabel>
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Condição Física"
+                                href="/dashboard/treinador/condicao-fisica"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Leaf size={20} />}
+                                label="Nutrição"
+                                href="/dashboard/treinador/nutricao"
+                                onClick={() => setIsOpen(false)}
+                            />
+                        </>
+                    )}
+                    {activeProfile === "atleta" && (
+                        <>
                             <NavSectionLabel>Evolução</NavSectionLabel>
                             <NavItem
                                 icon={<Activity size={20} />}
@@ -343,7 +378,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {activeProfile === 'pai' && (
+                    {activeProfile === "pai" && (
                         <>
                             <NavSectionLabel>O Meu Filho</NavSectionLabel>
                             <NavItem
@@ -426,7 +461,6 @@ export default function SideNav() {
                     )}
                 </nav>
 
-
                 <div className="pt-6 border-t border-gray-200 dark:border-gray-900">
                     <SignOutButton redirectUrl="/login">
                         <button
@@ -445,75 +479,3 @@ export default function SideNav() {
         </>
     );
 }
-
-
-function NavSectionLabel({ children }: { children: string }) {
-    return (
-        <p className="text-[10px] font-bold tracking-widest text-gray-400 dark:text-gray-600 uppercase px-3 pt-4 pb-1">
-            {children}
-        </p>
-    );
-}
-
-
-function LockedNavItem({
-    icon,
-    label,
-}: {
-    icon: React.ReactNode;
-    label: string;
-}) {
-    return (
-        <div className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed text-gray-600 dark:text-gray-400">
-            <span className="text-gray-500 dark:text-gray-500">{icon}</span>
-            <span className="font-medium flex-1">{label}</span>
-            <Lock size={12} className="text-gray-400" />
-        </div>
-    );
-}
-
-
-function NavItem({
-    href,
-    icon,
-    label,
-    onClick,
-}: {
-    href: string;
-    icon: React.ReactNode;
-    label: string;
-    onClick?: () => void;
-}) {
-    const pathname = usePathname();
-
-
-    const active =
-        href === '/dashboard'
-            ? pathname === '/dashboard'
-            : pathname === href || pathname.startsWith(`${href}/`);
-
-
-    return (
-        <Link
-            href={href}
-            onClick={onClick}
-            className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
-                active
-                    ? 'bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
-            }`}
-        >
-            <span
-                className={
-                    active
-                        ? 'text-blue-500 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors'
-                }
-            >
-                {icon}
-            </span>
-            <span className="font-medium">{label}</span>
-        </Link>
-    );
-}
-
