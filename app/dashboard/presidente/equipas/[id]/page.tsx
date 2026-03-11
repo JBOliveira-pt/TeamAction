@@ -1,139 +1,36 @@
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { fetchEquipaById } from "@/app/lib/data";
+import { notFound } from "next/navigation";
 
-const equipas = [
-    {
-        id: 1,
-        nome: "Seniores M",
-        escalao: "Seniores",
-        atletas: 18,
-        treinador: "Carlos Ferreira",
-        treinos: "4x/sem",
-        estado: "Ativa",
-        horario: "Seg, Qua, Sex, Sáb — 19h00",
-        campo: "Campo Principal",
-        vitorias: 8,
-        derrotas: 3,
-        empates: 2,
-        golosMarcados: 24,
-        golosSofridos: 14,
-    },
-    {
-        id: 2,
-        nome: "Sub-18 M",
-        escalao: "Sub-18",
-        atletas: 16,
-        treinador: "Pedro Sousa",
-        treinos: "3x/sem",
-        estado: "Ativa",
-        horario: "Ter, Qui, Sáb — 18h00",
-        campo: "Campo 2",
-        vitorias: 6,
-        derrotas: 4,
-        empates: 1,
-        golosMarcados: 18,
-        golosSofridos: 12,
-    },
-    {
-        id: 3,
-        nome: "Sub-16 F",
-        escalao: "Sub-16",
-        atletas: 14,
-        treinador: "Ana Martins",
-        treinos: "2x/sem",
-        estado: "Ativa",
-        horario: "Qua, Sáb — 17h00",
-        campo: "Campo 2",
-        vitorias: 5,
-        derrotas: 2,
-        empates: 3,
-        golosMarcados: 15,
-        golosSofridos: 9,
-    },
-    {
-        id: 4,
-        nome: "Sub-14 M",
-        escalao: "Sub-14",
-        atletas: 12,
-        treinador: "João Silva",
-        treinos: "2x/sem",
-        estado: "Período Off",
-        horario: "Ter, Sex — 17h30",
-        campo: "Campo 3",
-        vitorias: 4,
-        derrotas: 5,
-        empates: 2,
-        golosMarcados: 12,
-        golosSofridos: 16,
-    },
-    {
-        id: 5,
-        nome: "Sub-12 M",
-        escalao: "Sub-12",
-        atletas: 10,
-        treinador: "Rui Costa",
-        treinos: "2x/sem",
-        estado: "Inativa",
-        horario: "Sáb — 10h00",
-        campo: "Campo 3",
-        vitorias: 2,
-        derrotas: 6,
-        empates: 1,
-        golosMarcados: 8,
-        golosSofridos: 20,
-    },
-];
-
-const atletasMock = [
-    { id: 1, nome: "Miguel Santos", posicao: "Guarda-redes", idade: 22, estado: "Ativo" },
-    { id: 2, nome: "André Lima", posicao: "Defesa Central", idade: 24, estado: "Ativo" },
-    { id: 3, nome: "Tiago Ferreira", posicao: "Defesa Central", idade: 21, estado: "Ativo" },
-    { id: 4, nome: "Bruno Alves", posicao: "Lateral Direito", idade: 23, estado: "Ativo" },
-    { id: 5, nome: "Diogo Costa", posicao: "Lateral Esquerdo", idade: 20, estado: "Lesionado" },
-    { id: 6, nome: "Ricardo Pinto", posicao: "Médio Defensivo", idade: 25, estado: "Ativo" },
-    { id: 7, nome: "Hugo Mendes", posicao: "Médio Central", idade: 22, estado: "Ativo" },
-    { id: 8, nome: "Fábio Rocha", posicao: "Médio Ofensivo", idade: 23, estado: "Ativo" },
-];
-
-const jogosMock = [
-    { id: 1, adversario: "FC Vizela", data: "2025-03-15", hora: "15h00", local: "Casa", resultado: null },
-    { id: 2, adversario: "SC Braga B", data: "2025-03-22", hora: "16h00", local: "Fora", resultado: null },
-    { id: 3, adversario: "FC Porto B", data: "2025-03-08", hora: "15h00", local: "Casa", resultado: "2-1" },
-    { id: 4, adversario: "Boavista FC", data: "2025-03-01", hora: "16h00", local: "Fora", resultado: "0-0" },
-];
-
-const estadoStyle: Record<string, string> = {
-    "Ativa": "bg-emerald-500/10 text-emerald-400",
-    "Período Off": "bg-amber-500/10 text-amber-400",
-    "Inativa": "bg-red-500/10 text-red-400",
+const estadoEquipaStyle: Record<string, string> = {
+    "ativa": "bg-emerald-500/10 text-emerald-400",
+    "periodo_off": "bg-amber-500/10 text-amber-400",
+    "inativa": "bg-red-500/10 text-red-400",
 };
 
 const atletaEstadoStyle: Record<string, string> = {
-    "Ativo": "bg-emerald-500/10 text-emerald-400",
-    "Lesionado": "bg-red-500/10 text-red-400",
-    "Suspenso": "bg-amber-500/10 text-amber-400",
+    "ativo": "bg-emerald-500/10 text-emerald-400",
+    "suspenso": "bg-amber-500/10 text-amber-400",
+    "inativo": "bg-red-500/10 text-red-400",
 };
 
 export default async function EquipaDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const equipa = equipas.find((e) => e.id === Number(id));
+    const { equipa, atletas, staff, jogos } = await fetchEquipaById(id);
 
-    if (!equipa) {
-        return (
-            <div className="p-6 flex flex-col items-center justify-center min-h-[400px] space-y-4">
-                <p className="text-gray-500 dark:text-gray-400 text-lg">Equipa não encontrada.</p>
-                <Link
-                    href="/dashboard/presidente/equipas"
-                    className="text-sm text-violet-400 hover:text-violet-300 font-medium transition-colors"
-                >
-                    ← Voltar às Equipas
-                </Link>
-            </div>
-        );
-    }
+    if (!equipa) return notFound();
 
-    const totalJogos = equipa.vitorias + equipa.derrotas + equipa.empates;
-    const pontosPerc = totalJogos > 0 ? Math.round((equipa.vitorias / totalJogos) * 100) : 0;
+    // Calcular stats a partir dos jogos reais
+    const jogosRealizados = jogos.filter(j => j.estado === "realizado");
+    const vitorias = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos > j.resultado_adv).length;
+    const derrotas = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos < j.resultado_adv).length;
+    const empates = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos === j.resultado_adv).length;
+    const golosMarcados = jogosRealizados.reduce((acc, j) => acc + (j.resultado_nos ?? 0), 0);
+    const golosSofridos = jogosRealizados.reduce((acc, j) => acc + (j.resultado_adv ?? 0), 0);
+    const pontosPerc = jogosRealizados.length > 0 ? Math.round((vitorias / jogosRealizados.length) * 100) : 0;
+
+    const treinador = staff.find(s => s.funcao === "treinador");
 
     return (
         <div className="p-6 space-y-6">
@@ -150,9 +47,9 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{equipa.nome}</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{equipa.escalao} · {equipa.campo}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{equipa.escalao} · {equipa.desporto}</p>
                     </div>
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoStyle[equipa.estado]}`}>
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoEquipaStyle[equipa.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
                         {equipa.estado}
                     </span>
                 </div>
@@ -162,15 +59,15 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Vitórias</p>
-                    <p className="text-3xl font-bold text-emerald-400 mt-2">{equipa.vitorias}</p>
+                    <p className="text-3xl font-bold text-emerald-400 mt-2">{vitorias}</p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Empates</p>
-                    <p className="text-3xl font-bold text-amber-400 mt-2">{equipa.empates}</p>
+                    <p className="text-3xl font-bold text-amber-400 mt-2">{empates}</p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Derrotas</p>
-                    <p className="text-3xl font-bold text-red-400 mt-2">{equipa.derrotas}</p>
+                    <p className="text-3xl font-bold text-red-400 mt-2">{derrotas}</p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">% Vitórias</p>
@@ -189,45 +86,51 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
                         <div className="space-y-3">
                             <div>
                                 <p className="text-xs text-gray-400 dark:text-gray-500">Treinador</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.treinador}</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{treinador?.nome ?? "—"}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Treinos</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.treinos}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Horário</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.horario}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Campo</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.campo}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Staff Técnico</p>
+                                {staff.length === 0 ? (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">—</p>
+                                ) : (
+                                    staff.map(s => (
+                                        <p key={s.id} className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                            {s.nome} <span className="text-gray-400 dark:text-gray-500 text-xs">({s.funcao})</span>
+                                        </p>
+                                    ))
+                                )}
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 dark:text-gray-500">Golos Marcados / Sofridos</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
-                                    {equipa.golosMarcados} <span className="text-gray-400 dark:text-gray-500">/</span> {equipa.golosSofridos}
+                                    {golosMarcados} <span className="text-gray-400 dark:text-gray-500">/</span> {golosSofridos}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Próximos jogos */}
+                    {/* Jogos */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-3">
                         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Jogos</h2>
-                        {jogosMock.map((jogo) => (
-                            <div key={jogo.id} className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-800 last:border-0">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{jogo.adversario}</p>
-                                    <p className="text-xs text-gray-400 dark:text-gray-500">{jogo.data} · {jogo.hora} · {jogo.local}</p>
+                        {jogos.length === 0 ? (
+                            <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum jogo registado.</p>
+                        ) : (
+                            jogos.map((jogo) => (
+                                <div key={jogo.id} className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-800 last:border-0">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white">{jogo.adversario}</p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                                            {new Date(jogo.data).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })} · {jogo.casa_fora}
+                                        </p>
+                                    </div>
+                                    {jogo.resultado_nos != null ? (
+                                        <span className="text-sm font-bold text-cyan-400">{jogo.resultado_nos}-{jogo.resultado_adv}</span>
+                                    ) : (
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 italic">Agendado</span>
+                                    )}
                                 </div>
-                                {jogo.resultado ? (
-                                    <span className="text-sm font-bold text-cyan-400">{jogo.resultado}</span>
-                                ) : (
-                                    <span className="text-xs text-gray-400 dark:text-gray-500 italic">A jogar</span>
-                                )}
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
@@ -235,38 +138,51 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
                 <div className="lg:col-span-2">
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Atletas ({equipa.atletas})</h2>
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Atletas ({atletas.length})</h2>
                             <button className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
                                 + Adicionar Atleta
                             </button>
                         </div>
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
-                                    <th className="text-left px-6 py-3">Nome</th>
-                                    <th className="text-left px-6 py-3">Posição</th>
-                                    <th className="text-left px-6 py-3">Idade</th>
-                                    <th className="text-left px-6 py-3">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {atletasMock.map((atleta) => (
-                                    <tr key={atleta.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                        <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{atleta.nome}</td>
-                                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{atleta.posicao}</td>
-                                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{atleta.idade}</td>
-                                        <td className="px-6 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${atletaEstadoStyle[atleta.estado]}`}>
-                                                {atleta.estado}
-                                            </span>
-                                        </td>
+                        {atletas.length === 0 ? (
+                            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">Nenhum atleta nesta equipa.</p>
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
+                                        <th className="text-left px-6 py-3">Nome</th>
+                                        <th className="text-left px-6 py-3">Nº</th>
+                                        <th className="text-left px-6 py-3">Posição</th>
+                                        <th className="text-left px-6 py-3">Estado</th>
+                                        <th className="text-left px-6 py-3"></th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {atletas.map((atleta) => (
+                                        <tr key={atleta.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                            <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{atleta.nome}</td>
+                                            <td className="px-6 py-3 text-gray-500 dark:text-gray-400">
+                                                {atleta.numero_camisola != null ? `#${atleta.numero_camisola}` : "—"}
+                                            </td>
+                                            <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{atleta.posicao ?? "—"}</td>
+                                            <td className="px-6 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${atletaEstadoStyle[atleta.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                                    {atleta.estado}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <Link href={`/dashboard/presidente/atletas/${atleta.id}`} className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
+                                                    Ver perfil →
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
             </div>
         </div>
     );
 }
+

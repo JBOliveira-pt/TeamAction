@@ -1,28 +1,26 @@
-const staff = [
-    { id: 1, nome: "Carlos Ferreira", funcao: "Treinador Principal", equipa: "Seniores M", email: "carlos@clube.pt", telefone: "912 345 678", estado: "Ativo" },
-    { id: 2, nome: "Pedro Sousa", funcao: "Treinador Principal", equipa: "Sub-18 M", email: "pedro@clube.pt", telefone: "913 456 789", estado: "Ativo" },
-    { id: 3, nome: "Ana Martins", funcao: "Treinadora Principal", equipa: "Sub-16 F", email: "ana@clube.pt", telefone: "914 567 890", estado: "Ativo" },
-    { id: 4, nome: "João Silva", funcao: "Treinador Principal", equipa: "Sub-14 M", email: "joao@clube.pt", telefone: "915 678 901", estado: "Ativo" },
-    { id: 5, nome: "Rui Costa", funcao: "Treinador Principal", equipa: "Sub-12 M", email: "rui@clube.pt", telefone: "916 789 012", estado: "Ativo" },
-    { id: 6, nome: "Miguel Nunes", funcao: "Treinador Adjunto", equipa: "Seniores M", email: "miguel@clube.pt", telefone: "917 890 123", estado: "Ativo" },
-    { id: 7, nome: "Luís Pereira", funcao: "Fisioterapeuta", equipa: "Todos", email: "luis@clube.pt", telefone: "918 901 234", estado: "Ativo" },
-    { id: 8, nome: "Sofia Gomes", funcao: "Equipa Médica", equipa: "Todos", email: "sofia@clube.pt", telefone: "919 012 345", estado: "Inativo" },
-];
+import { fetchStaff } from "@/app/lib/data";
 
 const funcaoStyle: Record<string, string> = {
-    "Treinador Principal": "bg-violet-500/10 text-violet-400",
-    "Treinadora Principal": "bg-violet-500/10 text-violet-400",
-    "Treinador Adjunto": "bg-blue-500/10 text-blue-400",
-    "Fisioterapeuta": "bg-cyan-500/10 text-cyan-400",
-    "Equipa Médica": "bg-emerald-500/10 text-emerald-400",
+    "treinador": "bg-violet-500/10 text-violet-400",
+    "treinador_adjunto": "bg-blue-500/10 text-blue-400",
+    "fisioterapeuta": "bg-cyan-500/10 text-cyan-400",
+    "medico": "bg-emerald-500/10 text-emerald-400",
+    "preparador_fisico": "bg-amber-500/10 text-amber-400",
 };
 
-const estadoStyle: Record<string, string> = {
-    "Ativo": "bg-emerald-500/10 text-emerald-400",
-    "Inativo": "bg-red-500/10 text-red-400",
+const funcaoLabel: Record<string, string> = {
+    "treinador": "Treinador Principal",
+    "treinador_adjunto": "Treinador Adjunto",
+    "fisioterapeuta": "Fisioterapeuta",
+    "medico": "Equipa Médica",
+    "preparador_fisico": "Preparador Físico",
 };
 
-export default function StaffPage() {
+export default async function StaffPage() {
+    const staff = await fetchStaff();
+
+    const treinadores = staff.filter(s => s.funcao === "treinador" || s.funcao === "treinador_adjunto").length;
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
@@ -35,6 +33,7 @@ export default function StaffPage() {
                 </button>
             </div>
 
+            {/* Cards resumo */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total de Staff</p>
@@ -42,48 +41,52 @@ export default function StaffPage() {
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-violet-500/30 rounded-xl p-5">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Treinadores</p>
-                    <p className="text-3xl font-bold text-violet-400 mt-2">{staff.filter(s => s.funcao.includes("Treinador") || s.funcao.includes("Treinadora")).length}</p>
+                    <p className="text-3xl font-bold text-violet-400 mt-2">{treinadores}</p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ativos</p>
-                    <p className="text-3xl font-bold text-emerald-400 mt-2">{staff.filter(s => s.estado === "Ativo").length}</p>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Equipas Cobertas</p>
+                    <p className="text-3xl font-bold text-emerald-400 mt-2">
+                        {new Set(staff.filter(s => s.equipa_id).map(s => s.equipa_id)).size}
+                    </p>
                 </div>
             </div>
 
+            {/* Tabela */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
-                            <th className="text-left px-6 py-4">Nome</th>
-                            <th className="text-left px-6 py-4">Função</th>
-                            <th className="text-left px-6 py-4">Equipa</th>
-                            <th className="text-left px-6 py-4">Email</th>
-                            <th className="text-left px-6 py-4">Telefone</th>
-                            <th className="text-left px-6 py-4">Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {staff.map((s) => (
-                            <tr key={s.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.nome}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${funcaoStyle[s.funcao] ?? "bg-slate-500/10 text-gray-500 dark:text-gray-400"}`}>
-                                        {s.funcao}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.equipa}</td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.email}</td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.telefone}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[s.estado]}`}>
-                                        {s.estado}
-                                    </span>
-                                </td>
+                {staff.length === 0 ? (
+                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
+                        Nenhum membro de staff registado ainda.
+                    </p>
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
+                                <th className="text-left px-6 py-4">Nome</th>
+                                <th className="text-left px-6 py-4">Função</th>
+                                <th className="text-left px-6 py-4">Equipa</th>
+                                <th className="text-left px-6 py-4">Email</th>
+                                <th className="text-left px-6 py-4">Telefone</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {staff.map((s) => (
+                                <tr key={s.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.nome}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${funcaoStyle[s.funcao] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                            {funcaoLabel[s.funcao] ?? s.funcao}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.equipa_nome ?? "Todos"}</td>
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.user_email ?? "—"}</td>
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.user_telefone ?? "—"}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );
 }
+
