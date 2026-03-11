@@ -208,3 +208,17 @@ export type AtletaState = {
     };
     message: string | null;
 };
+
+// ========================================
+// Presidente Types
+// ========================================
+export type PresidentePerfil = {
+    id: string;
+    name: string;
+    email: string;
+    image_url: string;
+    role: 'admin' | 'user';
+    organization_id: string;
+    iban: string | null;
+    organization?: Organization;
+};

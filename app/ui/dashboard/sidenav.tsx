@@ -10,9 +10,19 @@ import {
     Menu,
     X,
     BarChart3,
+    BarChart2,
     FileText,
     CircleUserRound,
     Receipt,
+    Calendar,
+    Trophy,
+    Map,
+    Activity,
+    Leaf,
+    TrendingUp,
+    CheckSquare,
+    Clipboard,
+    Lock,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,8 +31,12 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { DashboardHeader } from "@/app/components/header";
 
+
 export default function SideNav() {
     const [isOpen, setIsOpen] = useState(false);
+    const [activeProfile, setActiveProfile] = useState<'atleta' | 'pai' | 'presidente' | null>(
+        null,
+    );
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
     const [dbUser, setDbUser] = useState<{
@@ -31,10 +45,11 @@ export default function SideNav() {
         foto?: string;
     } | null>(null);
 
-    // Busca dados do usuário do banco de dados
+
     useEffect(() => {
         async function fetchUserData() {
             if (!isLoaded || !clerkUser) return;
+
 
             try {
                 const response = await fetch("/api/debug/user", {
@@ -55,10 +70,11 @@ export default function SideNav() {
             }
         }
 
+
         fetchUserData();
     }, [isLoaded, clerkUser, pathname]);
 
-    // Botão do menu mobile para passar ao header
+
     const mobileMenuTrigger = (
         <button
             onClick={() => setIsOpen(!isOpen)}
@@ -69,7 +85,54 @@ export default function SideNav() {
         </button>
     );
 
+
     // Usa dados do banco de dados se disponíveis, senão usa do Clerk
+
+    const profileTabsEl = (
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
+            <button
+                onClick={() =>
+                    setActiveProfile(
+                        activeProfile === 'presidente' ? null : 'presidente',
+                    )
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeProfile === 'presidente'
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+            >
+                🏛️ Presidente
+            </button>
+            <button
+                onClick={() =>
+                    setActiveProfile(
+                        activeProfile === 'atleta' ? null : 'atleta',
+                    )
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeProfile === 'atleta'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+            >
+                🏃 Atleta
+            </button>
+            <button
+                onClick={() =>
+                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeProfile === 'pai'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+            >
+                👨‍👦 Pai/Enc.
+            </button>
+        </div>
+    );
+
     const userData = dbUser || {
         name:
             isLoaded && clerkUser
@@ -82,9 +145,9 @@ export default function SideNav() {
         foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
     };
 
+
     return (
         <>
-            {/* Overlay - Visível apenas no mobile quando o menu está aberto */}
             {isOpen && (
                 <div
                     className="lg:hidden fixed inset-0 bg-black/50 z-30"
@@ -92,13 +155,13 @@ export default function SideNav() {
                 />
             )}
 
-            {/* Header */}
+
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
                 user={userData}
             />
 
-            {/* Sidebar */}
+
             <aside
                 className={`
           fixed top-0 left-0 z-40
@@ -125,41 +188,252 @@ export default function SideNav() {
                     />
                 </div>
 
-                {/* Menu de Navegação */}
-                <nav className="flex-1 space-y-2">
-                    <NavItem
-                        icon={<BarChart3 size={20} />}
-                        label="Home"
-                        href="/dashboard"
-                        onClick={() => setIsOpen(false)}
-                    />
-                    <NavItem
-                        href="/dashboard/invoices"
-                        icon={<FileText size={20} />}
-                        label="Faturas"
-                        onClick={() => setIsOpen(false)}
-                    />
-                    <NavItem
-                        href="/dashboard/receipts"
-                        icon={<Receipt size={20} />}
-                        label="Recibos"
-                        onClick={() => setIsOpen(false)}
-                    />
-                    <NavItem
-                        href="/dashboard/customers"
-                        icon={<Users size={20} />}
-                        label="Clientes"
-                        onClick={() => setIsOpen(false)}
-                    />
-                    <NavItem
-                        href="/dashboard/users"
-                        icon={<CircleUserRound size={20} />}
-                        label="Utilizadores"
-                        onClick={() => setIsOpen(false)}
-                    />
+
+                <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
+
+
+                    {activeProfile === 'presidente' && (
+                        <>
+                            <NavSectionLabel>Principal</NavSectionLabel>
+                            <NavItem
+                                icon={<BarChart3 size={20} />}
+                                label="Dashboard"
+                                href="/dashboard/presidente"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Época</NavSectionLabel>
+                            <NavItem
+                                icon={<Calendar size={20} />}
+                                label="Época Atual"
+                                href="/dashboard/presidente/epoca"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<FileText size={20} />}
+                                label="Relatórios"
+                                href="/dashboard/presidente/relatorios"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Clube</NavSectionLabel>
+                            <NavItem
+                                icon={<Trophy size={20} />}
+                                label="Equipas"
+                                href="/dashboard/presidente/equipas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Users size={20} />}
+                                label="Atletas"
+                                href="/dashboard/presidente/atletas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<User size={20} />}
+                                label="Staff"
+                                href="/dashboard/presidente/staff"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Desporto</NavSectionLabel>
+                            <NavItem
+                                icon={<Trophy size={20} />}
+                                label="Jogos"
+                                href="/dashboard/presidente/jogos"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<BarChart2 size={20} />}
+                                label="Estatísticas"
+                                href="/dashboard/presidente/estatisticas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Comunicação</NavSectionLabel>
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Notificações"
+                                href="/dashboard/presidente/notificacoes"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Clipboard size={20} />}
+                                label="Comunicados"
+                                href="/dashboard/presidente/comunicados"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<CheckSquare size={20} />}
+                                label="Autorizações"
+                                href="/dashboard/presidente/autorizacoes"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Gestão</NavSectionLabel>
+                            <NavItem
+                                icon={<Receipt size={20} />}
+                                label="Mensalidades"
+                                href="/dashboard/presidente/mensalidades"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<FileText size={20} />}
+                                label="Documentos"
+                                href="/dashboard/presidente/documentos"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<CircleUserRound size={20} />}
+                                label="Definições"
+                                href="/dashboard/presidente/definicoes"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            {/* ✅ NOVO — Perfil do Presidente */}
+                            <NavItem
+                                icon={<User size={20} />}
+                                label="Perfil"
+                                href="/dashboard/presidente/perfil"
+                                onClick={() => setIsOpen(false)}
+                            />
+                        </>
+                    )}
+
+
+                    {activeProfile === 'atleta' && (
+                        <>
+                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
+                            <NavItem
+                                icon={<User size={20} />}
+                                label="O meu perfil"
+                                href="/dashboard/atleta/perfil"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Calendar size={20} />}
+                                label="Agenda"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Equipa</NavSectionLabel>
+                            <NavItem
+                                icon={<Clipboard size={20} />}
+                                label="Treinos"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Trophy size={20} />}
+                                label="Jogos"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Map size={20} />}
+                                label="Táticas"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Evolução</NavSectionLabel>
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Condição Física"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Leaf size={20} />}
+                                label="Plano Alimentar"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<TrendingUp size={20} />}
+                                label="As minhas stats"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                        </>
+                    )}
+                    {activeProfile === 'pai' && (
+                        <>
+                            <NavSectionLabel>O Meu Filho</NavSectionLabel>
+                            <NavItem
+                                icon={<User size={20} />}
+                                label="Perfil"
+                                href="/dashboard"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Calendar size={20} />}
+                                label="Agenda"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<CheckSquare size={20} />}
+                                label="Assiduidade"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Equipa</NavSectionLabel>
+                            <NavItem
+                                icon={<Trophy size={20} />}
+                                label="Jogos"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<BarChart2 size={20} />}
+                                label="Estatísticas"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Saúde</NavSectionLabel>
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Condição Física"
+                                href="#"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <LockedNavItem
+                                icon={<Leaf size={20} />}
+                                label="Nutrição"
+                            />
+                        </>
+                    )}
+                    {!activeProfile && (
+                        <>
+                            <NavItem
+                                icon={<BarChart3 size={20} />}
+                                label="Home"
+                                href="/dashboard"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                href="/dashboard/invoices"
+                                icon={<FileText size={20} />}
+                                label="Faturas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                href="/dashboard/receipts"
+                                icon={<Receipt size={20} />}
+                                label="Recibos"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                href="/dashboard/customers"
+                                icon={<Users size={20} />}
+                                label="Clientes"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                href="/dashboard/users"
+                                icon={<CircleUserRound size={20} />}
+                                label="Utilizadores"
+                                onClick={() => setIsOpen(false)}
+                            />
+                        </>
+                    )}
                 </nav>
 
-                {/* Sign Out Button */}
+
                 <div className="pt-6 border-t border-gray-200 dark:border-gray-900">
                     <SignOutButton redirectUrl="/login">
                         <button
@@ -179,6 +453,33 @@ export default function SideNav() {
     );
 }
 
+
+function NavSectionLabel({ children }: { children: string }) {
+    return (
+        <p className="text-[10px] font-bold tracking-widest text-gray-400 dark:text-gray-600 uppercase px-3 pt-4 pb-1">
+            {children}
+        </p>
+    );
+}
+
+
+function LockedNavItem({
+    icon,
+    label,
+}: {
+    icon: React.ReactNode;
+    label: string;
+}) {
+    return (
+        <div className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed text-gray-600 dark:text-gray-400">
+            <span className="text-gray-500 dark:text-gray-500">{icon}</span>
+            <span className="font-medium flex-1">{label}</span>
+            <Lock size={12} className="text-gray-400" />
+        </div>
+    );
+}
+
+
 function NavItem({
     href,
     icon,
@@ -192,11 +493,12 @@ function NavItem({
 }) {
     const pathname = usePathname();
 
-    // Para a página Home/Dashboard, só fica ativo quando está exatamente nela
+
     const active =
         href === "/dashboard"
             ? pathname === "/dashboard"
             : pathname === href || pathname.startsWith(`${href}/`);
+
 
     return (
         <Link
@@ -221,3 +523,4 @@ function NavItem({
         </Link>
     );
 }
+
