@@ -121,7 +121,7 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
     if (!equipa) {
         return (
             <div className="p-6 flex flex-col items-center justify-center min-h-[400px] space-y-4">
-                <p className="text-slate-400 text-lg">Equipa não encontrada.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">Equipa não encontrada.</p>
                 <Link
                     href="/dashboard/presidente/equipas"
                     className="text-sm text-violet-400 hover:text-violet-300 font-medium transition-colors"
@@ -142,15 +142,15 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
             <div>
                 <Link
                     href="/dashboard/presidente/equipas"
-                    className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors mb-4"
+                    className="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-4"
                 >
                     <ArrowLeftIcon className="w-4 h-4" />
                     Voltar às Equipas
                 </Link>
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-white">{equipa.nome}</h1>
-                        <p className="text-sm text-slate-400 mt-1">{equipa.escalao} · {equipa.campo}</p>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{equipa.nome}</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{equipa.escalao} · {equipa.campo}</p>
                     </div>
                     <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoStyle[equipa.estado]}`}>
                         {equipa.estado}
@@ -160,20 +160,20 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
 
             {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Vitórias</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Vitórias</p>
                     <p className="text-3xl font-bold text-emerald-400 mt-2">{equipa.vitorias}</p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Empates</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Empates</p>
                     <p className="text-3xl font-bold text-amber-400 mt-2">{equipa.empates}</p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Derrotas</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Derrotas</p>
                     <p className="text-3xl font-bold text-red-400 mt-2">{equipa.derrotas}</p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">% Vitórias</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 text-center">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">% Vitórias</p>
                     <p className="text-3xl font-bold text-cyan-400 mt-2">{pontosPerc}%</p>
                 </div>
             </div>
@@ -184,47 +184,47 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
                 <div className="space-y-4">
 
                     {/* Info da equipa */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-                        <h2 className="text-sm font-semibold text-white">Informações</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Informações</h2>
                         <div className="space-y-3">
                             <div>
-                                <p className="text-xs text-slate-500">Treinador</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{equipa.treinador}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Treinador</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.treinador}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Treinos</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{equipa.treinos}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Treinos</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.treinos}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Horário</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{equipa.horario}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Horário</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.horario}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Campo</p>
-                                <p className="text-sm font-medium text-white mt-0.5">{equipa.campo}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Campo</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{equipa.campo}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-slate-500">Golos Marcados / Sofridos</p>
-                                <p className="text-sm font-medium text-white mt-0.5">
-                                    {equipa.golosMarcados} <span className="text-slate-500">/</span> {equipa.golosSofridos}
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Golos Marcados / Sofridos</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                    {equipa.golosMarcados} <span className="text-gray-400 dark:text-gray-500">/</span> {equipa.golosSofridos}
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     {/* Próximos jogos */}
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-3">
-                        <h2 className="text-sm font-semibold text-white">Jogos</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-3">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Jogos</h2>
                         {jogosMock.map((jogo) => (
-                            <div key={jogo.id} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
+                            <div key={jogo.id} className="flex items-center justify-between py-2 border-b border-gray-200 dark:border-gray-800 last:border-0">
                                 <div>
-                                    <p className="text-sm font-medium text-white">{jogo.adversario}</p>
-                                    <p className="text-xs text-slate-500">{jogo.data} · {jogo.hora} · {jogo.local}</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{jogo.adversario}</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">{jogo.data} · {jogo.hora} · {jogo.local}</p>
                                 </div>
                                 {jogo.resultado ? (
                                     <span className="text-sm font-bold text-cyan-400">{jogo.resultado}</span>
                                 ) : (
-                                    <span className="text-xs text-slate-500 italic">A jogar</span>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500 italic">A jogar</span>
                                 )}
                             </div>
                         ))}
@@ -233,16 +233,16 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
 
                 {/* Coluna direita — Atletas */}
                 <div className="lg:col-span-2">
-                    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
-                            <h2 className="text-sm font-semibold text-white">Atletas ({equipa.atletas})</h2>
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Atletas ({equipa.atletas})</h2>
                             <button className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
                                 + Adicionar Atleta
                             </button>
                         </div>
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                                <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                                     <th className="text-left px-6 py-3">Nome</th>
                                     <th className="text-left px-6 py-3">Posição</th>
                                     <th className="text-left px-6 py-3">Idade</th>
@@ -251,10 +251,10 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
                             </thead>
                             <tbody>
                                 {atletasMock.map((atleta) => (
-                                    <tr key={atleta.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-3 font-medium text-white">{atleta.nome}</td>
-                                        <td className="px-6 py-3 text-slate-400">{atleta.posicao}</td>
-                                        <td className="px-6 py-3 text-slate-400">{atleta.idade}</td>
+                                    <tr key={atleta.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                        <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{atleta.nome}</td>
+                                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{atleta.posicao}</td>
+                                        <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{atleta.idade}</td>
                                         <td className="px-6 py-3">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${atletaEstadoStyle[atleta.estado]}`}>
                                                 {atleta.estado}

@@ -31,12 +31,11 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { DashboardHeader } from "@/app/components/header";
 
-
 export default function SideNav() {
     const [isOpen, setIsOpen] = useState(false);
-    const [activeProfile, setActiveProfile] = useState<'atleta' | 'pai' | 'presidente' | null>(
-        null,
-    );
+    const [activeProfile, setActiveProfile] = useState<
+        "atleta" | "pai" | "presidente" | null
+    >(null);
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
     const [dbUser, setDbUser] = useState<{
@@ -45,11 +44,9 @@ export default function SideNav() {
         foto?: string;
     } | null>(null);
 
-
     useEffect(() => {
         async function fetchUserData() {
             if (!isLoaded || !clerkUser) return;
-
 
             try {
                 const response = await fetch("/api/debug/user", {
@@ -70,10 +67,8 @@ export default function SideNav() {
             }
         }
 
-
         fetchUserData();
     }, [isLoaded, clerkUser, pathname]);
-
 
     const mobileMenuTrigger = (
         <button
@@ -85,7 +80,6 @@ export default function SideNav() {
         </button>
     );
 
-
     // Usa dados do banco de dados se disponíveis, senão usa do Clerk
 
     const profileTabsEl = (
@@ -93,13 +87,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'presidente' ? null : 'presidente',
+                        activeProfile === "presidente" ? null : "presidente",
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'presidente'
-                        ? 'bg-violet-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "presidente"
+                        ? "bg-violet-600 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 🏛️ Presidente
@@ -107,25 +101,25 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'atleta' ? null : 'atleta',
+                        activeProfile === "atleta" ? null : "atleta",
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'atleta'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "atleta"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 🏃 Atleta
             </button>
             <button
                 onClick={() =>
-                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
+                    setActiveProfile(activeProfile === "pai" ? null : "pai")
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'pai'
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "pai"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 👨‍👦 Pai/Enc.
@@ -145,7 +139,6 @@ export default function SideNav() {
         foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
     };
 
-
     return (
         <>
             {isOpen && (
@@ -155,12 +148,11 @@ export default function SideNav() {
                 />
             )}
 
-
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
+                profileTabs={profileTabsEl}
                 user={userData}
             />
-
 
             <aside
                 className={`
@@ -188,11 +180,8 @@ export default function SideNav() {
                     />
                 </div>
 
-
                 <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
-
-
-                    {activeProfile === 'presidente' && (
+                    {activeProfile === "presidente" && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -294,8 +283,7 @@ export default function SideNav() {
                         </>
                     )}
 
-
-                    {activeProfile === 'atleta' && (
+                    {activeProfile === "atleta" && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -350,7 +338,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {activeProfile === 'pai' && (
+                    {activeProfile === "pai" && (
                         <>
                             <NavSectionLabel>O Meu Filho</NavSectionLabel>
                             <NavItem
@@ -433,7 +421,6 @@ export default function SideNav() {
                     )}
                 </nav>
 
-
                 <div className="pt-6 border-t border-gray-200 dark:border-gray-900">
                     <SignOutButton redirectUrl="/login">
                         <button
@@ -453,7 +440,6 @@ export default function SideNav() {
     );
 }
 
-
 function NavSectionLabel({ children }: { children: string }) {
     return (
         <p className="text-[10px] font-bold tracking-widest text-gray-400 dark:text-gray-600 uppercase px-3 pt-4 pb-1">
@@ -461,7 +447,6 @@ function NavSectionLabel({ children }: { children: string }) {
         </p>
     );
 }
-
 
 function LockedNavItem({
     icon,
@@ -479,7 +464,6 @@ function LockedNavItem({
     );
 }
 
-
 function NavItem({
     href,
     icon,
@@ -493,12 +477,10 @@ function NavItem({
 }) {
     const pathname = usePathname();
 
-
     const active =
         href === "/dashboard"
             ? pathname === "/dashboard"
             : pathname === href || pathname.startsWith(`${href}/`);
-
 
     return (
         <Link
@@ -523,4 +505,3 @@ function NavItem({
         </Link>
     );
 }
-

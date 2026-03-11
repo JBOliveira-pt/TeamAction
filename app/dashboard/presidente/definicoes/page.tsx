@@ -2,13 +2,13 @@ export default function DefinicoesPage() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-white">Definições</h1>
-                <p className="text-sm text-slate-400 mt-1">Informações e configurações do clube</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Definições</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Informações e configurações do clube</p>
             </div>
 
             {/* Dados do clube */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-5">
-                <h2 className="text-sm font-semibold text-white">🏛️ Dados do Clube</h2>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-5">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">🏛️ Dados do Clube</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
                         { label: "Nome do Clube", placeholder: "Ex: Sporting CP Andebol", defaultValue: "Sporting CP Andebol" },
@@ -19,34 +19,34 @@ export default function DefinicoesPage() {
                         { label: "Telefone", placeholder: "+351 210 000 000", defaultValue: "+351 210 000 000" },
                     ].map((field) => (
                         <div key={field.label} className="space-y-1">
-                            <label className="text-xs text-slate-400 font-medium">{field.label}</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">{field.label}</label>
                             <input
                                 type="text"
                                 defaultValue={field.defaultValue}
                                 placeholder={field.placeholder}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
                             />
                         </div>
                     ))}
                     <div className="sm:col-span-2 space-y-1">
-                        <label className="text-xs text-slate-400 font-medium">Morada</label>
+                        <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Morada</label>
                         <input
                             type="text"
                             defaultValue="Rua Professor Fernando da Fonseca, Lisboa"
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
                         />
                     </div>
                 </div>
                 <div className="flex justify-end">
-                    <button className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                         Guardar Alterações
                     </button>
                 </div>
             </div>
 
             {/* Época */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-white">📅 Época Atual</h2>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">📅 Época Atual</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                         { label: "Época", defaultValue: "2024/2025" },
@@ -54,25 +54,25 @@ export default function DefinicoesPage() {
                         { label: "Fim", defaultValue: "30/06/2025" },
                     ].map((field) => (
                         <div key={field.label} className="space-y-1">
-                            <label className="text-xs text-slate-400 font-medium">{field.label}</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">{field.label}</label>
                             <input
                                 type="text"
                                 defaultValue={field.defaultValue}
-                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
+                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-violet-500 transition-colors"
                             />
                         </div>
                     ))}
                 </div>
                 <div className="flex justify-end">
-                    <button className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                         Guardar Alterações
                     </button>
                 </div>
             </div>
 
             {/* Mensalidades */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-                <h2 className="text-sm font-semibold text-white">💶 Valores de Mensalidades</h2>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">💶 Valores de Mensalidades</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {[
                         { label: "Seniores", defaultValue: "25" },
@@ -80,20 +80,20 @@ export default function DefinicoesPage() {
                         { label: "Sub-14 / Sub-12", defaultValue: "15" },
                     ].map((field) => (
                         <div key={field.label} className="space-y-1">
-                            <label className="text-xs text-slate-400 font-medium">{field.label}</label>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">{field.label}</label>
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">€</span>
                                 <input
                                     type="number"
                                     defaultValue={field.defaultValue}
-                                    className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-violet-500 transition-colors"
+                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg pl-8 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
                                 />
                             </div>
                         </div>
                     ))}
                 </div>
                 <div className="flex justify-end">
-                    <button className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                    <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                         Guardar Alterações
                     </button>
                 </div>

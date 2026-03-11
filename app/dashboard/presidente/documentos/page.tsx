@@ -25,29 +25,29 @@ export default function DocumentosPage() {
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Documentos</h1>
-                    <p className="text-sm text-slate-400 mt-1">{documentos.length} documentos guardados</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documentos</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{documentos.length} documentos guardados</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                     + Carregar Documento
                 </button>
             </div>
 
             {/* Área de upload */}
-            <div className="bg-slate-900 border-2 border-dashed border-slate-700 rounded-xl p-10 flex flex-col items-center justify-center gap-3 hover:border-violet-500/50 transition-colors cursor-pointer">
+            <div className="bg-white dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-10 flex flex-col items-center justify-center gap-3 hover:border-violet-500/50 transition-colors cursor-pointer">
                 <span className="text-4xl">📂</span>
-                <p className="text-sm font-semibold text-white">Arrasta ficheiros para aqui</p>
-                <p className="text-xs text-slate-500">PDF, XLSX, DOCX · máx. 10MB</p>
-                <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition-colors">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Arrasta ficheiros para aqui</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">PDF, XLSX, DOCX · máx. 10MB</p>
+                <button className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-lg border border-gray-300 dark:border-gray-700 transition-colors">
                     Ou escolhe um ficheiro
                 </button>
             </div>
 
             {/* Lista de documentos */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                             <th className="text-left px-6 py-4">Documento</th>
                             <th className="text-left px-6 py-4">Categoria</th>
                             <th className="text-left px-6 py-4">Tamanho</th>
@@ -57,13 +57,13 @@ export default function DocumentosPage() {
                     </thead>
                     <tbody>
                         {documentos.map((d) => (
-                            <tr key={d.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
+                            <tr key={d.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                         <span>{tipoIcon[d.tipo] ?? "📄"}</span>
                                         <div>
-                                            <p className="font-semibold text-white">{d.nome}</p>
-                                            <p className="text-xs text-slate-500">{d.tipo}</p>
+                                            <p className="font-semibold text-gray-900 dark:text-white">{d.nome}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-500">{d.tipo}</p>
                                         </div>
                                     </div>
                                 </td>
@@ -72,8 +72,8 @@ export default function DocumentosPage() {
                                         {d.categoria}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-400">{d.tamanho}</td>
-                                <td className="px-6 py-4 text-slate-400">{d.data}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{d.tamanho}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{d.data}</td>
                                 <td className="px-6 py-4">
                                     <button className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
                                         Descarregar ↓

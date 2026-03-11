@@ -27,33 +27,33 @@ export default function StaffPage() {
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-white">Staff</h1>
-                    <p className="text-sm text-slate-400 mt-1">{staff.length} membros na equipa técnica</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Staff</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{staff.length} membros na equipa técnica</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
                     + Adicionar Membro
                 </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total de Staff</p>
-                    <p className="text-3xl font-bold text-white mt-2">{staff.length}</p>
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total de Staff</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">{staff.length}</p>
                 </div>
-                <div className="bg-slate-900 border border-violet-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Treinadores</p>
+                <div className="bg-white dark:bg-gray-900 border border-violet-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Treinadores</p>
                     <p className="text-3xl font-bold text-violet-400 mt-2">{staff.filter(s => s.funcao.includes("Treinador") || s.funcao.includes("Treinadora")).length}</p>
                 </div>
-                <div className="bg-slate-900 border border-emerald-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ativos</p>
+                <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-xl p-5">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ativos</p>
                     <p className="text-3xl font-bold text-emerald-400 mt-2">{staff.filter(s => s.estado === "Ativo").length}</p>
                 </div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="text-xs text-slate-500 uppercase border-b border-slate-800">
+                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                             <th className="text-left px-6 py-4">Nome</th>
                             <th className="text-left px-6 py-4">Função</th>
                             <th className="text-left px-6 py-4">Equipa</th>
@@ -64,16 +64,16 @@ export default function StaffPage() {
                     </thead>
                     <tbody>
                         {staff.map((s) => (
-                            <tr key={s.id} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/30 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-white">{s.nome}</td>
+                            <tr key={s.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{s.nome}</td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${funcaoStyle[s.funcao] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${funcaoStyle[s.funcao] ?? "bg-slate-500/10 text-gray-500 dark:text-gray-400"}`}>
                                         {s.funcao}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-slate-400">{s.equipa}</td>
-                                <td className="px-6 py-4 text-slate-400">{s.email}</td>
-                                <td className="px-6 py-4 text-slate-400">{s.telefone}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.equipa}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.email}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.telefone}</td>
                                 <td className="px-6 py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[s.estado]}`}>
                                         {s.estado}
