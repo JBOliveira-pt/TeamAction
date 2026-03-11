@@ -1,5 +1,14 @@
 import React from "react";
 
+type PresStatus = "P" | "F" | "J";
+type Athlete = {
+    name: string;
+    number: number;
+    pos: string;
+    pres: PresStatus[];
+    percent: number;
+};
+
 const summary = {
     percent: 91,
     presentes: "16/18",
@@ -9,7 +18,7 @@ const summary = {
 
 const sessions = ["25 FEV", "27 FEV", "1 MAR", "3 MAR", "SEG", "QUA", "PROX"];
 
-const athletes = [
+const athletes: Athlete[] = [
     {
         name: "João Silva",
         number: 8,
@@ -68,12 +77,12 @@ const athletes = [
     },
 ];
 
-const statusColor = {
+const statusColor: Record<PresStatus, string> = {
     P: "text-green-600",
     F: "text-red-600",
     J: "text-yellow-600",
 };
-const statusBg = {
+const statusBg: Record<PresStatus, string> = {
     P: "bg-green-100",
     F: "bg-red-100",
     J: "bg-yellow-100",
@@ -188,26 +197,6 @@ export default function Assiduidade() {
                         ))}
                     </tbody>
                 </table>
-            </div>
-            <div className="flex gap-4 mt-4 text-sm">
-                <div className="flex items-center gap-1">
-                    <span className="inline-block w-4 h-4 rounded-full bg-green-100 text-green-600 text-center">
-                        P
-                    </span>{" "}
-                    = Presente
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="inline-block w-4 h-4 rounded-full bg-red-100 text-red-600 text-center">
-                        F
-                    </span>{" "}
-                    = Falta
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="inline-block w-4 h-4 rounded-full bg-yellow-100 text-yellow-600 text-center">
-                        J
-                    </span>{" "}
-                    = Justificado
-                </div>
             </div>
         </div>
     );

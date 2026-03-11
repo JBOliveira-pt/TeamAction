@@ -254,7 +254,7 @@ export default function SideNav() {
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
                     <div className="w-15 h-10 flex items-center justify-center">
-                        <AcmeLogo />
+                        <TeamActionLogo />
                     </div>
                     <div>
                         <h1 className="text-xl font-bold">PrimeFLOW</h1>

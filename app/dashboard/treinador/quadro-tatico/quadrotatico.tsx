@@ -28,10 +28,10 @@ const initialPlayers = [
 
 export default function TacticalBoard() {
     const [savedPlays, setSavedPlays] = useState(initialSavedPlays);
-    const [selectedPlay, setSelectedPlay] = useState(0);
+    const [selectedPlay, setSelectedPlay] = useState<number | null>(0);
     const [system, setSystem] = useState(0);
     const [players, setPlayers] = useState(initialPlayers);
-    const [dragged, setDragged] = useState(null);
+    const [dragged, setDragged] = useState<number | null>(null);
 
     // Funcionalidades dos botões
     function handleSave() {
@@ -83,7 +83,7 @@ export default function TacticalBoard() {
     function handleViewAll() {
         alert("Todas as jogadas:\n" + savedPlays.map((p) => p.name).join("\n"));
     }
-    function handleEditPlay(index) {
+    function handleEditPlay(index: number) {
         const newName = prompt(
             "Editar nome da jogada:",
             savedPlays[index].name,
@@ -94,7 +94,7 @@ export default function TacticalBoard() {
             setSavedPlays(updated);
         }
     }
-    function handleRemovePlay(index) {
+    function handleRemovePlay(index: number) {
         if (window.confirm("Remover jogada?")) {
             const updated = savedPlays.filter((_, i) => i !== index);
             setSavedPlays(updated);
