@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { createAtletaProfile } from '@/app/lib/actions';
-import type { AtletaState } from '@/app/lib/definitions';
+import { createAtletaProfile } from "@/app/lib/actions";
+import type { AtletaState } from "@/app/lib/definitions";
 import {
     ArrowLeftIcon,
     AtSymbolIcon,
@@ -12,10 +12,10 @@ import {
     PhotoIcon,
     ScaleIcon,
     UserIcon,
-} from '@heroicons/react/24/outline';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useActionState, useState } from 'react';
+} from "@heroicons/react/24/outline";
+import Image from "next/image";
+import Link from "next/link";
+import { useActionState, useState } from "react";
 
 const initialState: AtletaState = { errors: {}, message: null };
 
@@ -33,12 +33,20 @@ function FieldError({ errors }: { errors?: string[] }) {
 }
 
 const inputBase =
-    'peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all';
+    "peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all";
 
 const iconBase =
-    'pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500 peer-focus:text-emerald-400 transition-colors';
+    "pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500 peer-focus:text-emerald-400 transition-colors";
 
-export default function CreateAtletaProfileForm() {
+interface CreateAtletaProfileFormProps {
+    cancelHref?: string;
+    isAdmin?: boolean;
+}
+
+export default function CreateAtletaProfileForm({
+    cancelHref = "/dashboard/utilizador/perfil",
+    isAdmin = false,
+}: CreateAtletaProfileFormProps) {
     const [state, formAction, isPending] = useActionState(
         createAtletaProfile,
         initialState,
@@ -67,7 +75,9 @@ export default function CreateAtletaProfileForm() {
                             Perfil Utilizador
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            Preencha todos os campos para criar o seu perfil
+                            {isAdmin
+                                ? "Opcional para Admin. Pode ignorar e continuar na dashboard."
+                                : "Preencha todos os campos para criar o seu perfil"}
                         </p>
                     </div>
                 </div>
@@ -93,8 +103,8 @@ export default function CreateAtletaProfileForm() {
                             className="cursor-pointer text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
                         >
                             {preview
-                                ? 'Alterar foto'
-                                : 'Adicionar foto de perfil *'}
+                                ? "Alterar foto"
+                                : "Adicionar foto de perfil *"}
                         </label>
                         <p className="text-xs text-gray-400 mt-0.5">
                             JPG, PNG ou WEBP · máx 5MB
@@ -315,18 +325,18 @@ export default function CreateAtletaProfileForm() {
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
                     <Link
-                        href="/dashboard/utilizador/perfil"
+                        href={cancelHref}
                         className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                         <ArrowLeftIcon className="w-4 h-4" />
-                        Cancelar
+                        {isAdmin ? "Ignorar por agora" : "Cancelar"}
                     </Link>
                     <button
                         type="submit"
                         disabled={isPending}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors"
                     >
-                        {isPending ? 'A guardar...' : 'Criar Perfil'}
+                        {isPending ? "A guardar..." : "Criar Perfil"}
                     </button>
                 </div>
             </div>

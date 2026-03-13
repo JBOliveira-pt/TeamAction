@@ -1,6 +1,5 @@
-import SideNav from "@/app/ui/dashboard/sidenav";
+import CompleteAccountTypeForm from "@/app/ui/signup/complete-account-type-form";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
@@ -21,22 +20,7 @@ function normalizeAccountType(value: unknown): AccountType | null {
     return null;
 }
 
-export const metadata: Metadata = {
-    title: {
-        template: "%s | TeamAction Dashboard",
-        default: "TeamAction Dashboard",
-    },
-    description: "The official Next.js Learn Dashboard built with App Router.",
-    metadataBase: new URL("https://next-learn-dashboard.vercel.sh"),
-};
-
-export const dynamic = "force-dynamic";
-
-export default async function Layout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default async function CompleteAccountTypePage() {
     const { userId } = await auth();
 
     if (!userId) {
@@ -49,16 +33,13 @@ export default async function Layout({
         user.unsafeMetadata?.accountType ?? user.publicMetadata?.accountType,
     );
 
-    if (!accountType) {
-        redirect("/signup/complete-account-type");
+    if (accountType) {
+        redirect("/dashboard");
     }
 
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-            <SideNav />
-            <main className="flex-1 overflow-y-auto lg:ml-64 mt-20">
-                {children}
-            </main>
-        </div>
+        <main className="min-h-screen bg-gray-950 p-6 flex items-center justify-center">
+            <CompleteAccountTypeForm />
+        </main>
     );
 }

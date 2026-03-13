@@ -1,20 +1,22 @@
-'use client';
+"use client";
 
-import { Avatar } from '@/app/components/avatar';
-import { Button } from '@/app/components/button';
-import { NotificationDropdown } from '@/app/components/notification-dropdown';
-import { useTheme } from '@/app/components/theme-provider';
-import { useClerk } from '@clerk/nextjs';
-import { LogOut, Moon, Settings, Sun, UserRoundCog } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { Avatar } from "@/app/components/avatar";
+import { Button } from "@/app/components/button";
+import { NotificationDropdown } from "@/app/components/notification-dropdown";
+import { useTheme } from "@/app/components/theme-provider";
+import { useClerk } from "@clerk/nextjs";
+import { LogOut, Moon, Settings, Sun, User, UserRoundCog } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 interface DashboardHeaderProps {
     mobileMenuTrigger?: ReactNode;
     actionButton?: ReactNode;
     profileTabs?: ReactNode;
     isCreatingProfile?: boolean;
+    profileHref?: string;
+    settingsHref?: string;
     user?: {
         name: string;
         role: string;
@@ -27,35 +29,25 @@ export function DashboardHeader({
     actionButton,
     profileTabs,
     isCreatingProfile = false,
+    profileHref = "/dashboard",
+    settingsHref,
     user,
 }: DashboardHeaderProps) {
     const { theme, toggleTheme } = useTheme();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
     const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const { signOut } = useClerk();
     const router = useRouter();
 
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-    };
-
-    const handleNotificationClick = () => {
-        setHasUnreadNotifications(false);
-    };
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         if (!userMenuOpen) return;
+
         function handleClickOutside(e: MouseEvent) {
             if (
                 userMenuRef.current &&
@@ -64,14 +56,27 @@ export function DashboardHeader({
                 setUserMenuOpen(false);
             }
         }
-        document.addEventListener('mousedown', handleClickOutside);
+
+        document.addEventListener("mousedown", handleClickOutside);
         return () =>
-            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener("mousedown", handleClickOutside);
     }, [userMenuOpen]);
+
+    const getInitials = (name: string) => {
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+    const handleNotificationClick = () => {
+        setHasUnreadNotifications(false);
+    };
 
     return (
         <header className="fixed top-0 right-0 left-0 lg:left-64 h-20 bg-white dark:bg-gray-950 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-40 px-4 md:px-8 flex items-center justify-between transition-all">
-            {/* Lado Esquerdo */}
             <div className="flex items-center gap-4 w-full md:w-auto">
                 {mobileMenuTrigger && (
                     <div className="lg:hidden">{mobileMenuTrigger}</div>
@@ -81,7 +86,6 @@ export function DashboardHeader({
                 )}
             </div>
 
-            {/* Lado Direito */}
             <div className="flex items-center gap-2 md:gap-4 pl-4">
                 <div className="flex gap-1 text-gray-600 dark:text-gray-400">
                     <Button
@@ -92,7 +96,7 @@ export function DashboardHeader({
                     >
                         {!mounted ? (
                             <Sun size={20} />
-                        ) : theme === 'dark' ? (
+                        ) : theme === "dark" ? (
                             <Moon size={20} />
                         ) : (
                             <Sun size={20} />
@@ -106,7 +110,6 @@ export function DashboardHeader({
                     </div>
                 </div>
 
-                {/* Perfil do Utilizador — clicável com dropdown */}
                 <div
                     ref={userMenuRef}
                     className="relative flex items-center gap-3 border-l border-gray-200 dark:border-gray-800 pl-4 ml-2"
@@ -117,46 +120,58 @@ export function DashboardHeader({
                     >
                         <div className="text-right hidden md:block">
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {user?.name || 'Utilizador'}
+                                {user?.name || "Utilizador"}
                             </p>
                             <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
-                                {user?.role || 'Guest'}
+                                {user?.role || "Guest"}
                             </p>
                         </div>
                         <Avatar
                             src={user?.foto}
-                            alt={user?.name || 'Avatar'}
+                            alt={user?.name || "Avatar"}
                             fallback={
-                                user?.name ? getInitials(user.name) : 'US'
+                                user?.name ? getInitials(user.name) : "US"
                             }
                         />
                     </button>
 
-                    {/* Dropdown */}
                     {userMenuOpen && (
                         <div className="absolute right-0 top-full mt-3 w-52 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl py-1 z-50">
                             {isCreatingProfile ? (
                                 <div className="px-4 py-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
                                     Completa o registo do perfil para acederes
-                                    às restantes opções.
+                                    �s restantes op��es.
                                 </div>
                             ) : (
                                 <>
                                     <Link
-                                        href="/dashboard/utilizador/perfil"
+                                        href={profileHref}
                                         onClick={() => setUserMenuOpen(false)}
                                         className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                     >
-                                        <Settings
+                                        <User
                                             size={16}
                                             className="text-gray-500 dark:text-gray-400"
                                         />
-                                        Definições da Conta
+                                        Perfil
                                     </Link>
+                                    {settingsHref ? (
+                                        <Link
+                                            href={settingsHref}
+                                            onClick={() => setUserMenuOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                        >
+                                            <Settings
+                                                size={16}
+                                                className="text-gray-500 dark:text-gray-400"
+                                            />
+                                            Definições da Conta
+                                        </Link>
+                                    ) : null}
                                     <button
                                         onClick={() => {
                                             setUserMenuOpen(false);
-                                            router.push('/dashboard');
+                                            router.push("/dashboard");
                                         }}
                                         className="flex w-full items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
                                     >
@@ -171,7 +186,7 @@ export function DashboardHeader({
                             )}
                             <button
                                 onClick={() =>
-                                    signOut(() => router.push('/login'))
+                                    signOut(() => router.push("/login"))
                                 }
                                 className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left"
                             >

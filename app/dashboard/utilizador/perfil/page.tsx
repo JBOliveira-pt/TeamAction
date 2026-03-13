@@ -1,5 +1,5 @@
-import type { Atleta } from '@/app/lib/definitions';
-import { auth } from '@clerk/nextjs/server';
+import type { Atleta } from "@/app/lib/definitions";
+import { auth } from "@clerk/nextjs/server";
 import {
     EnvelopeIcon,
     MapPinIcon,
@@ -7,13 +7,13 @@ import {
     PhoneIcon,
     ScaleIcon,
     UserCircleIcon,
-} from '@heroicons/react/24/outline';
-import Image from 'next/image';
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import postgres from 'postgres';
+} from "@heroicons/react/24/outline";
+import Image from "next/image";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import postgres from "postgres";
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 async function getAtletaByClerkUser(
     clerkUserId: string,
@@ -26,17 +26,18 @@ async function getAtletaByClerkUser(
     const atletas = await sql<Atleta[]>`
         SELECT * FROM utilizador WHERE email = ${users[0].email}
     `;
+
     return atletas[0] ?? null;
 }
 
 function estadoBadge(estado: string) {
     const map: Record<string, string> = {
-        Ativo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-        Inativo: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+        Ativo: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        Inativo: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
         Pendente:
-            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+            "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     };
-    return map[estado] ?? 'bg-gray-100 text-gray-600';
+    return map[estado] ?? "bg-gray-100 text-gray-600";
 }
 
 export default async function PerfilUtilizadorPage() {
@@ -45,22 +46,19 @@ export default async function PerfilUtilizadorPage() {
 
     const atleta = await getAtletaByClerkUser(userId);
 
-    /* ── NO PROFILE YET ─── auto-redirect to create page ── */
     if (!atleta) {
-        redirect('/dashboard/utilizador/perfil/criar');
+        redirect("/dashboard/utilizador/perfil/criar");
     }
 
-    /* ── PROFILE VIEW ─────────────────────── */
     const nascimentoFormatted = new Date(
         atleta.data_nascimento,
-    ).toLocaleDateString('pt-PT');
+    ).toLocaleDateString("pt-PT");
 
     return (
         <div className="max-w-3xl mx-auto p-6 space-y-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Perfil Utilizador
             </h1>
-            {/* Header card */}
             <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="h-20 bg-gradient-to-r from-emerald-500 to-teal-600" />
                 <div className="px-6 pb-6 -mt-10 flex items-end gap-5">
@@ -104,7 +102,6 @@ export default async function PerfilUtilizadorPage() {
                 </div>
             </div>
 
-            {/* Info grid */}
             <div className="grid md:grid-cols-2 gap-4">
                 <InfoCard label="Dados Pessoais">
                     <InfoRow
@@ -114,7 +111,7 @@ export default async function PerfilUtilizadorPage() {
                     />
                     <InfoRow
                         icon={<PhoneIcon className="w-4 h-4" />}
-                        label="Telemóvel"
+                        label="Telemovel"
                         value={atleta.telemovel}
                     />
                     <InfoRow
@@ -129,7 +126,7 @@ export default async function PerfilUtilizadorPage() {
                     />
                 </InfoCard>
 
-                <InfoCard label="Dados Físicos">
+                <InfoCard label="Dados Fisicos">
                     <InfoRow
                         icon={<ScaleIcon className="w-4 h-4" />}
                         label="Peso"
@@ -184,7 +181,7 @@ function InfoRow({
                     {label}
                 </p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {value ?? <span className="text-gray-400">—</span>}
+                    {value ?? <span className="text-gray-400">-</span>}
                 </p>
             </div>
         </div>

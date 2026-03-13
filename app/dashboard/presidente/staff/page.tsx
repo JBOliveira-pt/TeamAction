@@ -1,25 +1,29 @@
-import { fetchStaff } from "@/app/lib/data";
+import { fetchStaff, fetchEquipas } from "@/app/lib/data";
+import AdicionarMembroModal from "./_components/AdicionarMembroModal.client";
 
 export const dynamic = 'force-dynamic';
 
 const funcaoStyle: Record<string, string> = {
-    "treinador": "bg-violet-500/10 text-violet-400",
-    "treinador_adjunto": "bg-blue-500/10 text-blue-400",
-    "fisioterapeuta": "bg-cyan-500/10 text-cyan-400",
-    "medico": "bg-emerald-500/10 text-emerald-400",
-    "preparador_fisico": "bg-amber-500/10 text-amber-400",
+    "treinador":          "bg-violet-500/10 text-violet-400",
+    "treinador_adjunto":  "bg-blue-500/10 text-blue-400",
+    "fisioterapeuta":     "bg-cyan-500/10 text-cyan-400",
+    "medico":             "bg-emerald-500/10 text-emerald-400",
+    "preparador_fisico":  "bg-amber-500/10 text-amber-400",
 };
 
 const funcaoLabel: Record<string, string> = {
-    "treinador": "Treinador Principal",
-    "treinador_adjunto": "Treinador Adjunto",
-    "fisioterapeuta": "Fisioterapeuta",
-    "medico": "Equipa Médica",
-    "preparador_fisico": "Preparador Físico",
+    "treinador":          "Treinador Principal",
+    "treinador_adjunto":  "Treinador Adjunto",
+    "fisioterapeuta":     "Fisioterapeuta",
+    "medico":             "Equipa Médica",
+    "preparador_fisico":  "Preparador Físico",
 };
 
 export default async function StaffPage() {
-    const staff = await fetchStaff();
+    const [staff, equipas] = await Promise.all([
+        fetchStaff(),
+        fetchEquipas(),
+    ]);
 
     const treinadores = staff.filter(s => s.funcao === "treinador" || s.funcao === "treinador_adjunto").length;
 
@@ -30,9 +34,7 @@ export default async function StaffPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Staff</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{staff.length} membros na equipa técnica</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                    + Adicionar Membro
-                </button>
+                <AdicionarMembroModal equipas={equipas.map(e => ({ id: e.id, nome: e.nome }))} />
             </div>
 
             {/* Cards resumo */}
@@ -91,4 +93,5 @@ export default async function StaffPage() {
         </div>
     );
 }
+
 

@@ -5,6 +5,24 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
+type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
+
+function normalizeAccountType(value: unknown): AccountType | null {
+    if (typeof value !== "string") return null;
+
+    const normalized = value.toLowerCase();
+    if (
+        normalized === "presidente" ||
+        normalized === "treinador" ||
+        normalized === "atleta" ||
+        normalized === "responsavel"
+    ) {
+        return normalized;
+    }
+
+    return null;
+}
+
 export async function POST(req: Request) {
     const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
@@ -39,8 +57,15 @@ export async function POST(req: Request) {
     }
 
     const eventType = evt.type;
-    const { id, email_addresses, first_name, last_name, image_url } =
-        evt.data as any;
+    const {
+        id,
+        email_addresses,
+        first_name,
+        last_name,
+        image_url,
+        unsafe_metadata,
+        public_metadata,
+    } = evt.data as any;
 
     try {
         if (eventType === "user.created") {
@@ -49,6 +74,10 @@ export async function POST(req: Request) {
                 `pending_${id}@example.com`;
             const name =
                 `${first_name || ""} ${last_name || ""}`.trim() || email;
+            const accountType = normalizeAccountType(
+                unsafe_metadata?.accountType ?? public_metadata?.accountType,
+            );
+            const role = accountType === "presidente" ? "admin" : "user";
 
             console.log(
                 `[WEBHOOK] Tentando criar usuário: ${email} (id: ${id})`,
@@ -72,7 +101,7 @@ export async function POST(req: Request) {
                     // 2. Criar Usuário vinculado à Org criada acima
                     await tx`
             INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${name}, ${email}, ${id}, 'admin', ${org.id}, ${image_url || null}, NOW(), NOW())
+                    VALUES (gen_random_uuid(), ${name}, ${email}, ${id}, ${role}, ${org.id}, ${image_url || null}, NOW(), NOW())
           `;
 
                     console.log(
@@ -90,7 +119,7 @@ export async function POST(req: Request) {
 
                 await sql`
           INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-          VALUES (gen_random_uuid(), ${name}, ${email}, ${id}, 'admin', '00000000-0000-0000-0000-000000000000', ${image_url || null}, NOW(), NOW())
+                VALUES (gen_random_uuid(), ${name}, ${email}, ${id}, ${role}, '00000000-0000-0000-0000-000000000000', ${image_url || null}, NOW(), NOW())
           ON CONFLICT DO NOTHING
         `;
 
@@ -104,11 +133,24 @@ export async function POST(req: Request) {
 
         if (eventType === "user.updated") {
             const name = `${first_name || ""} ${last_name || ""}`.trim();
-            await sql`
+            const accountType = normalizeAccountType(
+                unsafe_metadata?.accountType ?? public_metadata?.accountType,
+            );
+
+            if (accountType) {
+                const role = accountType === "presidente" ? "admin" : "user";
+                await sql`
+        UPDATE users
+        SET name = ${name}, image_url = ${image_url}, role = ${role}, updated_at = NOW()
+        WHERE clerk_user_id = ${id}
+      `;
+            } else {
+                await sql`
         UPDATE users 
         SET name = ${name}, image_url = ${image_url}, updated_at = NOW() 
         WHERE clerk_user_id = ${id}
       `;
+            }
             return new Response("User updated", { status: 200 });
         }
 

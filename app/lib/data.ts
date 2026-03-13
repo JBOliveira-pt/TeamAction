@@ -1,4 +1,4 @@
-import postgres from "postgres";
+import postgres, { type Sql } from "postgres";
 import {
     Customer,
     CustomerField,
@@ -14,6 +14,23 @@ import { formatCurrency, formatCurrencyPTBR, formatDateToLocal } from "./utils";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
 const isDev = process.env.NODE_ENV !== "production";
+type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
+
+function normalizeAccountType(value: unknown): AccountType | null {
+    if (typeof value !== "string") return null;
+
+    const normalized = value.toLowerCase();
+    if (
+        normalized === "presidente" ||
+        normalized === "treinador" ||
+        normalized === "atleta" ||
+        normalized === "responsavel"
+    ) {
+        return normalized;
+    }
+
+    return null;
+}
 
 export async function fetchUsers() {
     try {
@@ -88,6 +105,15 @@ export async function getOrganizationId(): Promise<string> {
             const client = await clerkClient();
             const clerkUser = await client.users.getUser(userId);
             const email = clerkUser.emailAddresses[0]?.emailAddress;
+            const fullName =
+                `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+                email ||
+                `user_${userId}`;
+            const accountType = normalizeAccountType(
+                clerkUser.unsafeMetadata?.accountType ??
+                    clerkUser.publicMetadata?.accountType,
+            );
+            const role = accountType === "presidente" ? "admin" : "user";
 
             if (email) {
                 const fallbackUser = await sql<
@@ -105,6 +131,69 @@ export async function getOrganizationId(): Promise<string> {
                     if (isDev) {
                         console.log(
                             `[AUTH] Re-linked user by email (${email}) to clerk_user_id ${userId}`,
+                        );
+                    }
+                }
+
+                if (!orgId) {
+                    const created = await sql.begin(async (tx) => {
+                        const txSql = tx as unknown as Sql;
+
+                        const existingByClerkId = await txSql<
+                            { id: string; organization_id: string }[]
+                        >`
+                            SELECT id, organization_id
+                            FROM users
+                            WHERE clerk_user_id = ${userId}
+                            LIMIT 1
+                        `;
+
+                        if (existingByClerkId[0]?.organization_id) {
+                            return existingByClerkId[0].organization_id;
+                        }
+
+                        const existingByEmail = await txSql<
+                            { id: string; organization_id: string }[]
+                        >`
+                            SELECT id, organization_id
+                            FROM users
+                            WHERE email = ${email}
+                            LIMIT 1
+                        `;
+
+                        if (existingByEmail[0]?.organization_id) {
+                            await txSql`
+                                UPDATE users
+                                SET clerk_user_id = ${userId}, role = ${role}, updated_at = NOW()
+                                WHERE id = ${existingByEmail[0].id}
+                            `;
+                            return existingByEmail[0].organization_id;
+                        }
+
+                        const orgSlug = `${fullName
+                            .toLowerCase()
+                            .replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
+                        const orgName = `${fullName}'s Organization`;
+
+                        const newOrg = await txSql<{ id: string }[]>`
+                            INSERT INTO organizations (name, slug, owner_id, created_at, updated_at)
+                            VALUES (${orgName}, ${orgSlug}, ${userId}, NOW(), NOW())
+                            RETURNING id
+                        `;
+
+                        await txSql`
+                            INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
+                            VALUES (gen_random_uuid(), ${fullName}, ${email}, ${userId}, ${role}, ${newOrg[0].id}, ${clerkUser.imageUrl || null}, NOW(), NOW())
+                        `;
+
+                        return newOrg[0].id;
+                    });
+
+                    orgId = created;
+
+                    if (isDev) {
+                        console.log(
+                            `[AUTH] Auto-provisioned organization (${orgId}) for ${email}`,
                         );
                     }
                 }
@@ -670,15 +759,17 @@ export async function fetchEquipas() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            nome: string;
-            escalao: string;
-            estado: string;
-            desporto: string;
-            total_atletas: number;
-            nome_treinador: string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                nome: string;
+                escalao: string;
+                estado: string;
+                desporto: string;
+                total_atletas: number;
+                nome_treinador: string | null;
+            }[]
+        >`
             SELECT
                 equipas.id,
                 equipas.nome,
@@ -706,51 +797,59 @@ export async function fetchEquipaById(id: string) {
     try {
         const organizationId = await getOrganizationId();
 
-        const equipa = await sql<{
-            id: string;
-            nome: string;
-            escalao: string;
-            estado: string;
-            desporto: string;
-        }[]>`
+        const equipa = await sql<
+            {
+                id: string;
+                nome: string;
+                escalao: string;
+                estado: string;
+                desporto: string;
+            }[]
+        >`
             SELECT id, nome, escalao, estado, desporto
             FROM equipas
             WHERE id = ${id} AND organization_id = ${organizationId}
         `;
 
-        const atletas = await sql<{
-            id: string;
-            nome: string;
-            posicao: string | null;
-            numero_camisola: number | null;
-            estado: string;
-        }[]>`
+        const atletas = await sql<
+            {
+                id: string;
+                nome: string;
+                posicao: string | null;
+                numero_camisola: number | null;
+                estado: string;
+            }[]
+        >`
             SELECT id, nome, posicao, numero_camisola, estado
             FROM atletas
             WHERE equipa_id = ${id} AND organization_id = ${organizationId}
             ORDER BY nome ASC
         `;
 
-        const staff = await sql<{
-            id: string;
-            nome: string;
-            funcao: string;
-        }[]>`
+        const staff = await sql<
+            {
+                id: string;
+                nome: string;
+                funcao: string;
+            }[]
+        >`
             SELECT id, nome, funcao
             FROM staff
             WHERE equipa_id = ${id} AND organization_id = ${organizationId}
             ORDER BY funcao ASC
         `;
 
-        const jogos = await sql<{
-            id: string;
-            adversario: string;
-            data: string;
-            casa_fora: string;
-            resultado_nos: number | null;
-            resultado_adv: number | null;
-            estado: string;
-        }[]>`
+        const jogos = await sql<
+            {
+                id: string;
+                adversario: string;
+                data: string;
+                casa_fora: string;
+                resultado_nos: number | null;
+                resultado_adv: number | null;
+                estado: string;
+            }[]
+        >`
             SELECT id, adversario, data, casa_fora, resultado_nos, resultado_adv, estado
             FROM jogos
             WHERE equipa_id = ${id} AND organization_id = ${organizationId}
@@ -771,16 +870,18 @@ export async function fetchAtletas() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            nome: string;
-            posicao: string | null;
-            numero_camisola: number | null;
-            estado: string;
-            equipa_nome: string | null;
-            equipa_id: string | null;
-            mensalidade_estado: string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                nome: string;
+                posicao: string | null;
+                numero_camisola: number | null;
+                estado: string;
+                equipa_nome: string | null;
+                equipa_id: string | null;
+                mensalidade_estado: string | null;
+            }[]
+        >`
             SELECT
                 atletas.id,
                 atletas.nome,
@@ -810,21 +911,23 @@ export async function fetchAtletaById(id: string) {
     try {
         const organizationId = await getOrganizationId();
 
-        const atleta = await sql<{
-            id: string;
-            nome: string;
-            posicao: string | null;
-            numero_camisola: number | null;
-            estado: string;
-            federado: boolean;
-            numero_federado: string | null;
-            mao_dominante: string | null;
-            equipa_id: string | null;
-            equipa_nome: string | null;
-            user_email: string | null;
-            user_telefone: string | null;
-            user_data_nascimento: string | null;
-        }[]>`
+        const atleta = await sql<
+            {
+                id: string;
+                nome: string;
+                posicao: string | null;
+                numero_camisola: number | null;
+                estado: string;
+                federado: boolean;
+                numero_federado: string | null;
+                mao_dominante: string | null;
+                equipa_id: string | null;
+                equipa_nome: string | null;
+                user_email: string | null;
+                user_telefone: string | null;
+                user_data_nascimento: string | null;
+            }[]
+        >`
             SELECT
                 atletas.id,
                 atletas.nome,
@@ -845,14 +948,16 @@ export async function fetchAtletaById(id: string) {
             WHERE atletas.id = ${id} AND atletas.organization_id = ${organizationId}
         `;
 
-        const mensalidades = await sql<{
-            id: string;
-            mes: number;
-            ano: number;
-            valor: number | null;
-            estado: string;
-            data_pagamento: string | null;
-        }[]>`
+        const mensalidades = await sql<
+            {
+                id: string;
+                mes: number;
+                ano: number;
+                valor: number | null;
+                estado: string;
+                data_pagamento: string | null;
+            }[]
+        >`
             SELECT id, mes, ano, valor, estado, data_pagamento
             FROM mensalidades
             WHERE atleta_id = ${id}
@@ -860,15 +965,17 @@ export async function fetchAtletaById(id: string) {
             LIMIT 12
         `;
 
-        const estatisticas = await sql<{
-            total_jogos: number;
-            total_golos: number;
-            total_assistencias: number;
-            total_exclusoes: number;
-            total_cartoes_amarelos: number;
-            total_cartoes_vermelhos: number;
-            total_minutos: number;
-        }[]>`
+        const estatisticas = await sql<
+            {
+                total_jogos: number;
+                total_golos: number;
+                total_assistencias: number;
+                total_exclusoes: number;
+                total_cartoes_amarelos: number;
+                total_cartoes_vermelhos: number;
+                total_minutos: number;
+            }[]
+        >`
             SELECT
                 COUNT(estatisticas_jogo.id) AS total_jogos,
                 COALESCE(SUM(golos), 0) AS total_golos,
@@ -881,10 +988,12 @@ export async function fetchAtletaById(id: string) {
             WHERE atleta_id = ${id}
         `;
 
-        const assiduidade = await sql<{
-            total_treinos: number;
-            presencas: number;
-        }[]>`
+        const assiduidade = await sql<
+            {
+                total_treinos: number;
+                presencas: number;
+            }[]
+        >`
             SELECT
                 COUNT(assiduidade.id) AS total_treinos,
                 COUNT(CASE WHEN presente THEN 1 END) AS presencas
@@ -910,17 +1019,19 @@ export async function fetchJogos() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            adversario: string;
-            data: string;
-            casa_fora: string;
-            resultado_nos: number | null;
-            resultado_adv: number | null;
-            estado: string;
-            equipa_id: string;
-            equipa_nome: string;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                adversario: string;
+                data: string;
+                casa_fora: string;
+                resultado_nos: number | null;
+                resultado_adv: number | null;
+                estado: string;
+                equipa_id: string;
+                equipa_nome: string;
+            }[]
+        >`
             SELECT
                 jogos.id,
                 jogos.adversario,
@@ -950,17 +1061,19 @@ export async function fetchMensalidades() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            mes: number;
-            ano: number;
-            valor: number | null;
-            estado: string;
-            data_pagamento: string | null;
-            atleta_id: string;
-            atleta_nome: string;
-            equipa_nome: string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                mes: number;
+                ano: number;
+                valor: number | null;
+                estado: string;
+                data_pagamento: string | null;
+                atleta_id: string;
+                atleta_nome: string;
+                equipa_nome: string | null;
+            }[]
+        >`
             SELECT
                 mensalidades.id,
                 mensalidades.mes,
@@ -1016,15 +1129,17 @@ export async function fetchStaff() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            nome: string;
-            funcao: string;
-            equipa_id: string | null;
-            equipa_nome: string | null;
-            user_email: string | null;
-            user_telefone: string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                nome: string;
+                funcao: string;
+                equipa_id: string | null;
+                equipa_nome: string | null;
+                user_email: string | null;
+                user_telefone: string | null;
+            }[]
+        >`
             SELECT
                 staff.id,
                 staff.nome,
@@ -1053,16 +1168,18 @@ export async function fetchEstatisticasPorEquipa() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            equipa_id: string;
-            equipa: string;
-            jogos: number;
-            vitorias: number;
-            empates: number;
-            derrotas: number;
-            golos_marcados: number;
-            golos_sofridos: number;
-        }[]>`
+        const data = await sql<
+            {
+                equipa_id: string;
+                equipa: string;
+                jogos: number;
+                vitorias: number;
+                empates: number;
+                derrotas: number;
+                golos_marcados: number;
+                golos_sofridos: number;
+            }[]
+        >`
             SELECT
                 equipas.id AS equipa_id,
                 equipas.nome AS equipa,
@@ -1092,15 +1209,17 @@ export async function fetchTopAtletas() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            atleta_id: string;
-            nome: string;
-            equipa_nome: string | null;
-            golos: number;
-            assistencias: number;
-            total_treinos: number;
-            presencas: number;
-        }[]>`
+        const data = await sql<
+            {
+                atleta_id: string;
+                nome: string;
+                equipa_nome: string | null;
+                golos: number;
+                assistencias: number;
+                total_treinos: number;
+                presencas: number;
+            }[]
+        >`
             SELECT
                 atletas.id AS atleta_id,
                 atletas.nome,
@@ -1132,13 +1251,15 @@ export async function fetchEpocaAtiva() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            nome: string;
-            data_inicio: string;
-            data_fim: string;
-            ativa: boolean;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                nome: string;
+                data_inicio: string;
+                data_fim: string;
+                ativa: boolean;
+            }[]
+        >`
             SELECT id, nome, data_inicio, data_fim, ativa
             FROM epocas
             WHERE organization_id = ${organizationId}
@@ -1159,12 +1280,14 @@ export async function fetchPerfilPresidente() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            iban: string | null;
-            org_name: string;
-            org_slug: string;
-            org_created_at: string;
-        }[]>`
+        const data = await sql<
+            {
+                iban: string | null;
+                org_name: string;
+                org_slug: string;
+                org_created_at: string;
+            }[]
+        >`
             SELECT
                 u.iban,
                 o.name   AS org_name,
@@ -1190,14 +1313,16 @@ export async function fetchComunicados() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            titulo: string;
-            conteudo: string;
-            destinatarios: string;
-            criado_por: string;
-            created_at: string;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                titulo: string;
+                conteudo: string;
+                destinatarios: string;
+                criado_por: string;
+                created_at: string;
+            }[]
+        >`
             SELECT id, titulo, conteudo, destinatarios, criado_por, created_at
             FROM comunicados
             WHERE organization_id = ${organizationId}
@@ -1211,23 +1336,22 @@ export async function fetchComunicados() {
     }
 }
 
-
-
-
 // ---------- AUTORIZAÇÕES ----------
 
 export async function fetchAutorizacoes() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            autorizado_a: string;
-            autorizado_por: string;
-            tipo_acao: string;
-            notas: string | null;
-            created_at: string;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                autorizado_a: string;
+                autorizado_por: string;
+                tipo_acao: string;
+                notas: string | null;
+                created_at: string;
+            }[]
+        >`
             SELECT id, autorizado_a, autorizado_por, tipo_acao, notas, created_at
             FROM autorizacoes_log
             WHERE organization_id = ${organizationId}
@@ -1241,20 +1365,21 @@ export async function fetchAutorizacoes() {
     }
 }
 
-
 // ---------- DOCUMENTOS ----------
 
 export async function fetchDocumentos() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id: string;
-            nome: string;
-            tipo: string;
-            url_r2: string;
-            created_at: string;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                nome: string;
+                tipo: string;
+                url_r2: string;
+                created_at: string;
+            }[]
+        >`
             SELECT id, nome, tipo, url_r2, created_at
             FROM documentos
             WHERE organization_id = ${organizationId}
@@ -1267,12 +1392,3 @@ export async function fetchDocumentos() {
         throw new Error("Failed to fetch documentos.");
     }
 }
-
-
-
-
-
-
-
-
-

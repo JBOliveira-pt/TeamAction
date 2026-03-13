@@ -2,7 +2,6 @@
 'use client';
 
 import { DashboardHeader } from '@/app/components/header';
-import TeamActionLogo from '@/app/ui/teamaction-logo';
 import { useUser } from '@clerk/nextjs';
 import {
     Activity,
@@ -30,6 +29,7 @@ import {
     Users,
     X,
 } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -46,6 +46,55 @@ export default function SideNav() {
         role: string;
         foto?: string;
     } | null>(null);
+
+    type AccountType = 'presidente' | 'treinador' | 'atleta' | 'responsavel';
+
+    const normalizeAccountType = (value: unknown): AccountType | null => {
+        if (typeof value !== 'string') return null;
+        const normalized = value.toLowerCase();
+
+        if (
+            normalized === 'presidente' ||
+            normalized === 'treinador' ||
+            normalized === 'atleta' ||
+            normalized === 'responsavel'
+        ) {
+            return normalized;
+        }
+
+        return null;
+    };
+
+    const accountType = normalizeAccountType(
+        clerkUser?.unsafeMetadata?.accountType ??
+            clerkUser?.publicMetadata?.accountType,
+    );
+
+    const forcedProfile: 'presidente' | 'treinador' | 'atleta' | 'pai' | null =
+        accountType === 'responsavel'
+            ? 'pai'
+            : accountType === 'presidente' ||
+                accountType === 'treinador' ||
+                accountType === 'atleta'
+              ? accountType
+              : null;
+
+    const accountTypeLabel =
+        accountType === 'presidente'
+            ? 'Presidente'
+            : accountType === 'treinador'
+              ? 'Treinador'
+              : accountType === 'atleta'
+                ? 'Atleta'
+                : accountType === 'responsavel'
+                  ? 'Responsável'
+                  : null;
+
+    useEffect(() => {
+        if (forcedProfile) {
+            setActiveProfile(forcedProfile);
+        }
+    }, [forcedProfile]);
 
     useEffect(() => {
         async function fetchUserData() {
@@ -87,7 +136,7 @@ export default function SideNav() {
         </button>
     );
 
-    const profileTabsEl = (
+    const profileTabsEl = forcedProfile ? null : (
         <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
             <button
                 onClick={() =>
@@ -146,17 +195,37 @@ export default function SideNav() {
         </div>
     );
 
-    const userData = dbUser || {
-        name:
-            isLoaded && clerkUser
-                ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
-                : 'Usuario',
-        role:
-            isLoaded && clerkUser
-                ? (clerkUser.publicMetadata?.role as string) || 'user'
-                : 'user',
-        foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
-    };
+    const userData = dbUser
+        ? {
+              ...dbUser,
+              role: accountTypeLabel || dbUser.role,
+          }
+        : {
+              name:
+                  isLoaded && clerkUser
+                      ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
+                      : 'Usuario',
+              role:
+                  accountTypeLabel ||
+                  (isLoaded && clerkUser
+                      ? (clerkUser.publicMetadata?.role as string) || 'user'
+                      : 'user'),
+              foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
+          };
+
+    const profileHref =
+        forcedProfile === 'presidente' || activeProfile === 'presidente'
+            ? '/dashboard/presidente/perfil'
+            : forcedProfile === 'atleta' || activeProfile === 'atleta'
+              ? '/dashboard/utilizador/perfil'
+              : forcedProfile === 'treinador' || activeProfile === 'treinador'
+                ? '/dashboard/treinador'
+                : '/dashboard';
+
+    const settingsHref =
+        forcedProfile === 'presidente' || activeProfile === 'presidente'
+            ? '/dashboard/presidente/definicoes'
+            : undefined;
 
     return (
         <>
@@ -170,6 +239,8 @@ export default function SideNav() {
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
                 profileTabs={isCreatingProfile ? undefined : profileTabsEl}
+                profileHref={profileHref}
+                settingsHref={settingsHref}
                 user={userData}
                 isCreatingProfile={isCreatingProfile}
             />
@@ -183,15 +254,22 @@ export default function SideNav() {
         `}
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
-                    <div className="w-15 h-10 flex items-center justify-center">
-                        <TeamActionLogo />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold">PrimeFLOW</h1>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                            Dashboard
-                        </p>
-                    </div>
+                    <Image
+                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
+                        alt="TeamAction"
+                        width={190}
+                        height={46}
+                        className="dark:hidden h-auto w-auto max-w-[190px]"
+                        priority
+                    />
+                    <Image
+                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-black.png"
+                        alt="TeamAction"
+                        width={190}
+                        height={46}
+                        className="hidden dark:block h-auto w-auto max-w-[190px]"
+                        priority
+                    />
                 </div>
 
                 <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
@@ -312,8 +390,8 @@ export default function SideNav() {
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
                                 icon={<User size={20} />}
-                                label="O meu perfil"
-                                href="/dashboard/atleta/perfil"
+                                label="Dashboard Treinador"
+                                href="/dashboard/treinador"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
@@ -563,10 +641,15 @@ function NavItem({
 }) {
     const pathname = usePathname();
 
-    const active =
-        href === '/dashboard'
-            ? pathname === '/dashboard'
-            : pathname === href || pathname.startsWith(`${href}/`);
+    const exactMatchPaths = [
+        '/dashboard',
+        '/dashboard/presidente',
+        '/dashboard/treinador',
+    ];
+
+    const active = exactMatchPaths.includes(href)
+        ? pathname === href
+        : pathname === href || pathname.startsWith(`${href}/`);
 
     return (
         <Link
