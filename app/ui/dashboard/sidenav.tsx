@@ -207,14 +207,19 @@ export default function SideNav() {
               foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
           };
 
-    const accountAreaHref =
+    const profileHref =
         forcedProfile === "presidente" || activeProfile === "presidente"
-            ? "/dashboard/presidente"
-            : forcedProfile === "treinador" || activeProfile === "treinador"
-              ? "/dashboard/treinador"
-              : forcedProfile === "atleta" || activeProfile === "atleta"
-                ? "/dashboard/utilizador/perfil"
+            ? "/dashboard/presidente/perfil"
+            : forcedProfile === "atleta" || activeProfile === "atleta"
+              ? "/dashboard/utilizador/perfil"
+              : forcedProfile === "treinador" || activeProfile === "treinador"
+                ? "/dashboard/treinador"
                 : "/dashboard";
+
+    const settingsHref =
+        forcedProfile === "presidente" || activeProfile === "presidente"
+            ? "/dashboard/presidente/definicoes"
+            : undefined;
 
     return (
         <>
@@ -228,7 +233,8 @@ export default function SideNav() {
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
                 profileTabs={isCreatingProfile ? undefined : profileTabsEl}
-                accountHref={accountAreaHref}
+                profileHref={profileHref}
+                settingsHref={settingsHref}
                 user={userData}
                 isCreatingProfile={isCreatingProfile}
             />

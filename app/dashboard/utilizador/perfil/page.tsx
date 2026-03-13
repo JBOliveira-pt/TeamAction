@@ -15,7 +15,9 @@ import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
-async function getAtletaByClerkUser(clerkUserId: string): Promise<Atleta | null> {
+async function getAtletaByClerkUser(
+    clerkUserId: string,
+): Promise<Atleta | null> {
     const users = await sql<{ email: string }[]>`
         SELECT email FROM users WHERE clerk_user_id = ${clerkUserId}
     `;
@@ -109,7 +111,7 @@ export default async function PerfilUtilizadorPage() {
                     />
                     <InfoRow
                         icon={<PhoneIcon className="w-4 h-4" />}
-                        label="Telemóvel"
+                        label="Telemovel"
                         value={atleta.telemovel}
                     />
                     <InfoRow
@@ -124,7 +126,7 @@ export default async function PerfilUtilizadorPage() {
                     />
                 </InfoCard>
 
-                <InfoCard label="Dados Físicos">
+                <InfoCard label="Dados Fisicos">
                     <InfoRow
                         icon={<ScaleIcon className="w-4 h-4" />}
                         label="Peso"
@@ -133,7 +135,9 @@ export default async function PerfilUtilizadorPage() {
                     <InfoRow
                         icon={<ScaleIcon className="w-4 h-4" />}
                         label="Altura"
-                        value={atleta.altura_cm ? `${atleta.altura_cm} cm` : null}
+                        value={
+                            atleta.altura_cm ? `${atleta.altura_cm} cm` : null
+                        }
                     />
                 </InfoCard>
             </div>
@@ -173,7 +177,9 @@ function InfoRow({
                 {icon}
             </span>
             <div>
-                <p className="text-xs text-gray-400 dark:text-gray-500">{label}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                    {label}
+                </p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {value ?? <span className="text-gray-400">-</span>}
                 </p>

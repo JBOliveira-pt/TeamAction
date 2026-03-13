@@ -5,7 +5,7 @@ import { Button } from "@/app/components/button";
 import { NotificationDropdown } from "@/app/components/notification-dropdown";
 import { useTheme } from "@/app/components/theme-provider";
 import { useClerk } from "@clerk/nextjs";
-import { LogOut, Moon, Settings, Sun, UserRoundCog } from "lucide-react";
+import { LogOut, Moon, Settings, Sun, User, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
@@ -15,7 +15,8 @@ interface DashboardHeaderProps {
     actionButton?: ReactNode;
     profileTabs?: ReactNode;
     isCreatingProfile?: boolean;
-    accountHref?: string;
+    profileHref?: string;
+    settingsHref?: string;
     user?: {
         name: string;
         role: string;
@@ -28,7 +29,8 @@ export function DashboardHeader({
     actionButton,
     profileTabs,
     isCreatingProfile = false,
-    accountHref = "/dashboard",
+    profileHref = "/dashboard",
+    settingsHref,
     user,
 }: DashboardHeaderProps) {
     const { theme, toggleTheme } = useTheme();
@@ -143,16 +145,29 @@ export function DashboardHeader({
                             ) : (
                                 <>
                                     <Link
-                                        href={accountHref}
+                                        href={profileHref}
                                         onClick={() => setUserMenuOpen(false)}
                                         className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                     >
-                                        <Settings
+                                        <User
                                             size={16}
                                             className="text-gray-500 dark:text-gray-400"
                                         />
-                                        Defini��es da Conta
+                                        Perfil
                                     </Link>
+                                    {settingsHref ? (
+                                        <Link
+                                            href={settingsHref}
+                                            onClick={() => setUserMenuOpen(false)}
+                                            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                        >
+                                            <Settings
+                                                size={16}
+                                                className="text-gray-500 dark:text-gray-400"
+                                            />
+                                            Definições da Conta
+                                        </Link>
+                                    ) : null}
                                     <button
                                         onClick={() => {
                                             setUserMenuOpen(false);

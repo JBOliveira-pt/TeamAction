@@ -1,4 +1,4 @@
-import postgres from "postgres";
+import postgres, { type Sql } from "postgres";
 import {
     Customer,
     CustomerField,
@@ -137,7 +137,9 @@ export async function getOrganizationId(): Promise<string> {
 
                 if (!orgId) {
                     const created = await sql.begin(async (tx) => {
-                        const existingByClerkId = await tx<
+                        const txSql = tx as unknown as Sql;
+
+                        const existingByClerkId = await txSql<
                             { id: string; organization_id: string }[]
                         >`
                             SELECT id, organization_id
@@ -150,7 +152,7 @@ export async function getOrganizationId(): Promise<string> {
                             return existingByClerkId[0].organization_id;
                         }
 
-                        const existingByEmail = await tx<
+                        const existingByEmail = await txSql<
                             { id: string; organization_id: string }[]
                         >`
                             SELECT id, organization_id
@@ -160,7 +162,7 @@ export async function getOrganizationId(): Promise<string> {
                         `;
 
                         if (existingByEmail[0]?.organization_id) {
-                            await tx`
+                            await txSql`
                                 UPDATE users
                                 SET clerk_user_id = ${userId}, role = ${role}, updated_at = NOW()
                                 WHERE id = ${existingByEmail[0].id}
@@ -173,13 +175,13 @@ export async function getOrganizationId(): Promise<string> {
                             .replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
                         const orgName = `${fullName}'s Organization`;
 
-                        const newOrg = await tx<{ id: string }[]>`
+                        const newOrg = await txSql<{ id: string }[]>`
                             INSERT INTO organizations (name, slug, owner_id, created_at, updated_at)
                             VALUES (${orgName}, ${orgSlug}, ${userId}, NOW(), NOW())
                             RETURNING id
                         `;
 
-                        await tx`
+                        await txSql`
                             INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
                             VALUES (gen_random_uuid(), ${fullName}, ${email}, ${userId}, ${role}, ${newOrg[0].id}, ${clerkUser.imageUrl || null}, NOW(), NOW())
                         `;
