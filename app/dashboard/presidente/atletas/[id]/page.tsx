@@ -1,26 +1,28 @@
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { fetchAtletaById } from "@/app/lib/data";
+import { fetchAtletaById, fetchEquipas } from "@/app/lib/data";
 import { notFound } from "next/navigation";
+import RegistarPagamentoModal from "./_components/RegistarPagamentoModal.client";
+import EditarAtletaModal from "../_components/EditarAtletaModal.client";
 
 export const dynamic = 'force-dynamic';
 
 const estadoStyle: Record<string, string> = {
-    "ativo": "bg-emerald-500/10 text-emerald-400",
+    "ativo":    "bg-emerald-500/10 text-emerald-400",
     "suspenso": "bg-red-500/10 text-red-400",
-    "inativo": "bg-slate-500/10 text-slate-400",
+    "inativo":  "bg-slate-500/10 text-slate-400",
 };
 
 const mensalidadeStyle: Record<string, string> = {
-    "pago": "bg-emerald-500/10 text-emerald-400",
+    "pago":      "bg-emerald-500/10 text-emerald-400",
     "em_atraso": "bg-red-500/10 text-red-400",
-    "pendente": "bg-amber-500/10 text-amber-400",
+    "pendente":  "bg-amber-500/10 text-amber-400",
 };
 
 const mensalidadeLabel: Record<string, string> = {
-    "pago": "Pago",
+    "pago":      "Pago",
     "em_atraso": "Em Atraso",
-    "pendente": "Pendente",
+    "pendente":  "Pendente",
 };
 
 const mesesNomes: Record<number, string> = {
@@ -31,23 +33,26 @@ const mesesNomes: Record<number, string> = {
 
 export default async function AtletaDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const { atleta, mensalidades, estatisticas, assiduidade } = await fetchAtletaById(id);
+
+    const [{ atleta, mensalidades, estatisticas, assiduidade }, equipas] = await Promise.all([
+        fetchAtletaById(id),
+        fetchEquipas(),
+    ]);
 
     if (!atleta) return notFound();
 
-    const totalTreinos = Number(assiduidade?.total_treinos ?? 0);
-    const presencas = Number(assiduidade?.presencas ?? 0);
+    const totalTreinos    = Number(assiduidade?.total_treinos ?? 0);
+    const presencas       = Number(assiduidade?.presencas ?? 0);
     const percAssiduidade = totalTreinos > 0 ? Math.round((presencas / totalTreinos) * 100) : 0;
-
     const mensalidadeAtual = mensalidades[0];
 
     const estatisticasCards = [
-        { label: "Jogos", valor: Number(estatisticas?.total_jogos ?? 0) },
-        { label: "Golos", valor: Number(estatisticas?.total_golos ?? 0) },
-        { label: "Assistências", valor: Number(estatisticas?.total_assistencias ?? 0) },
-        { label: "Cart. Amarelos", valor: Number(estatisticas?.total_cartoes_amarelos ?? 0) },
+        { label: "Jogos",           valor: Number(estatisticas?.total_jogos ?? 0) },
+        { label: "Golos",           valor: Number(estatisticas?.total_golos ?? 0) },
+        { label: "Assistências",    valor: Number(estatisticas?.total_assistencias ?? 0) },
+        { label: "Cart. Amarelos",  valor: Number(estatisticas?.total_cartoes_amarelos ?? 0) },
         { label: "Cart. Vermelhos", valor: Number(estatisticas?.total_cartoes_vermelhos ?? 0) },
-        { label: "Minutos", valor: Number(estatisticas?.total_minutos ?? 0) },
+        { label: "Minutos",         valor: Number(estatisticas?.total_minutos ?? 0) },
     ];
 
     return (
@@ -77,6 +82,8 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                             </p>
                         </div>
                     </div>
+
+                    {/* Badges + botão editar */}
                     <div className="flex items-center gap-2">
                         <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoStyle[atleta.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
                             {atleta.estado}
@@ -86,6 +93,20 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                                 {mensalidadeLabel[mensalidadeAtual.estado] ?? mensalidadeAtual.estado}
                             </span>
                         )}
+                        <EditarAtletaModal
+                            atleta={{
+                                id:              atleta.id,
+                                nome:            atleta.nome,
+                                posicao:         atleta.posicao,
+                                numero_camisola: atleta.numero_camisola,
+                                equipa_id:       atleta.equipa_id,
+                                estado:          atleta.estado,
+                                federado:        atleta.federado,
+                                numero_federado: atleta.numero_federado,
+                                mao_dominante:   atleta.mao_dominante,
+                            }}
+                            equipas={equipas.map(e => ({ id: e.id, nome: e.nome }))}
+                        />
                     </div>
                 </div>
             </div>
@@ -200,9 +221,7 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Mensalidades</h2>
-                            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
-                                Registar Pagamento
-                            </button>
+                            <RegistarPagamentoModal atletaId={atleta.id} />
                         </div>
                         {mensalidades.length === 0 ? (
                             <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma mensalidade registada.</p>
@@ -231,3 +250,4 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
         </div>
     );
 }
+

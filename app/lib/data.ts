@@ -870,26 +870,30 @@ export async function fetchAtletas() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<
-            {
-                id: string;
-                nome: string;
-                posicao: string | null;
-                numero_camisola: number | null;
-                estado: string;
-                equipa_nome: string | null;
-                equipa_id: string | null;
-                mensalidade_estado: string | null;
-            }[]
-        >`
+        const data = await sql<{
+            id:                 string;
+            nome:               string;
+            posicao:            string | null;
+            numero_camisola:    number | null;
+            estado:             string;
+            equipa_nome:        string | null;
+            equipa_id:          string | null;
+            mensalidade_estado: string | null;
+            federado:           boolean;
+            numero_federado:    string | null;
+            mao_dominante:      string | null;
+        }[]>`
             SELECT
                 atletas.id,
                 atletas.nome,
                 atletas.posicao,
                 atletas.numero_camisola,
                 atletas.estado,
+                atletas.federado,
+                atletas.numero_federado,
+                atletas.mao_dominante,
                 equipas.nome AS equipa_nome,
-                equipas.id AS equipa_id,
+                equipas.id   AS equipa_id,
                 mensalidades.estado AS mensalidade_estado
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
@@ -906,6 +910,7 @@ export async function fetchAtletas() {
         throw new Error("Failed to fetch atletas.");
     }
 }
+
 
 export async function fetchAtletaById(id: string) {
     try {
@@ -1392,3 +1397,64 @@ export async function fetchDocumentos() {
         throw new Error("Failed to fetch documentos.");
     }
 }
+
+export async function fetchOrganizacao() {
+    try {
+        const organizationId = await getOrganizationId();
+        const data = await sql<{
+            id:            string;
+            name:          string;
+            slug:          string;
+            desporto:      string | null;
+            cidade:        string | null;
+            pais:          string | null;
+            website:       string | null;
+            logo_url:      string | null;
+            plano:         string | null;
+            nif:           string | null;
+            telefone:      string | null;
+            morada:        string | null;
+            codigo_postal: string | null;
+        }[]>`
+            SELECT id, name, slug, desporto, cidade, pais, website, logo_url, plano,
+                   nif, telefone, morada, codigo_postal
+            FROM organizations
+            WHERE id = ${organizationId}
+            LIMIT 1
+        `;
+        return data[0] ?? null;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch organization.");
+    }
+}
+
+
+export async function fetchNotificacoes() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<
+            {
+                id: string;
+                titulo: string;
+                descricao: string;
+                tipo: string;
+                lida: boolean;
+                created_at: string;
+            }[]
+        >`
+            SELECT id, titulo, descricao, tipo, lida, created_at
+            FROM notificacoes
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+            LIMIT 50
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch notificacoes.");
+    }
+}
+

@@ -1,31 +1,36 @@
-import { fetchMensalidades } from "@/app/lib/data";
+import { fetchMensalidades, fetchAtletas } from "@/app/lib/data";
+import SuspenderAtletaButton from "./_components/SuspenderAtletaButton.client";
+import RegistarMensalidadeModal from "./_components/RegistarMensalidadeModal.client";
 
 export const dynamic = 'force-dynamic';
 
 const estadoStyle: Record<string, string> = {
-    "pago": "bg-emerald-500/10 text-emerald-400",
+    "pago":      "bg-emerald-500/10 text-emerald-400",
     "em_atraso": "bg-red-500/10 text-red-400",
-    "pendente": "bg-amber-500/10 text-amber-400",
+    "pendente":  "bg-amber-500/10 text-amber-400",
 };
 
 const estadoLabel: Record<string, string> = {
-    "pago": "Pago",
+    "pago":      "Pago",
     "em_atraso": "Em Atraso",
-    "pendente": "Pendente",
+    "pendente":  "Pendente",
 };
 
 const mesesNomes: Record<number, string> = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+    1: "Janeiro",  2: "Fevereiro", 3: "Março",    4: "Abril",
+    5: "Maio",     6: "Junho",     7: "Julho",     8: "Agosto",
+    9: "Setembro", 10: "Outubro",  11: "Novembro", 12: "Dezembro",
 };
 
 export default async function MensalidadesPage() {
-    const mensalidades = await fetchMensalidades();
+    const [mensalidades, atletas] = await Promise.all([
+        fetchMensalidades(),
+        fetchAtletas(),
+    ]);
 
-    const emAtraso = mensalidades.filter(m => m.estado === "em_atraso");
-    const pagas = mensalidades.filter(m => m.estado === "pago");
-    const pendentes = mensalidades.filter(m => m.estado === "pendente");
+    const emAtraso      = mensalidades.filter(m => m.estado === "em_atraso");
+    const pagas         = mensalidades.filter(m => m.estado === "pago");
+    const pendentes     = mensalidades.filter(m => m.estado === "pendente");
     const totalRecebido = pagas.reduce((acc, m) => acc + Number(m.valor ?? 0), 0);
 
     return (
@@ -35,6 +40,13 @@ export default async function MensalidadesPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mensalidades</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Todos os escalões</p>
                 </div>
+                <RegistarMensalidadeModal
+                    atletas={atletas.map(a => ({
+                        id: a.id,
+                        nome: a.nome,
+                        equipa_nome: a.equipa_nome ?? null,
+                    }))}
+                />
             </div>
 
             {/* Cards resumo */}
@@ -110,9 +122,7 @@ export default async function MensalidadesPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         {m.estado === "em_atraso" && (
-                                            <button className="text-xs text-red-400 hover:text-red-300 font-medium border border-red-500/30 px-2 py-1 rounded-lg transition-colors">
-                                                Suspender atleta
-                                            </button>
+                                            <SuspenderAtletaButton atletaId={m.atleta_id} />
                                         )}
                                     </td>
                                 </tr>
@@ -124,4 +134,5 @@ export default async function MensalidadesPage() {
         </div>
     );
 }
+
 

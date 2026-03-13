@@ -1,5 +1,6 @@
 import { fetchComunicados } from "@/app/lib/data";
 import ComunicadoForm from "./_components/ComunicadoForm";
+import ComunicadoModal from "./_components/ComunicadoModal";
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +49,7 @@ export default async function ComunicadosPage() {
                                 <th className="text-left px-6 py-4">Destinatários</th>
                                 <th className="text-left px-6 py-4">Conteúdo</th>
                                 <th className="text-left px-6 py-4">Data</th>
+                                <th className="text-left px-6 py-4"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,6 +69,9 @@ export default async function ComunicadosPage() {
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                         {formatData(c.created_at)}
                                     </td>
+                                    <td className="px-6 py-4">
+    <ComunicadoModal comunicado={c} />
+</td>
                                 </tr>
                             ))}
                         </tbody>

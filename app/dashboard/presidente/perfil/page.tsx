@@ -1,16 +1,16 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchPerfilPresidente } from "@/app/lib/data";
-
-export const dynamic = 'force-dynamic';
+import { EditarPerfilModal } from "@/app/dashboard/presidente/perfil/_components/editar-perfil-modal";
 import {
     UserCircleIcon,
     EnvelopeIcon,
     BuildingOfficeIcon,
     CreditCardIcon,
-    PencilSquareIcon,
     CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
+
+export const dynamic = 'force-dynamic';
 
 export default async function PerfilPage() {
     const user = await currentUser();
@@ -18,15 +18,15 @@ export default async function PerfilPage() {
 
     const perfil = await fetchPerfilPresidente();
 
-    const nome = user.fullName ?? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
-    const email = user.emailAddresses[0]?.emailAddress ?? "—";
-    const avatar = user.imageUrl;
+    const nome      = user.fullName ?? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+    const email     = user.emailAddresses[0]?.emailAddress ?? "—";
+    const avatar    = user.imageUrl;
+    const firstName = user.firstName ?? "";
+    const lastName  = user.lastName  ?? "";
 
     const formatData = (dateStr: string) =>
         new Date(dateStr).toLocaleDateString("pt-PT", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
+            day: "2-digit", month: "long", year: "numeric",
         });
 
     return (
@@ -70,10 +70,12 @@ export default async function PerfilPage() {
                             </div>
                         )}
 
-                        <button className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                            <PencilSquareIcon className="w-4 h-4" />
-                            Editar Perfil
-                        </button>
+                        {/* Modal de edição */}
+                        <EditarPerfilModal
+                            firstName={firstName}
+                            lastName={lastName}
+                            iban={perfil?.iban ?? null}
+                        />
                     </div>
                 </div>
 
@@ -94,10 +96,6 @@ export default async function PerfilPage() {
                             <div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Função</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">Presidente</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">ID da conta</p>
-                                <p className="text-xs font-mono text-gray-500 dark:text-gray-400 mt-0.5 truncate">{user.id}</p>
                             </div>
                         </div>
                     </div>
@@ -162,11 +160,10 @@ export default async function PerfilPage() {
                         <div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">IBAN</p>
                             <p className="text-sm font-mono text-gray-900 dark:text-white mt-0.5">
-                                {perfil?.iban ?? (
-                                    <span className="text-gray-400 dark:text-gray-500 italic not-italic font-sans text-xs">
-                                        Não definido
-                                    </span>
-                                )}
+                                {perfil?.iban
+                                    ? perfil.iban
+                                    : <span className="text-gray-400 dark:text-gray-500 text-xs not-italic font-sans">Não definido</span>
+                                }
                             </p>
                         </div>
                     </div>
@@ -176,4 +173,5 @@ export default async function PerfilPage() {
         </div>
     );
 }
+
 

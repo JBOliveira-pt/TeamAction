@@ -1,16 +1,42 @@
 const relatorios = [
-    { id: 1, nome: "Relatório de Atletas — Época 2024/2025", descricao: "Lista completa de atletas, posições, equipas e estado.", icone: "👥", categoria: "Atletas" },
-    { id: 2, nome: "Relatório de Mensalidades — Março 2025", descricao: "Estado de pagamentos de todos os atletas no mês corrente.", icone: "💶", categoria: "Financeiro" },
-    { id: 3, nome: "Relatório de Assiduidade", descricao: "Taxa de presença nos treinos por atleta e por equipa.", icone: "📋", categoria: "Treinos" },
-    { id: 4, nome: "Relatório de Resultados Desportivos", descricao: "Resumo de jogos, resultados e estatísticas da época.", icone: "🏆", categoria: "Desporto" },
-    { id: 5, nome: "Relatório de Staff", descricao: "Lista de treinadores, funções e equipas associadas.", icone: "👨‍💼", categoria: "Staff" },
+    {
+        id: 1,
+        nome: "Relatório de Atletas — Época 2024/2025",
+        descricao: "Lista completa de atletas, posições, equipas e estado.",
+        icone: "👥",
+        categoria: "Atletas",
+        endpoint: "/api/relatorios/atletas",
+    },
+    {
+        id: 2,
+        nome: "Relatório de Mensalidades — Mês Atual",
+        descricao: "Estado de pagamentos de todos os atletas no mês corrente.",
+        icone: "💶",
+        categoria: "Financeiro",
+        endpoint: "/api/relatorios/mensalidades",
+    },
+    {
+        id: 3,
+        nome: "Relatório de Assiduidade",
+        descricao: "Taxa de presença nos treinos por atleta e por equipa.",
+        icone: "📋",
+        categoria: "Treinos",
+        endpoint: "/api/relatorios/assiduidade",
+    },
+    {
+        id: 4,
+        nome: "Relatório de Staff",
+        descricao: "Lista de treinadores, funções e equipas associadas.",
+        icone: "👨‍💼",
+        categoria: "Staff",
+        endpoint: "/api/relatorios/staff",
+    },
 ];
 
 const categoriaStyle: Record<string, string> = {
     "Atletas": "bg-cyan-500/10 text-cyan-400",
     "Financeiro": "bg-emerald-500/10 text-emerald-400",
     "Treinos": "bg-amber-500/10 text-amber-400",
-    "Desporto": "bg-violet-500/10 text-violet-400",
     "Staff": "bg-blue-500/10 text-blue-400",
 };
 
@@ -19,7 +45,7 @@ export default function RelatoriosPage() {
         <div className="p-6 space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Relatórios</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Exporta dados do clube em PDF ou Excel</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Exporta dados do clube em CSV</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -35,12 +61,13 @@ export default function RelatoriosPage() {
                             </div>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{r.descricao}</p>
                             <div className="flex items-center gap-2 mt-3">
-                                <button className="text-xs text-violet-400 hover:text-violet-300 font-medium border border-violet-500/30 px-3 py-1.5 rounded-lg transition-colors">
-                                    📄 Exportar PDF
-                                </button>
-                                <button className="text-xs text-emerald-400 hover:text-emerald-300 font-medium border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors">
-                                    📊 Exportar Excel
-                                </button>
+                                <a
+                                    href={r.endpoint}
+                                    download
+                                    className="text-xs text-emerald-400 hover:text-emerald-300 font-medium border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    📊 Exportar CSV
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -49,3 +76,4 @@ export default function RelatoriosPage() {
         </div>
     );
 }
+
