@@ -1,5 +1,7 @@
 import { fetchEstatisticasPorEquipa, fetchTopAtletas } from "@/app/lib/data";
 
+export const dynamic = 'force-dynamic';
+
 export default async function EstatisticasPage() {
     const [estatisticasPorEquipa, topAtletas] = await Promise.all([
         fetchEstatisticasPorEquipa(),

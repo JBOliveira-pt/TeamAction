@@ -1,5 +1,7 @@
 import { fetchMensalidades } from "@/app/lib/data";
 
+export const dynamic = 'force-dynamic';
+
 const estadoStyle: Record<string, string> = {
     "pago": "bg-emerald-500/10 text-emerald-400",
     "em_atraso": "bg-red-500/10 text-red-400",

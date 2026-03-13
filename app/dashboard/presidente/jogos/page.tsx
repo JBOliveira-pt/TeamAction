@@ -1,6 +1,8 @@
 import { fetchJogos } from "@/app/lib/data";
 import JogosTable from "./jogos-table";
 
+export const dynamic = 'force-dynamic';
+
 export default async function JogosPage() {
     const jogos = await fetchJogos();
 

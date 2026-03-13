@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { fetchAtletas } from "@/app/lib/data";
 
+export const dynamic = 'force-dynamic';
+
 const estadoStyle: Record<string, string> = {
     "ativo": "bg-emerald-500/10 text-emerald-400",
     "suspenso": "bg-red-500/10 text-red-400",

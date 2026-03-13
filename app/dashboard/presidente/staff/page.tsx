@@ -1,5 +1,7 @@
 import { fetchStaff } from "@/app/lib/data";
 
+export const dynamic = 'force-dynamic';
+
 const funcaoStyle: Record<string, string> = {
     "treinador": "bg-violet-500/10 text-violet-400",
     "treinador_adjunto": "bg-blue-500/10 text-blue-400",

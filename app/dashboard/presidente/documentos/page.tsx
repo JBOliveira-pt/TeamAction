@@ -1,6 +1,8 @@
 import { fetchDocumentos } from "@/app/lib/data";
 import DocumentoUpload from "./_components/DocumentoUpload";
 
+export const dynamic = 'force-dynamic';
+
 const tipoIcon: Record<string, string> = {
     "PDF":  "📄",
     "XLSX": "📊",

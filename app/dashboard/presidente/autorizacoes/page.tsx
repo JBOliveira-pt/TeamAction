@@ -1,6 +1,8 @@
 import { fetchAutorizacoes } from "@/app/lib/data";
 import AutorizacaoForm from "./_components/AutorizacaoForm";
 
+export const dynamic = 'force-dynamic';
+
 const tipoStyle: Record<string, string> = {
     "Aprovação":    "bg-emerald-500/10 text-emerald-400",
     "Recusa":       "bg-red-500/10 text-red-400",

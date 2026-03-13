@@ -3,6 +3,8 @@ import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { fetchEquipaById } from "@/app/lib/data";
 import { notFound } from "next/navigation";
 
+export const dynamic = 'force-dynamic';
+
 const estadoEquipaStyle: Record<string, string> = {
     "ativa": "bg-emerald-500/10 text-emerald-400",
     "periodo_off": "bg-amber-500/10 text-amber-400",

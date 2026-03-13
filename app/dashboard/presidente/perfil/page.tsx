@@ -1,6 +1,8 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchPerfilPresidente } from "@/app/lib/data";
+
+export const dynamic = 'force-dynamic';
 import {
     UserCircleIcon,
     EnvelopeIcon,

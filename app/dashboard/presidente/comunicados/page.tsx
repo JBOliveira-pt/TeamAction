@@ -1,6 +1,8 @@
 import { fetchComunicados } from "@/app/lib/data";
 import ComunicadoForm from "./_components/ComunicadoForm";
 
+export const dynamic = 'force-dynamic';
+
 const destinatariosStyle: Record<string, string> = {
     "todos":        "bg-violet-500/10 text-violet-400",
     "atletas":      "bg-cyan-500/10 text-cyan-400",

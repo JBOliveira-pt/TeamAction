@@ -1,6 +1,8 @@
 import { fetchPresidenteDashboard, fetchJogos, fetchEquipas } from "@/app/lib/data";
 import { UserRound, Trophy, CalendarCheck, TrendingUp } from "lucide-react";
 
+export const dynamic = 'force-dynamic';
+
 const resultadoStyle: Record<string, string> = {
     V: "text-emerald-400 font-bold",
     D: "text-red-400 font-bold",
