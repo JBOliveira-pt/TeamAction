@@ -1,37 +1,43 @@
 // app/ui/dashboard/sidenav.tsx
-"use client";
+'use client';
 
-import { DashboardHeader } from "@/app/components/header";
-import Image from "next/image";
-import { useUser } from "@clerk/nextjs";
+import { DashboardHeader } from '@/app/components/header';
+import { useUser } from '@clerk/nextjs';
 import {
     Activity,
     BarChart2,
     BarChart3,
+    Bell,
     Calendar,
     CheckSquare,
     CircleUserRound,
     Clipboard,
     FileText,
+    Heart,
+    LayoutDashboard,
     Leaf,
     Lock,
     MapPinned,
     Menu,
+    NotebookPen,
     Receipt,
+    Settings,
+    ShieldCheck,
     TrendingUp,
     Trophy,
     User,
     Users,
     X,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function SideNav() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeProfile, setActiveProfile] = useState<
-        "atleta" | "treinador" | "pai" | "presidente" | null
+        'atleta' | 'treinador' | 'pai' | 'presidente' | null
     >(null);
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
@@ -41,17 +47,17 @@ export default function SideNav() {
         foto?: string;
     } | null>(null);
 
-    type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
+    type AccountType = 'presidente' | 'treinador' | 'atleta' | 'responsavel';
 
     const normalizeAccountType = (value: unknown): AccountType | null => {
-        if (typeof value !== "string") return null;
+        if (typeof value !== 'string') return null;
         const normalized = value.toLowerCase();
 
         if (
-            normalized === "presidente" ||
-            normalized === "treinador" ||
-            normalized === "atleta" ||
-            normalized === "responsavel"
+            normalized === 'presidente' ||
+            normalized === 'treinador' ||
+            normalized === 'atleta' ||
+            normalized === 'responsavel'
         ) {
             return normalized;
         }
@@ -64,24 +70,24 @@ export default function SideNav() {
             clerkUser?.publicMetadata?.accountType,
     );
 
-    const forcedProfile: "presidente" | "treinador" | "atleta" | "pai" | null =
-        accountType === "responsavel"
-            ? "pai"
-            : accountType === "presidente" ||
-                accountType === "treinador" ||
-                accountType === "atleta"
+    const forcedProfile: 'presidente' | 'treinador' | 'atleta' | 'pai' | null =
+        accountType === 'responsavel'
+            ? 'pai'
+            : accountType === 'presidente' ||
+                accountType === 'treinador' ||
+                accountType === 'atleta'
               ? accountType
               : null;
 
     const accountTypeLabel =
-        accountType === "presidente"
-            ? "Presidente"
-            : accountType === "treinador"
-              ? "Treinador"
-              : accountType === "atleta"
-                ? "Atleta"
-                : accountType === "responsavel"
-                  ? "Responsável"
+        accountType === 'presidente'
+            ? 'Presidente'
+            : accountType === 'treinador'
+              ? 'Treinador'
+              : accountType === 'atleta'
+                ? 'Atleta'
+                : accountType === 'responsavel'
+                  ? 'Responsável'
                   : null;
 
     useEffect(() => {
@@ -95,8 +101,8 @@ export default function SideNav() {
             if (!isLoaded || !clerkUser) return;
 
             try {
-                const response = await fetch("/api/debug/user", {
-                    cache: "no-store",
+                const response = await fetch('/api/debug/user', {
+                    cache: 'no-store',
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -109,7 +115,7 @@ export default function SideNav() {
                     }
                 }
             } catch (error) {
-                console.error("Erro ao buscar dados do usuário:", error);
+                console.error('Erro ao buscar dados do usuário:', error);
             }
         }
 
@@ -117,7 +123,7 @@ export default function SideNav() {
     }, [isLoaded, clerkUser, pathname]);
 
     const isCreatingProfile = pathname.startsWith(
-        "/dashboard/utilizador/perfil/criar",
+        '/dashboard/utilizador/perfil/criar',
     );
 
     const mobileMenuTrigger = (
@@ -135,13 +141,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "presidente" ? null : "presidente",
+                        activeProfile === 'presidente' ? null : 'presidente',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "presidente"
-                        ? "bg-violet-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'presidente'
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🏛️ Presidente
@@ -149,13 +155,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "treinador" ? null : "treinador",
+                        activeProfile === 'treinador' ? null : 'treinador',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "treinador"
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'treinador'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🧑‍🏫 Treinador
@@ -163,25 +169,25 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "atleta" ? null : "atleta",
+                        activeProfile === 'atleta' ? null : 'atleta',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "atleta"
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'atleta'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🏃 Atleta
             </button>
             <button
                 onClick={() =>
-                    setActiveProfile(activeProfile === "pai" ? null : "pai")
+                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "pai"
-                        ? "bg-amber-500 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'pai'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 👨‍👦 Pai/Enc.
@@ -197,28 +203,28 @@ export default function SideNav() {
         : {
               name:
                   isLoaded && clerkUser
-                      ? clerkUser.fullName || clerkUser.firstName || "Usuario"
-                      : "Usuario",
+                      ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
+                      : 'Usuario',
               role:
                   accountTypeLabel ||
                   (isLoaded && clerkUser
-                      ? (clerkUser.publicMetadata?.role as string) || "user"
-                      : "user"),
+                      ? (clerkUser.publicMetadata?.role as string) || 'user'
+                      : 'user'),
               foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
           };
 
     const profileHref =
-        forcedProfile === "presidente" || activeProfile === "presidente"
-            ? "/dashboard/presidente/perfil"
-            : forcedProfile === "atleta" || activeProfile === "atleta"
-              ? "/dashboard/utilizador/perfil"
-              : forcedProfile === "treinador" || activeProfile === "treinador"
-                ? "/dashboard/treinador"
-                : "/dashboard";
+        forcedProfile === 'presidente' || activeProfile === 'presidente'
+            ? '/dashboard/presidente/perfil'
+            : forcedProfile === 'atleta' || activeProfile === 'atleta'
+              ? '/dashboard/utilizador/perfil'
+              : forcedProfile === 'treinador' || activeProfile === 'treinador'
+                ? '/dashboard/treinador'
+                : '/dashboard';
 
     const settingsHref =
-        forcedProfile === "presidente" || activeProfile === "presidente"
-            ? "/dashboard/presidente/definicoes"
+        forcedProfile === 'presidente' || activeProfile === 'presidente'
+            ? '/dashboard/presidente/definicoes'
             : undefined;
 
     return (
@@ -244,7 +250,7 @@ export default function SideNav() {
           fixed top-0 left-0 z-40
           w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
           transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
@@ -278,7 +284,7 @@ export default function SideNav() {
                             </p>
                         </div>
                     )}
-                    {!isCreatingProfile && activeProfile === "presidente" && (
+                    {!isCreatingProfile && activeProfile === 'presidente' && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -379,7 +385,7 @@ export default function SideNav() {
                         </>
                     )}
 
-                    {!isCreatingProfile && activeProfile === "treinador" && (
+                    {!isCreatingProfile && activeProfile === 'treinador' && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -454,73 +460,107 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {activeProfile === "atleta" && (
+                    {!isCreatingProfile && activeProfile === 'atleta' && (
                         <>
-                            <NavSectionLabel>Evolução</NavSectionLabel>
                             <NavItem
-                                icon={<Activity size={20} />}
-                                label="Condição Física"
-                                href="#"
+                                icon={<LayoutDashboard size={20} />}
+                                label="Painel do jogador"
+                                href="/dashboard/atleta"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
-                                icon={<Leaf size={20} />}
-                                label="Plano Alimentar"
-                                href="#"
+                                icon={<Heart size={20} />}
+                                label="Médico"
+                                href="/dashboard/atleta/medico"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
                                 icon={<TrendingUp size={20} />}
-                                label="As minhas stats"
-                                href="#"
+                                label="Estatísticas de treino"
+                                href="/dashboard/atleta/estatisticas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Settings size={20} />}
+                                label="Geral"
+                                href="/dashboard/atleta/geral"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<NotebookPen size={20} />}
+                                label="Notas"
+                                href="/dashboard/atleta/notas"
                                 onClick={() => setIsOpen(false)}
                             />
                         </>
                     )}
-                    {!isCreatingProfile && activeProfile === "pai" && (
+                    {!isCreatingProfile && activeProfile === 'pai' && (
                         <>
                             <NavSectionLabel>O Meu Filho</NavSectionLabel>
                             <NavItem
+                                icon={<LayoutDashboard size={20} />}
+                                label="Painel do filho"
+                                href="/dashboard/pai"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
                                 icon={<User size={20} />}
                                 label="Perfil"
-                                href="/dashboard"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<Calendar size={20} />}
-                                label="Agenda"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<CheckSquare size={20} />}
-                                label="Assiduidade"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavSectionLabel>Equipa</NavSectionLabel>
-                            <NavItem
-                                icon={<Trophy size={20} />}
-                                label="Jogos"
-                                href="#"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<BarChart2 size={20} />}
-                                label="Estatísticas"
-                                href="#"
+                                href="/dashboard/pai/perfil"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavSectionLabel>Saúde</NavSectionLabel>
                             <NavItem
-                                icon={<Activity size={20} />}
-                                label="Condição Física"
-                                href="#"
+                                icon={<Heart size={20} />}
+                                label="Médico"
+                                href="/dashboard/pai/medico"
                                 onClick={() => setIsOpen(false)}
                             />
-                            <LockedNavItem
-                                icon={<Leaf size={20} />}
-                                label="Nutrição"
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Condição Física"
+                                href="/dashboard/pai/condicao-fisica"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Desempenho</NavSectionLabel>
+                            <NavItem
+                                icon={<BarChart2 size={20} />}
+                                label="Estatísticas de treino"
+                                href="/dashboard/pai/estatisticas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Trophy size={20} />}
+                                label="Jogos"
+                                href="/dashboard/pai/jogos"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Agenda</NavSectionLabel>
+                            <NavItem
+                                icon={<Calendar size={20} />}
+                                label="Calendário"
+                                href="/dashboard/pai/calendario"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Financeiro</NavSectionLabel>
+                            <NavItem
+                                icon={<Receipt size={20} />}
+                                label="Mensalidades"
+                                href="/dashboard/pai/mensalidades"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Clube</NavSectionLabel>
+                            <NavItem
+                                icon={<Bell size={20} />}
+                                label="Comunicados"
+                                href="/dashboard/pai/comunicados"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<ShieldCheck size={20} />}
+                                label="Autorizações"
+                                href="/dashboard/pai/autorizacoes"
+                                onClick={() => setIsOpen(false)}
                             />
                         </>
                     )}
@@ -602,9 +642,9 @@ function NavItem({
     const pathname = usePathname();
 
     const exactMatchPaths = [
-        "/dashboard",
-        "/dashboard/presidente",
-        "/dashboard/treinador",
+        '/dashboard',
+        '/dashboard/presidente',
+        '/dashboard/treinador',
     ];
 
     const active = exactMatchPaths.includes(href)
@@ -617,15 +657,15 @@ function NavItem({
             onClick={onClick}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
                 active
-                    ? "bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
+                    ? 'bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
         >
             <span
                 className={
                     active
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
+                        ? 'text-blue-500 dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors'
                 }
             >
                 {icon}
