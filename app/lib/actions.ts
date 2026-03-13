@@ -1519,8 +1519,8 @@ export async function criarComunicado(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const organizationId = await getOrganizationId();
 
-    const titulo       = formData.get('titulo') as string;
-    const conteudo     = formData.get('conteudo') as string;
+    const titulo        = formData.get('titulo') as string;
+    const conteudo      = formData.get('conteudo') as string;
     const destinatarios = formData.get('destinatarios') as string;
 
     if (!titulo?.trim() || !conteudo?.trim() || !destinatarios?.trim()) {
@@ -1530,7 +1530,6 @@ export async function criarComunicado(
     try {
         const { userId: clerkId } = await auth();
 
-        // CORREÇÃO: buscar UUID real da base de dados
         const userResult = await sql<{ id: string }[]>`
             SELECT id FROM users WHERE clerk_user_id = ${clerkId}
         `;
@@ -1541,13 +1540,28 @@ export async function criarComunicado(
             VALUES (${titulo.trim()}, ${conteudo.trim()}, ${destinatarios.trim()}, ${dbUserId}, ${organizationId}, NOW())
         `;
 
+        // Notificação automática
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${organizationId},
+                'Novo comunicado publicado',
+                ${`"${titulo.trim()}" foi enviado para: ${destinatarios.trim()}.`},
+                'Info',
+                NOW()
+            )
+        `;
+
         revalidatePath('/dashboard/presidente/comunicados');
+        revalidatePath('/dashboard/presidente/notificacoes');
         return { success: true };
     } catch (error) {
         console.error('Database Error:', error);
         return { error: 'Erro ao enviar comunicado. Tenta novamente.' };
     }
 }
+
 
 
 
@@ -1807,7 +1821,7 @@ export async function adicionarMembro(
     const funcao   = formData.get('funcao')?.toString() || null;
     const equipaId = formData.get('equipa_id')?.toString() || null;
 
-    if (!nome) return { error: 'Nome é obrigatório.' };
+    if (!nome)   return { error: 'Nome é obrigatório.' };
     if (!funcao) return { error: 'Função é obrigatória.' };
 
     try {
@@ -1815,14 +1829,38 @@ export async function adicionarMembro(
             INSERT INTO staff (id, nome, funcao, equipa_id, organization_id)
             VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${organizationId})
         `;
+
+        // Buscar nome da equipa para a notificação
+        let equipaNome = 'sem equipa';
+        if (equipaId) {
+            const equipaResult = await sql<{ nome: string }[]>`
+                SELECT nome FROM equipas WHERE id = ${equipaId}
+            `;
+            equipaNome = equipaResult[0]?.nome ?? 'sem equipa';
+        }
+
+        // Notificação automática
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${organizationId},
+                'Novo membro de staff adicionado',
+                ${`${nome} foi adicionado como ${funcao}${equipaId ? ` na equipa ${equipaNome}` : ''}.`},
+                'Info',
+                NOW()
+            )
+        `;
     } catch (error) {
         console.error(error);
         return { error: 'Erro ao adicionar membro de staff.' };
     }
 
     revalidatePath('/dashboard/presidente/staff');
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
+
 
 // ========================================
 // Jogos Actions (Modal)
@@ -2368,30 +2406,31 @@ export async function gerarRelatorioMensalidades() {
     if (!organizationId) throw new Error('Organização não encontrada.');
 
     const mensalidades = await sql<{
-        atleta_nome: string;
-        equipa_nome: string | null;
-        mes:         number;
-        ano:         number;
-        valor:       number | null;
-        estado:      string;
-        data_pago:   string | null;
-    }[]>`
-        SELECT
-            atletas.nome AS atleta_nome,
-            equipas.nome AS equipa_nome,
-            mensalidades.mes,
-            mensalidades.ano,
-            mensalidades.valor,
-            mensalidades.estado,
-            mensalidades.data_pagamento AS data_pago
-        FROM mensalidades
-        INNER JOIN atletas ON mensalidades.atleta_id = atletas.id
-        LEFT JOIN equipas ON atletas.equipa_id = equipas.id
-        WHERE mensalidades.mes = EXTRACT(MONTH FROM CURRENT_DATE)
-          AND mensalidades.ano = EXTRACT(YEAR FROM CURRENT_DATE)
-          AND atletas.organization_id = ${organizationId}
-        ORDER BY mensalidades.estado DESC, atletas.nome ASC
-    `;
+    atleta_nome: string;
+    equipa_nome: string | null;
+    mes:         number;
+    ano:         number;
+    valor:       number | null;
+    estado:      string;
+    data_pago:   string | null;
+}[]>`
+    SELECT
+        atletas.nome AS atleta_nome,
+        equipas.nome AS equipa_nome,
+        mensalidades.mes,
+        mensalidades.ano,
+        mensalidades.valor,
+        mensalidades.estado,
+        mensalidades.data_pagamento AS data_pago
+    FROM mensalidades
+    INNER JOIN atletas ON mensalidades.atleta_id = atletas.id
+    LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+    WHERE mensalidades.mes = EXTRACT(MONTH FROM CURRENT_DATE)
+      AND mensalidades.ano = EXTRACT(YEAR FROM CURRENT_DATE)
+      AND mensalidades.organization_id = ${organizationId}
+    ORDER BY mensalidades.estado DESC, atletas.nome ASC
+`;
+
 
     const mesesNomes: Record<number, string> = {
         1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
@@ -2512,6 +2551,141 @@ export async function gerarRelatorioStaff() {
     const csv = [headers, ...rows].map(row => row.join(';')).join('\n');
     return csv;
 }
+
+export async function registarResultado(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<{ organization_id: string }[]>`
+            SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
+        `;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: 'Erro ao obter organização.' };
+    }
+    if (!organizationId) return { error: 'Organização não encontrada.' };
+
+    const id           = formData.get('id')?.toString();
+    const resultadoNos = formData.get('resultado_nos')?.toString();
+    const resultadoAdv = formData.get('resultado_adv')?.toString();
+
+    if (!id)                      return { error: 'ID do jogo em falta.' };
+    if (resultadoNos === '')      return { error: 'Resultado da equipa é obrigatório.' };
+    if (resultadoAdv === '')      return { error: 'Resultado do adversário é obrigatório.' };
+
+    const nos = parseInt(resultadoNos ?? '');
+    const adv = parseInt(resultadoAdv ?? '');
+
+    if (isNaN(nos) || isNaN(adv)) return { error: 'Resultados têm de ser números.' };
+    if (nos < 0 || adv < 0)       return { error: 'Resultados não podem ser negativos.' };
+
+    try {
+        await sql`
+            UPDATE jogos SET
+                resultado_nos = ${nos},
+                resultado_adv = ${adv},
+                estado        = 'realizado',
+                updated_at    = NOW()
+            WHERE id = ${id}
+            AND organization_id = ${organizationId}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao registar resultado.' };
+    }
+
+    revalidatePath('/dashboard/presidente/jogos');
+    revalidatePath('/dashboard/presidente');
+    return { success: true };
+}
+
+export async function editarMembro(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<{ organization_id: string }[]>`
+            SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
+        `;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: 'Erro ao obter organização.' };
+    }
+    if (!organizationId) return { error: 'Organização não encontrada.' };
+
+    const id       = formData.get('id')?.toString();
+    const nome     = formData.get('nome')?.toString().trim();
+    const funcao   = formData.get('funcao')?.toString() || null;
+    const equipaId = formData.get('equipa_id')?.toString() || null;
+
+    if (!id)     return { error: 'ID do membro em falta.' };
+    if (!nome)   return { error: 'Nome é obrigatório.' };
+    if (!funcao) return { error: 'Função é obrigatória.' };
+
+    try {
+        await sql`
+            UPDATE staff SET
+                nome      = ${nome},
+                funcao    = ${funcao},
+                equipa_id = ${equipaId}
+            WHERE id = ${id}
+            AND organization_id = ${organizationId}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao editar membro.' };
+    }
+
+    revalidatePath('/dashboard/presidente/staff');
+    return { success: true };
+}
+
+export async function removerMembro(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<{ organization_id: string }[]>`
+            SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
+        `;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: 'Erro ao obter organização.' };
+    }
+    if (!organizationId) return { error: 'Organização não encontrada.' };
+
+    const id = formData.get('id')?.toString();
+    if (!id) return { error: 'ID do membro em falta.' };
+
+    try {
+        await sql`
+            DELETE FROM staff
+            WHERE id = ${id}
+            AND organization_id = ${organizationId}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao remover membro.' };
+    }
+
+    revalidatePath('/dashboard/presidente/staff');
+    return { success: true };
+}
+
+
 
 
 

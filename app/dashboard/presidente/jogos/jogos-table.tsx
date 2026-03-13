@@ -1,22 +1,23 @@
 'use client';
 
 import { useState } from "react";
+import RegistarResultadoModal from "./_components/RegistarResultadoModal.client";
 
 type Jogo = {
-    id: string;
-    adversario: string;
-    data: string;
-    casa_fora: string;
+    id:            string;
+    adversario:    string;
+    data:          string;
+    casa_fora:     string;
     resultado_nos: number | null;
     resultado_adv: number | null;
-    estado: string;
-    equipa_id: string;
-    equipa_nome: string;
+    estado:        string;
+    equipa_id:     string;
+    equipa_nome:   string;
 };
 
 const estadoStyle: Record<string, string> = {
     "realizado": "bg-slate-500/10 text-gray-500 dark:text-gray-400",
-    "agendado": "bg-cyan-500/10 text-cyan-400",
+    "agendado":  "bg-cyan-500/10 text-cyan-400",
     "cancelado": "bg-red-500/10 text-red-400",
 };
 
@@ -40,8 +41,8 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
         : jogos.filter(j => j.equipa_nome === filtroEquipa);
 
     const realizados = jogosFiltrados.filter(j => j.estado === "realizado");
-    const agendados = jogosFiltrados.filter(j => j.estado === "agendado");
-    const vitorias = realizados.filter(j => j.resultado_nos! > j.resultado_adv!).length;
+    const agendados  = jogosFiltrados.filter(j => j.estado === "agendado");
+    const vitorias   = realizados.filter(j => j.resultado_nos! > j.resultado_adv!).length;
 
     return (
         <div className="space-y-6">
@@ -112,12 +113,13 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                             <th className="text-left px-6 py-4">Local</th>
                             <th className="text-left px-6 py-4">Resultado</th>
                             <th className="text-left px-6 py-4">Estado</th>
+                            <th className="text-left px-6 py-4"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {jogosFiltrados.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="px-6 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
+                                <td colSpan={7} className="px-6 py-10 text-center text-gray-400 dark:text-gray-500 text-sm">
                                     Nenhum jogo encontrado para esta equipa.
                                 </td>
                             </tr>
@@ -129,7 +131,7 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                             {new Date(j.data).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}
                                         </td>
-                                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white"> {j.adversario}</td>
+                                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{j.adversario}</td>
                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{j.equipa_nome}</td>
                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400 capitalize">{j.casa_fora}</td>
                                         <td className={`px-6 py-4 ${resultado.style}`}>{resultado.label}</td>
@@ -137,6 +139,13 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[j.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
                                                 {j.estado}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {j.estado !== 'cancelado' && (
+                                                <RegistarResultadoModal
+                                                    jogo={{ id: j.id, adversario: j.adversario, data: j.data }}
+                                                />
+                                            )}
                                         </td>
                                     </tr>
                                 );
