@@ -603,10 +603,15 @@ function NavItem({
 }) {
     const pathname = usePathname();
 
-    const active =
-        href === "/dashboard"
-            ? pathname === "/dashboard"
-            : pathname === href || pathname.startsWith(`${href}/`);
+    const exactMatchPaths = [
+        "/dashboard",
+        "/dashboard/presidente",
+        "/dashboard/treinador",
+    ];
+
+    const active = exactMatchPaths.includes(href)
+        ? pathname === href
+        : pathname === href || pathname.startsWith(`${href}/`);
 
     return (
         <Link
