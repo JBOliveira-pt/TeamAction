@@ -1,5 +1,6 @@
 "use client";
 
+
 import { Avatar } from "@/app/components/avatar";
 import { Button } from "@/app/components/button";
 import { NotificationDropdown } from "@/app/components/notification-dropdown";
@@ -9,6 +10,7 @@ import { LogOut, Moon, Settings, Sun, User, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
+
 
 interface DashboardHeaderProps {
     mobileMenuTrigger?: ReactNode;
@@ -24,6 +26,7 @@ interface DashboardHeaderProps {
     };
 }
 
+
 export function DashboardHeader({
     mobileMenuTrigger,
     actionButton,
@@ -34,19 +37,21 @@ export function DashboardHeader({
     user,
 }: DashboardHeaderProps) {
     const { theme, toggleTheme } = useTheme();
-    const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
     const [mounted, setMounted] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const { signOut } = useClerk();
     const router = useRouter();
 
+
     useEffect(() => {
         setMounted(true);
     }, []);
 
+
     useEffect(() => {
         if (!userMenuOpen) return;
+
 
         function handleClickOutside(e: MouseEvent) {
             if (
@@ -57,10 +62,12 @@ export function DashboardHeader({
             }
         }
 
+
         document.addEventListener("mousedown", handleClickOutside);
         return () =>
             document.removeEventListener("mousedown", handleClickOutside);
     }, [userMenuOpen]);
+
 
     const getInitials = (name: string) => {
         return name
@@ -71,9 +78,6 @@ export function DashboardHeader({
             .slice(0, 2);
     };
 
-    const handleNotificationClick = () => {
-        setHasUnreadNotifications(false);
-    };
 
     return (
         <header className="fixed top-0 right-0 left-0 lg:left-64 h-20 bg-white dark:bg-gray-950 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-40 px-4 md:px-8 flex items-center justify-between transition-all">
@@ -85,6 +89,7 @@ export function DashboardHeader({
                     <div className="hidden lg:flex">{profileTabs}</div>
                 )}
             </div>
+
 
             <div className="flex items-center gap-2 md:gap-4 pl-4">
                 <div className="flex gap-1 text-gray-600 dark:text-gray-400">
@@ -103,12 +108,9 @@ export function DashboardHeader({
                         )}
                     </Button>
 
-                    <div onClick={handleNotificationClick}>
-                        <NotificationDropdown
-                            hasUnread={hasUnreadNotifications}
-                        />
-                    </div>
+                    <NotificationDropdown />
                 </div>
+
 
                 <div
                     ref={userMenuRef}
@@ -135,12 +137,13 @@ export function DashboardHeader({
                         />
                     </button>
 
+
                     {userMenuOpen && (
                         <div className="absolute right-0 top-full mt-3 w-52 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl py-1 z-50">
                             {isCreatingProfile ? (
                                 <div className="px-4 py-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
                                     Completa o registo do perfil para acederes
-                                    �s restantes op��es.
+                                    às restantes opções.
                                 </div>
                             ) : (
                                 <>
@@ -200,3 +203,4 @@ export function DashboardHeader({
         </header>
     );
 }
+
