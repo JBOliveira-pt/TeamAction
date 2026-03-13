@@ -16,26 +16,29 @@ async function getAtletaByClerkUser(
     if (!users.length) return null;
 
     const atletas = await sql<Atleta[]>`
-        SELECT * FROM atletas WHERE email = ${users[0].email}
+        SELECT * FROM utilizador WHERE email = ${users[0].email}
     `;
     return atletas[0] ?? null;
 }
 
-export default async function EditarPerfilAtletaPage() {
+export default async function EditarPerfilUtilizadorPage() {
     const { userId } = await auth();
     if (!userId) redirect('/login');
 
     const atleta = await getAtletaByClerkUser(userId);
-    if (!atleta) redirect('/dashboard/atleta/perfil/criar');
+    if (!atleta) redirect('/dashboard/utilizador/perfil/criar');
 
     return (
         <main className="p-5 max-w-3xl mx-auto">
             <Breadcrumbs
                 breadcrumbs={[
-                    { label: 'Atleta', href: '/dashboard/atleta/perfil' },
+                    {
+                        label: 'Perfil Utilizador',
+                        href: '/dashboard/utilizador/perfil',
+                    },
                     {
                         label: 'Editar Perfil',
-                        href: '/dashboard/atleta/perfil/editar',
+                        href: '/dashboard/utilizador/perfil/editar',
                         active: true,
                     },
                 ]}
