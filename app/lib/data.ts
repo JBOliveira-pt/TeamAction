@@ -68,7 +68,7 @@ export async function fetchFilteredUsers(query: string) {
 }
 
 // Helper para pegar organization_id da sessão
-async function getOrganizationId(): Promise<string> {
+export async function getOrganizationId(): Promise<string> {
     const { userId } = await auth();
 
     if (!userId) {
@@ -659,3 +659,620 @@ export async function fetchInvoicePaymentDates() {
         throw new Error("Failed to fetch invoice payment dates.");
     }
 }
+
+// ============================================
+// PRESIDENTE QUERIES
+// ============================================
+
+// ---------- EQUIPAS ----------
+
+export async function fetchEquipas() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            nome: string;
+            escalao: string;
+            estado: string;
+            desporto: string;
+            total_atletas: number;
+            nome_treinador: string | null;
+        }[]>`
+            SELECT
+                equipas.id,
+                equipas.nome,
+                equipas.escalao,
+                equipas.estado,
+                equipas.desporto,
+                COUNT(atletas.id) AS total_atletas,
+                MAX(staff.nome) AS nome_treinador
+            FROM equipas
+            LEFT JOIN atletas ON atletas.equipa_id = equipas.id
+            LEFT JOIN staff ON staff.equipa_id = equipas.id AND staff.funcao = 'treinador'
+            WHERE equipas.organization_id = ${organizationId}
+            GROUP BY equipas.id, equipas.nome, equipas.escalao, equipas.estado, equipas.desporto
+            ORDER BY equipas.nome ASC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch equipas.");
+    }
+}
+
+export async function fetchEquipaById(id: string) {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const equipa = await sql<{
+            id: string;
+            nome: string;
+            escalao: string;
+            estado: string;
+            desporto: string;
+        }[]>`
+            SELECT id, nome, escalao, estado, desporto
+            FROM equipas
+            WHERE id = ${id} AND organization_id = ${organizationId}
+        `;
+
+        const atletas = await sql<{
+            id: string;
+            nome: string;
+            posicao: string | null;
+            numero_camisola: number | null;
+            estado: string;
+        }[]>`
+            SELECT id, nome, posicao, numero_camisola, estado
+            FROM atletas
+            WHERE equipa_id = ${id} AND organization_id = ${organizationId}
+            ORDER BY nome ASC
+        `;
+
+        const staff = await sql<{
+            id: string;
+            nome: string;
+            funcao: string;
+        }[]>`
+            SELECT id, nome, funcao
+            FROM staff
+            WHERE equipa_id = ${id} AND organization_id = ${organizationId}
+            ORDER BY funcao ASC
+        `;
+
+        const jogos = await sql<{
+            id: string;
+            adversario: string;
+            data: string;
+            casa_fora: string;
+            resultado_nos: number | null;
+            resultado_adv: number | null;
+            estado: string;
+        }[]>`
+            SELECT id, adversario, data, casa_fora, resultado_nos, resultado_adv, estado
+            FROM jogos
+            WHERE equipa_id = ${id} AND organization_id = ${organizationId}
+            ORDER BY data DESC
+            LIMIT 10
+        `;
+
+        return { equipa: equipa[0], atletas, staff, jogos };
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch equipa.");
+    }
+}
+
+// ---------- ATLETAS ----------
+
+export async function fetchAtletas() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            nome: string;
+            posicao: string | null;
+            numero_camisola: number | null;
+            estado: string;
+            equipa_nome: string | null;
+            equipa_id: string | null;
+            mensalidade_estado: string | null;
+        }[]>`
+            SELECT
+                atletas.id,
+                atletas.nome,
+                atletas.posicao,
+                atletas.numero_camisola,
+                atletas.estado,
+                equipas.nome AS equipa_nome,
+                equipas.id AS equipa_id,
+                mensalidades.estado AS mensalidade_estado
+            FROM atletas
+            LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN mensalidades ON mensalidades.atleta_id = atletas.id
+                AND mensalidades.mes = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND mensalidades.ano = EXTRACT(YEAR FROM CURRENT_DATE)
+            WHERE atletas.organization_id = ${organizationId}
+            ORDER BY atletas.nome ASC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch atletas.");
+    }
+}
+
+export async function fetchAtletaById(id: string) {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const atleta = await sql<{
+            id: string;
+            nome: string;
+            posicao: string | null;
+            numero_camisola: number | null;
+            estado: string;
+            federado: boolean;
+            numero_federado: string | null;
+            mao_dominante: string | null;
+            equipa_id: string | null;
+            equipa_nome: string | null;
+            user_email: string | null;
+            user_telefone: string | null;
+            user_data_nascimento: string | null;
+        }[]>`
+            SELECT
+                atletas.id,
+                atletas.nome,
+                atletas.posicao,
+                atletas.numero_camisola,
+                atletas.estado,
+                atletas.federado,
+                atletas.numero_federado,
+                atletas.mao_dominante,
+                atletas.equipa_id,
+                equipas.nome AS equipa_nome,
+                users.email AS user_email,
+                users.telefone AS user_telefone,
+                users.data_nascimento AS user_data_nascimento
+            FROM atletas
+            LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN users ON atletas.user_id = users.id
+            WHERE atletas.id = ${id} AND atletas.organization_id = ${organizationId}
+        `;
+
+        const mensalidades = await sql<{
+            id: string;
+            mes: number;
+            ano: number;
+            valor: number | null;
+            estado: string;
+            data_pagamento: string | null;
+        }[]>`
+            SELECT id, mes, ano, valor, estado, data_pagamento
+            FROM mensalidades
+            WHERE atleta_id = ${id}
+            ORDER BY ano DESC, mes DESC
+            LIMIT 12
+        `;
+
+        const estatisticas = await sql<{
+            total_jogos: number;
+            total_golos: number;
+            total_assistencias: number;
+            total_exclusoes: number;
+            total_cartoes_amarelos: number;
+            total_cartoes_vermelhos: number;
+            total_minutos: number;
+        }[]>`
+            SELECT
+                COUNT(estatisticas_jogo.id) AS total_jogos,
+                COALESCE(SUM(golos), 0) AS total_golos,
+                COALESCE(SUM(assistencias), 0) AS total_assistencias,
+                COALESCE(SUM(exclusoes), 0) AS total_exclusoes,
+                COUNT(CASE WHEN cartao_amarelo THEN 1 END) AS total_cartoes_amarelos,
+                COUNT(CASE WHEN cartao_vermelho THEN 1 END) AS total_cartoes_vermelhos,
+                COALESCE(SUM(minutos_jogados), 0) AS total_minutos
+            FROM estatisticas_jogo
+            WHERE atleta_id = ${id}
+        `;
+
+        const assiduidade = await sql<{
+            total_treinos: number;
+            presencas: number;
+        }[]>`
+            SELECT
+                COUNT(assiduidade.id) AS total_treinos,
+                COUNT(CASE WHEN presente THEN 1 END) AS presencas
+            FROM assiduidade
+            WHERE atleta_id = ${id}
+        `;
+
+        return {
+            atleta: atleta[0],
+            mensalidades,
+            estatisticas: estatisticas[0],
+            assiduidade: assiduidade[0],
+        };
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch atleta.");
+    }
+}
+
+// ---------- JOGOS ----------
+
+export async function fetchJogos() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            adversario: string;
+            data: string;
+            casa_fora: string;
+            resultado_nos: number | null;
+            resultado_adv: number | null;
+            estado: string;
+            equipa_id: string;
+            equipa_nome: string;
+        }[]>`
+            SELECT
+                jogos.id,
+                jogos.adversario,
+                jogos.data,
+                jogos.casa_fora,
+                jogos.resultado_nos,
+                jogos.resultado_adv,
+                jogos.estado,
+                jogos.equipa_id,
+                equipas.nome AS equipa_nome
+            FROM jogos
+            LEFT JOIN equipas ON jogos.equipa_id = equipas.id
+            WHERE jogos.organization_id = ${organizationId}
+            ORDER BY jogos.data DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch jogos.");
+    }
+}
+
+// ---------- MENSALIDADES ----------
+
+export async function fetchMensalidades() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            mes: number;
+            ano: number;
+            valor: number | null;
+            estado: string;
+            data_pagamento: string | null;
+            atleta_id: string;
+            atleta_nome: string;
+            equipa_nome: string | null;
+        }[]>`
+            SELECT
+                mensalidades.id,
+                mensalidades.mes,
+                mensalidades.ano,
+                mensalidades.valor,
+                mensalidades.estado,
+                mensalidades.data_pagamento,
+                atletas.id AS atleta_id,
+                atletas.nome AS atleta_nome,
+                equipas.nome AS equipa_nome
+            FROM mensalidades
+            JOIN atletas ON mensalidades.atleta_id = atletas.id
+            LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            WHERE mensalidades.organization_id = ${organizationId}
+            ORDER BY mensalidades.ano DESC, mensalidades.mes DESC, atletas.nome ASC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch mensalidades.");
+    }
+}
+
+// ---------- DASHBOARD (resumo) ----------
+
+export async function fetchPresidenteDashboard() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const [equipas, atletas, jogos, mensalidades] = await Promise.all([
+            sql`SELECT COUNT(*) FROM equipas WHERE organization_id = ${organizationId}`,
+            sql`SELECT COUNT(*) FROM atletas WHERE organization_id = ${organizationId}`,
+            sql`SELECT COUNT(*) FROM jogos WHERE organization_id = ${organizationId} AND estado = 'agendado'`,
+            sql`SELECT COUNT(*) FROM mensalidades WHERE organization_id = ${organizationId} AND estado = 'em_atraso'`,
+        ]);
+
+        return {
+            totalEquipas: Number(equipas[0].count),
+            totalAtletas: Number(atletas[0].count),
+            jogosAgendados: Number(jogos[0].count),
+            mensalidadesEmAtraso: Number(mensalidades[0].count),
+        };
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch presidente dashboard.");
+    }
+}
+
+// ---------- STAFF ----------
+
+export async function fetchStaff() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            nome: string;
+            funcao: string;
+            equipa_id: string | null;
+            equipa_nome: string | null;
+            user_email: string | null;
+            user_telefone: string | null;
+        }[]>`
+            SELECT
+                staff.id,
+                staff.nome,
+                staff.funcao,
+                staff.equipa_id,
+                equipas.nome AS equipa_nome,
+                users.email AS user_email,
+                users.telefone AS user_telefone
+            FROM staff
+            LEFT JOIN equipas ON staff.equipa_id = equipas.id
+            LEFT JOIN users ON staff.user_id = users.id
+            WHERE staff.organization_id = ${organizationId}
+            ORDER BY staff.funcao ASC, staff.nome ASC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch staff.");
+    }
+}
+
+// ---------- ESTATÍSTICAS ----------
+
+export async function fetchEstatisticasPorEquipa() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            equipa_id: string;
+            equipa: string;
+            jogos: number;
+            vitorias: number;
+            empates: number;
+            derrotas: number;
+            golos_marcados: number;
+            golos_sofridos: number;
+        }[]>`
+            SELECT
+                equipas.id AS equipa_id,
+                equipas.nome AS equipa,
+                COUNT(jogos.id) AS jogos,
+                COUNT(CASE WHEN jogos.resultado_nos > jogos.resultado_adv THEN 1 END) AS vitorias,
+                COUNT(CASE WHEN jogos.resultado_nos = jogos.resultado_adv THEN 1 END) AS empates,
+                COUNT(CASE WHEN jogos.resultado_nos < jogos.resultado_adv THEN 1 END) AS derrotas,
+                COALESCE(SUM(jogos.resultado_nos), 0) AS golos_marcados,
+                COALESCE(SUM(jogos.resultado_adv), 0) AS golos_sofridos
+            FROM equipas
+            LEFT JOIN jogos ON jogos.equipa_id = equipas.id
+                AND jogos.estado = 'realizado'
+                AND jogos.resultado_nos IS NOT NULL
+            WHERE equipas.organization_id = ${organizationId}
+            GROUP BY equipas.id, equipas.nome
+            ORDER BY vitorias DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch estatisticas por equipa.");
+    }
+}
+
+export async function fetchTopAtletas() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            atleta_id: string;
+            nome: string;
+            equipa_nome: string | null;
+            golos: number;
+            assistencias: number;
+            total_treinos: number;
+            presencas: number;
+        }[]>`
+            SELECT
+                atletas.id AS atleta_id,
+                atletas.nome,
+                equipas.nome AS equipa_nome,
+                COALESCE(SUM(estatisticas_jogo.golos), 0) AS golos,
+                COALESCE(SUM(estatisticas_jogo.assistencias), 0) AS assistencias,
+                COUNT(DISTINCT assiduidade.sessao_id) AS total_treinos,
+                COUNT(DISTINCT CASE WHEN assiduidade.presente THEN assiduidade.sessao_id END) AS presencas
+            FROM atletas
+            LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN estatisticas_jogo ON estatisticas_jogo.atleta_id = atletas.id
+            LEFT JOIN assiduidade ON assiduidade.atleta_id = atletas.id
+            WHERE atletas.organization_id = ${organizationId}
+            GROUP BY atletas.id, atletas.nome, equipas.nome
+            ORDER BY golos DESC
+            LIMIT 5
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch top atletas.");
+    }
+}
+
+// ---------- ÉPOCA ----------
+
+export async function fetchEpocaAtiva() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            nome: string;
+            data_inicio: string;
+            data_fim: string;
+            ativa: boolean;
+        }[]>`
+            SELECT id, nome, data_inicio, data_fim, ativa
+            FROM epocas
+            WHERE organization_id = ${organizationId}
+            ORDER BY ativa DESC, data_inicio DESC
+            LIMIT 1
+        `;
+
+        return data[0] ?? null;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch epoca ativa.");
+    }
+}
+
+// ---------- PERFIL ----------
+
+export async function fetchPerfilPresidente() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            iban: string | null;
+            org_name: string;
+            org_slug: string;
+            org_created_at: string;
+        }[]>`
+            SELECT
+                u.iban,
+                o.name   AS org_name,
+                o.slug   AS org_slug,
+                o.created_at AS org_created_at
+            FROM users u
+            JOIN organizations o ON o.id = u.organization_id
+            WHERE u.organization_id = ${organizationId}
+              AND u.role = 'admin'
+            LIMIT 1
+        `;
+
+        return data[0] ?? null;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch perfil presidente.");
+    }
+}
+
+// ---------- COMUNICADOS ----------
+
+export async function fetchComunicados() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            titulo: string;
+            conteudo: string;
+            destinatarios: string;
+            criado_por: string;
+            created_at: string;
+        }[]>`
+            SELECT id, titulo, conteudo, destinatarios, criado_por, created_at
+            FROM comunicados
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch comunicados.");
+    }
+}
+
+
+
+
+// ---------- AUTORIZAÇÕES ----------
+
+export async function fetchAutorizacoes() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            autorizado_a: string;
+            autorizado_por: string;
+            tipo_acao: string;
+            notas: string | null;
+            created_at: string;
+        }[]>`
+            SELECT id, autorizado_a, autorizado_por, tipo_acao, notas, created_at
+            FROM autorizacoes_log
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch autorizacoes.");
+    }
+}
+
+
+// ---------- DOCUMENTOS ----------
+
+export async function fetchDocumentos() {
+    try {
+        const organizationId = await getOrganizationId();
+
+        const data = await sql<{
+            id: string;
+            nome: string;
+            tipo: string;
+            url_r2: string;
+            created_at: string;
+        }[]>`
+            SELECT id, nome, tipo, url_r2, created_at
+            FROM documentos
+            WHERE organization_id = ${organizationId}
+            ORDER BY created_at DESC
+        `;
+
+        return data;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch documentos.");
+    }
+}
+
+
+
+
+
+
+
+
+

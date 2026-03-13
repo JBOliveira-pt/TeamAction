@@ -1,55 +1,54 @@
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { fetchAtletaById } from "@/app/lib/data";
+import { notFound } from "next/navigation";
 
-const atletas = [
-    { id: 1, nome: "João Silva", posicao: "Pivot", numero: 9, equipa: "Seniores M", estado: "Ativo", assiduidade: 93, mensalidade: "Pago", idade: 24, email: "joao.silva@clube.pt", telemovel: "912 345 678", peso: 78, altura: 182, nif: "123 456 789", morada: "Rua das Flores, 12, Porto" },
-    { id: 2, nome: "Miguel Santos", posicao: "Lateral Direito", numero: 7, equipa: "Seniores M", estado: "Ativo", assiduidade: 88, mensalidade: "Pago", idade: 22, email: "miguel.santos@clube.pt", telemovel: "913 456 789", peso: 74, altura: 178, nif: "234 567 890", morada: "Av. da República, 45, Gaia" },
-    { id: 3, nome: "Rui Ferreira", posicao: "Guarda-Redes", numero: 1, equipa: "Seniores M", estado: "Ativo", assiduidade: 100, mensalidade: "Em Atraso", idade: 26, email: "rui.ferreira@clube.pt", telemovel: "914 567 890", peso: 82, altura: 186, nif: "345 678 901", morada: "Rua do Comércio, 8, Porto" },
-    { id: 4, nome: "André Costa", posicao: "Extremo Esquerdo", numero: 11, equipa: "Seniores M", estado: "Suspenso", assiduidade: 60, mensalidade: "Em Atraso", idade: 21, email: "andre.costa@clube.pt", telemovel: "915 678 901", peso: 70, altura: 174, nif: "456 789 012", morada: "Rua Nova, 3, Matosinhos" },
-    { id: 5, nome: "Pedro Oliveira", posicao: "Central", numero: 5, equipa: "Sub-18 M", estado: "Ativo", assiduidade: 95, mensalidade: "Pago", idade: 17, email: "pedro.oliveira@clube.pt", telemovel: "916 789 012", peso: 68, altura: 176, nif: "567 890 123", morada: "Rua da Paz, 22, Porto" },
-    { id: 6, nome: "Tiago Martins", posicao: "Lateral Esquerdo", numero: 6, equipa: "Sub-18 M", estado: "Ativo", assiduidade: 78, mensalidade: "Pendente", idade: 17, email: "tiago.martins@clube.pt", telemovel: "917 890 123", peso: 65, altura: 172, nif: "678 901 234", morada: "Rua Central, 5, Gaia" },
-    { id: 7, nome: "Sofia Rodrigues", posicao: "Pivot", numero: 14, equipa: "Sub-16 F", estado: "Ativo", assiduidade: 91, mensalidade: "Pago", idade: 15, email: "sofia.rodrigues@clube.pt", telemovel: "918 901 234", peso: 55, altura: 165, nif: "789 012 345", morada: "Av. do Mar, 10, Porto" },
-    { id: 8, nome: "Beatriz Lima", posicao: "Extremo Direito", numero: 10, equipa: "Sub-16 F", estado: "Ativo", assiduidade: 85, mensalidade: "Pago", idade: 15, email: "beatriz.lima@clube.pt", telemovel: "919 012 345", peso: 52, altura: 162, nif: "890 123 456", morada: "Rua das Oliveiras, 7, Gaia" },
-];
-
-const estatisticasMock = [
-    { label: "Jogos", valor: 18 },
-    { label: "Golos", valor: 7 },
-    { label: "Assistências", valor: 4 },
-    { label: "Cartões Amarelos", valor: 2 },
-    { label: "Cartões Vermelhos", valor: 0 },
-    { label: "Minutos Jogados", valor: 1420 },
-];
+export const dynamic = 'force-dynamic';
 
 const estadoStyle: Record<string, string> = {
-    "Ativo": "bg-emerald-500/10 text-emerald-400",
-    "Suspenso": "bg-red-500/10 text-red-400",
-    "Inativo": "bg-slate-500/10 text-gray-500 dark:text-gray-400",
+    "ativo": "bg-emerald-500/10 text-emerald-400",
+    "suspenso": "bg-red-500/10 text-red-400",
+    "inativo": "bg-slate-500/10 text-slate-400",
 };
 
-const mensalidadeStyle: Record<string, { badge: string }> = {
-    "Pago": { badge: "bg-emerald-500/10 text-emerald-400" },
-    "Em Atraso": { badge: "bg-red-500/10 text-red-400" },
-    "Pendente": { badge: "bg-amber-500/10 text-amber-400" },
+const mensalidadeStyle: Record<string, string> = {
+    "pago": "bg-emerald-500/10 text-emerald-400",
+    "em_atraso": "bg-red-500/10 text-red-400",
+    "pendente": "bg-amber-500/10 text-amber-400",
+};
+
+const mensalidadeLabel: Record<string, string> = {
+    "pago": "Pago",
+    "em_atraso": "Em Atraso",
+    "pendente": "Pendente",
+};
+
+const mesesNomes: Record<number, string> = {
+    1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr",
+    5: "Mai", 6: "Jun", 7: "Jul", 8: "Ago",
+    9: "Set", 10: "Out", 11: "Nov", 12: "Dez",
 };
 
 export default async function AtletaDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
-    const atleta = atletas.find((a) => a.id === Number(id));
+    const { atleta, mensalidades, estatisticas, assiduidade } = await fetchAtletaById(id);
 
-    if (!atleta) {
-        return (
-            <div className="p-6 flex flex-col items-center justify-center min-h-[400px] space-y-4">
-                <p className="text-gray-500 dark:text-gray-400 text-lg">Atleta não encontrado.</p>
-                <Link
-                    href="/dashboard/presidente/atletas"
-                    className="text-sm text-violet-400 hover:text-violet-300 font-medium transition-colors"
-                >
-                    ← Voltar aos Atletas
-                </Link>
-            </div>
-        );
-    }
+    if (!atleta) return notFound();
+
+    const totalTreinos = Number(assiduidade?.total_treinos ?? 0);
+    const presencas = Number(assiduidade?.presencas ?? 0);
+    const percAssiduidade = totalTreinos > 0 ? Math.round((presencas / totalTreinos) * 100) : 0;
+
+    const mensalidadeAtual = mensalidades[0];
+
+    const estatisticasCards = [
+        { label: "Jogos", valor: Number(estatisticas?.total_jogos ?? 0) },
+        { label: "Golos", valor: Number(estatisticas?.total_golos ?? 0) },
+        { label: "Assistências", valor: Number(estatisticas?.total_assistencias ?? 0) },
+        { label: "Cart. Amarelos", valor: Number(estatisticas?.total_cartoes_amarelos ?? 0) },
+        { label: "Cart. Vermelhos", valor: Number(estatisticas?.total_cartoes_vermelhos ?? 0) },
+        { label: "Minutos", valor: Number(estatisticas?.total_minutos ?? 0) },
+    ];
 
     return (
         <div className="p-6 space-y-6">
@@ -66,29 +65,34 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
 
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        {/* Avatar com número */}
                         <div className="relative w-16 h-16 rounded-full bg-violet-600/20 border-2 border-violet-500/30 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-violet-400">#{atleta.numero}</span>
+                            <span className="text-2xl font-bold text-violet-400">
+                                {atleta.numero_camisola != null ? `#${atleta.numero_camisola}` : "—"}
+                            </span>
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{atleta.nome}</h1>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{atleta.posicao} · {atleta.equipa}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                {atleta.posicao ?? "—"} · {atleta.equipa_nome ?? "Sem equipa"}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoStyle[atleta.estado]}`}>
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoStyle[atleta.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
                             {atleta.estado}
                         </span>
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${mensalidadeStyle[atleta.mensalidade].badge}`}>
-                            {atleta.mensalidade}
-                        </span>
+                        {mensalidadeAtual && (
+                            <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${mensalidadeStyle[mensalidadeAtual.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                {mensalidadeLabel[mensalidadeAtual.estado] ?? mensalidadeAtual.estado}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Estatísticas rápidas */}
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {estatisticasMock.map((stat) => (
+                {estatisticasCards.map((stat) => (
                     <div key={stat.label} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-center">
                         <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider leading-tight">{stat.label}</p>
                         <p className="text-2xl font-bold text-cyan-400 mt-2">{stat.valor}</p>
@@ -106,16 +110,24 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Dados Pessoais</h2>
                         <div className="space-y-3">
                             <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Idade</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.idade} anos</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Data de Nascimento</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                    {atleta.user_data_nascimento
+                                        ? new Date(atleta.user_data_nascimento).toLocaleDateString("pt-PT")
+                                        : "—"}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">NIF</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 font-mono">{atleta.nif}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Federado</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                    {atleta.federado ? `Sim — ${atleta.numero_federado ?? "s/n"}` : "Não"}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Morada</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.morada}</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Mão Dominante</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 capitalize">
+                                    {atleta.mao_dominante ?? "—"}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -126,26 +138,38 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                         <div className="space-y-3">
                             <div>
                                 <p className="text-xs text-gray-400 dark:text-gray-500">Email</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.email}</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.user_email ?? "—"}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 dark:text-gray-500">Telemóvel</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.telemovel}</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.user_telefone ?? "—"}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Físico */}
+                    {/* Informações desportivas */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Dados Físicos</h2>
-                        <div className="grid grid-cols-2 gap-3">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Informações Desportivas</h2>
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Peso</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.peso} kg</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Equipa</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.equipa_nome ?? "—"}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Altura</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.altura} cm</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Posição</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.posicao ?? "—"}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Número</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                    {atleta.numero_camisola != null ? `#${atleta.numero_camisola}` : "—"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">Estado</p>
+                                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-0.5 ${estadoStyle[atleta.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                    {atleta.estado}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -161,55 +185,46 @@ export default async function AtletaDetailPage({ params }: { params: Promise<{ i
                             <div className="flex-1 h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-cyan-400 rounded-full transition-all"
-                                    style={{ width: `${atleta.assiduidade}%` }}
+                                    style={{ width: `${percAssiduidade}%` }}
                                 />
                             </div>
-                            <span className="text-lg font-bold text-cyan-400 w-14 text-right">{atleta.assiduidade}%</span>
+                            <span className="text-lg font-bold text-cyan-400 w-14 text-right">{percAssiduidade}%</span>
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                            {atleta.assiduidade >= 90 ? "✅ Excelente assiduidade" : atleta.assiduidade >= 75 ? "⚠️ Assiduidade razoável" : "🔴 Assiduidade baixa"}
+                            {presencas} presenças em {totalTreinos} treinos ·{" "}
+                            {percAssiduidade >= 90 ? "✅ Excelente assiduidade" : percAssiduidade >= 75 ? "⚠️ Assiduidade razoável" : "🔴 Assiduidade baixa"}
                         </p>
                     </div>
 
-                    {/* Desporto */}
+                    {/* Mensalidades */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Informações Desportivas</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Equipa</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.equipa}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Posição</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{atleta.posicao}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Número</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">#{atleta.numero}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Estado</p>
-                                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-0.5 ${estadoStyle[atleta.estado]}`}>
-                                    {atleta.estado}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Mensalidade */}
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Mensalidade</h2>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">Estado atual</p>
-                                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold mt-1 ${mensalidadeStyle[atleta.mensalidade].badge}`}>
-                                    {atleta.mensalidade}
-                                </span>
-                            </div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Mensalidades</h2>
                             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors">
                                 Registar Pagamento
                             </button>
                         </div>
+                        {mensalidades.length === 0 ? (
+                            <p className="text-sm text-gray-400 dark:text-gray-500">Nenhuma mensalidade registada.</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {mensalidades.map((m) => (
+                                    <div key={m.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0">
+                                        <span className="text-sm text-gray-900 dark:text-white">
+                                            {mesesNomes[m.mes]} {m.ano}
+                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                {m.valor != null ? `€${Number(m.valor).toFixed(2)}` : "—"}
+                                            </span>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${mensalidadeStyle[m.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                                {mensalidadeLabel[m.estado] ?? m.estado}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

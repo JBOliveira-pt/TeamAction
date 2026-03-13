@@ -15,6 +15,8 @@ import postgres from 'postgres';
 import { z } from 'zod';
 import type { AtletaState, Customer, Invoice } from './definitions';
 import { createReceiptForPaidInvoice } from './receipt-service';
+import { getOrganizationId } from "@/app/lib/data";
+
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -1508,3 +1510,136 @@ export async function updateAtletaProfile(
     revalidatePath('/dashboard/utilizador/perfil');
     redirect('/dashboard/utilizador/perfil');
 }
+
+type ComunicadoState = { error?: string; success?: boolean } | null;
+
+export async function criarComunicado(
+    _prevState: ComunicadoState,
+    formData: FormData,
+): Promise<ComunicadoState> {
+    const organizationId = await getOrganizationId();
+
+    const titulo       = formData.get("titulo")       as string;
+    const conteudo     = formData.get("conteudo")     as string;
+    const destinatarios = formData.get("destinatarios") as string;
+
+    if (!titulo?.trim() || !conteudo?.trim() || !destinatarios?.trim()) {
+        return { error: "Preenche todos os campos obrigatórios." };
+    }
+
+    try {
+        const { userId } = await auth();
+
+        await sql`
+            INSERT INTO comunicados (titulo, conteudo, destinatarios, criado_por, organization_id, created_at)
+            VALUES (
+                ${titulo.trim()},
+                ${conteudo.trim()},
+                ${destinatarios.trim()},
+                ${userId ?? ""},
+                ${organizationId},
+                NOW()
+            )
+        `;
+
+        revalidatePath("/dashboard/presidente/comunicados");
+        return { success: true };
+    } catch (error) {
+        console.error("Database Error:", error);
+        return { error: "Erro ao enviar comunicado. Tenta novamente." };
+    }
+}
+
+
+
+// ---------- AUTORIZAÇÕES ----------
+
+export async function registarAutorizacao(
+    _prevState: { error?: string; success?: boolean } | null,
+    formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+    const organizationId = await getOrganizationId();
+
+    const autorizado_a = formData.get("autorizado_a") as string;
+    const tipo_acao    = formData.get("tipo_acao")    as string;
+    const notas        = formData.get("notas")        as string | null;
+
+    if (!autorizado_a?.trim() || !tipo_acao?.trim()) {
+        return { error: "Preenche todos os campos obrigatórios." };
+    }
+
+    try {
+        const { userId } = await auth();
+
+        await sql`
+            INSERT INTO autorizacoes_log (autorizado_a, autorizado_por, tipo_acao, notas, organization_id, created_at)
+            VALUES (
+                ${autorizado_a.trim()},
+                ${userId ?? ""},
+                ${tipo_acao.trim()},
+                ${notas?.trim() || null},
+                ${organizationId},
+                NOW()
+            )
+        `;
+
+        revalidatePath("/dashboard/presidente/autorizacoes");
+        return { success: true };
+    } catch (error) {
+        console.error("Database Error:", error);
+        return { error: "Erro ao registar autorização." };
+    }
+}
+
+
+// ---------- DOCUMENTOS ----------
+
+export async function uploadDocumento(
+    _prevState: { error?: string; success?: boolean } | null,
+    formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+    const organizationId = await getOrganizationId();
+
+    const file = formData.get("ficheiro") as File | null;
+    const nome = formData.get("nome")     as string;
+
+    if (!file || file.size === 0) return { error: "Seleciona um ficheiro." };
+    if (!nome?.trim())            return { error: "Indica um nome para o documento." };
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) return { error: "Ficheiro demasiado grande. Máximo 10MB." };
+
+    const extensao = file.name.split(".").pop()?.toUpperCase() ?? "PDF";
+    const tiposPermitidos = ["PDF", "XLSX", "DOCX"];
+    if (!tiposPermitidos.includes(extensao)) {
+        return { error: "Tipo de ficheiro não permitido. Usa PDF, XLSX ou DOCX." };
+    }
+
+    try {
+        const { userId } = await auth();
+        const url = await uploadImageToR2(file, "user", crypto.randomUUID());
+
+        await sql`
+            INSERT INTO documentos (nome, tipo, url_r2, uploaded_by, organization_id, created_at)
+            VALUES (
+                ${nome.trim()},
+                ${extensao},
+                ${url},
+                ${userId ?? ""},
+                ${organizationId},
+                NOW()
+            )
+        `;
+
+        revalidatePath("/dashboard/presidente/documentos");
+        return { success: true };
+    } catch (error) {
+        console.error("Database Error:", error);
+        return { error: "Erro ao carregar documento. Tenta novamente." };
+    }
+}
+
+
+
+
+

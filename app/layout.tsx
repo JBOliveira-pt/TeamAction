@@ -38,7 +38,7 @@ export default function RootLayout({
 }) {
     return (
         <Providers>
-            <html lang="en" className="h-full">
+            <html lang="en" className="h-full" suppressHydrationWarning>
                 <head>
                     <script
                         dangerouslySetInnerHTML={{

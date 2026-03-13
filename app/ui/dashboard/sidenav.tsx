@@ -2,6 +2,7 @@
 'use client';
 
 import { DashboardHeader } from '@/app/components/header';
+import TeamActionLogo from '@/app/ui/teamaction-logo';
 import { useUser } from '@clerk/nextjs';
 import {
     Activity,
@@ -14,7 +15,7 @@ import {
     FileText,
     Leaf,
     Lock,
-    Map,
+    MapPinned,
     Menu,
     Receipt,
     TrendingUp,
@@ -23,7 +24,6 @@ import {
     Users,
     X,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 export default function SideNav() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeProfile, setActiveProfile] = useState<
-        'atleta' | 'pai' | 'presidente' | null
+        'atleta' | 'treinador' | 'pai' | 'presidente' | null
     >(null);
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
@@ -81,8 +81,6 @@ export default function SideNav() {
         </button>
     );
 
-    // Usa dados do banco de dados se disponíveis, senão usa do Clerk
-
     const profileTabsEl = (
         <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 rounded-lg p-1">
             <button
@@ -98,6 +96,20 @@ export default function SideNav() {
                 }`}
             >
                 🏛️ Presidente
+            </button>
+            <button
+                onClick={() =>
+                    setActiveProfile(
+                        activeProfile === 'treinador' ? null : 'treinador',
+                    )
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeProfile === 'treinador'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+            >
+                🧑‍🏫 Treinador
             </button>
             <button
                 onClick={() =>
@@ -164,22 +176,16 @@ export default function SideNav() {
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
             >
-                {/* Logo */}
-                <div className="flex items-center mb-10 px-2">
-                    <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
-                        alt="TeamAction"
-                        width={180}
-                        height={40}
-                        className="dark:hidden"
-                    />
-                    <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-black.png"
-                        alt="TeamAction"
-                        width={180}
-                        height={40}
-                        className="hidden dark:block"
-                    />
+                <div className="flex items-center gap-3 mb-10 px-2">
+                    <div className="w-15 h-10 flex items-center justify-center">
+                        <TeamActionLogo />
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold">PrimeFLOW</h1>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                            Dashboard
+                        </p>
+                    </div>
                 </div>
 
                 <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
@@ -286,7 +292,6 @@ export default function SideNav() {
                                 href="/dashboard/presidente/definicoes"
                                 onClick={() => setIsOpen(false)}
                             />
-                            {/* ✅ NOVO — Perfil do Presidente */}
                             <NavItem
                                 icon={<User size={20} />}
                                 label="Perfil"
@@ -296,34 +301,83 @@ export default function SideNav() {
                         </>
                     )}
 
-                    {!isCreatingProfile && activeProfile === 'atleta' && (
+                    {!isCreatingProfile && activeProfile === 'treinador' && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
-                                icon={<Calendar size={20} />}
-                                label="Agenda"
-                                href="#"
+                                icon={<User size={20} />}
+                                label="O meu perfil"
+                                href="/dashboard/atleta/perfil"
                                 onClick={() => setIsOpen(false)}
                             />
-                            <NavSectionLabel>Equipa</NavSectionLabel>
+                            <NavItem
+                                icon={<Calendar size={20} />}
+                                label="Calendário"
+                                href="/dashboard/treinador/calendario"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Treino</NavSectionLabel>
+                            <NavItem
+                                icon={<CheckSquare size={20} />}
+                                label="Sessões"
+                                href="/dashboard/treinador/sessoes"
+                                onClick={() => setIsOpen(false)}
+                            />
                             <NavItem
                                 icon={<Clipboard size={20} />}
-                                label="Treinos"
-                                href="#"
+                                label="Exercícios"
+                                href="/dashboard/treinador/exercicios"
                                 onClick={() => setIsOpen(false)}
                             />
+                            <NavItem
+                                icon={<CheckSquare size={20} />}
+                                label="Assiduidade"
+                                href="/dashboard/treinador/assiduidade"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Tático</NavSectionLabel>
+                            <NavItem
+                                icon={<MapPinned size={20} />}
+                                label="Quadro Tático"
+                                href="/dashboard/treinador/quadro-tatico"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Clipboard size={20} />}
+                                label="Biblioteca"
+                                href="/dashboard/treinador/biblioteca"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Jogo</NavSectionLabel>
                             <NavItem
                                 icon={<Trophy size={20} />}
                                 label="Jogos"
-                                href="#"
+                                href="/dashboard/treinador/jogos"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
-                                icon={<Map size={20} />}
-                                label="Táticas"
-                                href="#"
+                                icon={<BarChart2 size={20} />}
+                                label="Live Stats"
+                                href="/dashboard/treinador/estatisticas-ao-vivo"
                                 onClick={() => setIsOpen(false)}
                             />
+                            <NavSectionLabel>Atletas</NavSectionLabel>
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Condição Física"
+                                href="/dashboard/treinador/condicao-fisica"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Leaf size={20} />}
+                                label="Nutrição"
+                                href="/dashboard/treinador/nutricao"
+                                onClick={() => setIsOpen(false)}
+                            />
+                        </>
+                    )}
+                    {activeProfile === 'atleta' && (
+                        <>
                             <NavSectionLabel>Evolução</NavSectionLabel>
                             <NavItem
                                 icon={<Activity size={20} />}

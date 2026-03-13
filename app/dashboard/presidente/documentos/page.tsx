@@ -1,89 +1,84 @@
-const documentos = [
-    { id: 1, nome: "Regulamento Interno 2024/2025", tipo: "PDF", tamanho: "1.2 MB", data: "01 Set 2024", categoria: "Regulamentos" },
-    { id: 2, nome: "Lista de Atletas Inscritos", tipo: "XLSX", tamanho: "245 KB", data: "05 Set 2024", categoria: "Atletas" },
-    { id: 3, nome: "Calendário de Competições", tipo: "PDF", tamanho: "890 KB", data: "10 Set 2024", categoria: "Competição" },
-    { id: 4, nome: "Atas da Reunião de Direção", tipo: "PDF", tamanho: "560 KB", data: "15 Out 2024", categoria: "Gestão" },
-    { id: 5, nome: "Apólice de Seguro Desportivo", tipo: "PDF", tamanho: "2.1 MB", data: "01 Set 2024", categoria: "Seguros" },
-];
+import { fetchDocumentos } from "@/app/lib/data";
+import DocumentoUpload from "./_components/DocumentoUpload";
 
-const categoriaStyle: Record<string, string> = {
-    "Regulamentos": "bg-violet-500/10 text-violet-400",
-    "Atletas": "bg-cyan-500/10 text-cyan-400",
-    "Competição": "bg-emerald-500/10 text-emerald-400",
-    "Gestão": "bg-amber-500/10 text-amber-400",
-    "Seguros": "bg-blue-500/10 text-blue-400",
-};
+export const dynamic = 'force-dynamic';
 
 const tipoIcon: Record<string, string> = {
-    "PDF": "📄",
+    "PDF":  "📄",
     "XLSX": "📊",
     "DOCX": "📝",
 };
 
-export default function DocumentosPage() {
+const formatData = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("pt-PT", {
+        day: "2-digit", month: "short", year: "numeric",
+    });
+
+export default async function DocumentosPage() {
+    const documentos = await fetchDocumentos();
+
     return (
         <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documentos</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{documentos.length} documentos guardados</p>
-                </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                    + Carregar Documento
-                </button>
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Documentos</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {documentos.length} documento{documentos.length !== 1 ? "s" : ""} guardado{documentos.length !== 1 ? "s" : ""}
+                </p>
             </div>
 
-            {/* Área de upload */}
-            <div className="bg-white dark:bg-gray-900 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-10 flex flex-col items-center justify-center gap-3 hover:border-violet-500/50 transition-colors cursor-pointer">
-                <span className="text-4xl">📂</span>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Arrasta ficheiros para aqui</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500">PDF, XLSX, DOCX · máx. 10MB</p>
-                <button className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-lg border border-gray-300 dark:border-gray-700 transition-colors">
-                    Ou escolhe um ficheiro
-                </button>
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Carregar Documento</h2>
+                <DocumentoUpload />
             </div>
 
-            {/* Lista de documentos */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
-                            <th className="text-left px-6 py-4">Documento</th>
-                            <th className="text-left px-6 py-4">Categoria</th>
-                            <th className="text-left px-6 py-4">Tamanho</th>
-                            <th className="text-left px-6 py-4">Data</th>
-                            <th className="text-left px-6 py-4">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {documentos.map((d) => (
-                            <tr key={d.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <span>{tipoIcon[d.tipo] ?? "📄"}</span>
-                                        <div>
-                                            <p className="font-semibold text-gray-900 dark:text-white">{d.nome}</p>
-                                            <p className="text-xs text-gray-400 dark:text-gray-500">{d.tipo}</p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${categoriaStyle[d.categoria]}`}>
-                                        {d.categoria}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{d.tamanho}</td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{d.data}</td>
-                                <td className="px-6 py-4">
-                                    <button className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                                        Descarregar ↓
-                                    </button>
-                                </td>
+                {documentos.length === 0 ? (
+                    <div className="px-6 py-12 text-center">
+                        <p className="text-gray-400 dark:text-gray-500 text-sm">Nenhum documento carregado ainda.</p>
+                    </div>
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
+                                <th className="text-left px-6 py-4">Documento</th>
+                                <th className="text-left px-6 py-4">Data</th>
+                                <th className="text-left px-6 py-4">Ação</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {documentos.map((d) => (
+                                <tr key={d.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <span>{tipoIcon[d.tipo] ?? "📄"}</span>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 dark:text-white">{d.nome}</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-500">{d.tipo}</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                                        {formatData(d.created_at)}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <a
+                                            href={d.url_r2}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            download={d.nome}
+                                            className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
+                                        >
+                                            Descarregar ↓
+                                        </a>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );
 }
+
+
