@@ -1,41 +1,37 @@
 // app/ui/dashboard/sidenav.tsx
-"use client";
+'use client';
 
-import { DashboardHeader } from "@/app/components/header";
-import TeamActionLogo from "@/app/ui/teamaction-logo";
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { DashboardHeader } from '@/app/components/header';
+import TeamActionLogo from '@/app/ui/teamaction-logo';
+import { useUser } from '@clerk/nextjs';
 import {
-    LogOut,
-    User,
-    Users,
-    History,
-    Home,
-    Menu,
-    X,
-    BarChart3,
-    BarChart2,
-    FileText,
-    CircleUserRound,
-    Receipt,
-    Calendar,
-    Trophy,
-    Map,
     Activity,
-    Leaf,
-    TrendingUp,
+    BarChart2,
+    BarChart3,
+    Calendar,
     CheckSquare,
+    CircleUserRound,
     Clipboard,
+    FileText,
+    Leaf,
     Lock,
     MapPinned,
-} from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+    Menu,
+    Receipt,
+    TrendingUp,
+    Trophy,
+    User,
+    Users,
+    X,
+} from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function SideNav() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeProfile, setActiveProfile] = useState<
-        "atleta" | "treinador" | "pai" | "presidente" | null
+        'atleta' | 'treinador' | 'pai' | 'presidente' | null
     >(null);
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
@@ -50,8 +46,8 @@ export default function SideNav() {
             if (!isLoaded || !clerkUser) return;
 
             try {
-                const response = await fetch("/api/debug/user", {
-                    cache: "no-store",
+                const response = await fetch('/api/debug/user', {
+                    cache: 'no-store',
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -64,12 +60,16 @@ export default function SideNav() {
                     }
                 }
             } catch (error) {
-                console.error("Erro ao buscar dados do usuário:", error);
+                console.error('Erro ao buscar dados do usuário:', error);
             }
         }
 
         fetchUserData();
     }, [isLoaded, clerkUser, pathname]);
+
+    const isCreatingProfile = pathname.startsWith(
+        '/dashboard/utilizador/perfil/criar',
+    );
 
     const mobileMenuTrigger = (
         <button
@@ -86,13 +86,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "presidente" ? null : "presidente",
+                        activeProfile === 'presidente' ? null : 'presidente',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "presidente"
-                        ? "bg-violet-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'presidente'
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🏛️ Presidente
@@ -100,13 +100,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "treinador" ? null : "treinador",
+                        activeProfile === 'treinador' ? null : 'treinador',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "treinador"
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'treinador'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🧑‍🏫 Treinador
@@ -114,118 +114,41 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "atleta" ? null : "atleta",
+                        activeProfile === 'atleta' ? null : 'atleta',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "atleta"
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'atleta'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🏃 Atleta
             </button>
             <button
                 onClick={() =>
-                    setActiveProfile(activeProfile === "pai" ? null : "pai")
+                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "pai"
-                        ? "bg-amber-500 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'pai'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 👨‍👦 Pai/Enc.
             </button>
         </div>
     );
-    {
-        activeProfile === "treinador" && (
-            <>
-                <NavSectionLabel>Principal</NavSectionLabel>
-                <NavItem
-                    icon={<BarChart3 size={20} />}
-                    label="Dashboard Treinador"
-                    href="/dashboard/treinador"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Calendar size={20} />}
-                    label="Calendário"
-                    href="/dashboard/treinador/calendario"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Treino</NavSectionLabel>
-                <NavItem
-                    icon={<CheckSquare size={20} />}
-                    label="Sessões"
-                    href="/dashboard/treinador/sessoes"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Clipboard size={20} />}
-                    label="Exercícios"
-                    href="/dashboard/treinador/exercicios"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<CheckSquare size={20} />}
-                    label="Assiduidade"
-                    href="/dashboard/treinador/assiduidade"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Tático</NavSectionLabel>
-                <NavItem
-                    icon={<MapPinned size={20} />}
-                    label="Quadro Tático"
-                    href="/dashboard/treinador/quadro-tatico"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Clipboard size={20} />}
-                    label="Biblioteca"
-                    href="/dashboard/treinador/biblioteca"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Jogo</NavSectionLabel>
-                <NavItem
-                    icon={<Trophy size={20} />}
-                    label="Jogos"
-                    href="/dashboard/treinador/jogos"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<BarChart2 size={20} />}
-                    label="Live Stats"
-                    href="/dashboard/treinador/estatisticas-ao-vivo"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Atletas</NavSectionLabel>
-                <NavItem
-                    icon={<Activity size={20} />}
-                    label="Condição Física"
-                    href="/dashboard/treinador/condicao-fisica"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Leaf size={20} />}
-                    label="Nutrição"
-                    href="/dashboard/treinador/nutricao"
-                    onClick={() => setIsOpen(false)}
-                />
-            </>
-        );
-    }
 
     const userData = dbUser || {
         name:
             isLoaded && clerkUser
-                ? clerkUser.fullName || clerkUser.firstName || "Usuario"
-                : "Usuario",
+                ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
+                : 'Usuario',
         role:
             isLoaded && clerkUser
-                ? (clerkUser.publicMetadata?.role as string) || "user"
-                : "user",
+                ? (clerkUser.publicMetadata?.role as string) || 'user'
+                : 'user',
         foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
     };
 
@@ -240,8 +163,9 @@ export default function SideNav() {
 
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
-                profileTabs={profileTabsEl}
+                profileTabs={isCreatingProfile ? undefined : profileTabsEl}
                 user={userData}
+                isCreatingProfile={isCreatingProfile}
             />
 
             <aside
@@ -249,7 +173,7 @@ export default function SideNav() {
           fixed top-0 left-0 z-40
           w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
           transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
@@ -265,7 +189,18 @@ export default function SideNav() {
                 </div>
 
                 <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
-                    {activeProfile === "presidente" && (
+                    {isCreatingProfile && (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 px-2 text-center">
+                            <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full">
+                                <Lock size={24} className="text-amber-500" />
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Completa o teu perfil de atleta para acederes ao
+                                menu.
+                            </p>
+                        </div>
+                    )}
+                    {!isCreatingProfile && activeProfile === 'presidente' && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -366,13 +301,13 @@ export default function SideNav() {
                         </>
                     )}
 
-                    {activeProfile === "treinador" && (
+                    {!isCreatingProfile && activeProfile === 'treinador' && (
                         <>
-                            <NavSectionLabel>Principal</NavSectionLabel>
+                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
-                                icon={<BarChart3 size={20} />}
-                                label="Dashboard Treinador"
-                                href="/dashboard/treinador"
+                                icon={<User size={20} />}
+                                label="O meu perfil"
+                                href="/dashboard/atleta/perfil"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
@@ -441,7 +376,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {activeProfile === "atleta" && (
+                    {activeProfile === 'atleta' && (
                         <>
                             <NavSectionLabel>Evolução</NavSectionLabel>
                             <NavItem
@@ -464,7 +399,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {activeProfile === "pai" && (
+                    {!isCreatingProfile && activeProfile === 'pai' && (
                         <>
                             <NavSectionLabel>O Meu Filho</NavSectionLabel>
                             <NavItem
@@ -511,7 +446,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {!activeProfile && (
+                    {!isCreatingProfile && !activeProfile && (
                         <>
                             <NavItem
                                 icon={<BarChart3 size={20} />}
@@ -546,21 +481,6 @@ export default function SideNav() {
                         </>
                     )}
                 </nav>
-
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-900">
-                    <SignOutButton redirectUrl="/login">
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 text-red-500 dark:text-red-400 hover:text-red-400 dark:hover:text-red-300 transition w-full p-3 rounded-lg hover:bg-red-500/10 group cursor-pointer"
-                        >
-                            <LogOut
-                                size={20}
-                                className="group-hover:-translate-x-1 transition-transform"
-                            />
-                            <span className="font-medium">Sair da conta</span>
-                        </button>
-                    </SignOutButton>
-                </div>
             </aside>
         </>
     );
@@ -619,15 +539,15 @@ function NavItem({
             onClick={onClick}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
                 active
-                    ? "bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
+                    ? 'bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
         >
             <span
                 className={
                     active
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
+                        ? 'text-blue-500 dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors'
                 }
             >
                 {icon}

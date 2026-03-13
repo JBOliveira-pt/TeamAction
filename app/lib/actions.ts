@@ -1374,7 +1374,7 @@ export async function createAtletaProfile(
 
     try {
         await sql`
-            INSERT INTO atletas
+            INSERT INTO utilizador
                 (nome, sobrenome, data_nascimento, morada, telemovel, email, foto_perfil_url, peso_kg, altura_cm, nif, estado)
             VALUES
                 (${nome}, ${sobrenome}, ${data_nascimento}, ${morada}, ${telemovel},
@@ -1394,8 +1394,8 @@ export async function createAtletaProfile(
         };
     }
 
-    revalidatePath('/dashboard/atleta/perfil');
-    redirect('/dashboard/atleta/perfil');
+    revalidatePath('/dashboard/utilizador/perfil');
+    redirect('/dashboard/utilizador/perfil');
 }
 
 export async function updateAtletaProfile(
@@ -1441,7 +1441,7 @@ export async function updateAtletaProfile(
     // Fetch existing profile to preserve photo if none uploaded
     const existing = await sql<{ foto_perfil_url: string | null }[]>`
         SELECT a.foto_perfil_url
-        FROM atletas a
+        FROM utilizador a
         JOIN users u ON u.email = a.email
         WHERE u.clerk_user_id = ${userId}
     `;
@@ -1476,7 +1476,7 @@ export async function updateAtletaProfile(
 
     try {
         await sql`
-            UPDATE atletas
+            UPDATE utilizador
             SET
                 nome             = ${nome},
                 sobrenome        = ${sobrenome},
@@ -1507,8 +1507,8 @@ export async function updateAtletaProfile(
         };
     }
 
-    revalidatePath('/dashboard/atleta/perfil');
-    redirect('/dashboard/atleta/perfil');
+    revalidatePath('/dashboard/utilizador/perfil');
+    redirect('/dashboard/utilizador/perfil');
 }
 
 type ComunicadoState = { error?: string; success?: boolean } | null;

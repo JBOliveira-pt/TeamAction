@@ -64,7 +64,7 @@ export default function CreateAtletaProfileForm() {
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Perfil de Atleta
+                            Perfil Utilizador
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             Preencha todos os campos para criar o seu perfil
@@ -315,7 +315,7 @@ export default function CreateAtletaProfileForm() {
                 {/* Actions */}
                 <div className="flex gap-3 pt-2">
                     <Link
-                        href="/dashboard/atleta/perfil"
+                        href="/dashboard/utilizador/perfil"
                         className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                         <ArrowLeftIcon className="w-4 h-4" />
