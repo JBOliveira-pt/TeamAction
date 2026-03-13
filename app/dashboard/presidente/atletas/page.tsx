@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { fetchAtletas } from "@/app/lib/data";
+import { fetchAtletas, fetchEquipas } from "@/app/lib/data";
+import AdicionarAtletaModal from "./_components/AdicionarAtletaModal.client";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,10 @@ const mensalidadeLabel: Record<string, string> = {
 };
 
 export default async function AtletasPage() {
-    const atletas = await fetchAtletas();
+    const [atletas, equipas] = await Promise.all([
+        fetchAtletas(),
+        fetchEquipas(),
+    ]);
 
     const ativos = atletas.filter(a => a.estado === "ativo").length;
     const suspensos = atletas.filter(a => a.estado === "suspenso").length;
@@ -36,9 +40,7 @@ export default async function AtletasPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Atletas</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{atletas.length} atletas registados</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                    + Adicionar Atleta
-                </button>
+                <AdicionarAtletaModal equipas={equipas.map(e => ({ id: e.id, nome: e.nome }))} />
             </div>
 
             {/* Cards resumo */}
@@ -111,4 +113,5 @@ export default async function AtletasPage() {
         </div>
     );
 }
+
 

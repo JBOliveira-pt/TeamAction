@@ -22,7 +22,7 @@ function normalizeAccountType(value: unknown): AccountType | null {
 function defaultDashboardPath(accountType: AccountType): string {
     if (accountType === "presidente") return "/dashboard/presidente";
     if (accountType === "treinador") return "/dashboard/treinador";
-    if (accountType === "atleta") return "/dashboard/atleta/perfil";
+    if (accountType === "atleta") return "/dashboard/utilizador/perfil";
     return "/dashboard";
 }
 
@@ -39,7 +39,7 @@ function isPathAllowedForAccountType(
     }
 
     if (accountType === "atleta") {
-        return path.startsWith("/dashboard/atleta");
+        return path.startsWith("/dashboard/utilizador");
     }
 
     if (accountType === "responsavel") {
@@ -49,8 +49,8 @@ function isPathAllowedForAccountType(
     return true;
 }
 
-// Rotas que não precisam de login (incluindo o webhook)
 const isPublicRoute = createRouteMatcher([
+    "/",
     "/login(.*)",
     "/signup(.*)",
     "/onboarding(.*)",
@@ -58,6 +58,9 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
     if (!isPublicRoute(request)) {
         await auth.protect();
     }
@@ -71,17 +74,14 @@ export default clerkMiddleware(async (auth, request) => {
         };
         const accountType = normalizeAccountType(metadata.accountType);
 
-        // Usuários antigos sem accountType continuam com comportamento legado.
         if (accountType) {
             const targetPath = defaultDashboardPath(accountType);
 
             if (path === "/dashboard") {
                 if (targetPath !== "/dashboard") {
-                    return NextResponse.redirect(
-                        new URL(targetPath, request.url),
-                    );
+                    return NextResponse.redirect(new URL(targetPath, request.url));
                 }
-                return NextResponse.next();
+                return NextResponse.next({ request: { headers: requestHeaders } });
             }
 
             if (!isPathAllowedForAccountType(path, accountType)) {
@@ -90,17 +90,7 @@ export default clerkMiddleware(async (auth, request) => {
         }
     }
 
-    // Lógica de roles — só actua nas rotas do dashboard
-    //const { sessionClaims } = await auth();
-    //const role = (sessionClaims?.metadata as { role?: string })?.role;
-    //const path = request.nextUrl.pathname;
-
-    // Se tentar aceder à área do presidente sem ser presidente ou admin → redireciona
-    //if (path.startsWith("/dashboard/presidente")) {
-    //if (role !== "presidente" && role !== "admin") {
-    //return NextResponse.redirect(new URL("/login", request.url));
-    //}
-    //}
+    return NextResponse.next({ request: { headers: requestHeaders } });
 });
 
 export const config = {

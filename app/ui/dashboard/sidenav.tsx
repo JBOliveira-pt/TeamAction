@@ -2,32 +2,28 @@
 "use client";
 
 import { DashboardHeader } from "@/app/components/header";
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import Image from "next/image";
+import { useUser } from "@clerk/nextjs";
 import {
-    LogOut,
-    User,
-    Users,
-    History,
-    Home,
-    Menu,
-    X,
-    BarChart3,
-    BarChart2,
-    FileText,
-    CircleUserRound,
-    Receipt,
-    Calendar,
-    Trophy,
-    Map,
     Activity,
-    Leaf,
-    TrendingUp,
+    BarChart2,
+    BarChart3,
+    Calendar,
     CheckSquare,
+    CircleUserRound,
     Clipboard,
+    FileText,
+    Leaf,
     Lock,
     MapPinned,
+    Menu,
+    Receipt,
+    TrendingUp,
+    Trophy,
+    User,
+    Users,
+    X,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -120,6 +116,10 @@ export default function SideNav() {
         fetchUserData();
     }, [isLoaded, clerkUser, pathname]);
 
+    const isCreatingProfile = pathname.startsWith(
+        "/dashboard/utilizador/perfil/criar",
+    );
+
     const mobileMenuTrigger = (
         <button
             onClick={() => setIsOpen(!isOpen)}
@@ -188,83 +188,6 @@ export default function SideNav() {
             </button>
         </div>
     );
-    {
-        activeProfile === "treinador" && (
-            <>
-                <NavSectionLabel>Principal</NavSectionLabel>
-                <NavItem
-                    icon={<BarChart3 size={20} />}
-                    label="Dashboard Treinador"
-                    href="/dashboard/treinador"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Calendar size={20} />}
-                    label="Calendário"
-                    href="/dashboard/treinador/calendario"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Treino</NavSectionLabel>
-                <NavItem
-                    icon={<CheckSquare size={20} />}
-                    label="Sessões"
-                    href="/dashboard/treinador/sessoes"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Clipboard size={20} />}
-                    label="Exercícios"
-                    href="/dashboard/treinador/exercicios"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<CheckSquare size={20} />}
-                    label="Assiduidade"
-                    href="/dashboard/treinador/assiduidade"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Tático</NavSectionLabel>
-                <NavItem
-                    icon={<MapPinned size={20} />}
-                    label="Quadro Tático"
-                    href="/dashboard/treinador/quadro-tatico"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Clipboard size={20} />}
-                    label="Biblioteca"
-                    href="/dashboard/treinador/biblioteca"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Jogo</NavSectionLabel>
-                <NavItem
-                    icon={<Trophy size={20} />}
-                    label="Jogos"
-                    href="/dashboard/treinador/jogos"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<BarChart2 size={20} />}
-                    label="Live Stats"
-                    href="/dashboard/treinador/estatisticas-ao-vivo"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavSectionLabel>Atletas</NavSectionLabel>
-                <NavItem
-                    icon={<Activity size={20} />}
-                    label="Condição Física"
-                    href="/dashboard/treinador/condicao-fisica"
-                    onClick={() => setIsOpen(false)}
-                />
-                <NavItem
-                    icon={<Leaf size={20} />}
-                    label="Nutrição"
-                    href="/dashboard/treinador/nutricao"
-                    onClick={() => setIsOpen(false)}
-                />
-            </>
-        );
-    }
 
     const userData = dbUser
         ? {
@@ -284,6 +207,15 @@ export default function SideNav() {
               foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
           };
 
+    const accountAreaHref =
+        forcedProfile === "presidente" || activeProfile === "presidente"
+            ? "/dashboard/presidente"
+            : forcedProfile === "treinador" || activeProfile === "treinador"
+              ? "/dashboard/treinador"
+              : forcedProfile === "atleta" || activeProfile === "atleta"
+                ? "/dashboard/utilizador/perfil"
+                : "/dashboard";
+
     return (
         <>
             {isOpen && (
@@ -295,8 +227,10 @@ export default function SideNav() {
 
             <DashboardHeader
                 mobileMenuTrigger={mobileMenuTrigger}
-                profileTabs={profileTabsEl}
+                profileTabs={isCreatingProfile ? undefined : profileTabsEl}
+                accountHref={accountAreaHref}
                 user={userData}
+                isCreatingProfile={isCreatingProfile}
             />
 
             <aside
@@ -327,7 +261,18 @@ export default function SideNav() {
                 </div>
 
                 <nav className="flex-1 space-y-1 overflow-y-auto pr-8">
-                    {activeProfile === "presidente" && (
+                    {isCreatingProfile && (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 px-2 text-center">
+                            <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full">
+                                <Lock size={24} className="text-amber-500" />
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Completa o teu perfil de atleta para acederes ao
+                                menu.
+                            </p>
+                        </div>
+                    )}
+                    {!isCreatingProfile && activeProfile === "presidente" && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -428,11 +373,11 @@ export default function SideNav() {
                         </>
                     )}
 
-                    {activeProfile === "treinador" && (
+                    {!isCreatingProfile && activeProfile === "treinador" && (
                         <>
-                            <NavSectionLabel>Principal</NavSectionLabel>
+                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
-                                icon={<BarChart3 size={20} />}
+                                icon={<User size={20} />}
                                 label="Dashboard Treinador"
                                 href="/dashboard/treinador"
                                 onClick={() => setIsOpen(false)}
@@ -526,7 +471,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {activeProfile === "pai" && (
+                    {!isCreatingProfile && activeProfile === "pai" && (
                         <>
                             <NavSectionLabel>O Meu Filho</NavSectionLabel>
                             <NavItem
@@ -573,7 +518,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {!activeProfile && (
+                    {!isCreatingProfile && !activeProfile && (
                         <>
                             <NavItem
                                 icon={<BarChart3 size={20} />}
@@ -608,21 +553,6 @@ export default function SideNav() {
                         </>
                     )}
                 </nav>
-
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-900">
-                    <SignOutButton redirectUrl="/login">
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 text-red-500 dark:text-red-400 hover:text-red-400 dark:hover:text-red-300 transition w-full p-3 rounded-lg hover:bg-red-500/10 group cursor-pointer"
-                        >
-                            <LogOut
-                                size={20}
-                                className="group-hover:-translate-x-1 transition-transform"
-                            />
-                            <span className="font-medium">Sair da conta</span>
-                        </button>
-                    </SignOutButton>
-                </div>
             </aside>
         </>
     );
@@ -665,10 +595,15 @@ function NavItem({
 }) {
     const pathname = usePathname();
 
-    const active =
-        href === "/dashboard"
-            ? pathname === "/dashboard"
-            : pathname === href || pathname.startsWith(`${href}/`);
+    const exactMatchPaths = [
+        "/dashboard",
+        "/dashboard/presidente",
+        "/dashboard/treinador",
+    ];
+
+    const active = exactMatchPaths.includes(href)
+        ? pathname === href
+        : pathname === href || pathname.startsWith(`${href}/`);
 
     return (
         <Link

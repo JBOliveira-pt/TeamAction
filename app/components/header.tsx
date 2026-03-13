@@ -4,15 +4,18 @@ import { Avatar } from "@/app/components/avatar";
 import { Button } from "@/app/components/button";
 import { NotificationDropdown } from "@/app/components/notification-dropdown";
 import { useTheme } from "@/app/components/theme-provider";
-import { SignOutButton } from "@clerk/nextjs";
-import { ChevronDown, Moon, Sun, UserCircle } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
+import { LogOut, Moon, Settings, Sun, UserRoundCog } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 interface DashboardHeaderProps {
     mobileMenuTrigger?: ReactNode;
     actionButton?: ReactNode;
     profileTabs?: ReactNode;
+    isCreatingProfile?: boolean;
+    accountHref?: string;
     user?: {
         name: string;
         role: string;
@@ -24,35 +27,38 @@ export function DashboardHeader({
     mobileMenuTrigger,
     actionButton,
     profileTabs,
+    isCreatingProfile = false,
+    accountHref = "/dashboard",
     user,
 }: DashboardHeaderProps) {
     const { theme, toggleTheme } = useTheme();
     const [hasUnreadNotifications, setHasUnreadNotifications] = useState(true);
     const [mounted, setMounted] = useState(false);
-    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-    const profileMenuRef = useRef<HTMLDivElement>(null);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+    const { signOut } = useClerk();
+    const router = useRouter();
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
     useEffect(() => {
-        if (!isProfileMenuOpen) return;
+        if (!userMenuOpen) return;
 
-        const handleClickOutside = (event: MouseEvent) => {
+        function handleClickOutside(e: MouseEvent) {
             if (
-                profileMenuRef.current &&
-                !profileMenuRef.current.contains(event.target as Node)
+                userMenuRef.current &&
+                !userMenuRef.current.contains(e.target as Node)
             ) {
-                setIsProfileMenuOpen(false);
+                setUserMenuOpen(false);
             }
-        };
+        }
 
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
+        return () =>
             document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [isProfileMenuOpen]);
+    }, [userMenuOpen]);
 
     const getInitials = (name: string) => {
         return name
@@ -69,7 +75,6 @@ export function DashboardHeader({
 
     return (
         <header className="fixed top-0 right-0 left-0 lg:left-64 h-20 bg-white dark:bg-gray-950 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-40 px-4 md:px-8 flex items-center justify-between transition-all">
-            {/* Lado Esquerdo */}
             <div className="flex items-center gap-4 w-full md:w-auto">
                 {mobileMenuTrigger && (
                     <div className="lg:hidden">{mobileMenuTrigger}</div>
@@ -79,7 +84,6 @@ export function DashboardHeader({
                 )}
             </div>
 
-            {/* Lado Direito */}
             <div className="flex items-center gap-2 md:gap-4 pl-4">
                 <div className="flex gap-1 text-gray-600 dark:text-gray-400">
                     <Button
@@ -104,25 +108,22 @@ export function DashboardHeader({
                     </div>
                 </div>
 
-                {/* Perfil do Utilizador */}
                 <div
-                    className="flex items-center gap-3 border-l border-gray-200 dark:border-gray-800 pl-4 ml-2"
-                    ref={profileMenuRef}
+                    ref={userMenuRef}
+                    className="relative flex items-center gap-3 border-l border-gray-200 dark:border-gray-800 pl-4 ml-2"
                 >
-                    <div className="text-right hidden md:block">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {user?.name || "Utilizador"}
-                        </p>
-                        <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
-                            {user?.role || "Guest"}
-                        </p>
-                    </div>
                     <button
-                        type="button"
-                        onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-                        className="flex items-center gap-1 rounded-full focus:outline-none"
-                        aria-label="Abrir menu do utilizador"
+                        onClick={() => setUserMenuOpen((o) => !o)}
+                        className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
                     >
+                        <div className="text-right hidden md:block">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {user?.name || "Utilizador"}
+                            </p>
+                            <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
+                                {user?.role || "Guest"}
+                            </p>
+                        </div>
                         <Avatar
                             src={user?.foto}
                             alt={user?.name || "Avatar"}
@@ -130,39 +131,53 @@ export function DashboardHeader({
                                 user?.name ? getInitials(user.name) : "US"
                             }
                         />
-                        <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     </button>
 
-                    {isProfileMenuOpen && (
-                        <div className="absolute right-4 top-16 w-56 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-50 overflow-hidden">
-                            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                    {user?.name || "Utilizador"}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                    {user?.role || "Guest"}
-                                </p>
-                            </div>
-
-                            <Link
-                                href="/dashboard"
-                                onClick={() => setIsProfileMenuOpen(false)}
-                                className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                            >
-                                <UserCircle className="h-4 w-4" />
-                                Painel Principal
-                            </Link>
-
-                            <div className="border-t border-gray-200 dark:border-gray-800 p-2">
-                                <SignOutButton redirectUrl="/login">
-                                    <button
-                                        type="button"
-                                        className="w-full rounded-md px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
+                    {userMenuOpen && (
+                        <div className="absolute right-0 top-full mt-3 w-52 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl py-1 z-50">
+                            {isCreatingProfile ? (
+                                <div className="px-4 py-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20">
+                                    Completa o registo do perfil para acederes
+                                    �s restantes op��es.
+                                </div>
+                            ) : (
+                                <>
+                                    <Link
+                                        href={accountHref}
+                                        onClick={() => setUserMenuOpen(false)}
+                                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                     >
-                                        Sair da conta
+                                        <Settings
+                                            size={16}
+                                            className="text-gray-500 dark:text-gray-400"
+                                        />
+                                        Defini��es da Conta
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            setUserMenuOpen(false);
+                                            router.push("/dashboard");
+                                        }}
+                                        className="flex w-full items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                                    >
+                                        <UserRoundCog
+                                            size={16}
+                                            className="text-gray-500 dark:text-gray-400"
+                                        />
+                                        Trocar de Perfil
                                     </button>
-                                </SignOutButton>
-                            </div>
+                                    <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+                                </>
+                            )}
+                            <button
+                                onClick={() =>
+                                    signOut(() => router.push("/login"))
+                                }
+                                className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left"
+                            >
+                                <LogOut size={16} />
+                                Sair da Conta
+                            </button>
                         </div>
                     )}
                 </div>

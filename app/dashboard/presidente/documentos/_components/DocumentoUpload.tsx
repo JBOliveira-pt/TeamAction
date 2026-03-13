@@ -23,11 +23,19 @@ export default function DocumentoUpload() {
     }, [state]);
 
     const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        setDragging(false);
-        const file = e.dataTransfer.files[0];
-        if (file) setFicheiro(file);
-    };
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        setFicheiro(file);
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        if (inputRef.current) {
+            inputRef.current.files = dt.files;
+        }
+    }
+};
+
 
     return (
         <form ref={formRef} action={action} className="space-y-4">

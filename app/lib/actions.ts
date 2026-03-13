@@ -1374,7 +1374,7 @@ export async function createAtletaProfile(
 
     try {
         await sql`
-            INSERT INTO atletas
+            INSERT INTO utilizador
                 (nome, sobrenome, data_nascimento, morada, telemovel, email, foto_perfil_url, peso_kg, altura_cm, nif, estado)
             VALUES
                 (${nome}, ${sobrenome}, ${data_nascimento}, ${morada}, ${telemovel},
@@ -1394,8 +1394,8 @@ export async function createAtletaProfile(
         };
     }
 
-    revalidatePath('/dashboard/atleta/perfil');
-    redirect('/dashboard/atleta/perfil');
+    revalidatePath('/dashboard/utilizador/perfil');
+    redirect('/dashboard/utilizador/perfil');
 }
 
 export async function updateAtletaProfile(
@@ -1441,7 +1441,7 @@ export async function updateAtletaProfile(
     // Fetch existing profile to preserve photo if none uploaded
     const existing = await sql<{ foto_perfil_url: string | null }[]>`
         SELECT a.foto_perfil_url
-        FROM atletas a
+        FROM utilizador a
         JOIN users u ON u.email = a.email
         WHERE u.clerk_user_id = ${userId}
     `;
@@ -1476,7 +1476,7 @@ export async function updateAtletaProfile(
 
     try {
         await sql`
-            UPDATE atletas
+            UPDATE utilizador
             SET
                 nome             = ${nome},
                 sobrenome        = ${sobrenome},
@@ -1507,8 +1507,8 @@ export async function updateAtletaProfile(
         };
     }
 
-    revalidatePath('/dashboard/atleta/perfil');
-    redirect('/dashboard/atleta/perfil');
+    revalidatePath('/dashboard/utilizador/perfil');
+    redirect('/dashboard/utilizador/perfil');
 }
 
 type ComunicadoState = { error?: string; success?: boolean } | null;
@@ -1595,49 +1595,261 @@ export async function registarAutorizacao(
 // ---------- DOCUMENTOS ----------
 
 export async function uploadDocumento(
-    _prevState: { error?: string; success?: boolean } | null,
-    formData: FormData
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const organizationId = await getOrganizationId();
 
-    const file = formData.get("ficheiro") as File | null;
-    const nome = formData.get("nome")     as string;
+    const file = formData.get('ficheiro') as File | null;
+    const nome = formData.get('nome') as string;
 
-    if (!file || file.size === 0) return { error: "Seleciona um ficheiro." };
-    if (!nome?.trim())            return { error: "Indica um nome para o documento." };
+    if (!file || file.size === 0) return { error: 'Seleciona um ficheiro.' };
+    if (!nome?.trim()) return { error: 'Indica um nome para o documento.' };
 
     const MAX_SIZE = 10 * 1024 * 1024;
-    if (file.size > MAX_SIZE) return { error: "Ficheiro demasiado grande. Máximo 10MB." };
+    if (file.size > MAX_SIZE) return { error: 'Ficheiro demasiado grande. Máximo 10MB.' };
 
-    const extensao = file.name.split(".").pop()?.toUpperCase() ?? "PDF";
-    const tiposPermitidos = ["PDF", "XLSX", "DOCX"];
+    const extensao = file.name.split('.').pop()?.toUpperCase() ?? 'PDF';
+    const tiposPermitidos = ['PDF', 'XLSX', 'DOCX'];
     if (!tiposPermitidos.includes(extensao)) {
-        return { error: "Tipo de ficheiro não permitido. Usa PDF, XLSX ou DOCX." };
+        return { error: 'Tipo de ficheiro não permitido. Usa PDF, XLSX ou DOCX.' };
     }
 
     try {
-        const { userId } = await auth();
-        const url = await uploadImageToR2(file, "user", crypto.randomUUID());
+        const { userId: clerkId } = await auth();
+
+        // CORREÇÃO: buscar o UUID real da base de dados
+        const userResult = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkId}
+        `;
+        const dbUserId = userResult[0]?.id ?? null;
+
+        const url = await uploadImageToR2(file, 'user', crypto.randomUUID());
 
         await sql`
             INSERT INTO documentos (nome, tipo, url_r2, uploaded_by, organization_id, created_at)
+            VALUES (${nome.trim()}, ${extensao}, ${url}, ${dbUserId}, ${organizationId}, NOW())
+        `;
+
+        revalidatePath('/dashboard/presidente/documentos');
+        return { success: true };
+    } catch (error) {
+        console.error('Database Error:', error);
+        return { error: 'Erro ao carregar documento. Tenta novamente.' };
+    }
+}
+
+
+export async function criarEquipa(
+    _prevState: { error?: string; success?: boolean } | null,
+    formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+    let organizationId: string;
+
+    try {
+        organizationId = await getOrganizationId();
+    } catch (error) {
+        console.error("Failed to resolve organization for creating team:", error);
+        return {
+            error: "Não foi possível identificar a organização. Tenta novamente." ,
+        };
+    }
+
+    const nome     = formData.get("nome")     as string;
+    const escalao  = formData.get("escalao")  as string;
+    const desporto = formData.get("desporto") as string;
+    const estado   = formData.get("estado")   as string;
+
+    if (!nome?.trim() || !escalao?.trim() || !desporto?.trim() || !estado?.trim()) {
+        return { error: "Preenche todos os campos obrigatórios." };
+    }
+
+    try {
+        // Busca a época ativa da organização
+        const epocas = await sql<{ id: string }[]>`
+            SELECT id FROM epocas
+            WHERE organization_id = ${organizationId} AND ativa = true
+            LIMIT 1
+        `;
+
+        const epocaId = epocas[0]?.id ?? null;
+
+        await sql`
+            INSERT INTO equipas (nome, escalao, desporto, estado, epoca_id, organization_id, created_at, updated_at)
             VALUES (
                 ${nome.trim()},
-                ${extensao},
-                ${url},
-                ${userId ?? ""},
+                ${escalao.trim()},
+                ${desporto.trim()},
+                ${estado},
+                ${epocaId},
                 ${organizationId},
+                NOW(),
                 NOW()
             )
         `;
 
-        revalidatePath("/dashboard/presidente/documentos");
+        revalidatePath("/dashboard/presidente/equipas");
         return { success: true };
     } catch (error) {
         console.error("Database Error:", error);
-        return { error: "Erro ao carregar documento. Tenta novamente." };
+        return { error: "Erro ao criar equipa. Tenta novamente." };
     }
 }
+
+// ========================================
+// Atleta Actions (Modal)
+// ========================================
+
+export async function adicionarAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<
+            { organization_id: string }[]
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: 'Erro ao obter organização.' };
+    }
+
+    if (!organizationId) return { error: 'Organização não encontrada.' };
+
+    const nome        = formData.get('nome')?.toString().trim();
+    const posicao     = formData.get('posicao')?.toString().trim()     || null;
+    const numCamisola = formData.get('numero_camisola')?.toString().trim() || null;
+    const equipaId    = formData.get('equipa_id')?.toString()           || null;
+    const estado      = formData.get('estado')?.toString()              || 'ativo';
+    const federado    = formData.get('federado') === 'on';
+    const numFederado = formData.get('numero_federado')?.toString().trim() || null;
+    const maoDominante = formData.get('mao_dominante')?.toString()      || null;
+
+    if (!nome) return { error: 'Nome é obrigatório.' };
+
+    try {
+        await sql`
+            INSERT INTO atletas (
+                id, nome, posicao, numero_camisola,
+                equipa_id, estado, federado, numero_federado,
+                mao_dominante, organization_id
+            ) VALUES (
+                gen_random_uuid(), ${nome}, ${posicao},
+                ${numCamisola ? parseInt(numCamisola) : null},
+                ${equipaId}, ${estado}, ${federado}, ${numFederado},
+                ${maoDominante}, ${organizationId}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao adicionar atleta.' };
+    }
+
+    revalidatePath('/dashboard/presidente/atletas');
+    return { success: true };
+}
+
+// ========================================
+// Staff Actions (Modal)
+// ========================================
+
+export async function adicionarMembro(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<
+            { organization_id: string }[]
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: 'Erro ao obter organização.' };
+    }
+
+    if (!organizationId) return { error: 'Organização não encontrada.' };
+
+    const nome     = formData.get('nome')?.toString().trim();
+    const funcao   = formData.get('funcao')?.toString() || null;
+    const equipaId = formData.get('equipa_id')?.toString() || null;
+
+    if (!nome) return { error: 'Nome é obrigatório.' };
+    if (!funcao) return { error: 'Função é obrigatória.' };
+
+    try {
+        await sql`
+            INSERT INTO staff (id, nome, funcao, equipa_id, organization_id)
+            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${organizationId})
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao adicionar membro de staff.' };
+    }
+
+    revalidatePath('/dashboard/presidente/staff');
+    return { success: true };
+}
+
+// ========================================
+// Jogos Actions (Modal)
+// ========================================
+
+export async function agendarJogo(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<
+            { organization_id: string }[]
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: 'Erro ao obter organização.' };
+    }
+
+    if (!organizationId) return { error: 'Organização não encontrada.' };
+
+    const adversario         = formData.get('adversario')?.toString().trim();
+    const data               = formData.get('data')?.toString();
+    const equipaId           = formData.get('equipa_id')?.toString() || null;
+    const casaFora           = formData.get('casa_fora')?.toString() || 'casa';
+    const local              = formData.get('local')?.toString().trim() || null;
+    const estado             = formData.get('estado')?.toString() || 'agendado';
+    const visibilidadePublica = formData.get('visibilidade_publica') === 'on';
+
+    if (!adversario) return { error: 'Adversário é obrigatório.' };
+    if (!data) return { error: 'Data é obrigatória.' };
+
+    try {
+        await sql`
+            INSERT INTO jogos (
+                id, adversario, data, equipa_id, casa_fora,
+                local, estado, visibilidade_publica, organization_id
+            ) VALUES (
+                gen_random_uuid(), ${adversario}, ${data}, ${equipaId},
+                ${casaFora}, ${local}, ${estado}, ${visibilidadePublica}, ${organizationId}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao agendar jogo.' };
+    }
+
+    revalidatePath('/dashboard/presidente/jogos');
+    return { success: true };
+}
+
+
 
 
 

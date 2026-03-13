@@ -129,7 +129,7 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                             {new Date(j.data).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}
                                         </td>
-                                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">vs {j.adversario}</td>
+                                        <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white"> {j.adversario}</td>
                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{j.equipa_nome}</td>
                                         <td className="px-6 py-4 text-gray-500 dark:text-gray-400 capitalize">{j.casa_fora}</td>
                                         <td className={`px-6 py-4 ${resultado.style}`}>{resultado.label}</td>

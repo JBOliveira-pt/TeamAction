@@ -44,7 +44,7 @@ interface CreateAtletaProfileFormProps {
 }
 
 export default function CreateAtletaProfileForm({
-    cancelHref = "/dashboard/atleta/perfil",
+    cancelHref = "/dashboard/utilizador/perfil",
     isAdmin = false,
 }: CreateAtletaProfileFormProps) {
     const [state, formAction, isPending] = useActionState(
@@ -72,7 +72,7 @@ export default function CreateAtletaProfileForm({
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Perfil de Atleta
+                            Perfil Utilizador
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             {isAdmin

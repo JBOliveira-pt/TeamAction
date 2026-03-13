@@ -1,103 +1,62 @@
-import type { Atleta } from '@/app/lib/definitions';
-import { auth } from '@clerk/nextjs/server';
+import type { Atleta } from "@/app/lib/definitions";
+import { auth } from "@clerk/nextjs/server";
 import {
     EnvelopeIcon,
-    IdentificationIcon,
     MapPinIcon,
     PencilIcon,
     PhoneIcon,
     ScaleIcon,
     UserCircleIcon,
-    UserPlusIcon,
-} from '@heroicons/react/24/outline';
-import Image from 'next/image';
-import Link from 'next/link';
-import postgres from 'postgres';
+} from "@heroicons/react/24/outline";
+import Image from "next/image";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import postgres from "postgres";
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
-async function getAtletaByClerkUser(
-    clerkUserId: string,
-: Promise<{ atleta: Atleta | null; isAdmin: boolean }> {
-    const users = await sql<{ email: string; role: string }[]>`
-        SELECT email, role FROM users WHERE clerk_user_id = ${clerkUserId}
+async function getAtletaByClerkUser(clerkUserId: string): Promise<Atleta | null> {
+    const users = await sql<{ email: string }[]>`
+        SELECT email FROM users WHERE clerk_user_id = ${clerkUserId}
     `;
-    if (!users.length) {
-        return { atleta: null, isAdmin: false };
-    }
+    if (!users.length) return null;
 
     const atletas = await sql<Atleta[]>`
-        SELECT * FROM atletas WHERE email = ${users[0].email}
+        SELECT * FROM utilizador WHERE email = ${users[0].email}
     `;
 
-    return {
-        atleta: atletas[0] ?? null,
-        isAdmin: users[0].role === 'admin',
-    };
+    return atletas[0] ?? null;
 }
 
 function estadoBadge(estado: string) {
     const map: Record<string, string> = {
-        Ativo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-        Inativo: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+        Ativo: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+        Inativo: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
         Pendente:
-            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+            "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     };
-    return map[estado] ?? 'bg-gray-100 text-gray-600';
+    return map[estado] ?? "bg-gray-100 text-gray-600";
 }
 
-export default async function AtletaPerfilPage() {
+export default async function PerfilUtilizadorPage() {
     const { userId } = await auth();
     if (!userId) return null;
 
-    const { atleta, isAdmin } = await getAtletaByClerkUser(userId);
+    const atleta = await getAtletaByClerkUser(userId);
 
-    /* ── NO PROFILE YET ───────────────────── */
     if (!atleta) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8 px-4">
-                <div className="w-24 h-24 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center border-2 border-dashed border-emerald-300 dark:border-emerald-700">
-                    <UserCircleIcon className="w-12 h-12 text-emerald-400" />
-                </div>
-                <div className="text-center max-w-sm">
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                        Perfil de Atleta
-                    </h2>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        {isAdmin
-                            ? 'Como Admin, a criação do perfil de atleta é opcional. Podes seguir para a dashboard padrão sem criar perfil.'
-                            : 'Ainda não criaste o teu perfil de atleta. Cria agora para que o teu treinador e clube possam acompanhar a tua evolução.'}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    {isAdmin && (
-                        <Link
-                            href="/dashboard"
-                            className="flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                            Ir para Dashboard
-                        </Link>
-                    )}
-                    <Link
-                        href="/dashboard/atleta/perfil/criar"
-                        className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow transition-colors"
-                    >
-                        <UserPlusIcon className="w-5 h-5" />
-                        Criar Perfil de Atleta
-                    </Link>
-                </div>
-            </div>
-        );
+        redirect("/dashboard/utilizador/perfil/criar");
     }
 
-    /* ── PROFILE VIEW ─────────────────────── */
     const nascimentoFormatted = new Date(
         atleta.data_nascimento,
-    ).toLocaleDateString('pt-PT');
+    ).toLocaleDateString("pt-PT");
 
     return (
         <div className="max-w-3xl mx-auto p-6 space-y-6">
-            {/* Header card */}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Perfil Utilizador
+            </h1>
             <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="h-20 bg-gradient-to-r from-emerald-500 to-teal-600" />
                 <div className="px-6 pb-6 -mt-10 flex items-end gap-5">
@@ -131,7 +90,7 @@ export default async function AtletaPerfilPage() {
                             </p>
                         </div>
                         <Link
-                            href="/dashboard/atleta/perfil/editar"
+                            href="/dashboard/utilizador/perfil/editar"
                             className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
                         >
                             <PencilIcon className="w-4 h-4" />
@@ -141,14 +100,8 @@ export default async function AtletaPerfilPage() {
                 </div>
             </div>
 
-            {/* Info grid */}
             <div className="grid md:grid-cols-2 gap-4">
                 <InfoCard label="Dados Pessoais">
-                    <InfoRow
-                        icon={<IdentificationIcon className="w-4 h-4" />}
-                        label="NIF"
-                        value={atleta.nif}
-                    />
                     <InfoRow
                         icon={<UserCircleIcon className="w-4 h-4" />}
                         label="Data de Nascimento"
@@ -156,7 +109,7 @@ export default async function AtletaPerfilPage() {
                     />
                     <InfoRow
                         icon={<PhoneIcon className="w-4 h-4" />}
-                        label="Telemóvel"
+                        label="Telem�vel"
                         value={atleta.telemovel}
                     />
                     <InfoRow
@@ -171,7 +124,7 @@ export default async function AtletaPerfilPage() {
                     />
                 </InfoCard>
 
-                <InfoCard label="Dados Físicos">
+                <InfoCard label="Dados F�sicos">
                     <InfoRow
                         icon={<ScaleIcon className="w-4 h-4" />}
                         label="Peso"
@@ -180,9 +133,7 @@ export default async function AtletaPerfilPage() {
                     <InfoRow
                         icon={<ScaleIcon className="w-4 h-4" />}
                         label="Altura"
-                        value={
-                            atleta.altura_cm ? `${atleta.altura_cm} cm` : null
-                        }
+                        value={atleta.altura_cm ? `${atleta.altura_cm} cm` : null}
                     />
                 </InfoCard>
             </div>
@@ -222,11 +173,9 @@ function InfoRow({
                 {icon}
             </span>
             <div>
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                    {label}
-                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{label}</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {value ?? <span className="text-gray-400">—</span>}
+                    {value ?? <span className="text-gray-400">-</span>}
                 </p>
             </div>
         </div>
