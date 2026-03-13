@@ -5,7 +5,7 @@ import Image from "next/image";
 const RegisterView = ({ setView }: { setView: (v: "login") => void }) => (
     <div className="w-full max-w-md">
         <Link
-            href="https://primeflow-landing.vercel.app"
+            href="/"
             className="mb-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
         >
             <ArrowLeft
