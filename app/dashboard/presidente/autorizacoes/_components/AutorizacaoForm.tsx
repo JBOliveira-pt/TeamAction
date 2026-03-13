@@ -4,10 +4,11 @@ import { useActionState, useEffect, useRef } from "react";
 import { registarAutorizacao } from "@/app/lib/actions";
 
 type State = { error?: string; success?: boolean } | null;
+type User = { id: string; name: string };
 
 const TIPOS = ["Aprovação", "Recusa", "Transferência", "Suspensão", "Outro"];
 
-export default function AutorizacaoForm() {
+export default function AutorizacaoForm({ users }: { users: User[] }) {
     const [state, action, isPending] = useActionState<State, FormData>(
         registarAutorizacao,
         null
@@ -36,13 +37,17 @@ export default function AutorizacaoForm() {
                     <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                         Autorizado a <span className="text-red-400">*</span>
                     </label>
-                    <input
+                    {/* MUDANÇA: select em vez de input de texto */}
+                    <select
                         name="autorizado_a"
-                        type="text"
-                        placeholder="Ex: Pedro Oliveira"
                         required
-                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors"
-                    />
+                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                    >
+                        <option value="">Seleciona o utilizador</option>
+                        {users.map((u) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                    </select>
                 </div>
                 <div className="space-y-1">
                     <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -83,3 +88,4 @@ export default function AutorizacaoForm() {
         </form>
     );
 }
+

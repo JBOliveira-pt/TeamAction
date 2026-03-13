@@ -1,4 +1,5 @@
 import { fetchEpocaAtiva } from "@/app/lib/data";
+import NovaEpocaModal from "./_components/NovaEpocaModal.client";
 
 export const dynamic = 'force-dynamic';
 
@@ -7,9 +8,9 @@ export default async function EpocaAtualPage() {
 
     if (!epoca) {
         return (
-            <div className="p-6 flex flex-col items-center justify-center min-h-[400px] space-y-3">
+            <div className="p-6 flex flex-col items-center justify-center min-h-[400px] space-y-4">
                 <p className="text-gray-500 dark:text-gray-400 text-lg">Nenhuma época registada ainda.</p>
-                <p className="text-gray-400 dark:text-gray-500 text-sm">Contacta o administrador para criar a época atual.</p>
+                <NovaEpocaModal />
             </div>
         );
     }
@@ -27,8 +28,8 @@ export default async function EpocaAtualPage() {
     const estado = hoje < dataInicio ? "Por iniciar" : hoje > dataFim ? "Concluída" : "Em curso";
 
     const estadoCor = {
-        "Em curso": "text-violet-400",
-        "Concluída": "text-emerald-400",
+        "Em curso":    "text-violet-400",
+        "Concluída":   "text-emerald-400",
         "Por iniciar": "text-amber-400",
     }[estado] ?? "text-gray-400";
 
@@ -37,9 +38,13 @@ export default async function EpocaAtualPage() {
 
     return (
         <div className="p-6 space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Época Atual</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{epoca.nome} · {estado}</p>
+            {/* Cabeçalho */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Época Atual</h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{epoca.nome} · {estado}</p>
+                </div>
+                <NovaEpocaModal />
             </div>
 
             {/* Cards resumo */}
@@ -96,8 +101,8 @@ export default async function EpocaAtualPage() {
                     <div>
                         <p className="text-xs text-gray-400 dark:text-gray-500">Estado</p>
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium mt-0.5 ${
-                            estado === "Em curso" ? "bg-violet-500/10 text-violet-400" :
-                            estado === "Concluída" ? "bg-emerald-500/10 text-emerald-400" :
+                            estado === "Em curso"    ? "bg-violet-500/10 text-violet-400" :
+                            estado === "Concluída"   ? "bg-emerald-500/10 text-emerald-400" :
                             "bg-amber-500/10 text-amber-400"
                         }`}>
                             {estado}
@@ -124,4 +129,6 @@ export default async function EpocaAtualPage() {
         </div>
     );
 }
+
+
 

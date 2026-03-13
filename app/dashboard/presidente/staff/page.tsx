@@ -1,22 +1,24 @@
 import { fetchStaff, fetchEquipas } from "@/app/lib/data";
 import AdicionarMembroModal from "./_components/AdicionarMembroModal.client";
+import EditarMembroModal from "./_components/EditarMembroModal.client";
+import RemoverMembroModal from "./_components/RemoverMembroModal.client";
 
 export const dynamic = 'force-dynamic';
 
 const funcaoStyle: Record<string, string> = {
-    "treinador":          "bg-violet-500/10 text-violet-400",
-    "treinador_adjunto":  "bg-blue-500/10 text-blue-400",
-    "fisioterapeuta":     "bg-cyan-500/10 text-cyan-400",
-    "medico":             "bg-emerald-500/10 text-emerald-400",
-    "preparador_fisico":  "bg-amber-500/10 text-amber-400",
+    "treinador":         "bg-violet-500/10 text-violet-400",
+    "treinador_adjunto": "bg-blue-500/10 text-blue-400",
+    "fisioterapeuta":    "bg-cyan-500/10 text-cyan-400",
+    "medico":            "bg-emerald-500/10 text-emerald-400",
+    "preparador_fisico": "bg-amber-500/10 text-amber-400",
 };
 
 const funcaoLabel: Record<string, string> = {
-    "treinador":          "Treinador Principal",
-    "treinador_adjunto":  "Treinador Adjunto",
-    "fisioterapeuta":     "Fisioterapeuta",
-    "medico":             "Equipa Médica",
-    "preparador_fisico":  "Preparador Físico",
+    "treinador":         "Treinador Principal",
+    "treinador_adjunto": "Treinador Adjunto",
+    "fisioterapeuta":    "Fisioterapeuta",
+    "medico":            "Equipa Médica",
+    "preparador_fisico": "Preparador Físico",
 };
 
 export default async function StaffPage() {
@@ -68,8 +70,7 @@ export default async function StaffPage() {
                                 <th className="text-left px-6 py-4">Nome</th>
                                 <th className="text-left px-6 py-4">Função</th>
                                 <th className="text-left px-6 py-4">Equipa</th>
-                                <th className="text-left px-6 py-4">Email</th>
-                                <th className="text-left px-6 py-4">Telefone</th>
+                                <th className="text-left px-6 py-4"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -82,8 +83,20 @@ export default async function StaffPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.equipa_nome ?? "Todos"}</td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.user_email ?? "—"}</td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{s.user_telefone ?? "—"}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <EditarMembroModal
+                                                membro={{
+                                                    id:        s.id,
+                                                    nome:      s.nome,
+                                                    funcao:    s.funcao,
+                                                    equipa_id: s.equipa_id,
+                                                }}
+                                                equipas={equipas.map(e => ({ id: e.id, nome: e.nome }))}
+                                            />
+                                            <RemoverMembroModal id={s.id} nome={s.nome} />
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -93,5 +106,6 @@ export default async function StaffPage() {
         </div>
     );
 }
+
 
 

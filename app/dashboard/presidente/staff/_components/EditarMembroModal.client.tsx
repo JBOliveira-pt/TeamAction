@@ -1,64 +1,53 @@
-"use client";
+'use client';
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { criarEquipa } from "@/app/lib/actions";
-import { X } from "lucide-react";
+import { useActionState, useEffect, useState } from 'react';
+import { editarMembro } from '@/app/lib/actions';
+import { X } from 'lucide-react';
 
 type State = { error?: string; success?: boolean } | null;
+type Equipa = { id: string; nome: string };
+type Membro = {
+    id:        string;
+    nome:      string;
+    funcao:    string;
+    equipa_id: string | null;
+};
 
-const ESCALOES = [
-    "Sub-8", "Sub-10", "Sub-12", "Sub-14",
-    "Sub-16", "Sub-18", "Sub-20", "Juniores", "Seniores",
+const FUNCOES = [
+    { value: "treinador",         label: "Treinador Principal" },
+    { value: "treinador_adjunto", label: "Treinador Adjunto" },
+    { value: "fisioterapeuta",    label: "Fisioterapeuta" },
+    { value: "medico",            label: "Equipa Médica" },
+    { value: "preparador_fisico", label: "Preparador Físico" },
 ];
 
-const DESPORTOS = [
-    "Futebol", "Futsal", "Basquetebol",
-    "Andebol", "Voleibol", "Rugby", "Outro",
-];
-
-const ESTADOS = [
-    { value: "ativa",        label: "Ativa" },
-    { value: "periodo_off",  label: "Período Off" },
-    { value: "inativa",      label: "Inativa" },
-];
-
-export default function NovaEquipaModal() {
+export default function EditarMembroModal({ membro, equipas }: { membro: Membro; equipas: Equipa[] }) {
     const [open, setOpen] = useState(false);
-    const [state, action, isPending] = useActionState<State, FormData>(
-        criarEquipa,
-        null
-    );
-    const formRef = useRef<HTMLFormElement>(null);
+    const [state, action, isPending] = useActionState<State, FormData>(editarMembro, null);
 
     useEffect(() => {
-        if (state?.success) {
-            formRef.current?.reset();
-            setOpen(false);
-        }
+        if (state?.success) setOpen(false);
     }, [state]);
 
     return (
         <>
             <button
                 onClick={() => setOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
             >
-                + Nova Equipa
+                Editar
             </button>
 
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={() => setOpen(false)}
                     />
 
-                    {/* Modal */}
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
-                        {/* Header */}
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nova Equipa</h2>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Editar Membro</h2>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -73,73 +62,56 @@ export default function NovaEquipaModal() {
                             </div>
                         )}
 
-                        <form ref={formRef} action={action} className="space-y-4">
+                        <form action={action} className="space-y-4">
+                            <input type="hidden" name="id" value={membro.id} />
+
                             {/* Nome */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Nome da Equipa <span className="text-red-400">*</span>
+                                    Nome Completo <span className="text-red-400">*</span>
                                 </label>
                                 <input
                                     name="nome"
                                     type="text"
-                                    placeholder="Ex: Futebol Seniores A"
+                                    defaultValue={membro.nome}
                                     required
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                 />
                             </div>
 
-                            {/* Escalão + Desporto */}
+                            {/* Função + Equipa */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Escalão <span className="text-red-400">*</span>
+                                        Função <span className="text-red-400">*</span>
                                     </label>
                                     <select
-                                        name="escalao"
+                                        name="funcao"
+                                        defaultValue={membro.funcao}
                                         required
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         <option value="">Seleciona</option>
-                                        {ESCALOES.map((e) => (
-                                            <option key={e} value={e}>{e}</option>
+                                        {FUNCOES.map((f) => (
+                                            <option key={f.value} value={f.value}>{f.label}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Desporto <span className="text-red-400">*</span>
-                                    </label>
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Equipa</label>
                                     <select
-                                        name="desporto"
-                                        required
+                                        name="equipa_id"
+                                        defaultValue={membro.equipa_id ?? ''}
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
-                                        <option value="">Seleciona</option>
-                                        {DESPORTOS.map((d) => (
-                                            <option key={d} value={d}>{d}</option>
+                                        <option value="">Todas</option>
+                                        {equipas.map((e) => (
+                                            <option key={e.id} value={e.id}>{e.nome}</option>
                                         ))}
                                     </select>
                                 </div>
                             </div>
 
-                            {/* Estado */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Estado <span className="text-red-400">*</span>
-                                </label>
-                                <select
-                                    name="estado"
-                                    required
-                                    defaultValue="ativa"
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                >
-                                    {ESTADOS.map((s) => (
-                                        <option key={s.value} value={s.value}>{s.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Botões */}
                             <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
@@ -153,7 +125,7 @@ export default function NovaEquipaModal() {
                                     disabled={isPending}
                                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                 >
-                                    {isPending ? "A criar..." : "Criar Equipa"}
+                                    {isPending ? 'A guardar...' : 'Guardar Alterações'}
                                 </button>
                             </div>
                         </form>

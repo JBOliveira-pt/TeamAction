@@ -1,25 +1,42 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { agendarJogo } from "@/app/lib/actions";
+import { registarPagamento } from "@/app/lib/actions";
 import { X } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
-type Equipa = { id: string; nome: string };
 
-const ESTADOS = [
-    { value: "agendado",   label: "Agendado" },
-    { value: "realizado",  label: "Realizado" },
-    { value: "cancelado",  label: "Cancelado" },
+const MESES = [
+    { value: "1",  label: "Janeiro" },
+    { value: "2",  label: "Fevereiro" },
+    { value: "3",  label: "Março" },
+    { value: "4",  label: "Abril" },
+    { value: "5",  label: "Maio" },
+    { value: "6",  label: "Junho" },
+    { value: "7",  label: "Julho" },
+    { value: "8",  label: "Agosto" },
+    { value: "9",  label: "Setembro" },
+    { value: "10", label: "Outubro" },
+    { value: "11", label: "Novembro" },
+    { value: "12", label: "Dezembro" },
 ];
 
-export default function AgendarJogoModal({ equipas }: { equipas: Equipa[] }) {
+const ESTADOS = [
+    { value: "pago",      label: "Pago" },
+    { value: "pendente",  label: "Pendente" },
+    { value: "em_atraso", label: "Em Atraso" },
+];
+
+export default function RegistarPagamentoModal({ atletaId }: { atletaId: string }) {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
-        agendarJogo,
+        registarPagamento,
         null
     );
     const formRef = useRef<HTMLFormElement>(null);
+
+    const anoAtual = new Date().getFullYear();
+    const mesAtual = String(new Date().getMonth() + 1);
 
     useEffect(() => {
         if (state?.success) {
@@ -32,24 +49,21 @@ export default function AgendarJogoModal({ equipas }: { equipas: Equipa[] }) {
         <>
             <button
                 onClick={() => setOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
             >
-                + Agendar Jogo
+                Registar Pagamento
             </button>
 
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* Backdrop */}
                     <div
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         onClick={() => setOpen(false)}
                     />
-
-                    {/* Modal */}
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
                         {/* Header */}
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Agendar Jogo</h2>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Registar Pagamento</h2>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -65,64 +79,61 @@ export default function AgendarJogoModal({ equipas }: { equipas: Equipa[] }) {
                         )}
 
                         <form ref={formRef} action={action} className="space-y-4">
-                            {/* Adversário */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Adversário <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                    name="adversario"
-                                    type="text"
-                                    placeholder="Ex: Sporting CP"
-                                    required
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                />
-                            </div>
+                            {/* atleta_id hidden */}
+                            <input type="hidden" name="atleta_id" value={atletaId} />
 
-                            {/* Data + Equipa */}
+                            {/* Mês + Ano */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Data <span className="text-red-400">*</span>
+                                        Mês <span className="text-red-400">*</span>
                                     </label>
-                                    <input
-                                        name="data"
-                                        type="date"
+                                    <select
+                                        name="mes"
+                                        defaultValue={mesAtual}
                                         required
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                    />
+                                    >
+                                        {MESES.map((m) => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Equipa
+                                        Ano <span className="text-red-400">*</span>
                                     </label>
                                     <select
-                                        name="equipa_id"
+                                        name="ano"
+                                        defaultValue={String(anoAtual)}
+                                        required
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
-                                        <option value="">Seleciona</option>
-                                        {equipas.map((e) => (
-                                            <option key={e.id} value={e.id}>{e.nome}</option>
+                                        {[anoAtual - 1, anoAtual, anoAtual + 1].map((a) => (
+                                            <option key={a} value={String(a)}>{a}</option>
                                         ))}
                                     </select>
                                 </div>
                             </div>
 
-                            {/* Casa/Fora + Estado */}
+                            {/* Valor + Estado */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Casa / Fora <span className="text-red-400">*</span>
+                                        Valor (€) <span className="text-red-400">*</span>
                                     </label>
-                                    <select
-                                        name="casa_fora"
-                                        required
-                                        defaultValue="casa"
-                                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                    >
-                                        <option value="casa">Casa</option>
-                                        <option value="fora">Fora</option>
-                                    </select>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                                        <input
+                                            name="valor"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            required
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg pl-8 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -130,41 +141,27 @@ export default function AgendarJogoModal({ equipas }: { equipas: Equipa[] }) {
                                     </label>
                                     <select
                                         name="estado"
+                                        defaultValue="pago"
                                         required
-                                        defaultValue="agendado"
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
-                                        {ESTADOS.map((s) => (
-                                            <option key={s.value} value={s.value}>{s.label}</option>
+                                        {ESTADOS.map((e) => (
+                                            <option key={e.value} value={e.value}>{e.label}</option>
                                         ))}
                                     </select>
                                 </div>
                             </div>
 
-                            {/* Local */}
+                            {/* Data de Pagamento */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Local
+                                    Data de Pagamento
                                 </label>
                                 <input
-                                    name="local"
-                                    type="text"
-                                    placeholder="Ex: Estádio Municipal"
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                    name="data_pagamento"
+                                    type="date"
+                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                 />
-                            </div>
-
-                            {/* Visibilidade pública */}
-                            <div className="flex items-center gap-3 py-1">
-                                <input
-                                    id="visibilidade_publica"
-                                    name="visibilidade_publica"
-                                    type="checkbox"
-                                    className="w-4 h-4 rounded accent-blue-600"
-                                />
-                                <label htmlFor="visibilidade_publica" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Visível publicamente
-                                </label>
                             </div>
 
                             {/* Botões */}
@@ -181,7 +178,7 @@ export default function AgendarJogoModal({ equipas }: { equipas: Equipa[] }) {
                                     disabled={isPending}
                                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                 >
-                                    {isPending ? "A agendar..." : "Agendar Jogo"}
+                                    {isPending ? "A registar..." : "Registar"}
                                 </button>
                             </div>
                         </form>

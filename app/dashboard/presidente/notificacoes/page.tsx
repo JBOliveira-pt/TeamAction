@@ -1,18 +1,27 @@
-const notificacoes = [
-    { id: 1, titulo: "Mensalidade em atraso", descricao: "Rui Ferreira (Seniores M) tem mensalidade de Março em atraso.", tipo: "Alerta", data: "Hoje", lida: false },
-    { id: 2, titulo: "Mensalidade em atraso", descricao: "André Costa (Seniores M) tem mensalidade de Março em atraso.", tipo: "Alerta", data: "Hoje", lida: false },
-    { id: 3, titulo: "Novo atleta registado", descricao: "Tiago Martins criou o seu perfil de atleta no Sub-18 M.", tipo: "Info", data: "Ontem", lida: false },
-    { id: 4, titulo: "Jogo agendado", descricao: "Jogo vs Sporting CP marcado para 15 Mar às 16h00.", tipo: "Info", data: "09 Mar", lida: true },
-    { id: 5, titulo: "Treino cancelado", descricao: "O treinador Carlos Ferreira cancelou o treino de 8 Mar.", tipo: "Aviso", data: "08 Mar", lida: true },
-];
+import { fetchNotificacoes } from "@/app/lib/data";
+import MarcarLidasButton from "./_components/MarcarLidasButton.client";
+
+export const dynamic = 'force-dynamic';
 
 const tipoStyle: Record<string, { badge: string; icon: string }> = {
-    "Alerta": { badge: "bg-red-500/10 text-red-400", icon: "🔴" },
-    "Aviso": { badge: "bg-amber-500/10 text-amber-400", icon: "🟡" },
-    "Info": { badge: "bg-cyan-500/10 text-cyan-400", icon: "🔵" },
+    "Alerta": { badge: "bg-red-500/10 text-red-400",   icon: "🔴" },
+    "Aviso":  { badge: "bg-amber-500/10 text-amber-400", icon: "🟡" },
+    "Info":   { badge: "bg-cyan-500/10 text-cyan-400",  icon: "🔵" },
 };
 
-export default function NotificacoesPage() {
+const formatData = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const hoje = new Date();
+    const ontem = new Date();
+    ontem.setDate(hoje.getDate() - 1);
+
+    if (date.toDateString() === hoje.toDateString()) return "Hoje";
+    if (date.toDateString() === ontem.toDateString()) return "Ontem";
+    return date.toLocaleDateString("pt-PT", { day: "2-digit", month: "short" });
+};
+
+export default async function NotificacoesPage() {
+    const notificacoes = await fetchNotificacoes();
     const naoLidas = notificacoes.filter(n => !n.lida).length;
 
     return (
@@ -22,36 +31,45 @@ export default function NotificacoesPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Notificações</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{naoLidas} não lidas</p>
                 </div>
-                <button className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-gray-300 dark:border-gray-700 px-3 py-2 rounded-lg transition-colors">
-                    Marcar todas como lidas
-                </button>
+                {naoLidas > 0 && <MarcarLidasButton />}
             </div>
 
             <div className="space-y-3">
-                {notificacoes.map((n) => (
-                    <div
-                        key={n.id}
-                        className={`bg-white dark:bg-gray-900 border rounded-xl p-5 flex items-start gap-4 transition-colors ${
-                            n.lida ? "border-gray-200 dark:border-gray-800 opacity-60" : "border-gray-300 dark:border-gray-700"
-                        }`}
-                    >
-                        <span className="text-lg mt-0.5">{tipoStyle[n.tipo].icon}</span>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.titulo}</p>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle[n.tipo].badge}`}>
-                                    {n.tipo}
-                                </span>
-                                {!n.lida && (
-                                    <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{n.descricao}</p>
-                        </div>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{n.data}</span>
+                {notificacoes.length === 0 ? (
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-6 py-12 text-center">
+                        <p className="text-gray-400 dark:text-gray-500 text-sm">Nenhuma notificação ainda.</p>
                     </div>
-                ))}
+                ) : (
+                    notificacoes.map((n) => (
+                        <div
+                            key={n.id}
+                            className={`bg-white dark:bg-gray-900 border rounded-xl p-5 flex items-start gap-4 transition-colors ${
+                                n.lida
+                                    ? "border-gray-200 dark:border-gray-800 opacity-60"
+                                    : "border-gray-300 dark:border-gray-700"
+                            }`}
+                        >
+                            <span className="text-lg mt-0.5">{tipoStyle[n.tipo]?.icon ?? "🔵"}</span>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{n.titulo}</p>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle[n.tipo]?.badge ?? "bg-cyan-500/10 text-cyan-400"}`}>
+                                        {n.tipo}
+                                    </span>
+                                    {!n.lida && (
+                                        <span className="w-2 h-2 rounded-full bg-violet-500 inline-block" />
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{n.descricao}</p>
+                            </div>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                                {formatData(n.created_at)}
+                            </span>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
 }
+
