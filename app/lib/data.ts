@@ -10,6 +10,7 @@ import {
     Revenue,
     User,
 } from "./definitions";
+import { ensureRecipientUserIdColumn } from "./notification-schema";
 import { formatCurrency, formatCurrencyPTBR, formatDateToLocal } from "./utils";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
@@ -1506,10 +1507,7 @@ export async function fetchNotificacoes() {
             return [];
         }
 
-        await sql`
-            ALTER TABLE notificacoes
-            ADD COLUMN IF NOT EXISTS recipient_user_id UUID NULL
-        `;
+        await ensureRecipientUserIdColumn(sql);
 
         const currentDbUser = await sql<{ id: string }[]>`
             SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1

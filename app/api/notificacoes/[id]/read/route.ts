@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { ensureRecipientUserIdColumn } from "@/app/lib/notification-schema";
 import { NextResponse } from "next/server";
 import postgres from "postgres";
 
@@ -42,10 +43,7 @@ export async function PATCH(
         );
     }
 
-    await sql`
-        ALTER TABLE notificacoes
-        ADD COLUMN IF NOT EXISTS recipient_user_id UUID NULL
-    `;
+    await ensureRecipientUserIdColumn(sql);
 
     await sql`
         UPDATE notificacoes

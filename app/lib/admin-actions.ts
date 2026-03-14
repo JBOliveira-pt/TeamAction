@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import postgres from "postgres";
+import postgres, { type JSONValue } from "postgres";
 import { clerkClient } from "@clerk/nextjs/server";
 import {
     clearAdminSessionCookie,
@@ -12,6 +12,7 @@ import {
     setAdminSessionCookie,
 } from "@/app/lib/admin-auth";
 import { ensureAdminTables } from "@/app/lib/admin-data";
+import { ensureRecipientUserIdColumn } from "@/app/lib/notification-schema";
 
 const sql = postgres(process.env.POSTGRES_URL!, {
     ssl: "require",
@@ -126,6 +127,9 @@ export async function adminUpdateUserAction(
         `;
 
         await ensureAdminTables();
+        const updateMetadata: JSONValue = JSON.parse(
+            JSON.stringify({ name, email, role, accountType }),
+        );
         await sql`
             INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
             VALUES (
@@ -134,7 +138,7 @@ export async function adminUpdateUserAction(
                 ${"admin@teamaction.local"},
                 ${"admin_user_update"},
                 ${`/admin/users/${userId}`},
-                ${sql.json({ name, email, role, accountType })}
+                ${sql.json(updateMetadata)}
             )
         `;
     } catch (error) {
@@ -152,10 +156,7 @@ export async function adminCreateAvisoAction(
 ): Promise<void> {
     await requireAdminSession();
 
-    await sql`
-        ALTER TABLE notificacoes
-        ADD COLUMN IF NOT EXISTS recipient_user_id UUID NULL
-    `;
+    await ensureRecipientUserIdColumn(sql);
 
     const titulo = String(formData.get("titulo") || "").trim();
     const descricao = String(formData.get("descricao") || "").trim();
@@ -206,6 +207,9 @@ export async function adminCreateAvisoAction(
         }
 
         await ensureAdminTables();
+        const warningMetadata: JSONValue = JSON.parse(
+            JSON.stringify({ titulo, scope, userId: userId || null }),
+        );
         await sql`
             INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
             VALUES (
@@ -214,7 +218,7 @@ export async function adminCreateAvisoAction(
                 ${"admin@teamaction.local"},
                 ${"admin_warning_emit"},
                 ${"/admin/avisos"},
-                ${sql.json({ titulo, scope, userId: userId || null })}
+                ${sql.json(warningMetadata)}
             )
         `;
     } catch (error) {

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import postgres from "postgres";
+import postgres, { type JSONValue } from "postgres";
 import { ensureAdminTables, fetchUserByClerkId } from "@/app/lib/admin-data";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const interactionType = payload.interactionType?.trim();
     const path = payload.path?.trim();
-    const metadata = payload.metadata
+    const metadata: JSONValue = payload.metadata
         ? JSON.parse(JSON.stringify(payload.metadata))
         : null;
 

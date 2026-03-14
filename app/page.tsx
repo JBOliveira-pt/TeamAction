@@ -27,7 +27,7 @@ export default function LandingPage() {
                     <div className="flex justify-between h-16 items-center">
                         <div className="flex items-center gap-2">
                             <Image
-                                src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
+                                src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/LogoTeamAction-Full-White-Nobg.png"
                                 alt="TeamAction"
                                 width={190}
                                 height={46}
@@ -89,18 +89,6 @@ export default function LandingPage() {
                         simples e intuitiva. Tenha hoje mesmo o futuro da gestão
                         desportiva na palma de sua mão.
                     </p>
-                    <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-                        <a
-                            href="https://github.com/JBOliveira-pt/TeamAction"
-                            target="_blank"
-                            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-xl font-bold hover:bg-slate-800 transition"
-                        >
-                            Ver no GitHub <Github className="h-5 w-5" />
-                        </a>
-                        <button className="flex items-center justify-center gap-2 bg-white border-2 border-slate-200 px-8 py-4 rounded-xl font-bold hover:border-blue-400 transition">
-                            Demo em breve <PlayCircle className="h-5 w-5" />
-                        </button>
-                    </div>
 
                     {/* Mockup Preview */}
                     <div className="mt-16 relative mx-auto max-w-5xl">
@@ -110,6 +98,66 @@ export default function LandingPage() {
                                 Visualização do Dashboard (WIP)
                             </p>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* --- ROADMAP SECTION --- */}
+            <section
+                id="sobre"
+                className="relative py-24 text-white"
+                style={{
+                    backgroundImage:
+                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                    backgroundAttachment: "fixed",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                }}
+            >
+                {/* overlay escuro para manter legibilidade */}
+                <div className="absolute inset-0 bg-slate-950/50" />
+                <div className="relative max-w-4xl mx-auto px-4">
+                    <h2 className="text-3xl font-bold mb-12 text-center">
+                        Status do Desenvolvimento
+                    </h2>
+                    <div className="space-y-6">
+                        {[
+                            {
+                                task: "Arquitetura Next.js 14 & Tailwind Setup",
+                                done: true,
+                            },
+                            { task: "Sistema de Autenticação", done: true },
+                            {
+                                task: "Módulo de Gerenciamento de Atletas",
+                                done: false,
+                            },
+                            {
+                                task: "Biblioteca de Exercícios (CRUD)",
+                                done: false,
+                            },
+                            { task: "Dashboard de Performance", done: false },
+                        ].map((item, idx) => (
+                            <div
+                                key={idx}
+                                className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700"
+                            >
+                                {item.done ? (
+                                    <CheckCircle2 className="text-green-400 h-6 w-6 shrink-0" />
+                                ) : (
+                                    <div className="h-6 w-6 border-2 border-slate-500 rounded-full shrink-0" />
+                                )}
+                                <span
+                                    className={
+                                        item.done
+                                            ? "text-slate-300 line-through"
+                                            : "text-white"
+                                    }
+                                >
+                                    {item.task}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -300,58 +348,10 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* --- ROADMAP SECTION --- */}
-            <section id="sobre" className="py-24 bg-slate-900 text-white">
-                <div className="max-w-4xl mx-auto px-4">
-                    <h2 className="text-3xl font-bold mb-12 text-center">
-                        Status do Desenvolvimento
-                    </h2>
-                    <div className="space-y-6">
-                        {[
-                            {
-                                task: "Arquitetura Next.js 14 & Tailwind Setup",
-                                done: true,
-                            },
-                            { task: "Sistema de Autenticação", done: true },
-                            {
-                                task: "Módulo de Gerenciamento de Atletas",
-                                done: false,
-                            },
-                            {
-                                task: "Biblioteca de Exercícios (CRUD)",
-                                done: false,
-                            },
-                            { task: "Dashboard de Performance", done: false },
-                        ].map((item, idx) => (
-                            <div
-                                key={idx}
-                                className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700"
-                            >
-                                {item.done ? (
-                                    <CheckCircle2 className="text-green-400 h-6 w-6 shrink-0" />
-                                ) : (
-                                    <div className="h-6 w-6 border-2 border-slate-500 rounded-full shrink-0" />
-                                )}
-                                <span
-                                    className={
-                                        item.done
-                                            ? "text-slate-300 line-through"
-                                            : "text-white"
-                                    }
-                                >
-                                    {item.task}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
             {/* --- FOOTER --- */}
             <footer className="py-12 border-t border-slate-200">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-2">
-                        <Trophy className="h-6 w-6 text-blue-600" />
                         <span className="font-bold">TeamAction</span>
                     </div>
                     <p className="text-slate-500 text-sm">

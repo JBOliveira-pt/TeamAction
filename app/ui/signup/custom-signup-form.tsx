@@ -1,6 +1,7 @@
 "use client";
 
 import { useSignUp } from "@clerk/nextjs";
+import { getDashboardPathForAccountType } from "@/app/lib/account-type";
 import {
     CheckCircle2,
     Lock,
@@ -31,25 +32,25 @@ const ACCOUNT_TYPE_OPTIONS: {
     {
         value: "presidente",
         label: "Presidente",
-        description: "Gestao geral do clube e equipa.",
+        description: "Gestao geral do clube e equipa",
         icon: Shield,
     },
     {
         value: "treinador",
         label: "Treinador",
-        description: "Planeamento técnico e treino.",
+        description: "Planeamento técnico e treino",
         icon: Megaphone,
     },
     {
         value: "atleta",
         label: "Atleta",
-        description: "Perfil desportivo e evolução.",
+        description: "Perfil desportivo e evolução",
         icon: Volleyball,
     },
     {
         value: "responsavel",
         label: "Responsável",
-        description: "Acompanhamento do atleta.",
+        description: "Acompanhamento do atleta",
         icon: Users,
     },
 ];
@@ -262,7 +263,7 @@ export default function CustomSignUpForm() {
                 "Registo concluído com sucesso. A redirecionar...",
             );
             setTimeout(() => {
-                router.push("/dashboard");
+                router.push(getDashboardPathForAccountType(accountType));
                 router.refresh();
             }, 1000);
         } catch (error) {
@@ -287,10 +288,11 @@ export default function CustomSignUpForm() {
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-white">
-                            Criar Conta TeamAction
+                            Criar Conta{" "}
+                            <span className="font-bold">TeamAction</span>
                         </h3>
                         <p className="mt-0.5 text-sm text-slate-300">
-                            Escolha o tipo de conta e complete o registo.
+                            Escolha o tipo de conta e complete o registo
                         </p>
                     </div>
                 </div>
@@ -311,17 +313,17 @@ export default function CustomSignUpForm() {
                                         }
                                         className={`text-left rounded-lg border p-4 transition-colors ${
                                             active
-                                                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                                                ? "border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20"
                                                 : "border-gray-200 dark:border-gray-700 hover:border-emerald-400"
                                         }`}
                                     >
                                         <div className="flex items-start gap-3">
                                             <Icon className="h-5 w-5 mt-0.5 text-emerald-500" />
                                             <div>
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                <p className="text-sm font-semibold text-gray-300 dark:text-white">
                                                     {option.label}
                                                 </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                <p className="text-xs text-gray-400 dark:text-gray-400 mt-1">
                                                     {option.description}
                                                 </p>
                                             </div>
@@ -333,7 +335,7 @@ export default function CustomSignUpForm() {
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                     Nome completo
                                 </label>
                                 <div className="relative">
@@ -344,15 +346,15 @@ export default function CustomSignUpForm() {
                                         onChange={(event) =>
                                             setFullName(event.target.value)
                                         }
-                                        className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                         placeholder="Nome e sobrenome"
                                     />
-                                    <User className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                                    <User className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
                                 </div>
                             </div>
 
                             <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                     Email
                                 </label>
                                 <div className="relative">
@@ -363,16 +365,16 @@ export default function CustomSignUpForm() {
                                         onChange={(event) =>
                                             setEmailAddress(event.target.value)
                                         }
-                                        className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                         placeholder="email@exemplo.com"
                                     />
-                                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-graydark:text-gray-500" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                 Palavra-passe
                             </label>
                             <div className="relative">
@@ -383,10 +385,10 @@ export default function CustomSignUpForm() {
                                     onChange={(event) =>
                                         setPassword(event.target.value)
                                     }
-                                    className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                     placeholder="Minimo de 8 caracteres"
                                 />
-                                <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                                <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-graydark:text-gray-500" />
                             </div>
                         </div>
 

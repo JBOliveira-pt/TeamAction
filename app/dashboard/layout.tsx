@@ -1,27 +1,10 @@
 import SideNav from "@/app/ui/dashboard/sidenav";
 import { LoginAvisoPopup } from "@/app/components/login-aviso-popup";
 import { UserInteractionTracker } from "@/app/components/user-interaction-tracker";
+import { normalizeAccountType } from "@/app/lib/account-type";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
-
-type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
-
-function normalizeAccountType(value: unknown): AccountType | null {
-    if (typeof value !== "string") return null;
-
-    const normalized = value.toLowerCase();
-    if (
-        normalized === "presidente" ||
-        normalized === "treinador" ||
-        normalized === "atleta" ||
-        normalized === "responsavel"
-    ) {
-        return normalized;
-    }
-
-    return null;
-}
 
 export const metadata: Metadata = {
     title: {
