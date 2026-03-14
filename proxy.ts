@@ -54,6 +54,8 @@ const isPublicRoute = createRouteMatcher([
     "/login(.*)",
     "/signup(.*)",
     "/onboarding(.*)",
+    "/admin(.*)",
+    "/admin-login(.*)",
     "/api/webhooks(.*)",
 ]);
 
@@ -79,9 +81,13 @@ export default clerkMiddleware(async (auth, request) => {
 
             if (path === "/dashboard") {
                 if (targetPath !== "/dashboard") {
-                    return NextResponse.redirect(new URL(targetPath, request.url));
+                    return NextResponse.redirect(
+                        new URL(targetPath, request.url),
+                    );
                 }
-                return NextResponse.next({ request: { headers: requestHeaders } });
+                return NextResponse.next({
+                    request: { headers: requestHeaders },
+                });
             }
 
             if (!isPathAllowedForAccountType(path, accountType)) {

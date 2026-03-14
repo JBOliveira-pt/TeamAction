@@ -870,19 +870,21 @@ export async function fetchAtletas() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id:                 string;
-            nome:               string;
-            posicao:            string | null;
-            numero_camisola:    number | null;
-            estado:             string;
-            equipa_nome:        string | null;
-            equipa_id:          string | null;
-            mensalidade_estado: string | null;
-            federado:           boolean;
-            numero_federado:    string | null;
-            mao_dominante:      string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                nome: string;
+                posicao: string | null;
+                numero_camisola: number | null;
+                estado: string;
+                equipa_nome: string | null;
+                equipa_id: string | null;
+                mensalidade_estado: string | null;
+                federado: boolean;
+                numero_federado: string | null;
+                mao_dominante: string | null;
+            }[]
+        >`
             SELECT
                 atletas.id,
                 atletas.nome,
@@ -910,7 +912,6 @@ export async function fetchAtletas() {
         throw new Error("Failed to fetch atletas.");
     }
 }
-
 
 export async function fetchAtletaById(id: string) {
     try {
@@ -1109,24 +1110,25 @@ export async function fetchPresidenteDashboard() {
     try {
         const organizationId = await getOrganizationId();
 
-        const [equipas, atletas, jogos, mensalidades, epoca] = await Promise.all([
-            sql`SELECT COUNT(*) FROM equipas WHERE organization_id = ${organizationId}`,
-            sql`SELECT COUNT(*) FROM atletas WHERE organization_id = ${organizationId}`,
-            sql`SELECT COUNT(*) FROM jogos WHERE organization_id = ${organizationId} AND estado = 'agendado'`,
-            sql`SELECT COUNT(*) FROM mensalidades WHERE organization_id = ${organizationId} AND estado = 'em_atraso'`,
-            sql<{ nome: string }[]>`
+        const [equipas, atletas, jogos, mensalidades, epoca] =
+            await Promise.all([
+                sql`SELECT COUNT(*) FROM equipas WHERE organization_id = ${organizationId}`,
+                sql`SELECT COUNT(*) FROM atletas WHERE organization_id = ${organizationId}`,
+                sql`SELECT COUNT(*) FROM jogos WHERE organization_id = ${organizationId} AND estado = 'agendado'`,
+                sql`SELECT COUNT(*) FROM mensalidades WHERE organization_id = ${organizationId} AND estado = 'em_atraso'`,
+                sql<{ nome: string }[]>`
     SELECT nome FROM epocas
     WHERE organization_id = ${organizationId} AND ativa = true
     LIMIT 1
 `,
-        ]);
+            ]);
 
         return {
-            totalEquipas:          Number(equipas[0].count),
-            totalAtletas:          Number(atletas[0].count),
-            jogosAgendados:        Number(jogos[0].count),
-            mensalidadesEmAtraso:  Number(mensalidades[0].count),
-            epocaNome:             epoca[0]?.nome ?? null,
+            totalEquipas: Number(equipas[0].count),
+            totalAtletas: Number(atletas[0].count),
+            jogosAgendados: Number(jogos[0].count),
+            mensalidadesEmAtraso: Number(mensalidades[0].count),
+            epocaNome: epoca[0]?.nome ?? null,
         };
     } catch (error) {
         console.error("Database Error:", error);
@@ -1138,14 +1140,16 @@ export async function fetchUltimosJogos() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id:             string;
-            data:           string;
-            adversario:     string;
-            resultado_nos:  number | null;
-            resultado_adv:  number | null;
-            casa_fora:      string;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                data: string;
+                adversario: string;
+                resultado_nos: number | null;
+                resultado_adv: number | null;
+                casa_fora: string;
+            }[]
+        >`
             SELECT id, data, adversario, resultado_nos, resultado_adv, casa_fora
             FROM jogos
             WHERE organization_id = ${organizationId}
@@ -1165,13 +1169,15 @@ export async function fetchProximosJogos() {
     try {
         const organizationId = await getOrganizationId();
 
-        const data = await sql<{
-            id:         string;
-            data:       string;
-            adversario: string;
-            casa_fora:  string;
-            local:      string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                data: string;
+                adversario: string;
+                casa_fora: string;
+                local: string | null;
+            }[]
+        >`
             SELECT id, data, adversario, casa_fora, local
             FROM jogos
             WHERE organization_id = ${organizationId}
@@ -1187,7 +1193,6 @@ export async function fetchProximosJogos() {
         throw new Error("Failed to fetch próximos jogos.");
     }
 }
-
 
 // ---------- STAFF ----------
 
@@ -1462,21 +1467,23 @@ export async function fetchDocumentos() {
 export async function fetchOrganizacao() {
     try {
         const organizationId = await getOrganizationId();
-        const data = await sql<{
-            id:            string;
-            name:          string;
-            slug:          string;
-            desporto:      string | null;
-            cidade:        string | null;
-            pais:          string | null;
-            website:       string | null;
-            logo_url:      string | null;
-            plano:         string | null;
-            nif:           string | null;
-            telefone:      string | null;
-            morada:        string | null;
-            codigo_postal: string | null;
-        }[]>`
+        const data = await sql<
+            {
+                id: string;
+                name: string;
+                slug: string;
+                desporto: string | null;
+                cidade: string | null;
+                pais: string | null;
+                website: string | null;
+                logo_url: string | null;
+                plano: string | null;
+                nif: string | null;
+                telefone: string | null;
+                morada: string | null;
+                codigo_postal: string | null;
+            }[]
+        >`
             SELECT id, name, slug, desporto, cidade, pais, website, logo_url, plano,
                    nif, telefone, morada, codigo_postal
             FROM organizations
@@ -1490,10 +1497,29 @@ export async function fetchOrganizacao() {
     }
 }
 
-
 export async function fetchNotificacoes() {
     try {
         const organizationId = await getOrganizationId();
+        const { userId } = await auth();
+
+        if (!userId) {
+            return [];
+        }
+
+        await sql`
+            ALTER TABLE notificacoes
+            ADD COLUMN IF NOT EXISTS recipient_user_id UUID NULL
+        `;
+
+        const currentDbUser = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+        `;
+
+        const dbUserId = currentDbUser[0]?.id;
+
+        if (!dbUserId) {
+            return [];
+        }
 
         const data = await sql<
             {
@@ -1508,6 +1534,7 @@ export async function fetchNotificacoes() {
             SELECT id, titulo, descricao, tipo, lida, created_at
             FROM notificacoes
             WHERE organization_id = ${organizationId}
+              AND (recipient_user_id IS NULL OR recipient_user_id = ${dbUserId})
             ORDER BY created_at DESC
             LIMIT 50
         `;
@@ -1518,4 +1545,3 @@ export async function fetchNotificacoes() {
         throw new Error("Failed to fetch notificacoes.");
     }
 }
-

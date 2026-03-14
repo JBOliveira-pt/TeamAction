@@ -11,6 +11,7 @@ import {
     Users,
     Volleyball,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
@@ -249,11 +250,9 @@ export default function CustomSignUpForm() {
             });
 
             if (!profileResponse.ok) {
-                const data = await profileResponse
-                    .json()
-                    .catch(() => ({
-                        error: "Erro ao guardar dados do perfil.",
-                    }));
+                const data = await profileResponse.json().catch(() => ({
+                    error: "Erro ao guardar dados do perfil.",
+                }));
                 throw new Error(
                     data?.error || "Erro ao guardar dados do perfil.",
                 );
@@ -275,16 +274,22 @@ export default function CustomSignUpForm() {
 
     return (
         <div className="w-full max-w-2xl">
-            <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 md:p-8 space-y-8">
-                <div className="flex items-center gap-3 pb-6 border-b border-gray-200 dark:border-gray-800">
-                    <div className="p-2 bg-emerald-500/10 rounded-lg">
-                        <User className="h-5 w-5 text-emerald-500" />
+            <div className="space-y-8 rounded-3xl border border-blue-200/20 bg-slate-950/60 p-6 backdrop-blur-xl backdrop-saturate-150 md:p-8">
+                <div className="flex items-center gap-3 border-b border-blue-200/20 pb-6">
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-blue-200/30 bg-slate-950/70 shadow-[0_10px_30px_rgba(15,23,42,0.65)]">
+                        <Image
+                            src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
+                            width={48}
+                            height={48}
+                            alt="TeamAction"
+                            className="h-full w-full object-cover"
+                        />
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h3 className="text-lg font-semibold text-white">
                             Criar Conta TeamAction
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        <p className="mt-0.5 text-sm text-slate-300">
                             Escolha o tipo de conta e complete o registo.
                         </p>
                     </div>
@@ -401,7 +406,7 @@ export default function CustomSignUpForm() {
                             <button
                                 type="submit"
                                 disabled={!isLoaded || isSubmitting}
-                                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
                             >
                                 {isSubmitting
                                     ? "A criar conta..."
@@ -546,7 +551,7 @@ export default function CustomSignUpForm() {
                                     isSubmitting ||
                                     Boolean(successMessage)
                                 }
-                                className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
                             >
                                 {isSubmitting
                                     ? "A verificar..."

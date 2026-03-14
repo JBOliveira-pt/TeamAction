@@ -38,7 +38,13 @@ export default async function CompleteAccountTypePage() {
     }
 
     return (
-        <main className="min-h-screen bg-gray-950 p-6 flex items-center justify-center">
+        <main
+            className="min-h-screen p-6 flex items-center justify-center bg-cover bg-center bg-no-repeat"
+            style={{
+                backgroundImage:
+                    "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+            }}
+        >
             <CompleteAccountTypeForm />
         </main>
     );

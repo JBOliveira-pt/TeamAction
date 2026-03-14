@@ -344,17 +344,6 @@ export default function LandingPage() {
                             </div>
                         ))}
                     </div>
-                    <div className="mt-12 text-center">
-                        <p className="text-slate-400 mb-6">
-                            Quer contribuir com o código?
-                        </p>
-                        <a
-                            href="https://github.com/JBOliveira-pt/TeamAction"
-                            className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 font-bold"
-                        >
-                            Fork no GitHub <ChevronRight className="h-4 w-4" />
-                        </a>
-                    </div>
                 </div>
             </section>
 

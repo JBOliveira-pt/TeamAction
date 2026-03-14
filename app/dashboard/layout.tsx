@@ -1,4 +1,6 @@
 import SideNav from "@/app/ui/dashboard/sidenav";
+import { LoginAvisoPopup } from "@/app/components/login-aviso-popup";
+import { UserInteractionTracker } from "@/app/components/user-interaction-tracker";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -57,6 +59,8 @@ export default async function Layout({
         <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
             <SideNav />
             <main className="flex-1 overflow-y-auto lg:ml-64 mt-20">
+                <UserInteractionTracker />
+                <LoginAvisoPopup />
                 {children}
             </main>
         </div>
