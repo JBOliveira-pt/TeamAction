@@ -1,22 +1,61 @@
 import {
+    fetchAdminActionLogsMonthlySeries,
+    fetchAdminActionTypeMonthlySeries,
     fetchAdminLogsMonthlySeries,
     fetchAdminOverviewStats,
     fetchAdminUsersMonthlySeries,
+    fetchAdminViewLogsMonthlySeries,
 } from "@/app/lib/admin-data";
 import { MonthlyCountChart } from "@/app/ui/admin/monthly-count-chart";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
-    const [stats, usersMonthlySeries, logsMonthlySeries] = await Promise.all([
+    const [
+        stats,
+        usersMonthlySeries,
+        actionLogsMonthlySeries,
+        viewLogsMonthlySeries,
+        actionTypeSeries,
+        logsMonthlySeries,
+    ] = await Promise.all([
         fetchAdminOverviewStats(),
         fetchAdminUsersMonthlySeries(),
+        fetchAdminActionLogsMonthlySeries(),
+        fetchAdminViewLogsMonthlySeries(),
+        fetchAdminActionTypeMonthlySeries(),
         fetchAdminLogsMonthlySeries(),
     ]);
 
+    const actionTypeTabs = [
+        {
+            id: "all-actions",
+            label: `Todas (${stats.actionLogs})`,
+            data: actionLogsMonthlySeries,
+        },
+        ...actionTypeSeries.map((entry) => {
+            const total = entry.data.reduce(
+                (sum, point) => sum + point.count,
+                0,
+            );
+            return {
+                id: entry.interactionType,
+                label: `${entry.interactionType} (${total})`,
+                data: entry.data,
+            };
+        }),
+    ];
+
+    const logsTotal = logsMonthlySeries.reduce(
+        (sum, point) => sum + point.count,
+        0,
+    );
+
     const cards = [
         { label: "Total de Users", value: stats.users },
-        { label: "Logs Registados", value: stats.logs },
+        { label: "Logs de Ações Registados", value: stats.actionLogs },
+        { label: "Logs de Views Registados", value: stats.viewLogs },
+        { label: "Logs Registados (Total)", value: logsTotal },
         { label: "Avisos Não Lidos", value: stats.avisosNaoLidos },
     ];
 
@@ -32,7 +71,7 @@ export default async function AdminOverviewPage() {
                 </p>
             </header>
 
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                 {cards.map((card) => (
                     <article
                         key={card.label}
@@ -51,16 +90,24 @@ export default async function AdminOverviewPage() {
             <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <MonthlyCountChart
                     title="Novos Users Inscritos"
-                    subtitle="Inscrições mensais na plataforma (todos os perfis)."
+                    subtitle="Inscrições mensais na plataforma (todos os perfis)"
                     data={usersMonthlySeries}
                     accent="blue"
                 />
 
                 <MonthlyCountChart
                     title="Logs de Ações Registados"
-                    subtitle="Ações de todos os users, incluindo o Administrador."
-                    data={logsMonthlySeries}
+                    subtitle="Ações de todos os users, incluindo o Administrador, com aba por tipo de ação"
+                    data={actionLogsMonthlySeries}
                     accent="emerald"
+                    tabs={actionTypeTabs}
+                />
+
+                <MonthlyCountChart
+                    title="Logs de Views Registados"
+                    subtitle="Visualizações registadas (ex: page_view)"
+                    data={viewLogsMonthlySeries}
+                    accent="blue"
                 />
             </section>
         </div>

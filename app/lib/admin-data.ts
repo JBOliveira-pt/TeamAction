@@ -40,6 +40,13 @@ export type MonthlyCountPoint = {
     count: number;
 };
 
+export type ActionTypeMonthlySeries = {
+    interactionType: string;
+    data: MonthlyCountPoint[];
+};
+
+const VIEW_INTERACTION_TYPE = "page_view";
+
 function buildLast12MonthsSeries(
     rows: Array<{ month_start: string; count: number }>,
 ): MonthlyCountPoint[] {
@@ -235,21 +242,26 @@ export async function fetchUserActionLogs(filters: UserActionLogFilters) {
 export async function fetchAdminOverviewStats() {
     await ensureAdminTables();
 
-    const [usersCount, logsCount, unreadAvisos] = await Promise.all([
-        sql<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM users`,
-        sql<
-            { count: number }[]
-        >`SELECT COUNT(*)::int AS count FROM user_action_logs`,
-        sql<{ count: number }[]>`
+    const [usersCount, actionLogsCount, viewLogsCount, unreadAvisos] =
+        await Promise.all([
+            sql<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM users`,
+            sql<
+                { count: number }[]
+            >`SELECT COUNT(*)::int AS count FROM user_action_logs WHERE LOWER(interaction_type) <> ${VIEW_INTERACTION_TYPE}`,
+            sql<
+                { count: number }[]
+            >`SELECT COUNT(*)::int AS count FROM user_action_logs WHERE LOWER(interaction_type) = ${VIEW_INTERACTION_TYPE}`,
+            sql<{ count: number }[]>`
             SELECT COUNT(*)::int AS count
             FROM notificacoes
             WHERE tipo = 'Aviso' AND lida = false
         `,
-    ]);
+        ]);
 
     return {
         users: usersCount[0]?.count ?? 0,
-        logs: logsCount[0]?.count ?? 0,
+        actionLogs: actionLogsCount[0]?.count ?? 0,
+        viewLogs: viewLogsCount[0]?.count ?? 0,
         avisosNaoLidos: unreadAvisos[0]?.count ?? 0,
     };
 }
@@ -292,6 +304,85 @@ export async function fetchAdminLogsMonthlySeries() {
     `;
 
     return buildLast12MonthsSeries(rows);
+}
+
+export async function fetchAdminActionLogsMonthlySeries() {
+    await ensureAdminTables();
+
+    const rows = await sql<{ month_start: string; count: number }[]>`
+        SELECT
+            DATE_TRUNC('month', created_at)::date::text AS month_start,
+            COUNT(*)::int AS count
+        FROM user_action_logs
+        WHERE
+            created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+            AND LOWER(interaction_type) <> ${VIEW_INTERACTION_TYPE}
+        GROUP BY 1
+        ORDER BY 1 ASC
+    `;
+
+    return buildLast12MonthsSeries(rows);
+}
+
+export async function fetchAdminViewLogsMonthlySeries() {
+    await ensureAdminTables();
+
+    const rows = await sql<{ month_start: string; count: number }[]>`
+        SELECT
+            DATE_TRUNC('month', created_at)::date::text AS month_start,
+            COUNT(*)::int AS count
+        FROM user_action_logs
+        WHERE
+            created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+            AND LOWER(interaction_type) = ${VIEW_INTERACTION_TYPE}
+        GROUP BY 1
+        ORDER BY 1 ASC
+    `;
+
+    return buildLast12MonthsSeries(rows);
+}
+
+export async function fetchAdminActionTypeMonthlySeries(): Promise<
+    ActionTypeMonthlySeries[]
+> {
+    await ensureAdminTables();
+
+    const rows = await sql<
+        { interaction_type: string; month_start: string; count: number }[]
+    >`
+        SELECT
+            interaction_type,
+            DATE_TRUNC('month', created_at)::date::text AS month_start,
+            COUNT(*)::int AS count
+        FROM user_action_logs
+        WHERE
+            created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+            AND LOWER(interaction_type) <> ${VIEW_INTERACTION_TYPE}
+        GROUP BY 1, 2
+        ORDER BY 1 ASC, 2 ASC
+    `;
+
+    const grouped = new Map<
+        string,
+        Array<{ month_start: string; count: number }>
+    >();
+
+    for (const row of rows) {
+        const key = row.interaction_type;
+        const current = grouped.get(key) ?? [];
+        current.push({ month_start: row.month_start, count: row.count });
+        grouped.set(key, current);
+    }
+
+    const series: ActionTypeMonthlySeries[] = [];
+    for (const [interactionType, dataRows] of grouped.entries()) {
+        series.push({
+            interactionType,
+            data: buildLast12MonthsSeries(dataRows),
+        });
+    }
+
+    return series;
 }
 
 export async function fetchUserByClerkId(clerkUserId: string) {

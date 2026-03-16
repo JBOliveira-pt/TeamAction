@@ -10,6 +10,12 @@ type AdminUserOption = {
     email: string;
 };
 
+type AvisoPreview = {
+    titulo: string;
+    descricao: string;
+    destinatario: string;
+};
+
 function SubmitAvisoButton() {
     const { pending } = useFormStatus();
 
@@ -32,6 +38,8 @@ export function AdminAvisoForm({
     action: (formData: FormData) => Promise<void>;
 }) {
     const [showModal, setShowModal] = useState(false);
+    const [scope, setScope] = useState("all");
+    const [preview, setPreview] = useState<AvisoPreview | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
     const allowSubmitRef = useRef(false);
 
@@ -42,6 +50,22 @@ export function AdminAvisoForm({
         }
 
         event.preventDefault();
+
+        const formData = new FormData(event.currentTarget);
+        const titulo = String(formData.get("titulo") || "").trim();
+        const descricao = String(formData.get("descricao") || "").trim();
+        const selectedScope = String(formData.get("scope") || "all");
+        const userId = String(formData.get("userId") || "").trim();
+
+        const selectedUser = users.find((user) => user.id === userId);
+        const destinatario =
+            selectedScope === "user"
+                ? selectedUser
+                    ? `${selectedUser.name} (${selectedUser.email})`
+                    : "Utilizador específico (nenhum selecionado)"
+                : "Todos os utilizadores";
+
+        setPreview({ titulo, descricao, destinatario });
         setShowModal(true);
     };
 
@@ -72,7 +96,7 @@ export function AdminAvisoForm({
 
                 <div>
                     <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                        Descricao
+                        Descrição
                     </label>
                     <textarea
                         name="descricao"
@@ -84,33 +108,37 @@ export function AdminAvisoForm({
 
                 <div>
                     <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                        Destinatario
+                        Destinatário
                     </label>
                     <select
                         name="scope"
+                        value={scope}
+                        onChange={(event) => setScope(event.target.value)}
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
                         <option value="all">Todos os utilizadores</option>
-                        <option value="user">Utilizador especifico</option>
+                        <option value="user">Utilizador específico</option>
                     </select>
                 </div>
 
-                <div>
-                    <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                        Utilizador (opcional)
-                    </label>
-                    <select
-                        name="userId"
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                    >
-                        <option value="">-- Nenhum --</option>
-                        {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                                {user.name} ({user.email})
-                            </option>
-                        ))}
-                    </select>
-                </div>
+                {scope === "user" && (
+                    <div>
+                        <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
+                            Utilizador (opcional)
+                        </label>
+                        <select
+                            name="userId"
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                        >
+                            <option value="">-- Nenhum --</option>
+                            {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                    {user.name} ({user.email})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 <SubmitAvisoButton />
             </form>
@@ -133,9 +161,35 @@ export function AdminAvisoForm({
                             </div>
                         </div>
 
-                        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300">
+                        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300">
                             O envio sera executado imediatamente para o destino
                             selecionado.
+                        </div>
+
+                        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4 text-sm dark:border-gray-800 dark:bg-gray-950">
+                            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                Preview do aviso
+                            </p>
+                            <div className="mt-3 space-y-2 text-gray-800 dark:text-gray-200">
+                                <p>
+                                    <span className="font-semibold">
+                                        Título:
+                                    </span>{" "}
+                                    {preview?.titulo || "-"}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Destinatário:
+                                    </span>{" "}
+                                    {preview?.destinatario || "-"}
+                                </p>
+                                <p className="whitespace-pre-wrap break-words">
+                                    <span className="font-semibold">
+                                        Descrição:
+                                    </span>{" "}
+                                    {preview?.descricao || "-"}
+                                </p>
+                            </div>
                         </div>
 
                         <div className="flex gap-3">

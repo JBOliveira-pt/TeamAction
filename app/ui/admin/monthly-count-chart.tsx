@@ -13,6 +13,11 @@ type MonthlyCountChartProps = {
     subtitle: string;
     data: MonthlyCountPoint[];
     accent: "blue" | "emerald";
+    tabs?: Array<{
+        id: string;
+        label: string;
+        data: MonthlyCountPoint[];
+    }>;
 };
 
 const accentClasses = {
@@ -53,13 +58,40 @@ export function MonthlyCountChart({
     subtitle,
     data,
     accent,
+    tabs,
 }: MonthlyCountChartProps) {
     const [selectedMonths, setSelectedMonths] = useState<3 | 5 | 12>(12);
-    const [series, setSeries] = useState<MonthlyCountPoint[]>(data.slice(-12));
+    const [selectedTabId, setSelectedTabId] = useState<string | null>(
+        tabs?.[0]?.id ?? null,
+    );
+
+    const activeData = useMemo(() => {
+        if (!tabs || tabs.length === 0) {
+            return data;
+        }
+
+        const selected = tabs.find((tab) => tab.id === selectedTabId);
+        return selected?.data ?? tabs[0].data;
+    }, [data, selectedTabId, tabs]);
+
+    const [series, setSeries] = useState<MonthlyCountPoint[]>(
+        activeData.slice(-12),
+    );
 
     useEffect(() => {
-        setSeries(data.slice(-selectedMonths));
-    }, [data, selectedMonths]);
+        if (!tabs || tabs.length === 0) {
+            return;
+        }
+
+        const exists = tabs.some((tab) => tab.id === selectedTabId);
+        if (!exists) {
+            setSelectedTabId(tabs[0].id);
+        }
+    }, [selectedTabId, tabs]);
+
+    useEffect(() => {
+        setSeries(activeData.slice(-selectedMonths));
+    }, [activeData, selectedMonths]);
 
     const total = useMemo(
         () => series.reduce((sum, item) => sum + item.count, 0),
@@ -91,7 +123,7 @@ export function MonthlyCountChart({
     const { topLabel, yAxisLabels } = generateYAxis(values);
     const palette = accentClasses[accent];
 
-    if (data.length === 0) {
+    if (activeData.length === 0) {
         return (
             <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -215,6 +247,25 @@ export function MonthlyCountChart({
                     {growth.toFixed(1)}% vs mes anterior
                 </div>
             </div>
+
+            {tabs && tabs.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => setSelectedTabId(tab.id)}
+                            className={`min-w-[150px] flex-1 rounded-full border px-3 py-1 text-center text-xs transition-colors ${
+                                selectedTabId === tab.id
+                                    ? `${palette.activeText} ${palette.activeBorder}`
+                                    : "border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
