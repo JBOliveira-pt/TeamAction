@@ -1,39 +1,7 @@
 "use client";
-import React from "react";
-
-const sessoesData = [
-    {
-        date: "3 Mar",
-        type: "Tático",
-        duration: "90min",
-        attendance: "17/18",
-        badge: "badge-blue",
-    },
-    {
-        date: "1 Mar",
-        type: "Misto",
-        duration: "75min",
-        attendance: "18/18",
-        badge: "badge-purple",
-    },
-    {
-        date: "27 Fev",
-        type: "Físico",
-        duration: "60min",
-        attendance: "15/18",
-        badge: "badge-orange",
-    },
-    {
-        date: "25 Fev",
-        type: "Tático",
-        duration: "90min",
-        attendance: "18/18",
-        badge: "badge-blue",
-    },
-];
+import React, { useState } from "react";
 
 export default function Sessoes() {
-    // Lógica e dados fora do JSX
     const sessoesStats = {
         total: 47,
         hours: 63,
@@ -45,10 +13,16 @@ export default function Sessoes() {
             duration: "90min",
         },
     };
-
+    interface Sessao {
+        date: string;
+        type: string;
+        duration: string;
+        exercises: string;
+        attendance: string;
+        notes: string;
+    }
     const sessoesTypes = ["Todas", "Tático", "Físico", "Técnico", "Misto"];
-
-    const sessoes = [
+    const [sessoes, setSessoes] = useState<Sessao[]>([
         {
             date: "3 Mar",
             type: "Tático",
@@ -105,322 +79,477 @@ export default function Sessoes() {
             attendance: "18/18",
             notes: "Resistência aeróbia",
         },
-    ];
-
-    // Filtros
-    const [selectedType, setSelectedType] = React.useState("Todas");
+    ]);
+    const [selectedType, setSelectedType] = useState("Todas");
+    const [showModal, setShowModal] = useState(false);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [sessaoView, setSessaoView] = useState<Sessao | null>(null);
+    const [editSessao, setEditSessao] = useState<Sessao | null>(null);
+    const [newSessao, setNewSessao] = useState<Sessao>({
+        date: "",
+        type: "Tático",
+        duration: "",
+        exercises: "",
+        attendance: "",
+        notes: "",
+    });
+    // Função para abrir modal de detalhes
+    const handleViewSession = (session: Sessao) => {
+        setSessaoView(session);
+        setEditSessao({ ...session });
+        setShowViewModal(true);
+    };
     const filteredSessoes =
         selectedType === "Todas"
             ? sessoes
             : sessoes.filter((s) => s.type === selectedType);
 
     return (
-        <div
-            style={{
-                background: "#f7f8fa",
-                minHeight: "100vh",
-                color: "#1e293b",
-                padding: "24px",
-            }}
-        >
-            <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
-                <div
-                    style={{
-                        background: "#fff",
-                        borderRadius: "8px",
-                        padding: "16px 24px",
-                        flex: 1,
-                        border: "1px solid #e5e7eb",
-                    }}
-                >
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6">
+            {/* Título principal */}
+            <h1 className="text-3xl font-bold text-violet-700 dark:text-violet-300 mb-8 flex items-center gap-3">
+                <span className="text-2xl">🔔</span>
+                Sessões de Treino
+            </h1>
+            {/* Modal Ver Sessão */}
+            {showViewModal && editSessao && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
+                        <button
+                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
+                            onClick={() => setShowViewModal(false)}
+                            aria-label="Fechar"
+                        >
+                            ×
+                        </button>
+                        <div className="flex flex-col items-center mb-6">
+                            <span className="text-cyan-600 text-4xl mb-2">
+                                👁️
+                            </span>
+                            <h3 className="text-2xl font-extrabold text-cyan-700 dark:text-cyan-300">
+                                Editar Sessão
+                            </h3>
+                        </div>
+                        <form
+                            className="flex flex-col gap-4 text-base"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!sessaoView) return;
+                                setSessoes((prev) =>
+                                    prev.map((s) =>
+                                        s === sessaoView ? editSessao : s,
+                                    ),
+                                );
+                                setSessaoView(editSessao);
+                                setShowViewModal(false);
+                            }}
+                        >
+                            <div>
+                                <label className="font-semibold text-gray-700 dark:text-gray-200">
+                                    Data:
+                                </label>
+                                <input
+                                    type="text"
+                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-blue-600 font-bold"
+                                    value={editSessao.date}
+                                    onChange={(e) =>
+                                        setEditSessao((ev) =>
+                                            ev
+                                                ? {
+                                                      ...ev,
+                                                      date: e.target.value,
+                                                  }
+                                                : ev,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <label className="font-semibold text-gray-700 dark:text-gray-200">
+                                    Tipo:
+                                </label>
+                                <select
+                                    className={`ml-2 px-3 py-1 rounded-lg font-bold text-xs text-white ${editSessao.type === "Tático" ? "bg-cyan-600" : editSessao.type === "Físico" ? "bg-yellow-400" : editSessao.type === "Técnico" ? "bg-blue-600" : "bg-violet-600"}`}
+                                    value={editSessao.type}
+                                    onChange={(e) =>
+                                        setEditSessao((ev) =>
+                                            ev
+                                                ? {
+                                                      ...ev,
+                                                      type: e.target.value,
+                                                  }
+                                                : ev,
+                                        )
+                                    }
+                                >
+                                    <option value="Tático">Tático</option>
+                                    <option value="Físico">Físico</option>
+                                    <option value="Técnico">Técnico</option>
+                                    <option value="Misto">Misto</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="font-semibold text-gray-700 dark:text-gray-200">
+                                    Duração:
+                                </label>
+                                <input
+                                    type="text"
+                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
+                                    value={editSessao.duration}
+                                    onChange={(e) =>
+                                        setEditSessao((ev) =>
+                                            ev
+                                                ? {
+                                                      ...ev,
+                                                      duration: e.target.value,
+                                                  }
+                                                : ev,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <label className="font-semibold text-gray-700 dark:text-gray-200">
+                                    Exercícios:
+                                </label>
+                                <input
+                                    type="text"
+                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
+                                    value={editSessao.exercises}
+                                    onChange={(e) =>
+                                        setEditSessao((ev) =>
+                                            ev
+                                                ? {
+                                                      ...ev,
+                                                      exercises: e.target.value,
+                                                  }
+                                                : ev,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <label className="font-semibold text-gray-700 dark:text-gray-200">
+                                    Assiduidade:
+                                </label>
+                                <input
+                                    type="text"
+                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-cyan-600 font-bold"
+                                    value={editSessao.attendance}
+                                    onChange={(e) =>
+                                        setEditSessao((ev) =>
+                                            ev
+                                                ? {
+                                                      ...ev,
+                                                      attendance:
+                                                          e.target.value,
+                                                  }
+                                                : ev,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div>
+                                <label className="font-semibold text-gray-700 dark:text-gray-200">
+                                    Observações:
+                                </label>
+                                <input
+                                    type="text"
+                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-500"
+                                    value={editSessao.notes}
+                                    onChange={(e) =>
+                                        setEditSessao((ev) =>
+                                            ev
+                                                ? {
+                                                      ...ev,
+                                                      notes: e.target.value,
+                                                  }
+                                                : ev,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition-all"
+                                >
+                                    Guardar
+                                </button>
+                                <button
+                                    type="button"
+                                    className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-lg transition-all"
+                                    onClick={() => setShowViewModal(false)}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* Modal Nova Sessão */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
+                        <button
+                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
+                            onClick={() => setShowModal(false)}
+                            aria-label="Fechar"
+                        >
+                            ×
+                        </button>
+                        <div className="flex flex-col items-center mb-6">
+                            <span className="text-violet-600 text-4xl mb-2">
+                                📝
+                            </span>
+                            <h3 className="text-2xl font-extrabold text-violet-700 dark:text-violet-300">
+                                Nova Sessão
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Registe uma nova sessão de treino
+                            </p>
+                        </div>
+                        <form className="flex flex-col gap-6">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Data
+                                </label>
+                                <input
+                                    type="date"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-400 transition-all"
+                                    value={newSessao.date}
+                                    onChange={(e) =>
+                                        setNewSessao((ev) => ({
+                                            ...ev,
+                                            date: e.target.value,
+                                        }))
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Tipo
+                                </label>
+                                <select
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-400 transition-all"
+                                    value={newSessao.type}
+                                    onChange={(e) =>
+                                        setNewSessao((ev) => ({
+                                            ...ev,
+                                            type: e.target.value,
+                                        }))
+                                    }
+                                >
+                                    <option value="Tático">Tático</option>
+                                    <option value="Físico">Físico</option>
+                                    <option value="Técnico">Técnico</option>
+                                    <option value="Misto">Misto</option>
+                                </select>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Duração
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-400 transition-all"
+                                    value={newSessao.duration}
+                                    onChange={(e) =>
+                                        setNewSessao((ev) => ({
+                                            ...ev,
+                                            duration: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Ex: 90min"
+                                    required
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Exercícios
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-400 transition-all"
+                                    value={newSessao.exercises}
+                                    onChange={(e) =>
+                                        setNewSessao((ev) => ({
+                                            ...ev,
+                                            exercises: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Ex: 8 exercícios"
+                                    required
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Assiduidade
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-400 transition-all"
+                                    value={newSessao.attendance}
+                                    onChange={(e) =>
+                                        setNewSessao((ev) => ({
+                                            ...ev,
+                                            attendance: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Ex: 17/18"
+                                    required
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Observações
+                                </label>
+                                <input
+                                    type="text"
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-400 transition-all"
+                                    value={newSessao.notes}
+                                    onChange={(e) =>
+                                        setNewSessao((ev) => ({
+                                            ...ev,
+                                            notes: e.target.value,
+                                        }))
+                                    }
+                                    placeholder="Ex: Foco transição defensiva"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                className="w-full bg-gradient-to-r from-violet-600 to-violet-400 text-white rounded-xl py-3 font-bold text-lg shadow hover:from-violet-700 hover:to-violet-500 transition-all"
+                                onClick={() => setShowModal(false)}
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <span>➕</span>
+                                    Criar Sessão
+                                </span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* Estatísticas e botão Nova Sessão */}
+            <div className="flex flex-col md:flex-row gap-4 mb-8 items-stretch">
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+                    <span className="text-xs text-gray-500 font-semibold">
                         TOTAL SESSÕES
-                    </div>
-                    <div
-                        style={{
-                            fontSize: "28px",
-                            fontWeight: "bold",
-                            color: "#2563eb",
-                        }}
-                    >
+                    </span>
+                    <span className="text-3xl font-bold text-blue-600">
                         {sessoesStats.total}
-                    </div>
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
-                        Esta época
-                    </div>
+                    </span>
+                    <span className="text-xs text-gray-400">Esta época</span>
                 </div>
-                <div
-                    style={{
-                        background: "#fff",
-                        borderRadius: "8px",
-                        padding: "16px 24px",
-                        flex: 1,
-                        border: "1px solid #e5e7eb",
-                    }}
-                >
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+                    <span className="text-xs text-gray-500 font-semibold">
                         HORAS DE TREINO
-                    </div>
-                    <div
-                        style={{
-                            fontSize: "28px",
-                            fontWeight: "bold",
-                            color: "#10b981",
-                        }}
-                    >
+                    </span>
+                    <span className="text-3xl font-bold text-emerald-500">
                         {sessoesStats.hours}h
-                    </div>
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                    </span>
+                    <span className="text-xs text-gray-400">
                         Total acumulado
-                    </div>
+                    </span>
                 </div>
-                <div
-                    style={{
-                        background: "#fff",
-                        borderRadius: "8px",
-                        padding: "16px 24px",
-                        flex: 1,
-                        border: "1px solid #e5e7eb",
-                    }}
-                >
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+                    <span className="text-xs text-gray-500 font-semibold">
                         MÉDIA ASSIDUIDADE
-                    </div>
-                    <div
-                        style={{
-                            fontSize: "28px",
-                            fontWeight: "bold",
-                            color: "#0891b2",
-                        }}
-                    >
+                    </span>
+                    <span className="text-3xl font-bold text-cyan-600">
                         {sessoesStats.attendance}%
-                    </div>
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                    </span>
+                    <span className="text-xs text-gray-400">
                         Todas as sessões
-                    </div>
+                    </span>
                 </div>
-                <div
-                    style={{
-                        background: "#fff",
-                        borderRadius: "8px",
-                        padding: "16px 24px",
-                        flex: 1,
-                        border: "2px solid #fbbf24",
-                    }}
-                >
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-6 border-2 border-yellow-400 flex flex-col justify-between">
+                    <span className="text-xs text-gray-500 font-semibold">
                         PRÓXIMA SESSÃO
-                    </div>
-                    <div
-                        style={{
-                            fontSize: "22px",
-                            fontWeight: "bold",
-                            color: "#fbbf24",
-                        }}
-                    >
+                    </span>
+                    <span className="text-xl font-bold text-yellow-500">
                         {sessoesStats.next.day} · {sessoesStats.next.hour}
-                    </div>
-                    <div style={{ color: "#64748b", fontSize: "13px" }}>
+                    </span>
+                    <span className="text-xs text-gray-400">
                         {sessoesStats.next.type} · {sessoesStats.next.duration}
-                    </div>
+                    </span>
                 </div>
-                <button
-                    style={{
-                        background: "#7c3aed",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: "6px",
-                        padding: "12px 18px",
-                        fontWeight: "bold",
-                        fontSize: "15px",
-                        marginLeft: "16px",
-                        cursor: "pointer",
-                        height: "56px",
-                    }}
-                >
-                    + Nova Sessão
-                </button>
+                <div className="flex items-end">
+                    <button
+                        className="bg-violet-600 hover:bg-violet-700 text-white font-bold px-6 py-3 rounded-xl shadow transition-all text-base flex items-center gap-2"
+                        onClick={() => setShowModal(true)}
+                    >
+                        <span className="text-xl">＋</span> Nova Sessão
+                    </button>
+                </div>
             </div>
-            <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+            {/* Filtros */}
+            <div className="flex flex-wrap gap-2 mb-4">
                 {sessoesTypes.map((type) => (
                     <button
                         key={type}
-                        style={{
-                            background:
-                                selectedType === type ? "#0891b2" : "#fff",
-                            color: selectedType === type ? "#fff" : "#0891b2",
-                            border:
-                                selectedType === type
-                                    ? "1px solid #0891b2"
-                                    : "1px solid #e5e7eb",
-                            borderRadius: "6px",
-                            padding: "6px 16px",
-                            fontWeight: "bold",
-                            fontSize: "14px",
-                            cursor: "pointer",
-                        }}
+                        className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all ${selectedType === type ? "bg-cyan-600 text-white border-cyan-600" : "bg-white dark:bg-gray-800 text-cyan-600 border-gray-200 dark:border-gray-700 hover:bg-cyan-50 dark:hover:bg-cyan-900"}`}
                         onClick={() => setSelectedType(type)}
                     >
                         {type}
                     </button>
                 ))}
             </div>
-            <div
-                style={{
-                    background: "#fff",
-                    borderRadius: "8px",
-                    border: "1px solid #e5e7eb",
-                    overflow: "hidden",
-                }}
-            >
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            {/* Tabela de sessões */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                <table className="min-w-full text-sm">
                     <thead>
-                        <tr style={{ background: "#f3f4f6" }}>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "left",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                        <tr className="bg-gray-100 dark:bg-gray-900">
+                            <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
                                 DATA
                             </th>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "left",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
                                 TIPO
                             </th>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "left",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
                                 DURAÇÃO
                             </th>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "left",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
                                 EXERCÍCIOS
                             </th>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "left",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
                                 ASSIDUIDADE
                             </th>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "left",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
                                 OBSERVAÇÕES
                             </th>
-                            <th
-                                style={{
-                                    padding: "12px",
-                                    textAlign: "center",
-                                    color: "#64748b",
-                                    fontWeight: "bold",
-                                }}
-                            ></th>
+                            <th className="p-3 text-center text-xs font-bold text-gray-500 uppercase"></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredSessoes.map((s, idx) => (
+                        {filteredSessoes.map((s: Sessao, idx: number) => (
                             <tr
                                 key={idx}
-                                style={{ borderBottom: "1px solid #e5e7eb" }}
+                                className="border-b border-gray-100 dark:border-gray-700"
                             >
-                                <td
-                                    style={{
-                                        padding: "12px",
-                                        fontWeight: "bold",
-                                        color: "#2563eb",
-                                    }}
-                                >
+                                <td className="p-3 font-bold text-blue-600 whitespace-nowrap">
                                     {s.date}
                                 </td>
-                                <td style={{ padding: "12px" }}>
+                                <td className="p-3">
                                     <span
-                                        style={{
-                                            background:
-                                                s.type === "Tático"
-                                                    ? "#0891b2"
-                                                    : s.type === "Físico"
-                                                      ? "#fbbf24"
-                                                      : s.type === "Técnico"
-                                                        ? "#2563eb"
-                                                        : "#7c3aed",
-                                            color: "#fff",
-                                            borderRadius: "6px",
-                                            padding: "4px 10px",
-                                            fontWeight: "bold",
-                                            fontSize: "13px",
-                                        }}
+                                        className={`px-3 py-1 rounded-lg font-bold text-xs text-white ${s.type === "Tático" ? "bg-cyan-600" : s.type === "Físico" ? "bg-yellow-400" : s.type === "Técnico" ? "bg-blue-600" : "bg-violet-600"}`}
                                     >
                                         {s.type}
                                     </span>
                                 </td>
-                                <td style={{ padding: "12px" }}>
-                                    {s.duration}
-                                </td>
-                                <td style={{ padding: "12px" }}>
-                                    {s.exercises}
-                                </td>
-                                <td
-                                    style={{
-                                        padding: "12px",
-                                        fontWeight: "bold",
-                                        color: "#0891b2",
-                                    }}
-                                >
+                                <td className="p-3">{s.duration}</td>
+                                <td className="p-3">{s.exercises}</td>
+                                <td className="p-3 font-bold text-cyan-600">
                                     {s.attendance}
                                 </td>
-                                <td
-                                    style={{
-                                        padding: "12px",
-                                        color: "#64748b",
-                                    }}
-                                >
-                                    {s.notes}
-                                </td>
-                                <td
-                                    style={{
-                                        padding: "12px",
-                                        textAlign: "center",
-                                    }}
-                                >
+                                <td className="p-3 text-gray-500">{s.notes}</td>
+                                <td className="p-3 text-center">
                                     <button
-                                        style={{
-                                            background: "#e5e7eb",
-                                            color: "#0891b2",
-                                            border: "none",
-                                            borderRadius: "6px",
-                                            padding: "6px 14px",
-                                            fontWeight: "bold",
-                                            cursor: "pointer",
-                                        }}
+                                        className="bg-gray-100 dark:bg-gray-700 text-cyan-600 font-bold px-4 py-2 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-900 transition-all"
+                                        onClick={() => handleViewSession(s)}
                                     >
                                         Ver
                                     </button>
