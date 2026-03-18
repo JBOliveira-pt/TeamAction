@@ -253,19 +253,19 @@ export default function Nutrition() {
             {/* Modal Novo Plano */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-orange-100 dark:border-orange-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-blue-100 dark:border-blue-900">
                         <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-orange-500 text-2xl font-bold transition-all"
+                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={handleCloseModal}
                             aria-label="Fechar"
                         >
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-orange-500 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 🍽️
                             </span>
-                            <h3 className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 {selectedPlan
                                     ? "Editar Plano"
                                     : "Novo Plano Nutricional"}
@@ -394,7 +394,7 @@ export default function Nutrition() {
                             </label>
                             <button
                                 type="submit"
-                                className="mt-4 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-xl shadow transition-all"
+                                className="mt-4 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-6 rounded-xl shadow transition-all"
                             >
                                 {selectedPlan
                                     ? "Guardar Alterações"
@@ -408,37 +408,37 @@ export default function Nutrition() {
             {/* Modal Visualizar Plano */}
             {selectedPlan && !showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-orange-100 dark:border-orange-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-blue-100 dark:border-blue-900">
                         <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-orange-500 text-2xl font-bold transition-all"
+                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={handleCloseModal}
                             aria-label="Fechar"
                         >
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-orange-500 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 🍽️
                             </span>
-                            <h3 className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 {selectedPlan.name}
                             </h3>
                             <p className="text-gray-600 dark:text-gray-300 mt-2 text-center">
                                 {selectedPlan.description}
                             </p>
                             <div className="flex gap-4 mt-4">
-                                <div className="text-sm text-orange-700 dark:text-orange-300 font-semibold">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 font-semibold">
                                     Proteína: {selectedPlan.macros.proteina}
                                 </div>
-                                <div className="text-sm text-orange-700 dark:text-orange-300 font-semibold">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 font-semibold">
                                     Hidratos: {selectedPlan.macros.hidratos}
                                 </div>
-                                <div className="text-sm text-orange-700 dark:text-orange-300 font-semibold">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 font-semibold">
                                     Gordura: {selectedPlan.macros.gordura}
                                 </div>
                             </div>
                             {selectedPlan.objetivo && (
-                                <div className="mt-3 text-sm text-orange-700 dark:text-orange-300 font-semibold">
+                                <div className="mt-3 text-sm text-gray-700 dark:text-gray-300 font-semibold">
                                     Objetivo:{" "}
                                     <span className="font-normal">
                                         {selectedPlan.objetivo}
@@ -459,7 +459,7 @@ export default function Nutrition() {
                         </div>
                         <div className="flex justify-end gap-2 mt-4">
                             <button
-                                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold"
+                                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold"
                                 onClick={() => handleEditPlan(selectedPlan)}
                             >
                                 Editar
@@ -477,20 +477,17 @@ export default function Nutrition() {
             {/* Cabeçalho premium normalizado */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="bg-orange-100 dark:bg-orange-900 rounded-full p-4 shadow text-4xl text-orange-700 dark:text-orange-300 flex items-center justify-center">
-                        🍽️
-                    </div>
                     <div>
-                        <h2 className="text-3xl md:text-4xl font-bold text-orange-700 dark:text-orange-300 mb-1">
-                            Nutrição
+                        <h2 className="text-2xl font-bold text-rose-700 dark:text-rose-400 flex items-center gap-3 mb-1">
+                            <span>🍽️</span> Nutrição
                         </h2>
-                        <p className="text-base md:text-lg text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             Gestão de planos alimentares e registo nutricional.
                         </p>
                     </div>
                 </div>
                 <button
-                    className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-base shadow transition-all flex items-center gap-2"
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-base shadow transition-all flex items-center gap-2"
                     onClick={handleOpenModal}
                 >
                     <span className="text-xl">＋</span> Novo Plano
@@ -499,7 +496,7 @@ export default function Nutrition() {
 
             {/* Histórico de Planos Nutricionais */}
             <div className="mb-10">
-                <h3 className="text-xl font-bold text-orange-700 dark:text-orange-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">📋</span> Histórico de Planos
                 </h3>
                 {plans.length === 0 ? (
@@ -569,7 +566,7 @@ export default function Nutrition() {
             </div>
             {/* Secção de refeições do dia */}
             <div className="mb-10">
-                <h3 className="text-xl font-bold text-orange-700 dark:text-orange-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">🍽️</span> Refeições do Dia
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -759,7 +756,7 @@ export default function Nutrition() {
 
                 {/* Recomendações personalizadas */}
                 <div className="mt-8 mb-10 w-full max-w-3xl mx-auto">
-                    <h3 className="text-xl font-bold text-orange-700 dark:text-orange-300 mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span className="text-2xl">💡</span> Recomendações
                         Personalizadas
                     </h3>
@@ -843,7 +840,7 @@ export default function Nutrition() {
 
                 {/* Alertas e dicas rápidas */}
                 <div className="mb-10 w-full max-w-3xl mx-auto">
-                    <h3 className="text-xl font-bold text-orange-700 dark:text-orange-300 mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                         <span className="text-2xl">⚠️</span> Alertas & Dicas
                         Rápidas
                     </h3>

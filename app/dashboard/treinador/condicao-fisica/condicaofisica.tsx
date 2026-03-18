@@ -17,12 +17,24 @@ export default function PhysicalCondition() {
     const [showModal, setShowModal] = useState(false);
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col p-6">
-            {/* Modal Nova Avaliação */}
-            {/* ...modal igual ao existente... */}
+            {/* Cabeçalho */}
+            <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold text-orange-700 dark:text-orange-400 flex items-center gap-3">
+                        <span>💪</span> Condição Física
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Métricas e avaliações físicas do plantel
+                    </p>
+                </div>
+                <button className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-2">
+                    <span>＋</span> Nova Avaliação
+                </button>
+            </div>
 
             {/* 1. Dashboard de Métricas */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">📊</span> Dashboard de Métricas
                 </h3>
                 {/* Gráficos de evolução e indicadores rápidos (placeholder) */}
@@ -33,7 +45,7 @@ export default function PhysicalCondition() {
                             className="bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded-xl p-6 shadow-md flex flex-col justify-between"
                         >
                             <span
-                                className="text-xs text-gray-500 font-semibold mb-1"
+                                className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-1"
                                 style={{ minWidth: "140px" }}
                             >
                                 {stat.label}
@@ -69,7 +81,7 @@ export default function PhysicalCondition() {
 
             {/* 2. Histórico de Avaliações */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">📅</span> Histórico de Avaliações
                 </h3>
                 {/* Tabela de avaliações (placeholder) */}
@@ -77,12 +89,12 @@ export default function PhysicalCondition() {
                     <table className="min-w-full bg-white dark:bg-gray-800 rounded-xl shadow">
                         <thead>
                             <tr className="text-left">
-                                <th className="p-3">Atleta</th>
-                                <th className="p-3">Data</th>
-                                <th className="p-3">Velocidade</th>
-                                <th className="p-3">VO2max</th>
-                                <th className="p-3">Força</th>
-                                <th className="p-3">Observações</th>
+                                <th className="p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Atleta</th>
+                                <th className="p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Data</th>
+                                <th className="p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Velocidade</th>
+                                <th className="p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">VO2max</th>
+                                <th className="p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Força</th>
+                                <th className="p-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Observações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -109,7 +121,7 @@ export default function PhysicalCondition() {
 
             {/* 3. Perfil Individual */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">👤</span> Perfil Individual do
                     Atleta
                 </h3>
@@ -141,7 +153,7 @@ export default function PhysicalCondition() {
 
             {/* 4. Alertas e Recomendações */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">⚠️</span> Alertas & Recomendações
                 </h3>
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-6 shadow flex flex-col gap-3">
@@ -164,7 +176,7 @@ export default function PhysicalCondition() {
 
             {/* 5. Comparação e Rankings */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">🏆</span> Comparação & Rankings
                 </h3>
                 {/* Placeholder para rankings e comparação */}
@@ -190,7 +202,7 @@ export default function PhysicalCondition() {
 
             {/* 6. Integração com Treinos */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">🔗</span> Integração com Treinos
                 </h3>
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow">
@@ -207,15 +219,15 @@ export default function PhysicalCondition() {
 
             {/* 7. Upload/Download de Relatórios */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">⬆️⬇️</span> Upload/Download de
                     Relatórios
                 </h3>
                 <div className="flex gap-4">
-                    <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-xl shadow transition-all">
+                    <button className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow transition-all">
                         Exportar PDF
                     </button>
-                    <button className="bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 font-bold py-2 px-6 rounded-xl shadow border border-green-300 dark:border-green-700 transition-all">
+                    <button className="px-5 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl shadow border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
                         Importar Resultados
                     </button>
                 </div>
@@ -223,18 +235,18 @@ export default function PhysicalCondition() {
 
             {/* 8. Notas e Observações do Treinador */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">📝</span> Notas do Treinador
                 </h3>
                 <textarea
-                    className="w-full min-h-[80px] border rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    className="w-full min-h-[80px] border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
                     placeholder="Notas rápidas sobre atletas, testes ou recomendações..."
                 ></textarea>
             </section>
 
             {/* 9. Alertas Visuais */}
             <section className="mb-10">
-                <h3 className="text-xl font-bold text-green-700 dark:text-green-300 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                     <span className="text-2xl">🎨</span> Alertas Visuais
                 </h3>
                 <div className="flex gap-4">

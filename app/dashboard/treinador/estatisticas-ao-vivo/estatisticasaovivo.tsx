@@ -32,7 +32,7 @@ export default function LiveStats() {
             {/* Modal Iniciar Live */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-red-100 dark:border-red-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-md relative border border-blue-100 dark:border-blue-900">
                         <button
                             className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={handleCloseModal}
@@ -41,10 +41,10 @@ export default function LiveStats() {
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-red-600 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 📊
                             </span>
-                            <h3 className="text-2xl font-bold text-red-700 dark:text-red-300">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 Iniciar Live
                             </h3>
                         </div>
@@ -78,15 +78,15 @@ export default function LiveStats() {
             {/* Cabeçalho */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl text-red-700 flex items-center gap-3 mb-1">
-                        <span className="text-2xl">📊</span> Live Stats
+                    <h2 className="text-2xl font-bold text-red-700 dark:text-red-400 flex items-center gap-3 mb-1">
+                        <span>📊</span> Live Stats
                     </h2>
-                    <p className="text-base text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Acompanhe estatísticas em tempo real durante os jogos.
                     </p>
                 </div>
                 <button
-                    className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-400 text-white rounded-xl font-bold text-base shadow hover:from-red-700 hover:to-red-500 transition-all flex items-center gap-2"
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-base shadow transition-all flex items-center gap-2"
                     onClick={handleOpenModal}
                 >
                     <span className="text-xl">●</span> Iniciar Live
@@ -99,7 +99,7 @@ export default function LiveStats() {
                 <div className="font-bold text-red-600 text-lg">LIVE</div>
                 <div className="flex-1 flex justify-center gap-8">
                     <div className="text-center">
-                        <div className="text-gray-500 dark:text-gray-400 text-xs font-semibold">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                             Sporting CP
                         </div>
                         <div className="text-2xl font-mono font-bold text-gray-900 dark:text-white">
@@ -107,7 +107,7 @@ export default function LiveStats() {
                         </div>
                     </div>
                     <div className="text-center">
-                        <div className="text-gray-500 dark:text-gray-400 text-xs font-semibold">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                             Tempo
                         </div>
                         <div className="text-red-600 text-xl font-mono">
@@ -115,7 +115,7 @@ export default function LiveStats() {
                         </div>
                     </div>
                     <div className="text-center">
-                        <div className="text-gray-500 dark:text-gray-400 text-xs font-semibold">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                             FC Porto
                         </div>
                         <div className="text-2xl font-mono font-bold text-gray-900 dark:text-white">
@@ -128,20 +128,20 @@ export default function LiveStats() {
                 </button>
             </div>
             <div className="mb-8">
-                <div className="text-2xl text-red-700 flex items-center gap-2 mb-4">
-                    <span className="text-xl">🔴</span> Eventos Recentes
+                <div className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                    <span>🔴</span> Eventos Recentes
                 </div>
                 <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow">
                     <table className="min-w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-900">
                             <tr>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Evento
                                 </th>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Atleta
                                 </th>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Tempo
                                 </th>
                             </tr>

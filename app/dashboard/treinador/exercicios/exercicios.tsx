@@ -122,7 +122,7 @@ export default function Exercises() {
             {/* Modal Editar Exercício */}
             {editModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-purple-100 dark:border-purple-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
                         <button
                             className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={() => setEditModal(false)}
@@ -131,10 +131,10 @@ export default function Exercises() {
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-purple-600 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 ✏️
                             </span>
-                            <h3 className="text-2xl font-extrabold text-purple-700 dark:text-purple-300">
+                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
                                 Editar Exercício
                             </h3>
                         </div>
@@ -268,7 +268,7 @@ export default function Exercises() {
                             </div>
                             <button
                                 type="submit"
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
+                                className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
                             >
                                 <span className="flex items-center justify-center gap-2">
                                     <span>💾</span>
@@ -282,7 +282,7 @@ export default function Exercises() {
             {/* Modal Criar Exercício */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-purple-100 dark:border-purple-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
                         <button
                             className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={() => setShowModal(false)}
@@ -291,10 +291,10 @@ export default function Exercises() {
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-purple-600 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 🏋️‍♂️
                             </span>
-                            <h3 className="text-2xl font-extrabold text-purple-700 dark:text-purple-300">
+                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
                                 Criar Exercício
                             </h3>
                         </div>
@@ -428,7 +428,7 @@ export default function Exercises() {
                             </div>
                             <button
                                 type="submit"
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
+                                className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
                             >
                                 <span className="flex items-center justify-center gap-2">
                                     <span>＋</span>
@@ -442,16 +442,15 @@ export default function Exercises() {
             {/* Cabeçalho */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-teal-700 dark:text-teal-400 flex items-center gap-3">
                         <span>🤾‍♂️</span> Exercícios de Andebol
                     </h2>
-                    <p className="text-muted text-base text-gray-500 dark:text-gray-400">
-                        Biblioteca pessoal + partilhada · {exercises.length}{" "}
-                        exercícios
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Biblioteca pessoal + partilhada · {exercises.length} exercícios
                     </p>
                 </div>
                 <button
-                    className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all"
+                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all"
                     onClick={() => setShowModal(true)}
                 >
                     <span className="text-xl">＋</span> Criar Exercício
@@ -464,13 +463,13 @@ export default function Exercises() {
                     placeholder="🔍 Pesquisar exercícios..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full md:w-1/3 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-purple-400"
+                    className="w-full md:w-1/3 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
                 <div className="flex gap-2 mt-2 md:mt-0">
                     {categories.map((cat) => (
                         <button
                             key={cat}
-                            className={`px-3 py-1 rounded-lg font-bold text-sm border transition-all ${selectedCategory === cat ? "bg-purple-600 text-white border-purple-600" : "bg-white dark:bg-gray-800 text-purple-600 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900"}`}
+                            className={`px-3 py-1 rounded-lg font-bold text-sm border transition-all ${selectedCategory === cat ? "bg-teal-600 text-white border-teal-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20"}`}
                             onClick={() => setSelectedCategory(cat)}
                         >
                             {cat}
@@ -501,11 +500,11 @@ export default function Exercises() {
                                 {e.category}
                             </span>
                         </div>
-                        <div className="text-gray-700 dark:text-gray-300 text-sm mb-2">
+                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                             {e.description}
                         </div>
                         <div className="flex items-center gap-4 mt-auto">
-                            <span className="text-gray-500 dark:text-gray-400 text-xs">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                                 ⏱ {e.duration}
                             </span>
                             <span
