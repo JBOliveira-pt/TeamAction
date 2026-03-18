@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { User } from "@/app/lib/definitions";
 import { UpdateUser, DeleteUser } from "@/app/ui/users/buttons";
-import { ShieldCheckIcon, UserIcon } from "@heroicons/react/24/outline";
+import { UserIcon } from "@heroicons/react/24/outline";
 import { isUserAdmin } from "@/app/lib/auth-helpers";
 
 export default async function UsersTable({ users }: { users: User[] }) {
@@ -39,16 +39,8 @@ export default async function UsersTable({ users }: { users: User[] }) {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span
-                                                className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                                                    user.role === "admin"
-                                                        ? "bg-purple-500/10 text-purple-400"
-                                                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                                                }`}
-                                            >
-                                                {user.role === "admin"
-                                                    ? "Admin"
-                                                    : "Utilizador"}
+                                            <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                                                Utilizador
                                             </span>
                                         </div>
                                         {isAdmin && (
@@ -131,24 +123,11 @@ export default async function UsersTable({ users }: { users: User[] }) {
                                                 {user.email}
                                             </td>
                                             <td className="whitespace-nowrap px-3 py-4">
-                                                <span
-                                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
-                                                        user.role === "admin"
-                                                            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                                                            : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
-                                                    }`}
-                                                >
-                                                    {user.role === "admin" ? (
-                                                        <>
-                                                            <ShieldCheckIcon className="w-3.5 h-3.5" />
-                                                            Admin
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <UserIcon className="w-3.5 h-3.5" />
-                                                            Utilizador
-                                                        </>
-                                                    )}
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                                                    <>
+                                                        <UserIcon className="w-3.5 h-3.5" />
+                                                        Utilizador
+                                                    </>
                                                 </span>
                                             </td>
                                             {isAdmin && (

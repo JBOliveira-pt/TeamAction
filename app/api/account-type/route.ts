@@ -1,12 +1,15 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { uploadImageToR2 } from "@/app/lib/r2-storage";
+import { hash } from "bcryptjs";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MIN_SIGNUP_AGE = 5;
+const MAX_SIGNUP_AGE = 120;
 
 function normalizeAccountType(value: unknown): AccountType | null {
     if (typeof value !== "string") return null;
@@ -24,9 +27,27 @@ function normalizeAccountType(value: unknown): AccountType | null {
     return null;
 }
 
+function calculateAge(birthDateIso: string): number | null {
+    const birthDate = new Date(`${birthDateIso}T00:00:00`);
+    if (Number.isNaN(birthDate.getTime())) return null;
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+        age -= 1;
+    }
+
+    return age;
+}
+
 async function ensureUserExistsWithOrganization(
     userId: string,
-    role: "admin" | "user",
+    role: "user",
     currentUser: any,
     uploadedImageUrl?: string | null,
 ) {
@@ -101,6 +122,11 @@ export async function POST(req: Request) {
 
         const formData = await req.formData();
         const accountType = normalizeAccountType(formData.get("accountType"));
+        const firstNameRaw = formData.get("firstName");
+        const lastNameRaw = formData.get("lastName");
+        const emailRaw = formData.get("email");
+        const birthDateRaw = formData.get("birthDate");
+        const passwordRaw = formData.get("password");
 
         if (!accountType) {
             return Response.json(
@@ -109,15 +135,55 @@ export async function POST(req: Request) {
             );
         }
 
-        const role = accountType === "presidente" ? "admin" : "user";
-        const ageRaw = formData.get("idade");
+        if (typeof firstNameRaw !== "string" || !firstNameRaw.trim()) {
+            return Response.json(
+                { error: "Primeiro nome é obrigatório." },
+                { status: 400 },
+            );
+        }
+
+        if (typeof lastNameRaw !== "string" || !lastNameRaw.trim()) {
+            return Response.json(
+                { error: "Último nome é obrigatório." },
+                { status: 400 },
+            );
+        }
+
+        if (typeof birthDateRaw !== "string" || !birthDateRaw.trim()) {
+            return Response.json(
+                { error: "Data de nascimento é obrigatória." },
+                { status: 400 },
+            );
+        }
+
+        const parsedBirthDate = new Date(birthDateRaw);
+        if (Number.isNaN(parsedBirthDate.getTime())) {
+            return Response.json(
+                { error: "Data de nascimento inválida." },
+                { status: 400 },
+            );
+        }
+
+        const age = calculateAge(birthDateRaw);
+        if (age === null || age < MIN_SIGNUP_AGE || age > MAX_SIGNUP_AGE) {
+            return Response.json(
+                {
+                    error: `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
+                },
+                { status: 400 },
+            );
+        }
+
+        if (typeof passwordRaw !== "string" || passwordRaw.trim().length < 8) {
+            return Response.json(
+                { error: "A palavra-passe deve ter no mínimo 8 caracteres." },
+                { status: 400 },
+            );
+        }
+
+        const role: "user" = "user";
         const heightRaw = formData.get("altura_cm");
         const weightRaw = formData.get("peso_kg");
-
-        const idade =
-            typeof ageRaw === "string" && ageRaw.trim().length > 0
-                ? Number(ageRaw)
-                : null;
         const alturaCm =
             typeof heightRaw === "string" && heightRaw.trim().length > 0
                 ? Number(heightRaw)
@@ -129,9 +195,6 @@ export async function POST(req: Request) {
 
         if (accountType === "atleta") {
             if (
-                idade === null ||
-                !Number.isInteger(idade) ||
-                idade <= 0 ||
                 alturaCm === null ||
                 Number.isNaN(alturaCm) ||
                 alturaCm <= 0 ||
@@ -141,7 +204,7 @@ export async function POST(req: Request) {
             ) {
                 return Response.json(
                     {
-                        error: "Para atleta, idade, altura e peso são obrigatórios e devem ser válidos.",
+                        error: "Para atleta, altura e peso são obrigatórios e devem ser válidos.",
                     },
                     { status: 400 },
                 );
@@ -150,6 +213,37 @@ export async function POST(req: Request) {
 
         const client = await clerkClient();
         const currentUser = await client.users.getUser(userId);
+        const currentEmail = currentUser.emailAddresses[0]?.emailAddress;
+
+        if (!currentEmail) {
+            return Response.json(
+                { error: "Nao foi possivel validar o email do utilizador." },
+                { status: 400 },
+            );
+        }
+
+        if (
+            typeof emailRaw === "string" &&
+            emailRaw.trim().length > 0 &&
+            emailRaw.trim().toLowerCase() !== currentEmail.toLowerCase()
+        ) {
+            return Response.json(
+                { error: "Email inválido para a sessão atual." },
+                { status: 400 },
+            );
+        }
+
+        const firstName = firstNameRaw.trim();
+        const lastName = lastNameRaw.trim();
+        const fullName = `${firstName} ${lastName}`.trim();
+        const birthDate = birthDateRaw;
+        const hashedPassword = await hash(passwordRaw, 12);
+
+        await client.users.updateUser(userId, {
+            firstName,
+            lastName,
+        });
+
         const profilePhoto = formData.get("profilePhoto");
         let uploadedImageUrl: string | null = null;
 
@@ -181,10 +275,11 @@ export async function POST(req: Request) {
             unsafeMetadata: {
                 ...currentUser.unsafeMetadata,
                 accountType,
+                dateOfBirth: birthDate,
+                age,
                 athleteProfile:
                     accountType === "atleta"
                         ? {
-                              idade,
                               altura_cm: alturaCm,
                               peso_kg: pesoKg,
                           }
@@ -199,14 +294,24 @@ export async function POST(req: Request) {
             publicMetadata: {
                 ...currentUser.publicMetadata,
                 accountType,
+                age,
             },
         });
 
-        await sql`
-            UPDATE users
-            SET role = ${role}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
-            WHERE clerk_user_id = ${userId}
+        const usersColumns = await sql<{ column_name: string }[]>`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
+              AND column_name IN ('data_nascimento', 'idade')
         `;
+
+        const hasDataNascimento = usersColumns.some(
+            (column) => column.column_name === "data_nascimento",
+        );
+        const hasIdade = usersColumns.some(
+            (column) => column.column_name === "idade",
+        );
 
         await ensureUserExistsWithOrganization(
             userId,
@@ -215,10 +320,53 @@ export async function POST(req: Request) {
             uploadedImageUrl,
         );
 
+        if (hasDataNascimento && hasIdade) {
+            await sql`
+                UPDATE users
+                SET
+                    name = ${fullName},
+                    email = ${currentEmail},
+                    password = ${hashedPassword},
+                    role = ${role},
+                    data_nascimento = ${birthDate},
+                    idade = ${age},
+                    image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
+                    updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        } else if (hasDataNascimento) {
+            await sql`
+                UPDATE users
+                SET
+                    name = ${fullName},
+                    email = ${currentEmail},
+                    password = ${hashedPassword},
+                    role = ${role},
+                    data_nascimento = ${birthDate},
+                    image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
+                    updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        } else {
+            await sql`
+                UPDATE users
+                SET
+                    name = ${fullName},
+                    email = ${currentEmail},
+                    password = ${hashedPassword},
+                    role = ${role},
+                    image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
+                    updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
         return Response.json({
             success: true,
             role,
             accountType,
+            name: fullName,
+            email: currentEmail,
             profilePhotoUrl: uploadedImageUrl || currentUser.imageUrl || null,
         });
     } catch (error) {

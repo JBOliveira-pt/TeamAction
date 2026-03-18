@@ -4,26 +4,12 @@ import postgres from "postgres";
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 /**
- * Check if the current user is an admin
- * @returns boolean - true if user is admin, false otherwise
+ * Check if the current user has elevated privileges.
+ * Regular Neon users are never treated as elevated users.
+ * @returns boolean - always false
  */
 export async function isUserAdmin(): Promise<boolean> {
-    try {
-        const { userId } = await auth();
-
-        if (!userId) {
-            return false;
-        }
-
-        const user = await sql<{ role: string }[]>`
-            SELECT role FROM users WHERE clerk_user_id = ${userId}
-        `;
-
-        return user.length > 0 && user[0].role === "admin";
-    } catch (error) {
-        console.error("Error checking admin status:", error);
-        return false;
-    }
+    return false;
 }
 
 /**
@@ -72,7 +58,14 @@ export async function getCurrentUser() {
                 iban: string | null;
             }[]
         >`
-                SELECT id, name, email, role, organization_id, image_url, iban
+                SELECT
+                id,
+                name,
+                email,
+                CASE WHEN role = 'admin' THEN 'user' ELSE role END AS role,
+                organization_id,
+                image_url,
+                iban
             FROM users 
             WHERE clerk_user_id = ${userId}
         `;
@@ -87,27 +80,27 @@ export async function getCurrentUser() {
 /**
  * Check if current user can edit/delete a resource
  * @param createdBy - UUID of the user who created the resource
- * @returns boolean - true if user is admin or creator, false otherwise
+ * @returns boolean - true if user is privileged or creator, false otherwise
  */
 export async function canEditResource(
     createdBy: string | null | undefined,
 ): Promise<boolean> {
     try {
-        // Check if current user is admin
+        // Check if current user is privileged
         const isAdmin = await isUserAdmin();
 
         console.log("[DEBUG] canEditResource - isAdmin:", isAdmin);
         console.log("[DEBUG] canEditResource - createdBy:", createdBy);
 
-        // Admins can edit anything
+        // Privileged users can edit anything
         if (isAdmin) {
             console.log(
-                "[DEBUG] canEditResource - Admin detected, allowing edit",
+                "[DEBUG] canEditResource - Privileged access detected, allowing edit",
             );
             return true;
         }
 
-        // For non-admins, get current user to check if creator
+        // For non-privileged users, check if current user is creator
         const currentUser = await getCurrentUser();
 
         if (!currentUser) {
@@ -116,10 +109,10 @@ export async function canEditResource(
         }
 
         // Users can only edit what they created
-        // If createdBy is null (old resource), only admins can edit
+        // If createdBy is null (old resource), only privileged users can edit
         if (!createdBy) {
             console.log(
-                "[DEBUG] canEditResource - No creator and not admin, denying",
+                "[DEBUG] canEditResource - No creator and no privileged access, denying",
             );
             return false;
         }

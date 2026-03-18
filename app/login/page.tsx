@@ -18,14 +18,6 @@ function LoginPageContent() {
         initialView,
     );
 
-    // Redirecionar se já estiver logado
-    useEffect(() => {
-        if (isLoaded && isSignedIn) {
-            const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-            router.push(callbackUrl);
-        }
-    }, [isLoaded, isSignedIn, router, searchParams]);
-
     // Função que atualiza o estado E a URL
     const handleSetView = useCallback(
         (view: "login" | "register") => {
@@ -63,23 +55,6 @@ function LoginPageContent() {
                 <div className="text-white text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                     <p>Carregando...</p>
-                </div>
-            </main>
-        );
-    }
-
-    // Se já estiver logado, não renderizar nada (vai redirecionar)
-    if (isSignedIn) {
-        return (
-            <main
-                className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
-                style={{
-                    backgroundImage:
-                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
-                }}
-            >
-                <div className="text-white text-center">
-                    <p>Redirecionando...</p>
                 </div>
             </main>
         );

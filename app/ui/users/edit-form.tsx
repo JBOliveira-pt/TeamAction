@@ -86,14 +86,8 @@ export default function EditUserForm({ user }: { user: User }) {
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span
-                                className={`px-2.5 py-1 text-xs font-medium rounded-full border ${
-                                    user.role === "admin"
-                                        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700"
-                                }`}
-                            >
-                                {user.role === "admin" ? "Admin" : "Utilizador"}
+                            <span className="px-2.5 py-1 text-xs font-medium rounded-full border bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700">
+                                Utilizador
                             </span>
                             <span className="px-2.5 py-1 text-xs font-medium bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20">
                                 ID: {user.id.slice(0, 8)}

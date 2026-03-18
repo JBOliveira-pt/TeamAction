@@ -1,11 +1,21 @@
-import { adminUpdateUserAction } from "@/app/lib/admin-actions";
+import {
+    adminDeleteUserAction,
+    adminUpdateUserAction,
+} from "@/app/lib/admin-actions";
 import { fetchAdminUserById } from "@/app/lib/admin-data";
+import { AdminDeleteUserDangerZone } from "../../../ui/admin/delete-user-danger-zone";
 import { clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
+
+type SearchParams = {
+    success?: string;
+    error?: string;
+    warning?: string;
+};
 
 function normalizeAccountType(value: unknown): AccountType | null {
     if (typeof value !== "string") {
@@ -27,18 +37,20 @@ function normalizeAccountType(value: unknown): AccountType | null {
 
 export default async function AdminUserDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>;
+    searchParams?: Promise<SearchParams>;
 }) {
     const { id } = await params;
+    const resolvedSearchParams = searchParams ? await searchParams : undefined;
     const user = await fetchAdminUserById(id);
 
     if (!user) {
         notFound();
     }
 
-    let accountType: AccountType =
-        user.role === "admin" ? "presidente" : "responsavel";
+    let accountType: AccountType = "responsavel";
 
     if (user.clerk_user_id) {
         try {
@@ -58,6 +70,56 @@ export default async function AdminUserDetailPage({
     }
 
     const updateAction = adminUpdateUserAction.bind(null, id);
+    const deleteAction = adminDeleteUserAction.bind(null, id);
+
+    const alertMessage = (() => {
+        if (resolvedSearchParams?.success === "1") {
+            return {
+                kind: "success" as const,
+                message: "Perfil atualizado com sucesso.",
+            };
+        }
+
+        if (resolvedSearchParams?.error === "required") {
+            return {
+                kind: "error" as const,
+                message: "Preencha todos os campos obrigatorios.",
+            };
+        }
+
+        if (resolvedSearchParams?.error === "update") {
+            return {
+                kind: "error" as const,
+                message:
+                    "Nao foi possivel atualizar o perfil. Tente novamente.",
+            };
+        }
+
+        if (resolvedSearchParams?.error === "delete_confirmation") {
+            return {
+                kind: "error" as const,
+                message:
+                    "Confirmacao invalida. Digite exatamente deletarconta para excluir.",
+            };
+        }
+
+        if (resolvedSearchParams?.error === "delete") {
+            return {
+                kind: "error" as const,
+                message: "Falha ao excluir o utilizador. Tente novamente.",
+            };
+        }
+
+        if (resolvedSearchParams?.warning === "clerk") {
+            return {
+                kind: "warning" as const,
+                message:
+                    "Utilizador removido da base de dados, mas houve falha ao remover no Clerk.",
+            };
+        }
+
+        return null;
+    })();
 
     return (
         <div className="space-y-4">
@@ -69,6 +131,20 @@ export default async function AdminUserDetailPage({
                     Verificação e alteração de dados cadastrais.
                 </p>
             </header>
+
+            {alertMessage && (
+                <div
+                    className={`rounded-lg border px-4 py-3 text-sm ${
+                        alertMessage.kind === "success"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                            : alertMessage.kind === "warning"
+                              ? "border-amber-300 bg-amber-50 text-amber-800"
+                              : "border-rose-300 bg-rose-50 text-rose-800"
+                    }`}
+                >
+                    {alertMessage.message}
+                </div>
+            )}
 
             <section className="max-w-2xl space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
@@ -129,9 +205,8 @@ export default async function AdminUserDetailPage({
                             <option value="responsavel">Pai/Enc.</option>
                         </select>
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            O papel de acesso no sistema e inferido
-                            automaticamente: Presidente = Admin; restantes =
-                            Utilizador.
+                            O papel de acesso e inferido automaticamente como
+                            Utilizador para qualquer funcao.
                         </p>
                     </div>
 
@@ -143,6 +218,8 @@ export default async function AdminUserDetailPage({
                     </button>
                 </form>
             </section>
+
+            <AdminDeleteUserDangerZone deleteAction={deleteAction} />
         </div>
     );
 }

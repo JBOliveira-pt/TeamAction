@@ -35,7 +35,7 @@ export default async function Layout({
     );
 
     if (!accountType) {
-        redirect("/signup/complete-account-type");
+        redirect("/signup");
     }
 
     return (

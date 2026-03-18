@@ -2,10 +2,19 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import postgres, { type JSONValue } from "postgres";
 import { ensureAdminTables, fetchUserByClerkId } from "@/app/lib/admin-data";
+import { requireApiAccountType } from "@/app/lib/api-guards";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 export async function POST(request: Request) {
+    const access = await requireApiAccountType();
+    if (!access.ok) {
+        return NextResponse.json(
+            { error: access.error },
+            { status: access.status },
+        );
+    }
+
     const { userId: clerkUserId } = await auth();
 
     if (!clerkUserId) {

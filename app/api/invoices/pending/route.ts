@@ -1,10 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
+import { requireApiAccountType } from "@/app/lib/api-guards";
 import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 export async function GET() {
     try {
+        const access = await requireApiAccountType();
+        if (!access.ok) {
+            return new Response(JSON.stringify({ error: access.error }), {
+                status: access.status,
+            });
+        }
+
         const { userId } = await auth();
 
         if (!userId) {

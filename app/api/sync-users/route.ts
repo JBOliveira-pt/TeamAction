@@ -1,13 +1,43 @@
-import { clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import postgres from "postgres";
+import crypto from "node:crypto";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 export async function GET(req: Request) {
-    // Verify request is local or has auth token
+    const { userId } = await auth();
+    if (!userId) {
+        return new Response("Unauthorized", { status: 401 });
+    }
+
+    const expectedSecret = process.env.SYNC_USERS_API_SECRET;
+    if (!expectedSecret) {
+        return new Response("Missing SYNC_USERS_API_SECRET", { status: 500 });
+    }
+
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
         return new Response("Unauthorized", { status: 401 });
+    }
+
+    const providedSecret = authHeader.slice("Bearer ".length).trim();
+    const isSecretValid = (() => {
+        const provided = Buffer.from(providedSecret);
+        const expected = Buffer.from(expectedSecret);
+
+        if (provided.length !== expected.length) {
+            return false;
+        }
+
+        try {
+            return crypto.timingSafeEqual(provided, expected);
+        } catch {
+            return false;
+        }
+    })();
+
+    if (!isSecretValid) {
+        return new Response("Forbidden", { status: 403 });
     }
 
     try {

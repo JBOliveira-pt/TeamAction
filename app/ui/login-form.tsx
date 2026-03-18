@@ -5,11 +5,38 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { SignInButton } from "@clerk/nextjs";
+import { useAuth, useClerk } from "@clerk/nextjs";
 
 const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
     const searchParams = useSearchParams();
-    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+    const { isSignedIn } = useAuth();
+    const { openSignIn, signOut } = useClerk();
+    const callbackUrl = searchParams.get("callbackUrl") || "/signup";
+
+    const handleOpenSignIn = async () => {
+        if (isSignedIn) {
+            await signOut();
+        }
+
+        await openSignIn({
+            withSignUp: false,
+            forceRedirectUrl: callbackUrl,
+            fallbackRedirectUrl: callbackUrl,
+            appearance: {
+                elements: {
+                    footerAction: {
+                        display: "none",
+                    },
+                    footerActionText: {
+                        display: "none",
+                    },
+                    footerActionLink: {
+                        display: "none",
+                    },
+                },
+            },
+        });
+    };
 
     return (
         <div className="w-full max-w-md">
@@ -48,11 +75,30 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                     <p className="text-slate-400 text-sm text-center">
                         Autenticação via Clerk
                     </p>
-                    <SignInButton mode="modal" forceRedirectUrl={callbackUrl}>
-                        <button className="w-full rounded-xl bg-blue-600 py-3.5 text-lg font-bold text-white shadow-lg shadow-blue-700/40 transition-all hover:-translate-y-0.5 hover:bg-blue-500">
+
+                    {isSignedIn ? (
+                        <>
+                            <p className="text-center text-xs text-amber-300">
+                                Sessão ativa detectada. Para entrar com outro
+                                utilizador, escolha Trocar conta.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={handleOpenSignIn}
+                                className="w-full rounded-xl bg-amber-500 py-3.5 text-lg font-bold text-slate-950 shadow-lg shadow-amber-700/40 transition-all hover:-translate-y-0.5 hover:bg-amber-400"
+                            >
+                                Trocar conta
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={handleOpenSignIn}
+                            className="w-full rounded-xl bg-blue-600 py-3.5 text-lg font-bold text-white shadow-lg shadow-blue-700/40 transition-all hover:-translate-y-0.5 hover:bg-blue-500"
+                        >
                             Entrar
                         </button>
-                    </SignInButton>
+                    )}
                 </div>
 
                 <p className="text-center text-sm text-slate-500">

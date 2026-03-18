@@ -77,7 +77,7 @@ export async function POST(req: Request) {
             const accountType = normalizeAccountType(
                 unsafe_metadata?.accountType ?? public_metadata?.accountType,
             );
-            const role = accountType === "presidente" ? "admin" : "user";
+            const role = "user";
 
             console.log(
                 `[WEBHOOK] Tentando criar usuário: ${email} (id: ${id})`,
@@ -138,7 +138,7 @@ export async function POST(req: Request) {
             );
 
             if (accountType) {
-                const role = accountType === "presidente" ? "admin" : "user";
+                const role = "user";
                 await sql`
         UPDATE users
         SET name = ${name}, image_url = ${image_url}, role = ${role}, updated_at = NOW()

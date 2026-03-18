@@ -40,12 +40,10 @@ const iconBase =
 
 interface CreateAtletaProfileFormProps {
     cancelHref?: string;
-    isAdmin?: boolean;
 }
 
 export default function CreateAtletaProfileForm({
     cancelHref = "/dashboard/utilizador/perfil",
-    isAdmin = false,
 }: CreateAtletaProfileFormProps) {
     const [state, formAction, isPending] = useActionState(
         createAtletaProfile,
@@ -75,9 +73,7 @@ export default function CreateAtletaProfileForm({
                             Perfil Utilizador
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            {isAdmin
-                                ? "Opcional para Admin. Pode ignorar e continuar na dashboard."
-                                : "Preencha todos os campos para criar o seu perfil"}
+                            Preencha todos os campos para criar o seu perfil
                         </p>
                     </div>
                 </div>
@@ -335,7 +331,7 @@ export default function CreateAtletaProfileForm({
                         type="submit"
                         disabled={isPending}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors"
-                    >
+                        Cancelar
                         {isPending ? "A guardar..." : "Criar Perfil"}
                     </button>
                 </div>

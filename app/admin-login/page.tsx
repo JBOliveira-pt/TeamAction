@@ -8,11 +8,38 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLoginPage() {
+type SearchParams = {
+    error?: string;
+};
+
+function getAlertFromParams(searchParams?: SearchParams) {
+    if (!searchParams?.error) {
+        return null;
+    }
+
+    if (searchParams.error === "1") {
+        return "Senha de administrador inválida.";
+    }
+
+    if (searchParams.error === "config") {
+        return "Erro de configuração do servidor. Verifique o hash ADMIN_LOGIN_PASSWORD_HASH.";
+    }
+
+    return "Não foi possível concluir o login. Tente novamente.";
+}
+
+export default async function AdminLoginPage({
+    searchParams,
+}: {
+    searchParams?: Promise<SearchParams>;
+}) {
     const token = await getAdminSessionFromCookie();
     if (isAdminSessionTokenValid(token)) {
         redirect("/admin");
     }
+
+    const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    const alert = getAlertFromParams(resolvedSearchParams);
 
     return (
         <main
@@ -43,6 +70,11 @@ export default async function AdminLoginPage() {
                         <span className="font-bold">Painel Administrativo</span>
                     </p>
                 </div>
+                {alert && (
+                    <div className="mt-4 rounded-lg border border-rose-300/50 bg-rose-950/40 px-4 py-3 text-sm text-rose-200">
+                        {alert}
+                    </div>
+                )}
                 <form action={adminLoginAction} className="mt-6 space-y-4">
                     <div>
                         <label className="block text-sm text-slate-300 mb-1">

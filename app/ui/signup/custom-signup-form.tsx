@@ -20,6 +20,9 @@ import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MIN_SIGNUP_AGE = 5;
+const MAX_SIGNUP_AGE = 120;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type SignUpStage = "form" | "verify";
 
@@ -55,22 +58,60 @@ const ACCOUNT_TYPE_OPTIONS: {
     },
 ];
 
-function splitName(fullName: string) {
-    const normalized = fullName.trim();
-    if (!normalized) return { firstName: "", lastName: "" };
+function isAthleteDataValid(alturaCm: string, pesoKg: string) {
+    const alturaNum = Number(alturaCm);
+    const pesoNum = Number(pesoKg);
 
-    const parts = normalized.split(/\s+/);
-    if (parts.length === 1) {
-        return { firstName: parts[0], lastName: "" };
-    }
+    return (
+        !Number.isNaN(alturaNum) &&
+        alturaNum > 0 &&
+        !Number.isNaN(pesoNum) &&
+        pesoNum > 0
+    );
+}
+
+function formatDateForInput(date: Date): string {
+    return date.toISOString().split("T")[0];
+}
+
+function getBirthDateBounds() {
+    const today = new Date();
+    const maxBirthDate = new Date(today);
+    maxBirthDate.setFullYear(today.getFullYear() - MIN_SIGNUP_AGE);
+
+    const minBirthDate = new Date(today);
+    minBirthDate.setFullYear(today.getFullYear() - MAX_SIGNUP_AGE);
 
     return {
-        firstName: parts[0],
-        lastName: parts.slice(1).join(" "),
+        minBirthDate: formatDateForInput(minBirthDate),
+        maxBirthDate: formatDateForInput(maxBirthDate),
     };
 }
 
+function calculateAge(birthDateIso: string): number | null {
+    const birthDate = new Date(`${birthDateIso}T00:00:00`);
+    if (Number.isNaN(birthDate.getTime())) return null;
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+        age -= 1;
+    }
+
+    return age;
+}
+
+function isValidEmailFormat(value: string): boolean {
+    return EMAIL_REGEX.test(value.trim());
+}
+
 export default function CustomSignUpForm() {
+    const { minBirthDate, maxBirthDate } = getBirthDateBounds();
     const router = useRouter();
     const { isLoaded, signUp, setActive } = useSignUp();
 
@@ -79,14 +120,16 @@ export default function CustomSignUpForm() {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    const [fullName, setFullName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [emailAddress, setEmailAddress] = useState("");
+    const [emailTouched, setEmailTouched] = useState(false);
+    const [birthDate, setBirthDate] = useState("");
     const [password, setPassword] = useState("");
     const [accountType, setAccountType] = useState<AccountType>("presidente");
     const [verificationCode, setVerificationCode] = useState("");
     const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
     const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-    const [idade, setIdade] = useState("");
     const [alturaCm, setAlturaCm] = useState("");
     const [pesoKg, setPesoKg] = useState("");
 
@@ -131,9 +174,48 @@ export default function CustomSignUpForm() {
         setIsSubmitting(true);
         setErrorMessage(null);
 
-        try {
-            const { firstName, lastName } = splitName(fullName);
+        if (!firstName.trim()) {
+            setIsSubmitting(false);
+            setErrorMessage("Informe o primeiro nome.");
+            return;
+        }
 
+        if (!lastName.trim()) {
+            setIsSubmitting(false);
+            setErrorMessage("Informe o último nome.");
+            return;
+        }
+
+        if (!birthDate) {
+            setIsSubmitting(false);
+            setErrorMessage("Informe a data de nascimento.");
+            return;
+        }
+
+        if (!isValidEmailFormat(emailAddress)) {
+            setIsSubmitting(false);
+            setErrorMessage("Informe um e-mail válido.");
+            return;
+        }
+
+        const age = calculateAge(birthDate);
+        if (age === null || age < MIN_SIGNUP_AGE || age > MAX_SIGNUP_AGE) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
+            );
+            return;
+        }
+
+        if (accountType === "atleta" && !isAthleteDataValid(alturaCm, pesoKg)) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                "Para atleta, altura e peso são obrigatórios e devem ser válidos.",
+            );
+            return;
+        }
+
+        try {
             await signUp.create({
                 emailAddress,
                 password,
@@ -141,6 +223,7 @@ export default function CustomSignUpForm() {
                 lastName,
                 unsafeMetadata: {
                     accountType,
+                    dateOfBirth: birthDate,
                 },
             });
 
@@ -197,25 +280,27 @@ export default function CustomSignUpForm() {
         setErrorMessage(null);
         setSuccessMessage(null);
 
-        if (accountType === "atleta") {
-            const idadeNum = Number(idade);
-            const alturaNum = Number(alturaCm);
-            const pesoNum = Number(pesoKg);
+        if (!birthDate) {
+            setIsSubmitting(false);
+            setErrorMessage("Informe a data de nascimento.");
+            return;
+        }
 
-            if (
-                !Number.isInteger(idadeNum) ||
-                idadeNum <= 0 ||
-                Number.isNaN(alturaNum) ||
-                alturaNum <= 0 ||
-                Number.isNaN(pesoNum) ||
-                pesoNum <= 0
-            ) {
-                setIsSubmitting(false);
-                setErrorMessage(
-                    "Para atleta, idade, altura e peso são obrigatórios e devem ser válidos.",
-                );
-                return;
-            }
+        const age = calculateAge(birthDate);
+        if (age === null || age < MIN_SIGNUP_AGE || age > MAX_SIGNUP_AGE) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
+            );
+            return;
+        }
+
+        if (accountType === "atleta" && !isAthleteDataValid(alturaCm, pesoKg)) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                "Para atleta, altura e peso são obrigatórios e devem ser válidos.",
+            );
+            return;
         }
 
         try {
@@ -235,12 +320,16 @@ export default function CustomSignUpForm() {
             await setActive({ session: completeSignUp.createdSessionId });
 
             const payload = new FormData();
+            payload.append("firstName", firstName.trim());
+            payload.append("lastName", lastName.trim());
+            payload.append("email", emailAddress.trim());
+            payload.append("birthDate", birthDate);
+            payload.append("password", password);
             payload.append("accountType", accountType);
             if (profilePhoto) {
                 payload.append("profilePhoto", profilePhoto);
             }
             if (accountType === "atleta") {
-                payload.append("idade", idade);
                 payload.append("altura_cm", alturaCm);
                 payload.append("peso_kg", pesoKg);
             }
@@ -336,23 +425,44 @@ export default function CustomSignUpForm() {
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Nome completo
+                                    Primeiro Nome
                                 </label>
                                 <div className="relative">
                                     <input
                                         type="text"
                                         required
-                                        value={fullName}
+                                        value={firstName}
                                         onChange={(event) =>
-                                            setFullName(event.target.value)
+                                            setFirstName(event.target.value)
                                         }
                                         className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                        placeholder="Nome e sobrenome"
+                                        placeholder="Primeiro nome"
                                     />
                                     <User className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
                                 </div>
                             </div>
 
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Último Nome
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        required
+                                        value={lastName}
+                                        onChange={(event) =>
+                                            setLastName(event.target.value)
+                                        }
+                                        className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Último nome"
+                                    />
+                                    <User className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                     Email
@@ -362,14 +472,42 @@ export default function CustomSignUpForm() {
                                         type="email"
                                         required
                                         value={emailAddress}
-                                        onChange={(event) =>
-                                            setEmailAddress(event.target.value)
-                                        }
+                                        onChange={(event) => {
+                                            setEmailAddress(event.target.value);
+                                            if (!emailTouched) {
+                                                setEmailTouched(true);
+                                            }
+                                        }}
+                                        onBlur={() => setEmailTouched(true)}
                                         className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                         placeholder="email@exemplo.com"
                                     />
                                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-graydark:text-gray-500" />
                                 </div>
+                                {emailTouched &&
+                                    emailAddress.length > 0 &&
+                                    !isValidEmailFormat(emailAddress) && (
+                                        <p className="text-xs text-red-400">
+                                            Informe um e-mail válido.
+                                        </p>
+                                    )}
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Data de Nascimento
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={birthDate}
+                                    onChange={(event) =>
+                                        setBirthDate(event.target.value)
+                                    }
+                                    min={minBirthDate}
+                                    max={maxBirthDate}
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                />
                             </div>
                         </div>
 
@@ -391,6 +529,93 @@ export default function CustomSignUpForm() {
                                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-graydark:text-gray-500" />
                             </div>
                         </div>
+
+                        <div className="grid gap-4 md:grid-cols-3 md:items-start">
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Foto de perfil (opcional)
+                                </label>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <input
+                                        id="signup-profile-photo"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        onChange={handlePhotoChange}
+                                        className="sr-only"
+                                    />
+                                    <label
+                                        htmlFor="signup-profile-photo"
+                                        className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-700/35 transition-all hover:-translate-y-0.5 hover:bg-emerald-500"
+                                    >
+                                        Escolher ficheiro
+                                    </label>
+                                    <span className="max-w-full truncate text-sm text-gray-300">
+                                        {profilePhoto?.name ||
+                                            "Nenhum ficheiro selecionado"}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-400 dark:text-gray-400">
+                                    Tipos permitidos: JPG, PNG, WEBP. Tamanho
+                                    máximo: 5MB.
+                                </p>
+                            </div>
+
+                            <div className="md:col-span-1">
+                                <p className="text-xs text-gray-400 dark:text-gray-400 mb-2">
+                                    Preview
+                                </p>
+                                <div className="flex justify-center">
+                                    {photoPreviewUrl ? (
+                                        <img
+                                            src={photoPreviewUrl}
+                                            alt="Preview da foto"
+                                            className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                                        />
+                                    ) : (
+                                        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-gray-400/70 dark:border-gray-600 bg-slate-900/30">
+                                            <User className="h-7 w-7 text-gray-400" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {accountType === "atleta" && (
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Altura (cm)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        step="0.1"
+                                        value={alturaCm}
+                                        onChange={(event) =>
+                                            setAlturaCm(event.target.value)
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                        placeholder="Ex: 172"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Peso (kg)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        step="0.1"
+                                        value={pesoKg}
+                                        onChange={(event) =>
+                                            setPesoKg(event.target.value)
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                        placeholder="Ex: 63.5"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {errorMessage && (
                             <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
@@ -444,87 +669,6 @@ export default function CustomSignUpForm() {
                                 placeholder="Insira o codigo"
                             />
                         </div>
-
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Foto de perfil (opcional)
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={handlePhotoChange}
-                                className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                            />
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Tipos permitidos: JPG, PNG, WEBP. Tamanho
-                                máximo: 5MB.
-                            </p>
-                            {photoPreviewUrl && (
-                                <div className="pt-1">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                                        Preview:
-                                    </p>
-                                    <img
-                                        src={photoPreviewUrl}
-                                        alt="Preview da foto"
-                                        className="h-20 w-20 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        {accountType === "atleta" && (
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Idade
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        step={1}
-                                        value={idade}
-                                        onChange={(event) =>
-                                            setIdade(event.target.value)
-                                        }
-                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                                        placeholder="Ex: 16"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Altura (cm)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        step="0.1"
-                                        value={alturaCm}
-                                        onChange={(event) =>
-                                            setAlturaCm(event.target.value)
-                                        }
-                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                                        placeholder="Ex: 172"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Peso (kg)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        step="0.1"
-                                        value={pesoKg}
-                                        onChange={(event) =>
-                                            setPesoKg(event.target.value)
-                                        }
-                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                                        placeholder="Ex: 63.5"
-                                    />
-                                </div>
-                            </div>
-                        )}
 
                         {errorMessage && (
                             <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">

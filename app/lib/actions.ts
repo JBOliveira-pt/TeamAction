@@ -48,25 +48,14 @@ async function logAction(
     }
 }
 
-// Helper function to check admin permissions
+// Helper function to check elevated permissions
 async function checkAdminPermission() {
     const { userId } = await auth();
     if (!userId) {
         throw new Error("Unauthorized: No session");
     }
 
-    // Query database to check user role using Clerk ID
-    const user = await sql`
-        SELECT role FROM users WHERE clerk_user_id = ${userId}
-    `;
-
-    if (user.length === 0) {
-        throw new Error("User not found in database");
-    }
-
-    if (user[0].role !== "admin") {
-        throw new Error("Unauthorized: Admin access required");
-    }
+    throw new Error("Unauthorized: Elevated access required");
 }
 
 const FormSchema = z.object({
@@ -934,7 +923,7 @@ export async function createUser(
     } catch (error) {
         return {
             errors: {},
-            message: "Unauthorized: Only admins can create users.",
+            message: "Unauthorized: Only privileged users can create users.",
         };
     }
 
@@ -955,16 +944,8 @@ export async function createUser(
     }
 
     const imageFile = formData.get("imageFile");
-    const { firstName, lastName, email, iban, password, role } =
-        validatedFields.data;
-
-    // IBAN é obrigatório para admins
-    if (role === "admin" && (!iban || iban.length === 0)) {
-        return {
-            errors: { iban: ["IBAN is required for admin users."] },
-            message: "IBAN is required for admin users.",
-        };
-    }
+    const { firstName, lastName, email, iban, password } = validatedFields.data;
+    const role = "user";
 
     const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
 
@@ -1009,26 +990,27 @@ export async function createUser(
         };
     }
 
-    // Get organization_id from current admin
-    const { userId: adminClerkId } = await auth();
+    // Get organization_id from current privileged operator
+    const { userId: operatorClerkId } = await auth();
     let organizationId: string | undefined;
     try {
         const user = await sql<
             { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${adminClerkId}`;
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${operatorClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch admin organization:", error);
+        console.error("Failed to fetch operator organization:", error);
         return {
             errors: {},
-            message: "Failed to fetch admin organization.",
+            message: "Failed to fetch operator organization.",
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "Admin not found or no organization assigned.",
+            message:
+                "Privileged operator not found or no organization assigned.",
         };
     }
 
@@ -1073,7 +1055,7 @@ export async function createUser(
         }
     }
 
-    await logAction(adminClerkId, "user_create", "/dashboard/users", {
+    await logAction(operatorClerkId, "user_create", "/dashboard/users", {
         newUserId: userId,
         email,
         role,
@@ -1092,34 +1074,35 @@ export async function updateUser(
     } catch (error) {
         return {
             errors: {},
-            message: "Unauthorized: Only admins can update users.",
+            message: "Unauthorized: Only privileged users can update users.",
         };
     }
 
-    // Get current admin's organization_id
-    const { userId: adminClerkId } = await auth();
+    // Get current privileged operator's organization_id
+    const { userId: operatorClerkId } = await auth();
     let organizationId: string | undefined;
     try {
         const user = await sql<
             { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${adminClerkId}`;
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${operatorClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch admin organization:", error);
+        console.error("Failed to fetch operator organization:", error);
         return {
             errors: {},
-            message: "Failed to fetch admin organization.",
+            message: "Failed to fetch operator organization.",
         };
     }
 
     if (!organizationId) {
         return {
             errors: {},
-            message: "Admin not found or no organization assigned.",
+            message:
+                "Privileged operator not found or no organization assigned.",
         };
     }
 
-    // Verify that user belongs to admin's organization
+    // Verify that user belongs to operator's organization
     try {
         const userCheck = await sql<
             { id: string; role: string }[]
@@ -1132,7 +1115,7 @@ export async function updateUser(
             };
         }
 
-        // Se estiver atualizando um admin, IBAN é obrigatório
+        // Legacy guard: if role is still admin in DB, keep IBAN validation
         const userRole = userCheck[0].role;
         const iban = formData.get("iban");
         if (
@@ -1140,8 +1123,8 @@ export async function updateUser(
             (!iban || (typeof iban === "string" && iban.trim().length === 0))
         ) {
             return {
-                errors: { iban: ["IBAN is required for admin users."] },
-                message: "IBAN is required for admin users.",
+                errors: { iban: ["IBAN is required for privileged users."] },
+                message: "IBAN is required for privileged users.",
             };
         }
     } catch (error) {
@@ -1207,7 +1190,7 @@ export async function updateUser(
     }
 
     await logAction(
-        adminClerkId,
+        operatorClerkId,
         "user_update",
         `/dashboard/users/${id}/edit`,
         { updatedUserId: id },
@@ -1220,27 +1203,31 @@ export async function deleteUser(id: string) {
     try {
         await checkAdminPermission();
     } catch (error) {
-        throw new Error("Unauthorized: Only admins can delete users.");
+        throw new Error(
+            "Unauthorized: Only privileged users can delete users.",
+        );
     }
 
-    // Get current admin's organization_id
-    const { userId: adminClerkId } = await auth();
+    // Get current privileged operator's organization_id
+    const { userId: operatorClerkId } = await auth();
     let organizationId: string | undefined;
     try {
         const user = await sql<
             { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${adminClerkId}`;
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${operatorClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch admin organization:", error);
-        throw new Error("Failed to fetch admin organization.");
+        console.error("Failed to fetch operator organization:", error);
+        throw new Error("Failed to fetch operator organization.");
     }
 
     if (!organizationId) {
-        throw new Error("Admin not found or no organization assigned.");
+        throw new Error(
+            "Privileged operator not found or no organization assigned.",
+        );
     }
 
-    // Verify that user belongs to admin's organization
+    // Verify that user belongs to operator's organization
     try {
         const userCheck = await sql<
             { id: string }[]
@@ -1261,7 +1248,7 @@ export async function deleteUser(id: string) {
         throw new Error("Database Error: Failed to delete user.");
     }
 
-    await logAction(adminClerkId, "user_delete", "/dashboard/users", {
+    await logAction(operatorClerkId, "user_delete", "/dashboard/users", {
         deletedUserId: id,
     });
     revalidatePath("/dashboard/users");

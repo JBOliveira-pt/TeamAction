@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextResponse } from "next/server";
+import { requireApiAccountType } from "@/app/lib/api-guards";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -9,6 +10,14 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> },
 ) {
     try {
+        const access = await requireApiAccountType();
+        if (!access.ok) {
+            return NextResponse.json(
+                { error: access.error },
+                { status: access.status },
+            );
+        }
+
         const { userId } = await auth();
 
         if (!userId) {

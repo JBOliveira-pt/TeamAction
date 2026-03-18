@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { ensureRecipientUserIdColumn } from "@/app/lib/notification-schema";
+import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextResponse } from "next/server";
 import postgres from "postgres";
 
@@ -9,6 +10,14 @@ export async function PATCH(
     _request: Request,
     { params }: { params: Promise<{ id: string }> },
 ) {
+    const access = await requireApiAccountType();
+    if (!access.ok) {
+        return NextResponse.json(
+            { error: access.error },
+            { status: access.status },
+        );
+    }
+
     const { userId } = await auth();
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

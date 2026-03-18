@@ -1,8 +1,17 @@
 import { generateReceiptPdf, type ReceiptPdfData } from "@/app/lib/receipt-pdf";
+import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
     try {
+        const access = await requireApiAccountType();
+        if (!access.ok) {
+            return NextResponse.json(
+                { error: access.error },
+                { status: access.status },
+            );
+        }
+
         console.log("🔵 PDF route START");
 
         const data: ReceiptPdfData = await request.json();

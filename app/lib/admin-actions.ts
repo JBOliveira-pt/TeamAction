@@ -49,6 +49,117 @@ function getAdminPasswordHash(): string {
     return hash;
 }
 
+function isClerkNotFoundError(error: unknown): boolean {
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+
+    const maybeStatus = (error as { status?: unknown }).status;
+    return typeof maybeStatus === "number" && maybeStatus === 404;
+}
+
+const ADMIN_DELETE_CONFIRM_TEXT = "deletarconta";
+
+type SqlExecutor = typeof sql;
+
+async function tableExists(
+    tx: SqlExecutor,
+    tableName: string,
+): Promise<boolean> {
+    const data = await tx<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = ${tableName}
+        ) AS exists
+    `;
+
+    return Boolean(data[0]?.exists);
+}
+
+async function columnExists(
+    tx: SqlExecutor,
+    tableName: string,
+    columnName: string,
+): Promise<boolean> {
+    const data = await tx<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = ${tableName}
+              AND column_name = ${columnName}
+        ) AS exists
+    `;
+
+    return Boolean(data[0]?.exists);
+}
+
+async function deleteByColumnIfExists(
+    tx: SqlExecutor,
+    tableName: string,
+    columnName: string,
+    userId: string,
+): Promise<void> {
+    const [hasTable, hasColumn] = await Promise.all([
+        tableExists(tx, tableName),
+        columnExists(tx, tableName, columnName),
+    ]);
+
+    if (!hasTable || !hasColumn) {
+        return;
+    }
+
+    await tx`
+        DELETE FROM ${tx(tableName)}
+        WHERE ${tx(columnName)} = ${userId}
+    `;
+}
+
+async function deleteInvoicesAndReceiptsByUser(
+    tx: SqlExecutor,
+    userId: string,
+): Promise<void> {
+    const hasInvoices = await tableExists(tx, "invoices");
+    if (!hasInvoices) {
+        return;
+    }
+
+    const hasInvoiceCreator = await columnExists(tx, "invoices", "created_by");
+    if (!hasInvoiceCreator) {
+        return;
+    }
+
+    const hasReceipts = await tableExists(tx, "receipts");
+    if (hasReceipts) {
+        const [receiptHasCreatedBy, receiptHasInvoiceId] = await Promise.all([
+            columnExists(tx, "receipts", "created_by"),
+            columnExists(tx, "receipts", "invoice_id"),
+        ]);
+
+        if (receiptHasCreatedBy) {
+            await tx`
+                DELETE FROM receipts
+                WHERE created_by = ${userId}
+            `;
+        }
+
+        if (receiptHasInvoiceId) {
+            await tx`
+                DELETE FROM receipts
+                WHERE invoice_id IN (
+                    SELECT id FROM invoices WHERE created_by = ${userId}
+                )
+            `;
+        }
+    }
+
+    await tx`
+        DELETE FROM invoices
+        WHERE created_by = ${userId}
+    `;
+}
+
 export async function adminLoginAction(formData: FormData): Promise<void> {
     const password = String(formData.get("password") || "").trim();
 
@@ -65,6 +176,16 @@ export async function adminLoginAction(formData: FormData): Promise<void> {
 
     if (!isValid) {
         redirect("/admin-login?error=1");
+    }
+
+    try {
+        await sql`
+            UPDATE users
+            SET role = 'user', updated_at = NOW()
+            WHERE role = 'admin'
+        `;
+    } catch (error) {
+        console.error("Falha ao normalizar papeis de utilizadores:", error);
     }
 
     const token = createAdminSessionToken();
@@ -91,7 +212,7 @@ export async function adminUpdateUserAction(
         redirect(`/admin/users/${userId}?error=required`);
     }
 
-    const role = accountType === "presidente" ? "admin" : "user";
+    const role = "user";
 
     try {
         const userData = await sql<{ clerk_user_id: string | null }[]>`
@@ -149,6 +270,138 @@ export async function adminUpdateUserAction(
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);
     redirect(`/admin/users/${userId}?success=1`);
+}
+
+export async function adminDeleteUserAction(
+    userId: string,
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const confirmation = String(
+        formData.get("deleteConfirmation") || "",
+    ).trim();
+    if (confirmation !== ADMIN_DELETE_CONFIRM_TEXT) {
+        redirect(`/admin/users/${userId}?error=delete_confirmation`);
+    }
+
+    let targetUser:
+        | {
+              id: string;
+              name: string;
+              email: string;
+              clerk_user_id: string | null;
+          }
+        | undefined;
+
+    try {
+        const rows = await sql<
+            {
+                id: string;
+                name: string;
+                email: string;
+                clerk_user_id: string | null;
+            }[]
+        >`
+            SELECT id, name, email, clerk_user_id
+            FROM users
+            WHERE id = ${userId}
+            LIMIT 1
+        `;
+
+        targetUser = rows[0];
+    } catch (error) {
+        console.error(error);
+        redirect(`/admin/users/${userId}?error=delete`);
+    }
+
+    if (!targetUser) {
+        redirect("/admin/users?error=user_not_found");
+    }
+
+    try {
+        await sql.begin(async (tx) => {
+            await deleteInvoicesAndReceiptsByUser(tx, userId);
+            await deleteByColumnIfExists(tx, "customers", "created_by", userId);
+            await deleteByColumnIfExists(tx, "atletas", "user_id", userId);
+            await deleteByColumnIfExists(tx, "staff", "user_id", userId);
+            await deleteByColumnIfExists(
+                tx,
+                "notificacoes",
+                "recipient_user_id",
+                userId,
+            );
+            await deleteByColumnIfExists(
+                tx,
+                "user_action_logs",
+                "user_id",
+                userId,
+            );
+
+            await tx`
+                DELETE FROM users
+                WHERE id = ${userId}
+            `;
+        });
+    } catch (error) {
+        console.error(error);
+        redirect(`/admin/users/${userId}?error=delete`);
+    }
+
+    let clerkDeletionWarning = false;
+
+    if (targetUser.clerk_user_id) {
+        try {
+            const client = await clerkClient();
+            await client.users.deleteUser(targetUser.clerk_user_id);
+        } catch (error) {
+            if (isClerkNotFoundError(error)) {
+                console.info(
+                    "Utilizador ja nao existia no Clerk durante exclusao:",
+                    targetUser.clerk_user_id,
+                );
+            } else {
+                console.error("Falha ao remover utilizador no Clerk:", error);
+                clerkDeletionWarning = true;
+            }
+        }
+    }
+
+    try {
+        await ensureAdminTables();
+        const deleteMetadata: JSONValue = JSON.parse(
+            JSON.stringify({
+                deletedUserId: targetUser.id,
+                deletedUserEmail: targetUser.email,
+                deletedUserName: targetUser.name,
+            }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${"admin_user_delete"},
+                ${`/admin/users/${userId}`},
+                ${sql.json(deleteMetadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(
+            "Falha ao registar log de exclusao de utilizador:",
+            error,
+        );
+    }
+
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+
+    if (clerkDeletionWarning) {
+        redirect("/admin/users?success=deleted&warning=clerk");
+    }
+
+    redirect("/admin/users?success=deleted");
 }
 
 export async function adminCreateAvisoAction(

@@ -48,18 +48,5 @@ export async function DeleteUser({ id }: { id: string }) {
         return null;
     }
 
-    // Check if the user being deleted is an admin
-    const sql = (await import("postgres")).default(process.env.POSTGRES_URL!, {
-        ssl: "require",
-    });
-    const targetUser = await sql`SELECT role FROM users WHERE id = ${id}`;
-    const isTargetAdmin = targetUser[0]?.role === "admin";
-
-    return (
-        <DeleteUserButton
-            id={id}
-            deleteAction={deleteUser}
-            isAdmin={isTargetAdmin}
-        />
-    );
+    return <DeleteUserButton id={id} deleteAction={deleteUser} />;
 }

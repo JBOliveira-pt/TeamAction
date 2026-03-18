@@ -86,7 +86,10 @@ export async function fetchFilteredUsers(query: string) {
 }
 
 // Helper para pegar organization_id da sessão
-export async function getOrganizationId(): Promise<string> {
+export async function getOrganizationId(options?: {
+    allowAutoProvision?: boolean;
+}): Promise<string> {
+    const allowAutoProvision = options?.allowAutoProvision ?? true;
     const { userId } = await auth();
 
     if (!userId) {
@@ -114,7 +117,7 @@ export async function getOrganizationId(): Promise<string> {
                 clerkUser.unsafeMetadata?.accountType ??
                     clerkUser.publicMetadata?.accountType,
             );
-            const role = accountType === "presidente" ? "admin" : "user";
+            const role = "user";
 
             if (email) {
                 const fallbackUser = await sql<
@@ -136,7 +139,7 @@ export async function getOrganizationId(): Promise<string> {
                     }
                 }
 
-                if (!orgId) {
+                if (!orgId && allowAutoProvision) {
                     const created = await sql.begin(async (tx) => {
                         const txSql = tx as unknown as Sql;
 
@@ -1500,7 +1503,9 @@ export async function fetchOrganizacao() {
 
 export async function fetchNotificacoes() {
     try {
-        const organizationId = await getOrganizationId();
+        const organizationId = await getOrganizationId({
+            allowAutoProvision: false,
+        });
         const { userId } = await auth();
 
         if (!userId) {

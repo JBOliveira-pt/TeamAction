@@ -27,11 +27,9 @@ function SubmitButton() {
 export function DeleteUserButton({
     id,
     deleteAction,
-    isAdmin,
 }: {
     id: string;
     deleteAction: (id: string) => Promise<void>;
-    isAdmin?: boolean;
 }) {
     const [showModal, setShowModal] = useState(false);
     const [confirmText, setConfirmText] = useState("");
@@ -40,23 +38,18 @@ export function DeleteUserButton({
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (isAdmin) {
-            // Admin deletion requires modal confirmation
-            setShowModal(true);
-        } else {
-            // Regular user deletion
-            if (!confirm("Tem certeza que deseja deletar este utilizador?")) {
-                return;
-            }
-            setIsDeleting(true);
-            try {
-                await deleteAction(id);
-            } catch (error) {
-                console.error(error);
-                alert("Erro ao deletar utilizador");
-            } finally {
-                setIsDeleting(false);
-            }
+        if (!confirm("Tem certeza que deseja deletar este utilizador?")) {
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await deleteAction(id);
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao deletar utilizador");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -71,7 +64,7 @@ export function DeleteUserButton({
             setShowModal(false);
         } catch (error) {
             console.error(error);
-            alert("Erro ao deletar conta de administrador");
+            alert("Erro ao deletar utilizador");
         } finally {
             setIsDeleting(false);
         }
@@ -83,7 +76,7 @@ export function DeleteUserButton({
                 <SubmitButton />
             </form>
 
-            {/* Modal for Admin Deletion */}
+            {/* Modal for destructive confirmation */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                     <div className="bg-gray-900 rounded-xl border border-red-500/20 max-w-md w-full p-6 shadow-xl">
@@ -94,7 +87,7 @@ export function DeleteUserButton({
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-lg font-semibold text-white">
-                                    Deletar Conta de Administrador
+                                    Deletar Utilizador
                                 </h3>
                                 <p className="text-sm text-gray-400 mt-1">
                                     Esta ação é irreversível
@@ -108,10 +101,7 @@ export function DeleteUserButton({
                                 ⚠️ Atenção: Esta ação irá:
                             </p>
                             <ul className="text-sm text-red-300 space-y-1 list-disc list-inside">
-                                <li>
-                                    Excluir permanentemente sua conta de
-                                    administrador
-                                </li>
+                                <li>Excluir permanentemente o utilizador</li>
                                 <li>Remover todos os dados da organização</li>
                                 <li>
                                     Excluir todos os clientes, faturas e

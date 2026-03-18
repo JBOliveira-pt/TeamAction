@@ -24,7 +24,7 @@ function normalizeAccountType(value: unknown): AccountType | null {
     return null;
 }
 
-function getProfileBadge(accountType: AccountType | null, role: string) {
+function getProfileBadge(accountType: AccountType | null) {
     if (accountType === "presidente") {
         return {
             label: "Presidente",
@@ -58,7 +58,7 @@ function getProfileBadge(accountType: AccountType | null, role: string) {
     }
 
     return {
-        label: role === "admin" ? "Admin" : "Utilizador",
+        label: "Utilizador",
         className:
             "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200",
     };
@@ -170,7 +170,6 @@ export default async function AdminUsersPage({
                                                           user.clerk_user_id,
                                                       ) ?? null)
                                                     : null,
-                                                user.role,
                                             ).className
                                         }`}
                                     >
@@ -181,7 +180,6 @@ export default async function AdminUsersPage({
                                                           user.clerk_user_id,
                                                       ) ?? null)
                                                     : null,
-                                                user.role,
                                             ).label
                                         }
                                     </span>

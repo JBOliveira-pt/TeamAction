@@ -29,6 +29,6 @@ export function getDashboardPathForAccountType(
         case "responsavel":
             return "/dashboard/pai";
         default:
-            return "/signup/complete-account-type";
+            return "/signup";
     }
 }
