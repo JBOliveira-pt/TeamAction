@@ -3,7 +3,17 @@
 import { useSignUp } from "@clerk/nextjs";
 import { getDashboardPathForAccountType } from "@/app/lib/account-type";
 import {
+    MIN_PASSWORD_LENGTH,
+    PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+    validatePasswordPolicy,
+} from "@/app/lib/password-policy";
+import { PRESIDENT_SPORT_OPTIONS } from "@/app/lib/president-sport-options";
+import {
+    Info,
     CheckCircle2,
+    Eye,
+    EyeOff,
+    Loader2,
     Lock,
     Mail,
     Megaphone,
@@ -15,37 +25,39 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import {
+    ChangeEvent,
+    FormEvent,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MIN_SIGNUP_AGE = 5;
 const MAX_SIGNUP_AGE = 120;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
 const PORTUGAL_COUNTRY = "Portugal";
-const PRESIDENT_SPORT_OPTIONS = [
-    "Basquetebol",
-    "andebol",
-    "futsal",
-    "voleibol",
-    "ténis",
-    "ténis de mesa",
-    "badminton",
-    "padel",
-    "pickleball",
-    "squash",
-    "racquetball",
-    "hóquei em patins",
-    "floorball",
-    "corfebol",
-    "voleibol sentado",
-    "basquetebol em cadeira de rodas",
-    "andebol em cadeira de rodas",
-    "goalball",
-    "hóquei indoor",
-] as const;
+const BREACHED_PASSWORD_MESSAGE =
+    "A Palavra-passe foi encontrada em um leak de dados online. Para a segurança da sua conta, por favor, utilize outra palavra-passe.";
+const PRECHECK_PENDING_MESSAGE =
+    "Verificação prévia: a analisar se a palavra-passe já foi exposta em leaks...";
+const PRECHECK_BREACH_MESSAGE =
+    "Verificação prévia: esta palavra-passe já apareceu em leaks. Escolha outra.";
+const PRECHECK_OK_MESSAGE =
+    "Verificação prévia concluída: não foram detetadas exposições conhecidas.";
+const PRECHECK_UNAVAILABLE_MESSAGE =
+    "Verificação prévia indisponível no momento. Pode continuar e o Clerk fará a validação final.";
+const EMAIL_PRECHECK_PENDING_MESSAGE =
+    "Verificação prévia: a analisar o formato básico do e-mail...";
+const EMAIL_PRECHECK_OK_MESSAGE =
+    "Verificação prévia concluída: formato básico de e-mail válido. O Clerk fará a validação final.";
+const EMAIL_PRECHECK_INVALID_MESSAGE =
+    "Verificação prévia: informe um e-mail válido (ex.: domínio .com, .pt, .org, .net).";
 
 type SignUpStage = "form" | "president-profile" | "verify";
 
@@ -172,8 +184,20 @@ export default function CustomSignUpForm() {
     const [lastName, setLastName] = useState("");
     const [emailAddress, setEmailAddress] = useState("");
     const [emailTouched, setEmailTouched] = useState(false);
+    const [isEmailPrecheckPassed, setIsEmailPrecheckPassed] = useState(false);
+    const [emailPrecheckNotice, setEmailPrecheckNotice] = useState<
+        string | null
+    >(null);
     const [birthDate, setBirthDate] = useState("");
     const [password, setPassword] = useState("");
+    const [passwordTouched, setPasswordTouched] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [isCheckingPasswordBreach, setIsCheckingPasswordBreach] =
+        useState(false);
+    const [isPasswordBreached, setIsPasswordBreached] = useState(false);
+    const [passwordPrecheckNotice, setPasswordPrecheckNotice] = useState<
+        string | null
+    >(null);
     const [accountType, setAccountType] = useState<AccountType>("presidente");
     const [verificationCode, setVerificationCode] = useState("");
     const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
@@ -190,14 +214,193 @@ export default function CustomSignUpForm() {
     const [presidentAddress, setPresidentAddress] = useState("");
     const [presidentCity, setPresidentCity] = useState("");
     const [isResolvingCity, setIsResolvingCity] = useState(false);
+    const emailInputRef = useRef<HTMLInputElement | null>(null);
+    const passwordInputRef = useRef<HTMLInputElement | null>(null);
+    const emailPrecheckTimeoutRef = useRef<number | null>(null);
+    const emailPrecheckNoticeTimeoutRef = useRef<number | null>(null);
+    const precheckNoticeTimeoutRef = useRef<number | null>(null);
+    const pendingNoticeTimeoutRef = useRef<number | null>(null);
+    const precheckNoticeLockedUntilRef = useRef(0);
+
+    const showPrecheckNotice = (message: string, persistMs = 0) => {
+        if (precheckNoticeTimeoutRef.current) {
+            window.clearTimeout(precheckNoticeTimeoutRef.current);
+            precheckNoticeTimeoutRef.current = null;
+        }
+
+        setPasswordPrecheckNotice(message);
+
+        if (persistMs > 0) {
+            precheckNoticeLockedUntilRef.current = Date.now() + persistMs;
+            precheckNoticeTimeoutRef.current = window.setTimeout(() => {
+                setPasswordPrecheckNotice(null);
+                precheckNoticeLockedUntilRef.current = 0;
+                precheckNoticeTimeoutRef.current = null;
+            }, persistMs);
+            return;
+        }
+
+        precheckNoticeLockedUntilRef.current = 0;
+    };
+
+    const clearPendingNoticeTimeout = () => {
+        if (pendingNoticeTimeoutRef.current) {
+            window.clearTimeout(pendingNoticeTimeoutRef.current);
+            pendingNoticeTimeoutRef.current = null;
+        }
+    };
+
+    const clearEmailPrecheckTimers = () => {
+        if (emailPrecheckTimeoutRef.current) {
+            window.clearTimeout(emailPrecheckTimeoutRef.current);
+            emailPrecheckTimeoutRef.current = null;
+        }
+        if (emailPrecheckNoticeTimeoutRef.current) {
+            window.clearTimeout(emailPrecheckNoticeTimeoutRef.current);
+            emailPrecheckNoticeTimeoutRef.current = null;
+        }
+    };
 
     useEffect(() => {
         return () => {
             if (photoPreviewUrl) {
                 URL.revokeObjectURL(photoPreviewUrl);
             }
+            if (precheckNoticeTimeoutRef.current) {
+                window.clearTimeout(precheckNoticeTimeoutRef.current);
+                precheckNoticeTimeoutRef.current = null;
+            }
+            clearPendingNoticeTimeout();
+            clearEmailPrecheckTimers();
         };
     }, [photoPreviewUrl]);
+
+    useEffect(() => {
+        const normalizedEmail = emailAddress.trim();
+
+        if (!emailTouched || normalizedEmail.length === 0) {
+            setIsEmailPrecheckPassed(false);
+            setEmailPrecheckNotice(null);
+            clearEmailPrecheckTimers();
+            return;
+        }
+
+        setEmailPrecheckNotice(EMAIL_PRECHECK_PENDING_MESSAGE);
+
+        const timeoutId = window.setTimeout(() => {
+            if (isValidEmailFormat(normalizedEmail)) {
+                setIsEmailPrecheckPassed(true);
+                setEmailPrecheckNotice(EMAIL_PRECHECK_OK_MESSAGE);
+                emailPrecheckNoticeTimeoutRef.current = window.setTimeout(
+                    () => {
+                        setEmailPrecheckNotice((currentNotice) =>
+                            currentNotice === EMAIL_PRECHECK_OK_MESSAGE
+                                ? null
+                                : currentNotice,
+                        );
+                        emailPrecheckNoticeTimeoutRef.current = null;
+                    },
+                    PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                );
+                return;
+            }
+
+            setIsEmailPrecheckPassed(false);
+            setEmailPrecheckNotice(EMAIL_PRECHECK_INVALID_MESSAGE);
+        }, 250);
+        emailPrecheckTimeoutRef.current = timeoutId;
+
+        return () => {
+            clearEmailPrecheckTimers();
+        };
+    }, [emailAddress, emailTouched]);
+
+    useEffect(() => {
+        const isPasswordPolicyValid = validatePasswordPolicy(password).isValid;
+
+        if (!passwordTouched || !isPasswordPolicyValid) {
+            setIsCheckingPasswordBreach(false);
+            setIsPasswordBreached(false);
+            if (Date.now() >= precheckNoticeLockedUntilRef.current) {
+                setPasswordPrecheckNotice(null);
+            }
+            return;
+        }
+
+        let isCancelled = false;
+        const timeoutId = window.setTimeout(async () => {
+            try {
+                setIsCheckingPasswordBreach(true);
+                pendingNoticeTimeoutRef.current = window.setTimeout(() => {
+                    pendingNoticeTimeoutRef.current = null;
+                    if (
+                        !isCancelled &&
+                        Date.now() >= precheckNoticeLockedUntilRef.current
+                    ) {
+                        showPrecheckNotice(PRECHECK_PENDING_MESSAGE);
+                    }
+                }, 250);
+
+                const response = await fetch("/api/password-breach-check", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ password }),
+                });
+
+                clearPendingNoticeTimeout();
+
+                if (!response.ok) {
+                    if (!isCancelled) {
+                        setIsPasswordBreached(false);
+                        showPrecheckNotice(
+                            PRECHECK_UNAVAILABLE_MESSAGE,
+                            PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                        );
+                    }
+                    return;
+                }
+
+                const data = (await response.json()) as {
+                    breached?: boolean;
+                };
+
+                if (!isCancelled) {
+                    const breached = Boolean(data.breached);
+                    setIsPasswordBreached(breached);
+                    if (breached) {
+                        // Keep the breach warning visible until the password changes.
+                        showPrecheckNotice(PRECHECK_BREACH_MESSAGE);
+                    } else {
+                        showPrecheckNotice(
+                            PRECHECK_OK_MESSAGE,
+                            PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                        );
+                    }
+                }
+            } catch {
+                clearPendingNoticeTimeout();
+                if (!isCancelled) {
+                    setIsPasswordBreached(false);
+                    showPrecheckNotice(
+                        PRECHECK_UNAVAILABLE_MESSAGE,
+                        PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                    );
+                }
+            } finally {
+                if (!isCancelled) {
+                    setIsCheckingPasswordBreach(false);
+                }
+            }
+        }, 500);
+
+        return () => {
+            isCancelled = true;
+            window.clearTimeout(timeoutId);
+            clearPendingNoticeTimeout();
+        };
+    }, [password, passwordTouched]);
 
     const accountTypeLabel = useMemo(() => {
         return (
@@ -205,6 +408,25 @@ export default function CustomSignUpForm() {
                 ?.label || "Conta"
         );
     }, [accountType]);
+
+    const passwordValidation = useMemo(
+        () => validatePasswordPolicy(password),
+        [password],
+    );
+
+    const passwordStrengthLabel =
+        passwordValidation.strength === "fraca"
+            ? "Fraca"
+            : passwordValidation.strength === "media"
+              ? "Média"
+              : "Forte";
+
+    const passwordStrengthColorClass =
+        passwordValidation.strength === "fraca"
+            ? "bg-red-500"
+            : passwordValidation.strength === "media"
+              ? "bg-amber-500"
+              : "bg-emerald-500";
 
     const getClerkErrorMessage = (error: unknown) => {
         if (
@@ -222,6 +444,33 @@ export default function CustomSignUpForm() {
         }
 
         return "Nao foi possivel concluir o registo.";
+    };
+
+    const isClerkPasswordBreachError = (error: unknown): boolean => {
+        const message = getClerkErrorMessage(error).toLowerCase();
+        return message.includes("online data breach");
+    };
+
+    const isClerkInvalidEmailError = (error: unknown): boolean => {
+        const message = getClerkErrorMessage(error).toLowerCase();
+        return message.includes("email address must be a valid email address");
+    };
+
+    const focusEmailFieldForEdit = () => {
+        setEmailTouched(true);
+        window.setTimeout(() => {
+            emailInputRef.current?.focus();
+            emailInputRef.current?.select();
+        }, 0);
+    };
+
+    const focusPasswordFieldForEdit = () => {
+        setShowPassword(true);
+        setPasswordTouched(true);
+        window.setTimeout(() => {
+            passwordInputRef.current?.focus();
+            passwordInputRef.current?.select();
+        }, 0);
     };
 
     const validatePresidentProfile = () => {
@@ -256,9 +505,12 @@ export default function CustomSignUpForm() {
         return null;
     };
 
-    const createSignupAndSendVerification = async () => {
+    const createSignupAndSendVerification = async (): Promise<boolean> => {
         if (!signUp) {
-            throw new Error("Signup ainda não está disponível.");
+            setErrorMessage(
+                "O serviço de registo ainda não está disponível. Tente novamente.",
+            );
+            return false;
         }
 
         await signUp.create({
@@ -294,6 +546,7 @@ export default function CustomSignUpForm() {
         });
 
         setStage("verify");
+        return true;
     };
 
     const handleResolveCityByPostalCode = async () => {
@@ -359,6 +612,28 @@ export default function CustomSignUpForm() {
             return;
         }
 
+        if (!isEmailPrecheckPassed) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                "O e-mail ainda não passou na pré-análise de formato.",
+            );
+            return;
+        }
+
+        if (!passwordValidation.isValid) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                "A palavra-passe deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.",
+            );
+            return;
+        }
+
+        if (isPasswordBreached) {
+            setIsSubmitting(false);
+            setErrorMessage(BREACHED_PASSWORD_MESSAGE);
+            return;
+        }
+
         const age = calculateAge(birthDate);
         if (age === null || age < MIN_SIGNUP_AGE || age > MAX_SIGNUP_AGE) {
             setIsSubmitting(false);
@@ -383,9 +658,26 @@ export default function CustomSignUpForm() {
         }
 
         try {
-            await createSignupAndSendVerification();
+            const didStartVerification =
+                await createSignupAndSendVerification();
+            if (!didStartVerification) {
+                return;
+            }
         } catch (error) {
-            setErrorMessage(getClerkErrorMessage(error));
+            const message = getClerkErrorMessage(error);
+            if (isClerkInvalidEmailError(error)) {
+                setStage("form");
+                focusEmailFieldForEdit();
+                setErrorMessage(`${message} Corrija o e-mail para continuar.`);
+            } else if (isClerkPasswordBreachError(error)) {
+                setStage("form");
+                focusPasswordFieldForEdit();
+                setErrorMessage(
+                    `${message} Edite a palavra-passe para continuar.`,
+                );
+            } else {
+                setErrorMessage(message);
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -409,9 +701,26 @@ export default function CustomSignUpForm() {
         }
 
         try {
-            await createSignupAndSendVerification();
+            const didStartVerification =
+                await createSignupAndSendVerification();
+            if (!didStartVerification) {
+                return;
+            }
         } catch (error) {
-            setErrorMessage(getClerkErrorMessage(error));
+            const message = getClerkErrorMessage(error);
+            if (isClerkInvalidEmailError(error)) {
+                setStage("form");
+                focusEmailFieldForEdit();
+                setErrorMessage(`${message}`);
+            } else if (isClerkPasswordBreachError(error)) {
+                setStage("form");
+                focusPasswordFieldForEdit();
+                setErrorMessage(
+                    `${message} Edite a palavra-passe para continuar.`,
+                );
+            } else {
+                setErrorMessage(message);
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -662,6 +971,7 @@ export default function CustomSignUpForm() {
                                 </label>
                                 <div className="relative">
                                     <input
+                                        ref={emailInputRef}
                                         type="email"
                                         required
                                         value={emailAddress}
@@ -670,18 +980,29 @@ export default function CustomSignUpForm() {
                                             if (!emailTouched) {
                                                 setEmailTouched(true);
                                             }
+                                            setIsEmailPrecheckPassed(false);
                                         }}
                                         onBlur={() => setEmailTouched(true)}
                                         className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                         placeholder="email@exemplo.com"
                                     />
-                                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-graydark:text-gray-500" />
+                                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
                                 </div>
                                 {emailTouched &&
                                     emailAddress.length > 0 &&
-                                    !isValidEmailFormat(emailAddress) && (
-                                        <p className="text-xs text-red-400">
-                                            Informe um e-mail válido.
+                                    emailPrecheckNotice && (
+                                        <p
+                                            className={`text-xs flex items-start gap-1.5 ${
+                                                emailPrecheckNotice ===
+                                                EMAIL_PRECHECK_PENDING_MESSAGE
+                                                    ? "text-slate-300"
+                                                    : isEmailPrecheckPassed
+                                                      ? "text-emerald-400"
+                                                      : "text-red-400"
+                                            }`}
+                                        >
+                                            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                            <span>{emailPrecheckNotice}</span>
                                         </p>
                                     )}
                             </div>
@@ -710,17 +1031,134 @@ export default function CustomSignUpForm() {
                             </label>
                             <div className="relative">
                                 <input
-                                    type="password"
+                                    ref={passwordInputRef}
+                                    type={showPassword ? "text" : "password"}
                                     required
+                                    minLength={MIN_PASSWORD_LENGTH}
                                     value={password}
-                                    onChange={(event) =>
-                                        setPassword(event.target.value)
-                                    }
-                                    className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    onChange={(event) => {
+                                        setPassword(event.target.value);
+                                        if (!passwordTouched) {
+                                            setPasswordTouched(true);
+                                        }
+                                    }}
+                                    onBlur={() => setPasswordTouched(true)}
+                                    className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-12 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                     placeholder="Minimo de 8 caracteres"
                                 />
-                                <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-graydark:text-gray-500" />
+                                <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowPassword((value) => !value)
+                                    }
+                                    aria-label={
+                                        showPassword
+                                            ? "Ocultar palavra-passe"
+                                            : "Mostrar palavra-passe"
+                                    }
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-200"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
+                                </button>
                             </div>
+                            {passwordTouched &&
+                                password.length > 0 &&
+                                !passwordValidation.isValid && (
+                                    <p className="text-xs text-red-400">
+                                        A palavra-passe deve cumprir todos os
+                                        critérios abaixo.
+                                    </p>
+                                )}
+                            {passwordTouched && passwordPrecheckNotice && (
+                                <p
+                                    className={`text-xs ${
+                                        isCheckingPasswordBreach
+                                            ? "text-slate-300"
+                                            : isPasswordBreached
+                                              ? "text-red-400"
+                                              : passwordPrecheckNotice ===
+                                                  PRECHECK_UNAVAILABLE_MESSAGE
+                                                ? "text-amber-300"
+                                                : "text-emerald-400"
+                                    } flex items-start gap-1.5`}
+                                >
+                                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span>{passwordPrecheckNotice}</span>
+                                </p>
+                            )}
+                            {(passwordTouched || password.length > 0) && (
+                                <div className="mt-2 space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-300">
+                                            Força da palavra-passe
+                                        </span>
+                                        <span className="font-semibold text-slate-200">
+                                            {passwordStrengthLabel}
+                                        </span>
+                                    </div>
+                                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700/70">
+                                        <div
+                                            className={`h-full transition-all duration-300 ${passwordStrengthColorClass}`}
+                                            style={{
+                                                width: `${(passwordValidation.score / 5) * 100}%`,
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1 text-xs sm:grid-cols-2">
+                                        <p
+                                            className={
+                                                passwordValidation.hasMinLength
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            Min. {MIN_PASSWORD_LENGTH}{" "}
+                                            caracteres
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasUppercase
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 letra maiúscula
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasLowercase
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 letra minúscula
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasNumber
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 número
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasSpecialChar
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 caractere especial
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-3 md:items-start">
@@ -825,7 +1263,11 @@ export default function CustomSignUpForm() {
                             </Link>
                             <button
                                 type="submit"
-                                disabled={!isLoaded || isSubmitting}
+                                disabled={
+                                    !isLoaded ||
+                                    isSubmitting ||
+                                    !isEmailPrecheckPassed
+                                }
                                 className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
                             >
                                 {isSubmitting
@@ -1122,7 +1564,38 @@ export default function CustomSignUpForm() {
                         </div>
                     </form>
                 )}
+
+                {stage !== "verify" && (
+                    <div
+                        id="clerk-captcha"
+                        className="mt-4 min-h-[76px]"
+                        aria-live="polite"
+                    />
+                )}
             </div>
+
+            {isSubmitting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        className="mx-4 w-full max-w-sm rounded-2xl border border-blue-200/20 bg-slate-900/95 p-6 text-center shadow-2xl"
+                    >
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/15">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-300" />
+                        </div>
+                        <p className="text-base font-semibold text-white">
+                            Estamos a verificar os seus dados
+                        </p>
+                        <p className="mt-2 text-sm text-slate-300">
+                            Aguarde um momento para concluir a criação da conta.
+                        </p>
+                        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/70">
+                            <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-400" />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

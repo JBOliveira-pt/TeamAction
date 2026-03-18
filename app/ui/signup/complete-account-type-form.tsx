@@ -1,6 +1,10 @@
 "use client";
 
 import {
+    Eye,
+    EyeOff,
+    Info,
+    Loader2,
     Lock,
     Mail,
     Megaphone,
@@ -11,7 +15,13 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+    MIN_PASSWORD_LENGTH,
+    PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+    validatePasswordPolicy,
+} from "@/app/lib/password-policy";
+import { PRESIDENT_SPORT_OPTIONS } from "@/app/lib/president-sport-options";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
@@ -20,27 +30,16 @@ const MIN_SIGNUP_AGE = 5;
 const MAX_SIGNUP_AGE = 120;
 const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
 const PORTUGAL_COUNTRY = "Portugal";
-const PRESIDENT_SPORT_OPTIONS = [
-    "Basquetebol",
-    "andebol",
-    "futsal",
-    "voleibol",
-    "ténis",
-    "ténis de mesa",
-    "badminton",
-    "padel",
-    "pickleball",
-    "squash",
-    "racquetball",
-    "hóquei em patins",
-    "floorball",
-    "corfebol",
-    "voleibol sentado",
-    "basquetebol em cadeira de rodas",
-    "andebol em cadeira de rodas",
-    "goalball",
-    "hóquei indoor",
-] as const;
+const BREACHED_PASSWORD_MESSAGE =
+    "Password has been found in an online data breach. For account safety, please use a different password.";
+const PRECHECK_PENDING_MESSAGE =
+    "Verificação prévia: a analisar se a palavra-passe já foi exposta em leaks...";
+const PRECHECK_BREACH_MESSAGE =
+    "Verificação prévia: esta palavra-passe já apareceu em leaks. Escolha outra.";
+const PRECHECK_OK_MESSAGE =
+    "Verificação prévia concluída: não foram detetadas exposições conhecidas.";
+const PRECHECK_UNAVAILABLE_MESSAGE =
+    "Verificação prévia indisponível no momento. Pode continuar e o Clerk fará a validação final.";
 type CompleteStage = "form" | "president-profile";
 
 function formatDateForInput(date: Date): string {
@@ -154,6 +153,14 @@ export default function CompleteAccountTypeForm({
     const [emailAddress] = useState(initialEmail);
     const [birthDate, setBirthDate] = useState("");
     const [password, setPassword] = useState("");
+    const [passwordTouched, setPasswordTouched] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [isCheckingPasswordBreach, setIsCheckingPasswordBreach] =
+        useState(false);
+    const [isPasswordBreached, setIsPasswordBreached] = useState(false);
+    const [passwordPrecheckNotice, setPasswordPrecheckNotice] = useState<
+        string | null
+    >(null);
     const [selected, setSelected] = useState<AccountType | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -173,14 +180,154 @@ export default function CompleteAccountTypeForm({
     const [presidentAddress, setPresidentAddress] = useState("");
     const [presidentCity, setPresidentCity] = useState("");
     const [isResolvingCity, setIsResolvingCity] = useState(false);
+    const precheckNoticeTimeoutRef = useRef<number | null>(null);
+    const pendingNoticeTimeoutRef = useRef<number | null>(null);
+    const precheckNoticeLockedUntilRef = useRef(0);
+
+    const showPrecheckNotice = (message: string, persistMs = 0) => {
+        if (precheckNoticeTimeoutRef.current) {
+            window.clearTimeout(precheckNoticeTimeoutRef.current);
+            precheckNoticeTimeoutRef.current = null;
+        }
+
+        setPasswordPrecheckNotice(message);
+
+        if (persistMs > 0) {
+            precheckNoticeLockedUntilRef.current = Date.now() + persistMs;
+            precheckNoticeTimeoutRef.current = window.setTimeout(() => {
+                setPasswordPrecheckNotice(null);
+                precheckNoticeLockedUntilRef.current = 0;
+                precheckNoticeTimeoutRef.current = null;
+            }, persistMs);
+            return;
+        }
+
+        precheckNoticeLockedUntilRef.current = 0;
+    };
+
+    const clearPendingNoticeTimeout = () => {
+        if (pendingNoticeTimeoutRef.current) {
+            window.clearTimeout(pendingNoticeTimeoutRef.current);
+            pendingNoticeTimeoutRef.current = null;
+        }
+    };
+
+    const passwordValidation = useMemo(
+        () => validatePasswordPolicy(password),
+        [password],
+    );
+
+    const passwordStrengthLabel =
+        passwordValidation.strength === "fraca"
+            ? "Fraca"
+            : passwordValidation.strength === "media"
+              ? "Média"
+              : "Forte";
+
+    const passwordStrengthColorClass =
+        passwordValidation.strength === "fraca"
+            ? "bg-red-500"
+            : passwordValidation.strength === "media"
+              ? "bg-amber-500"
+              : "bg-emerald-500";
 
     useEffect(() => {
         return () => {
             if (photoPreviewUrl) {
                 URL.revokeObjectURL(photoPreviewUrl);
             }
+            if (precheckNoticeTimeoutRef.current) {
+                window.clearTimeout(precheckNoticeTimeoutRef.current);
+                precheckNoticeTimeoutRef.current = null;
+            }
+            clearPendingNoticeTimeout();
         };
     }, [photoPreviewUrl]);
+
+    useEffect(() => {
+        if (!passwordTouched || !passwordValidation.isValid) {
+            setIsCheckingPasswordBreach(false);
+            setIsPasswordBreached(false);
+            if (Date.now() >= precheckNoticeLockedUntilRef.current) {
+                setPasswordPrecheckNotice(null);
+            }
+            return;
+        }
+
+        let isCancelled = false;
+        const timeoutId = window.setTimeout(async () => {
+            try {
+                setIsCheckingPasswordBreach(true);
+                pendingNoticeTimeoutRef.current = window.setTimeout(() => {
+                    pendingNoticeTimeoutRef.current = null;
+                    if (
+                        !isCancelled &&
+                        Date.now() >= precheckNoticeLockedUntilRef.current
+                    ) {
+                        showPrecheckNotice(PRECHECK_PENDING_MESSAGE);
+                    }
+                }, 250);
+
+                const response = await fetch("/api/password-breach-check", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ password }),
+                });
+
+                clearPendingNoticeTimeout();
+
+                if (!response.ok) {
+                    if (!isCancelled) {
+                        setIsPasswordBreached(false);
+                        showPrecheckNotice(
+                            PRECHECK_UNAVAILABLE_MESSAGE,
+                            PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                        );
+                    }
+                    return;
+                }
+
+                const data = (await response.json()) as {
+                    breached?: boolean;
+                };
+
+                if (!isCancelled) {
+                    const breached = Boolean(data.breached);
+                    setIsPasswordBreached(breached);
+                    if (breached) {
+                        // Keep the breach warning visible until the password changes.
+                        showPrecheckNotice(PRECHECK_BREACH_MESSAGE);
+                    } else {
+                        showPrecheckNotice(
+                            PRECHECK_OK_MESSAGE,
+                            PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                        );
+                    }
+                }
+            } catch {
+                clearPendingNoticeTimeout();
+                if (!isCancelled) {
+                    setIsPasswordBreached(false);
+                    showPrecheckNotice(
+                        PRECHECK_UNAVAILABLE_MESSAGE,
+                        PASSWORD_PRECHECK_NOTICE_DURATION_MS,
+                    );
+                }
+            } finally {
+                if (!isCancelled) {
+                    setIsCheckingPasswordBreach(false);
+                }
+            }
+        }, 500);
+
+        return () => {
+            isCancelled = true;
+            window.clearTimeout(timeoutId);
+            clearPendingNoticeTimeout();
+        };
+    }, [password, passwordTouched, passwordValidation.isValid]);
 
     const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] || null;
@@ -245,8 +392,15 @@ export default function CompleteAccountTypeForm({
             return;
         }
 
-        if (password.trim().length < 8) {
-            setError("A palavra-passe deve ter no mínimo 8 caracteres.");
+        if (!passwordValidation.isValid) {
+            setError(
+                "A palavra-passe deve ter no mínimo 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.",
+            );
+            return;
+        }
+
+        if (isPasswordBreached) {
+            setError(BREACHED_PASSWORD_MESSAGE);
             return;
         }
 
@@ -553,18 +707,133 @@ export default function CompleteAccountTypeForm({
                             </label>
                             <div className="relative">
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
-                                    minLength={8}
+                                    minLength={MIN_PASSWORD_LENGTH}
                                     value={password}
-                                    onChange={(event) =>
-                                        setPassword(event.target.value)
-                                    }
-                                    className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    onChange={(event) => {
+                                        setPassword(event.target.value);
+                                        if (!passwordTouched) {
+                                            setPasswordTouched(true);
+                                        }
+                                    }}
+                                    onBlur={() => setPasswordTouched(true)}
+                                    className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-12 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                     placeholder="Minimo de 8 caracteres"
                                 />
                                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setShowPassword((value) => !value)
+                                    }
+                                    aria-label={
+                                        showPassword
+                                            ? "Ocultar palavra-passe"
+                                            : "Mostrar palavra-passe"
+                                    }
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-200"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-5 w-5" />
+                                    ) : (
+                                        <Eye className="h-5 w-5" />
+                                    )}
+                                </button>
                             </div>
+                            {passwordTouched &&
+                                password.length > 0 &&
+                                !passwordValidation.isValid && (
+                                    <p className="text-xs text-red-400">
+                                        A palavra-passe deve cumprir todos os
+                                        critérios abaixo.
+                                    </p>
+                                )}
+                            {passwordTouched && passwordPrecheckNotice && (
+                                <p
+                                    className={`text-xs ${
+                                        isCheckingPasswordBreach
+                                            ? "text-slate-300"
+                                            : isPasswordBreached
+                                              ? "text-red-400"
+                                              : passwordPrecheckNotice ===
+                                                  PRECHECK_UNAVAILABLE_MESSAGE
+                                                ? "text-amber-300"
+                                                : "text-emerald-400"
+                                    } flex items-start gap-1.5`}
+                                >
+                                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    <span>{passwordPrecheckNotice}</span>
+                                </p>
+                            )}
+                            {(passwordTouched || password.length > 0) && (
+                                <div className="mt-2 space-y-2">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-300">
+                                            Força da palavra-passe
+                                        </span>
+                                        <span className="font-semibold text-slate-200">
+                                            {passwordStrengthLabel}
+                                        </span>
+                                    </div>
+                                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700/70">
+                                        <div
+                                            className={`h-full transition-all duration-300 ${passwordStrengthColorClass}`}
+                                            style={{
+                                                width: `${(passwordValidation.score / 5) * 100}%`,
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1 text-xs sm:grid-cols-2">
+                                        <p
+                                            className={
+                                                passwordValidation.hasMinLength
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            Min. {MIN_PASSWORD_LENGTH}{" "}
+                                            caracteres
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasUppercase
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 letra maiúscula
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasLowercase
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 letra minúscula
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasNumber
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 número
+                                        </p>
+                                        <p
+                                            className={
+                                                passwordValidation.hasSpecialChar
+                                                    ? "text-emerald-400"
+                                                    : "text-slate-400"
+                                            }
+                                        >
+                                            1 caractere especial
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-3 md:items-start">
@@ -881,6 +1150,29 @@ export default function CompleteAccountTypeForm({
                     </button>
                 </div>
             </div>
+
+            {isSubmitting && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+                    <div
+                        role="status"
+                        aria-live="polite"
+                        className="mx-4 w-full max-w-sm rounded-2xl border border-blue-200/20 bg-slate-900/95 p-6 text-center shadow-2xl"
+                    >
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/15">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-300" />
+                        </div>
+                        <p className="text-base font-semibold text-white">
+                            Estamos a verificar os seus dados
+                        </p>
+                        <p className="mt-2 text-sm text-slate-300">
+                            Aguarde um momento para concluir a criação da conta.
+                        </p>
+                        <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/70">
+                            <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-400" />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

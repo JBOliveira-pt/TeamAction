@@ -2,6 +2,10 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { uploadImageToR2 } from "@/app/lib/r2-storage";
 import { hash } from "bcryptjs";
+import {
+    PRESIDENT_SPORT_OPTIONS,
+    normalizePresidentSport,
+} from "@/app/lib/president-sport-options";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -12,27 +16,6 @@ const MIN_SIGNUP_AGE = 5;
 const MAX_SIGNUP_AGE = 120;
 const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
 const PORTUGAL_COUNTRY = "Portugal";
-const PRESIDENT_SPORT_OPTIONS = [
-    "Basquetebol",
-    "Andebol",
-    "Futsal",
-    "Voleibol",
-    "Ténis",
-    "Ténis de mesa",
-    "Badminton",
-    "Padel",
-    "Pickleball",
-    "Squash",
-    "Racquetball",
-    "Hóquei em patins",
-    "Floorball",
-    "Corfebol",
-    "Voleibol sentado",
-    "Basquetebol em cadeira de rodas",
-    "Andebol em cadeira de rodas",
-    "Goalball",
-    "Hóquei indoor",
-] as const;
 
 type PresidentProfileInput = {
     clubName: string;
@@ -88,7 +71,8 @@ function parsePresidentProfile(formData: FormData): {
         return { error: "Modalidade é obrigatória para Presidente." };
     }
 
-    if (!PRESIDENT_SPORT_OPTIONS.some((option) => option === sport)) {
+    const normalizedSport = normalizePresidentSport(sport);
+    if (!normalizedSport) {
         return {
             error: "Modalidade inválida para Presidente.",
         };
@@ -109,7 +93,7 @@ function parsePresidentProfile(formData: FormData): {
     return {
         value: {
             clubName,
-            sport,
+            sport: normalizedSport,
             iban: getOptionalString(formData, "president_iban"),
             nipc: getOptionalString(formData, "president_nipc"),
             website: getOptionalString(formData, "president_website"),
