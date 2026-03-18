@@ -1,5 +1,10 @@
-import { fetchPresidenteDashboard, fetchJogos, fetchEquipas } from "@/app/lib/data";
-import { UserRound, Trophy, CalendarCheck, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import {
+    fetchPresidenteDashboard,
+    fetchUltimosJogos,
+    fetchProximosJogos,
+    fetchEquipas,
+} from "@/app/lib/data";
 
 export const dynamic = 'force-dynamic';
 
@@ -10,21 +15,18 @@ const resultadoStyle: Record<string, string> = {
 };
 
 const estadoStyle: Record<string, string> = {
-    ativa: "bg-emerald-500/10 text-emerald-400",
-    inativa: "bg-red-500/10 text-red-400",
+    ativa:       "bg-emerald-500/10 text-emerald-400",
+    inativa:     "bg-red-500/10 text-red-400",
     periodo_off: "bg-amber-500/10 text-amber-400",
 };
 
 export default async function PresidenteDashboard() {
-    const [dashboard, jogos, equipas] = await Promise.all([
+    const [dashboard, ultimosJogos, proximosJogos, equipas] = await Promise.all([
         fetchPresidenteDashboard(),
-        fetchJogos(),
+        fetchUltimosJogos(),
+        fetchProximosJogos(),
         fetchEquipas(),
     ]);
-
-    const ultimosJogos = jogos
-        .filter((j) => j.estado === "realizado")
-        .slice(0, 4);
 
     const metricas = [
         {
@@ -64,11 +66,16 @@ export default async function PresidenteDashboard() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard do Clube</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Época 2024/2025</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {dashboard.epocaNome ? `Época ${dashboard.epocaNome}` : "Sem época ativa"}
+                    </p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg border border-gray-300 dark:border-gray-700 transition-colors">
-                    📄 Relatório
-                </button>
+                <Link
+                    href="/dashboard/presidente/relatorios"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm rounded-lg border border-gray-300 dark:border-gray-700 transition-colors"
+                >
+                    📄 Relatórios
+                </Link>
             </div>
 
             {/* Cards de métricas */}
@@ -82,7 +89,7 @@ export default async function PresidenteDashboard() {
                 ))}
             </div>
 
-            {/* Tabelas */}
+            {/* Jogos — linha com 2 colunas */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 {/* Últimos Jogos */}
@@ -126,38 +133,69 @@ export default async function PresidenteDashboard() {
                     )}
                 </div>
 
-                {/* Equipas */}
+                {/* Próximos Jogos */}
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">📋 Equipas</h2>
-                    {equipas.length === 0 ? (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">Nenhuma equipa registada ainda.</p>
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">📅 Próximos Jogos</h2>
+                    {proximosJogos.length === 0 ? (
+                        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">Nenhum jogo agendado.</p>
                     ) : (
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
-                                    <th className="text-left pb-3">Equipa</th>
-                                    <th className="text-left pb-3">Atletas</th>
-                                    <th className="text-left pb-3">Treinador</th>
-                                    <th className="text-left pb-3">Estado</th>
+                                    <th className="text-left pb-3">Data</th>
+                                    <th className="text-left pb-3">Adversário</th>
+                                    <th className="text-left pb-3">Local</th>
+                                    <th className="text-left pb-3">Campo</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {equipas.map((e) => (
-                                    <tr key={e.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0">
-                                        <td className="py-3 text-gray-900 dark:text-white">{e.nome}</td>
-                                        <td className="py-3 text-gray-500 dark:text-gray-400">{Number(e.total_atletas)}</td>
-                                        <td className="py-3 text-gray-500 dark:text-gray-400">{e.nome_treinador ?? "—"}</td>
-                                        <td className="py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
-                                                {e.estado}
-                                            </span>
+                                {proximosJogos.map((j) => (
+                                    <tr key={j.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0">
+                                        <td className="py-3 text-gray-500 dark:text-gray-400">
+                                            {new Date(j.data).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })}
                                         </td>
+                                        <td className="py-3 text-gray-900 dark:text-white">{j.adversario}</td>
+                                        <td className="py-3 text-gray-500 dark:text-gray-400 capitalize">{j.casa_fora}</td>
+                                        <td className="py-3 text-gray-500 dark:text-gray-400">{j.local ?? "—"}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     )}
                 </div>
+            </div>
+
+            {/* Equipas */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">📋 Equipas</h2>
+                {equipas.length === 0 ? (
+                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">Nenhuma equipa registada ainda.</p>
+                ) : (
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
+                                <th className="text-left pb-3">Equipa</th>
+                                <th className="text-left pb-3">Atletas</th>
+                                <th className="text-left pb-3">Treinador</th>
+                                <th className="text-left pb-3">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {equipas.map((e) => (
+                                <tr key={e.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0">
+                                    <td className="py-3 text-gray-900 dark:text-white">{e.nome}</td>
+                                    <td className="py-3 text-gray-500 dark:text-gray-400">{Number(e.total_atletas)}</td>
+                                    <td className="py-3 text-gray-500 dark:text-gray-400">{e.nome_treinador ?? "—"}</td>
+                                    <td className="py-3">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                            {e.estado}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );

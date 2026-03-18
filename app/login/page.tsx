@@ -53,7 +53,13 @@ function LoginPageContent() {
     // Mostrar loading enquanto verifica autenticação
     if (!isLoaded) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+            <main
+                className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+                style={{
+                    backgroundImage:
+                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                }}
+            >
                 <div className="text-white text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                     <p>Carregando...</p>
@@ -65,7 +71,13 @@ function LoginPageContent() {
     // Se já estiver logado, não renderizar nada (vai redirecionar)
     if (isSignedIn) {
         return (
-            <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+            <main
+                className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+                style={{
+                    backgroundImage:
+                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                }}
+            >
                 <div className="text-white text-center">
                     <p>Redirecionando...</p>
                 </div>
@@ -74,7 +86,13 @@ function LoginPageContent() {
     }
 
     return (
-        <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+        <main
+            className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+            style={{
+                backgroundImage:
+                    "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+            }}
+        >
             {currentView === "login" && <LoginView setView={handleSetView} />}
             {currentView === "register" && (
                 <RegisterView setView={handleSetView} />
@@ -87,7 +105,13 @@ export default function LoginPage() {
     return (
         <Suspense
             fallback={
-                <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+                <main
+                    className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
+                    style={{
+                        backgroundImage:
+                            "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                    }}
+                >
                     <div className="text-white">Carregando...</div>
                 </main>
             }

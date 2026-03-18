@@ -2,19 +2,20 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { fetchEquipaById } from "@/app/lib/data";
 import { notFound } from "next/navigation";
+import AdicionarAtletaEquipaModal from "./_components/AdicionarAtletaEquipaModal.client";
 
 export const dynamic = 'force-dynamic';
 
 const estadoEquipaStyle: Record<string, string> = {
-    "ativa": "bg-emerald-500/10 text-emerald-400",
+    "ativa":       "bg-emerald-500/10 text-emerald-400",
     "periodo_off": "bg-amber-500/10 text-amber-400",
-    "inativa": "bg-red-500/10 text-red-400",
+    "inativa":     "bg-red-500/10 text-red-400",
 };
 
 const atletaEstadoStyle: Record<string, string> = {
-    "ativo": "bg-emerald-500/10 text-emerald-400",
+    "ativo":    "bg-emerald-500/10 text-emerald-400",
     "suspenso": "bg-amber-500/10 text-amber-400",
-    "inativo": "bg-red-500/10 text-red-400",
+    "inativo":  "bg-red-500/10 text-red-400",
 };
 
 export default async function EquipaDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -23,11 +24,10 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
 
     if (!equipa) return notFound();
 
-    // Calcular stats a partir dos jogos reais
     const jogosRealizados = jogos.filter(j => j.estado === "realizado");
-    const vitorias = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos > j.resultado_adv).length;
-    const derrotas = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos < j.resultado_adv).length;
-    const empates = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos === j.resultado_adv).length;
+    const vitorias  = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos > j.resultado_adv).length;
+    const derrotas  = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos < j.resultado_adv).length;
+    const empates   = jogosRealizados.filter(j => j.resultado_nos != null && j.resultado_adv != null && j.resultado_nos === j.resultado_adv).length;
     const golosMarcados = jogosRealizados.reduce((acc, j) => acc + (j.resultado_nos ?? 0), 0);
     const golosSofridos = jogosRealizados.reduce((acc, j) => acc + (j.resultado_adv ?? 0), 0);
     const pontosPerc = jogosRealizados.length > 0 ? Math.round((vitorias / jogosRealizados.length) * 100) : 0;
@@ -141,9 +141,7 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
                             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Atletas ({atletas.length})</h2>
-                            <button className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
-                                + Adicionar Atleta
-                            </button>
+                            <AdicionarAtletaEquipaModal equipaId={equipa.id} equipaNome={equipa.nome} />
                         </div>
                         {atletas.length === 0 ? (
                             <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">Nenhum atleta nesta equipa.</p>
@@ -187,4 +185,5 @@ export default async function EquipaDetailPage({ params }: { params: Promise<{ i
         </div>
     );
 }
+
 

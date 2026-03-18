@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { fetchEquipas } from "@/app/lib/data";
+import NovaEquipaModal from "./_components/NovaEquipaModal.client";
 
 export const dynamic = 'force-dynamic';
 
 const estadoStyle: Record<string, string> = {
-    "ativa": "bg-emerald-500/10 text-emerald-400",
-    "periodo_off": "bg-amber-500/10 text-amber-400",
-    "inativa": "bg-red-500/10 text-red-400",
+    "ativa":        "bg-emerald-500/10 text-emerald-400",
+    "periodo_off":  "bg-amber-500/10 text-amber-400",
+    "inativa":      "bg-red-500/10 text-red-400",
 };
 
 export default async function EquipasPage() {
@@ -23,9 +24,7 @@ export default async function EquipasPage() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Equipas</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Época 2024/2025 · {equipas.length} escalões</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors">
-                    + Nova Equipa
-                </button>
+                <NovaEquipaModal />
             </div>
 
             {/* Cards resumo */}
@@ -86,4 +85,5 @@ export default async function EquipasPage() {
         </div>
     );
 }
+
 

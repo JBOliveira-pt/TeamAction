@@ -14,7 +14,7 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
     return (
         <div className="w-full max-w-md">
             <Link
-                href="https://primeflow-landing.vercel.app"
+                href="/"
                 className="mb-8 flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
             >
                 <ArrowLeft
@@ -24,14 +24,15 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                 Voltar para o início
             </Link>
 
-            <div className="w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div className="w-full rounded-3xl border border-blue-200/20 bg-slate-950/60 p-8 shadow-[0_24px_64px_-24px_rgba(2,6,23,0.95)] backdrop-blur-xl backdrop-saturate-150">
                 <div className="text-center mb-8">
-                    <div className="flex items-center justify-center mx-auto mb-4">
+                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-blue-200/30 bg-slate-950/70 shadow-[0_10px_30px_rgba(15,23,42,0.65)]">
                         <Image
                             src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
-                            width={70}
-                            height={50}
+                            width={80}
+                            height={80}
                             alt="TeamAction Logo"
+                            className="h-full w-full object-cover"
                         />
                     </div>
                     <h2 className="text-3xl font-bold text-white mb-2">
@@ -48,7 +49,7 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                         Autenticação via Clerk
                     </p>
                     <SignInButton mode="modal" forceRedirectUrl={callbackUrl}>
-                        <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-600/20 transition-all text-lg">
+                        <button className="w-full rounded-xl bg-blue-600 py-3.5 text-lg font-bold text-white shadow-lg shadow-blue-700/40 transition-all hover:-translate-y-0.5 hover:bg-blue-500">
                             Entrar
                         </button>
                     </SignInButton>

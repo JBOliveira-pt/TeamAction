@@ -3,74 +3,55 @@
 import { Bell, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/button";
-import { formatCurrencyPTBR } from "@/app/lib/utils";
 import { useRouter } from "next/dist/client/components/navigation";
 
-interface Invoice {
+interface Notificacao {
     id: string;
-    customer_name: string;
-    amount: number;
-    date: string;
-    status: "pending" | "paid";
+    titulo: string;
+    descricao: string;
+    tipo: string;
+    lida: boolean;
+    created_at: string;
 }
 
-interface ReceiptNotification {
-    id: string;
-    receipt_number: number;
-    customer_name: string;
-    amount: number;
-    received_date: string;
-    status: "pending_send" | "sent_to_customer";
-}
+const tipoStyle: Record<string, { badge: string; icon: string }> = {
+    "Alerta": { badge: "bg-red-500/10 text-red-400",    icon: "🔴" },
+    "Aviso":  { badge: "bg-amber-500/10 text-amber-400", icon: "🟡" },
+    "Info":   { badge: "bg-cyan-500/10 text-cyan-400",  icon: "🔵" },
+};
 
-interface NotificationDropdownProps {
-    hasUnread?: boolean;
-}
-
-export function NotificationDropdown({
-    hasUnread = true,
-}: NotificationDropdownProps) {
+export function NotificationDropdown() {
     const [isOpen, setIsOpen] = useState(false);
-    const [pendingInvoices, setPendingInvoices] = useState<Invoice[]>([]);
-    const [totalPending, setTotalPending] = useState(0);
-    const [pendingReceipts, setPendingReceipts] = useState<
-        ReceiptNotification[]
-    >([]);
-    const [totalPendingReceipts, setTotalPendingReceipts] = useState(0);
+    const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(false);
     const [positionAbove, setPositionAbove] = useState(false);
     const router = useRouter();
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const fetchPendingInvoices = async () => {
+    const fetchData = async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/invoices/pending");
-            const data = await response.json();
-            setPendingInvoices(data.invoices || []);
-            setTotalPending(data.total || 0);
-            const receiptResponse = await fetch("/api/receipts/pending");
-            const receiptData = await receiptResponse.json();
-            setPendingReceipts(receiptData.receipts || []);
-            setTotalPendingReceipts(receiptData.total || 0);
+            const res = await fetch("/api/notificacoes");
+            const data = await res.json();
+            setNotificacoes(data.notificacoes || []);
+            setTotal(data.total || 0);
         } catch (error) {
-            console.error("Failed to fetch pending invoices:", error);
+            console.error("Erro ao buscar notificações:", error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchPendingInvoices();
+        fetchData();
     }, []);
 
     useEffect(() => {
         if (isOpen && containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect();
-            const dropdownHeight = 400; // altura aproximada do dropdown
             const spaceBelow = window.innerHeight - rect.bottom;
-
-            setPositionAbove(spaceBelow < dropdownHeight);
+            setPositionAbove(spaceBelow < 400);
         }
     }, [isOpen]);
 
@@ -87,30 +68,20 @@ export function NotificationDropdown({
         };
 
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [isOpen]);
 
     const handleToggle = () => {
-        if (!isOpen) {
-            fetchPendingInvoices();
-        }
+        if (!isOpen) fetchData();
         setIsOpen(!isOpen);
     };
 
-    const handleViewAllInvoices = () => {
+    const handleVerTodas = () => {
         setIsOpen(false);
-        router.push("/dashboard/invoices");
+        router.push("/dashboard/presidente/notificacoes");
     };
 
-    const handleViewAllReceipts = () => {
-        setIsOpen(false);
-        router.push("/dashboard/receipts");
-    };
-
-    const showBadge =
-        !loading && (totalPending > 0 || totalPendingReceipts > 0);
+    const showBadge = !loading && total > 0;
 
     return (
         <div className="relative" ref={containerRef}>
@@ -118,149 +89,81 @@ export function NotificationDropdown({
                 variant="ghost"
                 size="icon"
                 className="rounded-full relative cursor-pointer"
-                onClick={() => handleToggle()}
+                onClick={handleToggle}
             >
                 <Bell size={20} />
-                {/* Badge de notificação */}
-                {hasUnread && showBadge && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {showBadge && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                        {total > 99 ? "99+" : total}
+                    </span>
                 )}
             </Button>
 
-            {/* Dropdown */}
             {isOpen && (
                 <div
                     className={`absolute ${positionAbove ? "bottom-12" : "top-12"} right-0 w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 animate-in fade-in slide-in-from-top-2 duration-200`}
                 >
-                    {/* Header */}
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                             Notificações
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {totalPending} fatura
-                            {totalPending !== 1 ? "s" : ""}
-                            {" - "}
-                            {totalPendingReceipts} recibo
-                            {totalPendingReceipts !== 1 ? "s" : ""}
+                            {total} não lida{total !== 1 ? "s" : ""}
                         </p>
                     </div>
 
-                    {/* Content */}
                     <div className="max-h-96 overflow-y-auto">
                         {loading ? (
                             <div className="px-4 py-6 text-center text-sm text-gray-500">
                                 Carregando...
                             </div>
-                        ) : pendingInvoices.length > 0 ||
-                          pendingReceipts.length > 0 ? (
-                            <>
-                                {pendingReceipts.map((receipt) => (
-                                    <div
-                                        key={receipt.id}
-                                        className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
+                        ) : notificacoes.length > 0 ? (
+                            notificacoes.map((n) => (
+                                <div
+                                    key={n.id}
+                                    className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <span className="text-base mt-0.5">
+                                            {tipoStyle[n.tipo]?.icon ?? "🔵"}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    Recibo #
-                                                    {receipt.receipt_number}
+                                                    {n.titulo}
                                                 </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    {receipt.customer_name}
-                                                </p>
+                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle[n.tipo]?.badge ?? "bg-cyan-500/10 text-cyan-400"}`}>
+                                                    {n.tipo}
+                                                </span>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                    {formatCurrencyPTBR(
-                                                        receipt.amount,
-                                                    )}
-                                                </p>
-                                                <div className="flex items-center gap-1 mt-1 text-yellow-600 dark:text-yellow-500">
-                                                    <Clock size={12} />
-                                                    <span className="text-xs">
-                                                        Env. Pendente
-                                                    </span>
-                                                </div>
-                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                                {n.descricao}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
-
-                                {pendingInvoices.map((invoice) => (
-                                    <div
-                                        key={invoice.id}
-                                        className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                    >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {invoice.customer_name}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    {new Date(
-                                                        invoice.date,
-                                                    ).toLocaleDateString(
-                                                        "pt-BR",
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                    {formatCurrencyPTBR(
-                                                        invoice.amount,
-                                                    )}
-                                                </p>
-                                                <div className="flex items-center gap-1 mt-1 text-yellow-600 dark:text-yellow-500">
-                                                    <Clock size={12} />
-                                                    <span className="text-xs">
-                                                        Pgto. Pendente
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </>
+                                </div>
+                            ))
                         ) : (
                             <div className="px-4 py-6 text-center">
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Nenhuma notificação pendente
+                                    Nenhuma notificação não lida
                                 </p>
                             </div>
                         )}
                     </div>
 
-                    {/* Footer */}
-                    {(pendingInvoices.length > 0 ||
-                        pendingReceipts.length > 0) && (
-                        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
-                            <div className="flex flex-row gap-2">
-                                {pendingReceipts.length > 0 ? (
-                                    <Button
-                                        variant="outline"
-                                        className="w-full text-xs cursor-pointer"
-                                        onClick={handleViewAllReceipts}
-                                    >
-                                        Recibos pendentes
-                                    </Button>
-                                ) : null}
-                                {pendingInvoices.length > 0 ? (
-                                    <Button
-                                        variant="outline"
-                                        className="w-full text-xs cursor-pointer"
-                                        onClick={handleViewAllInvoices}
-                                    >
-                                        Faturas pendentes
-                                    </Button>
-                                ) : null}
-                            </div>
-                        </div>
-                    )}
+                    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800">
+                        <Button
+                            variant="outline"
+                            className="w-full text-xs cursor-pointer"
+                            onClick={handleVerTodas}
+                        >
+                            Ver todas as notificações
+                        </Button>
+                    </div>
                 </div>
             )}
 
-            {/* Backdrop para fechar o dropdown */}
             {isOpen && (
                 <div
                     className="fixed inset-0 z-40"
@@ -270,3 +173,5 @@ export function NotificationDropdown({
         </div>
     );
 }
+
+

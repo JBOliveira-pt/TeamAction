@@ -1,14 +1,16 @@
 import { fetchAutorizacoes } from "@/app/lib/data";
+import { fetchUsers } from "@/app/lib/data";
 import AutorizacaoForm from "./_components/AutorizacaoForm";
+import AutorizacaoModal from "./_components/AutorizacaoModal";
 
 export const dynamic = 'force-dynamic';
 
 const tipoStyle: Record<string, string> = {
-    "Aprovação":    "bg-emerald-500/10 text-emerald-400",
-    "Recusa":       "bg-red-500/10 text-red-400",
-    "Transferência":"bg-blue-500/10 text-blue-400",
-    "Suspensão":    "bg-amber-500/10 text-amber-400",
-    "Outro":        "bg-gray-500/10 text-gray-400",
+    "Aprovação":     "bg-emerald-500/10 text-emerald-400",
+    "Recusa":        "bg-red-500/10 text-red-400",
+    "Transferência": "bg-blue-500/10 text-blue-400",
+    "Suspensão":     "bg-amber-500/10 text-amber-400",
+    "Outro":         "bg-gray-500/10 text-gray-400",
 };
 
 const formatData = (dateStr: string) =>
@@ -17,7 +19,10 @@ const formatData = (dateStr: string) =>
     });
 
 export default async function AutorizacoesPage() {
-    const autorizacoes = await fetchAutorizacoes();
+    const [autorizacoes, users] = await Promise.all([
+        fetchAutorizacoes(),
+        fetchUsers(),
+    ]);
 
     return (
         <div className="p-6 space-y-6">
@@ -28,13 +33,11 @@ export default async function AutorizacoesPage() {
                 </p>
             </div>
 
-            {/* Formulário */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Registar Autorização</h2>
-                <AutorizacaoForm />
+                <AutorizacaoForm users={users.map(u => ({ id: u.id, name: u.name }))} />
             </div>
 
-            {/* Lista */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 {autorizacoes.length === 0 ? (
                     <div className="px-6 py-12 text-center">
@@ -48,6 +51,7 @@ export default async function AutorizacoesPage() {
                                 <th className="text-left px-6 py-4">Tipo de Ação</th>
                                 <th className="text-left px-6 py-4">Notas</th>
                                 <th className="text-left px-6 py-4">Data</th>
+                                <th className="text-left px-6 py-4"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,6 +71,9 @@ export default async function AutorizacoesPage() {
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                         {formatData(a.created_at)}
                                     </td>
+                                    <td className="px-6 py-4">
+    <AutorizacaoModal autorizacao={a} />
+</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -76,6 +83,7 @@ export default async function AutorizacoesPage() {
         </div>
     );
 }
+
 
 
 
