@@ -2,6 +2,7 @@
     "private": true,
     "scripts": {
         "build": "next build",
+        "db:migrate": "node scripts/migrate.mjs",
         "dev": "next dev",
         "start": "next start",
         "lint": "eslint .",

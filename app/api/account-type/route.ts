@@ -10,6 +10,117 @@ const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MIN_SIGNUP_AGE = 5;
 const MAX_SIGNUP_AGE = 120;
+const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
+const PORTUGAL_COUNTRY = "Portugal";
+const PRESIDENT_SPORT_OPTIONS = [
+    "Basquetebol",
+    "Andebol",
+    "Futsal",
+    "Voleibol",
+    "Ténis",
+    "Ténis de mesa",
+    "Badminton",
+    "Padel",
+    "Pickleball",
+    "Squash",
+    "Racquetball",
+    "Hóquei em patins",
+    "Floorball",
+    "Corfebol",
+    "Voleibol sentado",
+    "Basquetebol em cadeira de rodas",
+    "Andebol em cadeira de rodas",
+    "Goalball",
+    "Hóquei indoor",
+] as const;
+
+type PresidentProfileInput = {
+    clubName: string;
+    sport: string;
+    iban: string | null;
+    nipc: string | null;
+    website: string | null;
+    phone: string | null;
+    postalCode: string | null;
+    address: string | null;
+    city: string | null;
+    country: string;
+};
+
+function getOptionalString(formData: FormData, field: string): string | null {
+    const value = formData.get(field);
+    if (typeof value !== "string") {
+        return null;
+    }
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizePostalCode(value: string | null): string | null {
+    if (!value) {
+        return null;
+    }
+
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length !== 7) {
+        return value;
+    }
+
+    return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4)}`;
+}
+
+function parsePresidentProfile(formData: FormData): {
+    value?: PresidentProfileInput;
+    error?: string;
+} {
+    const clubName = getOptionalString(formData, "president_club_name");
+    const sport = getOptionalString(formData, "president_sport");
+    const postalCodeRaw = getOptionalString(formData, "president_postal_code");
+    const postalCode = normalizePostalCode(postalCodeRaw);
+    const city = getOptionalString(formData, "president_city");
+
+    if (!clubName) {
+        return { error: "Nome do clube é obrigatório para Presidente." };
+    }
+
+    if (!sport) {
+        return { error: "Modalidade é obrigatória para Presidente." };
+    }
+
+    if (!PRESIDENT_SPORT_OPTIONS.some((option) => option === sport)) {
+        return {
+            error: "Modalidade inválida para Presidente.",
+        };
+    }
+
+    if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
+        return {
+            error: "Código Postal inválido. Use o formato 0000-000.",
+        };
+    }
+
+    if (postalCode && !city) {
+        return {
+            error: "Cidade é obrigatória quando Código Postal é preenchido.",
+        };
+    }
+
+    return {
+        value: {
+            clubName,
+            sport,
+            iban: getOptionalString(formData, "president_iban"),
+            nipc: getOptionalString(formData, "president_nipc"),
+            website: getOptionalString(formData, "president_website"),
+            phone: getOptionalString(formData, "president_phone"),
+            postalCode,
+            address: getOptionalString(formData, "president_address"),
+            city,
+            country: PORTUGAL_COUNTRY,
+        },
+    };
+}
 
 function normalizeAccountType(value: unknown): AccountType | null {
     if (typeof value !== "string") return null;
@@ -182,6 +293,19 @@ export async function POST(req: Request) {
         }
 
         const role: "user" = "user";
+        const presidentProfileResult =
+            accountType === "presidente"
+                ? parsePresidentProfile(formData)
+                : { value: undefined, error: undefined };
+
+        if (presidentProfileResult.error) {
+            return Response.json(
+                { error: presidentProfileResult.error },
+                { status: 400 },
+            );
+        }
+
+        const presidentProfile = presidentProfileResult.value;
         const heightRaw = formData.get("altura_cm");
         const weightRaw = formData.get("peso_kg");
         const alturaCm =
@@ -277,6 +401,8 @@ export async function POST(req: Request) {
                 accountType,
                 dateOfBirth: birthDate,
                 age,
+                presidentProfile:
+                    accountType === "presidente" ? presidentProfile : null,
                 athleteProfile:
                     accountType === "atleta"
                         ? {
@@ -319,6 +445,173 @@ export async function POST(req: Request) {
             currentUser,
             uploadedImageUrl,
         );
+
+        if (accountType === "presidente" && presidentProfile) {
+            const userOrg = await sql<
+                { id: string; organization_id: string | null }[]
+            >`
+                SELECT id, organization_id
+                FROM users
+                WHERE clerk_user_id = ${userId}
+                LIMIT 1
+            `;
+
+            const presidenteUserId = userOrg[0]?.id ?? null;
+            const organizationId = userOrg[0]?.organization_id ?? null;
+
+            if (organizationId) {
+                await sql`
+                    UPDATE organizations
+                    SET
+                        name = ${presidentProfile.clubName},
+                        desporto = ${presidentProfile.sport},
+                        nif = ${presidentProfile.nipc},
+                        website = ${presidentProfile.website},
+                        telefone = ${presidentProfile.phone},
+                        codigo_postal = ${presidentProfile.postalCode},
+                        morada = ${presidentProfile.address},
+                        cidade = ${presidentProfile.city},
+                        pais = ${presidentProfile.country},
+                        updated_at = NOW()
+                    WHERE id = ${organizationId}
+                `;
+
+                if (presidenteUserId) {
+                    await sql`
+                        INSERT INTO clubes (
+                            organization_id,
+                            presidente_user_id,
+                            nome,
+                            modalidade,
+                            iban,
+                            nipc,
+                            website,
+                            telefone,
+                            codigo_postal,
+                            morada,
+                            cidade,
+                            pais,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            ${organizationId},
+                            ${presidenteUserId},
+                            ${presidentProfile.clubName},
+                            ${presidentProfile.sport},
+                            ${presidentProfile.iban},
+                            ${presidentProfile.nipc},
+                            ${presidentProfile.website},
+                            ${presidentProfile.phone},
+                            ${presidentProfile.postalCode},
+                            ${presidentProfile.address},
+                            ${presidentProfile.city},
+                            ${presidentProfile.country},
+                            NOW(),
+                            NOW()
+                        )
+                        ON CONFLICT (presidente_user_id)
+                        DO UPDATE SET
+                            organization_id = EXCLUDED.organization_id,
+                            nome = EXCLUDED.nome,
+                            modalidade = EXCLUDED.modalidade,
+                            iban = EXCLUDED.iban,
+                            nipc = EXCLUDED.nipc,
+                            website = EXCLUDED.website,
+                            telefone = EXCLUDED.telefone,
+                            codigo_postal = EXCLUDED.codigo_postal,
+                            morada = EXCLUDED.morada,
+                            cidade = EXCLUDED.cidade,
+                            pais = EXCLUDED.pais,
+                            updated_at = NOW()
+                    `;
+                }
+            }
+
+            const userExtraColumns = await sql<{ column_name: string }[]>`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'users'
+                  AND column_name IN (
+                    'iban',
+                    'nipc',
+                    'website',
+                    'telefone',
+                    'codigo_postal',
+                    'morada',
+                    'cidade',
+                    'pais'
+                  )
+            `;
+
+            const hasUserColumn = (column: string) =>
+                userExtraColumns.some((item) => item.column_name === column);
+
+            if (hasUserColumn("iban")) {
+                await sql`
+                    UPDATE users
+                    SET iban = ${presidentProfile.iban}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("nipc")) {
+                await sql`
+                    UPDATE users
+                    SET nipc = ${presidentProfile.nipc}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("website")) {
+                await sql`
+                    UPDATE users
+                    SET website = ${presidentProfile.website}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("telefone")) {
+                await sql`
+                    UPDATE users
+                    SET telefone = ${presidentProfile.phone}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("codigo_postal")) {
+                await sql`
+                    UPDATE users
+                    SET codigo_postal = ${presidentProfile.postalCode}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("morada")) {
+                await sql`
+                    UPDATE users
+                    SET morada = ${presidentProfile.address}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("cidade")) {
+                await sql`
+                    UPDATE users
+                    SET cidade = ${presidentProfile.city}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("pais")) {
+                await sql`
+                    UPDATE users
+                    SET pais = ${presidentProfile.country}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+        }
 
         if (hasDataNascimento && hasIdade) {
             await sql`

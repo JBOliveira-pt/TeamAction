@@ -23,8 +23,31 @@ const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MIN_SIGNUP_AGE = 5;
 const MAX_SIGNUP_AGE = 120;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
+const PORTUGAL_COUNTRY = "Portugal";
+const PRESIDENT_SPORT_OPTIONS = [
+    "Basquetebol",
+    "andebol",
+    "futsal",
+    "voleibol",
+    "ténis",
+    "ténis de mesa",
+    "badminton",
+    "padel",
+    "pickleball",
+    "squash",
+    "racquetball",
+    "hóquei em patins",
+    "floorball",
+    "corfebol",
+    "voleibol sentado",
+    "basquetebol em cadeira de rodas",
+    "andebol em cadeira de rodas",
+    "goalball",
+    "hóquei indoor",
+] as const;
 
-type SignUpStage = "form" | "verify";
+type SignUpStage = "form" | "president-profile" | "verify";
 
 const ACCOUNT_TYPE_OPTIONS: {
     value: AccountType;
@@ -110,6 +133,31 @@ function isValidEmailFormat(value: string): boolean {
     return EMAIL_REGEX.test(value.trim());
 }
 
+function normalizePostalCode(value: string): string {
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length <= 4) {
+        return digitsOnly;
+    }
+
+    return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 7)}`;
+}
+
+async function fetchCityByPostalCode(
+    postalCode: string,
+): Promise<string | null> {
+    const response = await fetch(`https://api.zippopotam.us/PT/${postalCode}`);
+
+    if (!response.ok) {
+        return null;
+    }
+
+    const data = (await response.json()) as {
+        places?: Array<{ "place name"?: string }>;
+    };
+
+    return data.places?.[0]?.["place name"]?.trim() || null;
+}
+
 export default function CustomSignUpForm() {
     const { minBirthDate, maxBirthDate } = getBirthDateBounds();
     const router = useRouter();
@@ -132,6 +180,16 @@ export default function CustomSignUpForm() {
     const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
     const [alturaCm, setAlturaCm] = useState("");
     const [pesoKg, setPesoKg] = useState("");
+    const [presidentClubName, setPresidentClubName] = useState("");
+    const [presidentSport, setPresidentSport] = useState("");
+    const [presidentIban, setPresidentIban] = useState("");
+    const [presidentNipc, setPresidentNipc] = useState("");
+    const [presidentWebsite, setPresidentWebsite] = useState("");
+    const [presidentPhone, setPresidentPhone] = useState("");
+    const [presidentPostalCode, setPresidentPostalCode] = useState("");
+    const [presidentAddress, setPresidentAddress] = useState("");
+    const [presidentCity, setPresidentCity] = useState("");
+    const [isResolvingCity, setIsResolvingCity] = useState(false);
 
     useEffect(() => {
         return () => {
@@ -164,6 +222,109 @@ export default function CustomSignUpForm() {
         }
 
         return "Nao foi possivel concluir o registo.";
+    };
+
+    const validatePresidentProfile = () => {
+        if (!presidentClubName.trim()) {
+            return "Nome do clube é obrigatório.";
+        }
+
+        if (!presidentSport.trim()) {
+            return "Modalidade é obrigatória.";
+        }
+
+        if (
+            !PRESIDENT_SPORT_OPTIONS.some(
+                (option) => option === presidentSport.trim(),
+            )
+        ) {
+            return "Selecione uma modalidade válida da lista.";
+        }
+
+        const normalizedPostalCode = normalizePostalCode(presidentPostalCode);
+        if (
+            normalizedPostalCode.length > 0 &&
+            !POSTAL_CODE_REGEX.test(normalizedPostalCode)
+        ) {
+            return "Código Postal inválido. Use o formato 0000-000.";
+        }
+
+        if (normalizedPostalCode && !presidentCity.trim()) {
+            return "Cidade é obrigatória quando o Código Postal é preenchido.";
+        }
+
+        return null;
+    };
+
+    const createSignupAndSendVerification = async () => {
+        if (!signUp) {
+            throw new Error("Signup ainda não está disponível.");
+        }
+
+        await signUp.create({
+            emailAddress,
+            password,
+            firstName,
+            lastName,
+            unsafeMetadata: {
+                accountType,
+                dateOfBirth: birthDate,
+                presidentProfile:
+                    accountType === "presidente"
+                        ? {
+                              clubName: presidentClubName.trim(),
+                              sport: presidentSport.trim(),
+                              iban: presidentIban.trim() || null,
+                              nipc: presidentNipc.trim() || null,
+                              website: presidentWebsite.trim() || null,
+                              phone: presidentPhone.trim() || null,
+                              postalCode:
+                                  normalizePostalCode(presidentPostalCode) ||
+                                  null,
+                              address: presidentAddress.trim() || null,
+                              city: presidentCity.trim() || null,
+                              country: PORTUGAL_COUNTRY,
+                          }
+                        : null,
+            },
+        });
+
+        await signUp.prepareEmailAddressVerification({
+            strategy: "email_code",
+        });
+
+        setStage("verify");
+    };
+
+    const handleResolveCityByPostalCode = async () => {
+        const postalCode = normalizePostalCode(presidentPostalCode);
+
+        if (!POSTAL_CODE_REGEX.test(postalCode)) {
+            setErrorMessage("Código Postal inválido. Use o formato 0000-000.");
+            return;
+        }
+
+        setErrorMessage(null);
+        setIsResolvingCity(true);
+
+        try {
+            const city = await fetchCityByPostalCode(postalCode);
+            if (!city) {
+                setErrorMessage(
+                    "Não foi possível obter a cidade para este Código Postal.",
+                );
+                return;
+            }
+
+            setPresidentPostalCode(postalCode);
+            setPresidentCity(city);
+        } catch {
+            setErrorMessage(
+                "Não foi possível obter a cidade para este Código Postal.",
+            );
+        } finally {
+            setIsResolvingCity(false);
+        }
     };
 
     const handleCreateAccount = async (event: FormEvent<HTMLFormElement>) => {
@@ -215,23 +376,40 @@ export default function CustomSignUpForm() {
             return;
         }
 
+        if (accountType === "presidente") {
+            setIsSubmitting(false);
+            setStage("president-profile");
+            return;
+        }
+
         try {
-            await signUp.create({
-                emailAddress,
-                password,
-                firstName,
-                lastName,
-                unsafeMetadata: {
-                    accountType,
-                    dateOfBirth: birthDate,
-                },
-            });
+            await createSignupAndSendVerification();
+        } catch (error) {
+            setErrorMessage(getClerkErrorMessage(error));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-            await signUp.prepareEmailAddressVerification({
-                strategy: "email_code",
-            });
+    const handlePresidentProfileSubmit = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
 
-            setStage("verify");
+        if (!isLoaded) return;
+
+        setIsSubmitting(true);
+        setErrorMessage(null);
+
+        const presidentError = validatePresidentProfile();
+        if (presidentError) {
+            setIsSubmitting(false);
+            setErrorMessage(presidentError);
+            return;
+        }
+
+        try {
+            await createSignupAndSendVerification();
         } catch (error) {
             setErrorMessage(getClerkErrorMessage(error));
         } finally {
@@ -332,6 +510,21 @@ export default function CustomSignUpForm() {
             if (accountType === "atleta") {
                 payload.append("altura_cm", alturaCm);
                 payload.append("peso_kg", pesoKg);
+            }
+            if (accountType === "presidente") {
+                payload.append("president_club_name", presidentClubName.trim());
+                payload.append("president_sport", presidentSport.trim());
+                payload.append("president_iban", presidentIban.trim());
+                payload.append("president_nipc", presidentNipc.trim());
+                payload.append("president_website", presidentWebsite.trim());
+                payload.append("president_phone", presidentPhone.trim());
+                payload.append(
+                    "president_postal_code",
+                    normalizePostalCode(presidentPostalCode),
+                );
+                payload.append("president_address", presidentAddress.trim());
+                payload.append("president_city", presidentCity.trim());
+                payload.append("president_country", PORTUGAL_COUNTRY);
             }
 
             const profileResponse = await fetch("/api/account-type", {
@@ -638,6 +831,229 @@ export default function CustomSignUpForm() {
                                 {isSubmitting
                                     ? "A criar conta..."
                                     : `Continuar como ${accountTypeLabel}`}
+                            </button>
+                        </div>
+                    </form>
+                ) : stage === "president-profile" ? (
+                    <form
+                        className="space-y-6"
+                        onSubmit={handlePresidentProfileSubmit}
+                    >
+                        <div className="rounded-lg border border-blue-200/20 bg-slate-900/50 p-4">
+                            <p className="text-sm font-semibold text-white">
+                                Presidente - Dados do Clube
+                            </p>
+                            <p className="mt-1 text-xs text-slate-300">
+                                Preencha os dados para criação do perfil do
+                                clube.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Nome
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={presidentClubName}
+                                    onChange={(event) =>
+                                        setPresidentClubName(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Nome do clube"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Modalidade
+                                </label>
+                                <select
+                                    required
+                                    value={presidentSport}
+                                    onChange={(event) =>
+                                        setPresidentSport(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="">
+                                        Selecione uma modalidade
+                                    </option>
+                                    {PRESIDENT_SPORT_OPTIONS.map((sport) => (
+                                        <option key={sport} value={sport}>
+                                            {sport}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    IBAN (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={presidentIban}
+                                    onChange={(event) =>
+                                        setPresidentIban(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="PT50..."
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    NIPC (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={presidentNipc}
+                                    onChange={(event) =>
+                                        setPresidentNipc(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="NIPC"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Website (opcional)
+                                </label>
+                                <input
+                                    type="url"
+                                    value={presidentWebsite}
+                                    onChange={(event) =>
+                                        setPresidentWebsite(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="https://"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Telefone (opcional)
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={presidentPhone}
+                                    onChange={(event) =>
+                                        setPresidentPhone(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Ex: 912345678"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Código Postal (opcional)
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={presidentPostalCode}
+                                        onChange={(event) =>
+                                            setPresidentPostalCode(
+                                                normalizePostalCode(
+                                                    event.target.value,
+                                                ),
+                                            )
+                                        }
+                                        maxLength={8}
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="0000-000"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleResolveCityByPostalCode}
+                                        disabled={isResolvingCity}
+                                        className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                                    >
+                                        {isResolvingCity
+                                            ? "A obter..."
+                                            : "Obter cidade"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Cidade (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={presidentCity}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                    placeholder="Preenchida automaticamente"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Morada (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={presidentAddress}
+                                    onChange={(event) =>
+                                        setPresidentAddress(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Complemento da morada"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    País
+                                </label>
+                                <input
+                                    type="text"
+                                    value={PORTUGAL_COUNTRY}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        {errorMessage && (
+                            <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
+                                {errorMessage}
+                            </p>
+                        )}
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setStage("form")}
+                                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-emerald-600"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!isLoaded || isSubmitting}
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
+                            >
+                                {isSubmitting
+                                    ? "A criar conta..."
+                                    : "Continuar verificação"}
                             </button>
                         </div>
                     </form>
