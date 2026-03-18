@@ -321,24 +321,36 @@ export async function adminDeleteUserAction(
 
     try {
         await sql.begin(async (tx) => {
-            await deleteInvoicesAndReceiptsByUser(tx, userId);
-            await deleteByColumnIfExists(tx, "customers", "created_by", userId);
-            await deleteByColumnIfExists(tx, "atletas", "user_id", userId);
-            await deleteByColumnIfExists(tx, "staff", "user_id", userId);
+            const executor = tx as unknown as SqlExecutor;
+
+            await deleteInvoicesAndReceiptsByUser(executor, userId);
             await deleteByColumnIfExists(
-                tx,
+                executor,
+                "customers",
+                "created_by",
+                userId,
+            );
+            await deleteByColumnIfExists(
+                executor,
+                "atletas",
+                "user_id",
+                userId,
+            );
+            await deleteByColumnIfExists(executor, "staff", "user_id", userId);
+            await deleteByColumnIfExists(
+                executor,
                 "notificacoes",
                 "recipient_user_id",
                 userId,
             );
             await deleteByColumnIfExists(
-                tx,
+                executor,
                 "user_action_logs",
                 "user_id",
                 userId,
             );
 
-            await tx`
+            await executor`
                 DELETE FROM users
                 WHERE id = ${userId}
             `;
