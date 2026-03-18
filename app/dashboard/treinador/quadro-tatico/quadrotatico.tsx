@@ -32,6 +32,9 @@ export default function TacticalBoard() {
     const [system, setSystem] = useState(0);
     const [players, setPlayers] = useState(initialPlayers);
     const [dragged, setDragged] = useState<number | null>(null);
+    const [showNewPlayModal, setShowNewPlayModal] = useState(false);
+    const [newPlayName, setNewPlayName] = useState("");
+    const [newPlayType, setNewPlayType] = useState("Personalizada");
 
     // Funcionalidades dos botões
     function handleSave() {
@@ -48,13 +51,19 @@ export default function TacticalBoard() {
         }
     }
     function handleNewPlay() {
+        setShowNewPlayModal(true);
+    }
+    function handleCreatePlay() {
+        if (!newPlayName.trim()) return;
         const newPlay = {
-            name: `Nova Jogada ${savedPlays.length + 1}`,
-            type: "Personalizada",
+            name: newPlayName.trim(),
+            type: newPlayType,
         };
         setSavedPlays([...savedPlays, newPlay]);
         setSelectedPlay(savedPlays.length);
-        alert("Nova jogada criada!");
+        setShowNewPlayModal(false);
+        setNewPlayName("");
+        setNewPlayType("Personalizada");
     }
     function handleUndo() {
         if (savedPlays.length > 0) {
@@ -103,29 +112,73 @@ export default function TacticalBoard() {
     }
 
     return (
-        <div className="w-full px-6 py-8 bg-white flex flex-col lg:flex-row gap-8 min-h-screen">
-            <div className="flex-1 flex flex-col items-center">
-                <div className="mb-6 w-full max-w-3xl">
-                    <h2 className="text-2xl font-bold text-purple-700 flex items-center gap-2 mb-1">
-                        <span>📋</span> Quadro Tático
-                    </h2>
-                    <div className="text-gray-500 text-sm">
-                        Editor de jogadas · Seniores Masculinos
+        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col lg:flex-row gap-8">
+            {/* Modal Nova Jogada */}
+            {showNewPlayModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-xs border border-blue-100 dark:border-blue-900 flex flex-col gap-4 animate-fade-in">
+                        <div className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
+                            <span>✨</span> Nova Jogada
+                        </div>
+                        <input
+                            className="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            placeholder="Nome da jogada"
+                            value={newPlayName}
+                            onChange={(e) => setNewPlayName(e.target.value)}
+                            autoFocus
+                        />
+                        <select
+                            className="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            value={newPlayType}
+                            onChange={(e) => setNewPlayType(e.target.value)}
+                        >
+                            <option value="Personalizada">Personalizada</option>
+                            <option value="Ataque">Ataque</option>
+                            <option value="Defesa">Defesa</option>
+                            <option value="Transição">Transição</option>
+                            <option value="Bola Parada">Bola Parada</option>
+                        </select>
+                        <div className="flex gap-2 mt-2">
+                            <button
+                                className="flex-1 bg-indigo-600 text-white rounded-lg py-2 font-bold border border-indigo-600 hover:bg-indigo-700 transition"
+                                onClick={handleCreatePlay}
+                                disabled={!newPlayName.trim()}
+                            >
+                                Guardar
+                            </button>
+                            <button
+                                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg py-2 font-bold border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                                onClick={() => setShowNewPlayModal(false)}
+                            >
+                                Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-2 mb-6 w-full max-w-3xl justify-center">
+            )}
+            <div className="flex-1 flex flex-col">
+                <div className="mb-6 w-full">
+                    <h2 className="text-2xl font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-3 mb-1">
+                        <span>📋</span> Quadro Tático
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        Editor de jogadas · Seniores Masculinos
+                    </p>
+                </div>
+                <div className="flex gap-3 mb-6 w-full justify-center">
                     {systems.map((s, i) => (
                         <button
                             key={s}
-                            className={`px-4 py-1 rounded-lg font-bold text-sm border transition-all duration-150 ${system === i ? "bg-purple-500 text-white border-purple-500" : "bg-white text-purple-500 border-gray-300 hover:bg-gray-100"}`}
+                            className={`px-5 py-2 rounded-xl font-bold text-base border-2 transition-all duration-150 shadow-md flex items-center gap-2 tracking-wide ${system === i ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"}`}
                             onClick={() => setSystem(i)}
+                            title={`Selecionar sistema ${s}`}
                         >
-                            {s}
+                            <span className="text-lg">🧩</span> {s}
                         </button>
                     ))}
                 </div>
                 <div
-                    className="relative mb-6 rounded-xl border border-green-200 bg-green-50 flex items-center justify-center overflow-hidden w-full max-w-3xl"
+                    className="relative mb-6 rounded-2xl border-2 border-green-200 bg-green-50 flex items-center justify-center overflow-hidden w-full shadow-lg"
                     style={{ height: 400 }}
                     onMouseMove={(e) => {
                         if (dragged !== null) {
@@ -197,7 +250,7 @@ export default function TacticalBoard() {
                     {players.map((p, idx) => (
                         <div
                             key={p.id}
-                            className={`absolute w-8 h-8 flex items-center justify-center rounded-full border-2 font-bold shadow-lg select-none cursor-move ${p.color === "blue" ? "bg-blue-500 border-white text-white" : "bg-red-500 border-white text-white"}`}
+                            className={`absolute w-9 h-9 flex items-center justify-center rounded-full border-2 font-bold shadow-lg select-none cursor-move text-base transition-all duration-150 ${p.color === "blue" ? "bg-blue-500 border-white text-white" : "bg-red-500 border-white text-white"}`}
                             style={{
                                 left: `${p.x}%`,
                                 top: `${p.y}%`,
@@ -209,93 +262,84 @@ export default function TacticalBoard() {
                         </div>
                     ))}
                 </div>
-                <div className="flex gap-2 mb-6 w-full max-w-3xl">
+                <div className="flex gap-3 mb-6 w-full">
                     <button
-                        className="flex-1 bg-gray-100 text-gray-700 rounded-lg py-2 font-bold border border-gray-200 flex items-center justify-center gap-2"
+                        className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl py-3 font-bold border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-base"
                         onClick={handleCapture}
                     >
-                        <span role="img" aria-label="camera">
-                            📸
-                        </span>{" "}
-                        Captura
+                        <span className="text-xl">📸</span> Captura
                     </button>
                     <button
-                        className="flex-1 bg-gray-100 text-gray-700 rounded-lg py-2 font-bold border border-gray-200 flex items-center justify-center gap-2"
+                        className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl py-3 font-bold border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-base"
                         onClick={handleAnimation}
                     >
-                        <span role="img" aria-label="animation">
-                            🎞️
-                        </span>{" "}
-                        Animação
+                        <span className="text-xl">🎞️</span> Animação
                     </button>
                     <button
-                        className="flex-1 bg-purple-500 text-white rounded-lg py-2 font-bold border border-purple-500 flex items-center justify-center gap-2"
+                        className="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-bold shadow-md flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all text-base"
                         onClick={handleShare}
                     >
-                        <span role="img" aria-label="share">
-                            🧑‍🤝‍🧑
-                        </span>{" "}
-                        Partilhar
+                        <span className="text-xl">🧑‍🤝‍🧑</span> Partilhar
                     </button>
                 </div>
             </div>
             {/* Painel lateral direito */}
             <div className="w-full lg:w-80 flex flex-col gap-4">
-                <div className="flex gap-2">
+                <div className="flex gap-3 mb-2">
                     <button
-                        className="flex-1 bg-gray-200 text-gray-700 rounded-lg py-2 font-bold border border-gray-300"
+                        className="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-bold shadow-md flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all text-base"
                         onClick={handleSave}
                     >
-                        Guardar
+                        <span className="text-xl">💾</span> Guardar
                     </button>
                     <button
-                        className="flex-1 bg-purple-500 text-white rounded-lg py-2 font-bold border border-purple-500"
+                        className="flex-1 bg-indigo-600 text-white rounded-xl py-3 font-bold shadow-md flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all text-base"
                         onClick={handleNewPlay}
                     >
-                        ＋ Nova Jogada
+                        <span className="text-xl">＋</span> Nova Jogada
                     </button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3 mb-2">
                     <button
-                        className="flex-1 bg-gray-100 text-gray-700 rounded-lg py-2 font-bold border border-gray-200"
+                        className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl py-3 font-bold border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-base"
                         onClick={handleUndo}
                     >
-                        ↩️ Desfazer
+                        <span className="text-xl">↩️</span> Desfazer
                     </button>
                     <button
-                        className="flex-1 bg-gray-100 text-gray-700 rounded-lg py-2 font-bold border border-gray-200"
+                        className="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl py-3 font-bold border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-base"
                         onClick={handleClear}
                     >
-                        🧹 Limpar
+                        <span className="text-xl">🧹</span> Limpar
                     </button>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl p-4 flex-1">
-                    <div className="font-bold text-gray-700 mb-2">
-                        Jogadas Guardadas
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex-1 shadow-sm">
+                    <div className="font-bold text-gray-900 dark:text-white mb-2 text-lg flex items-center gap-2">
+                        <span>📑</span> Jogadas Guardadas
                     </div>
                     <div className="flex flex-col gap-2">
                         {savedPlays.map((p, i) => (
                             <div key={i} className="flex items-center gap-2">
                                 <button
-                                    className={`flex-1 text-left px-3 py-2 rounded-lg border transition-all duration-150 ${selectedPlay === i ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 bg-gray-50 text-gray-700"}`}
+                                    className={`flex-1 text-left px-3 py-2 rounded-lg border transition-all duration-150 text-sm ${selectedPlay === i ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"}`}
                                     onClick={() => setSelectedPlay(i)}
                                 >
                                     <div className="font-bold text-sm">
                                         {p.name}
                                     </div>
-                                    <div className="text-xs text-gray-500">
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
                                         {p.type}
                                     </div>
                                 </button>
                                 <button
-                                    className="text-xs text-blue-500 px-2"
+                                    className="text-xs text-blue-500 px-2 hover:text-blue-700"
                                     title="Editar"
                                     onClick={() => handleEditPlay(i)}
                                 >
                                     ✏️
                                 </button>
                                 <button
-                                    className="text-xs text-red-500 px-2"
+                                    className="text-xs text-red-500 px-2 hover:text-red-700"
                                     title="Remover"
                                     onClick={() => handleRemovePlay(i)}
                                 >
@@ -304,7 +348,7 @@ export default function TacticalBoard() {
                             </div>
                         ))}
                         <button
-                            className="w-full text-xs text-purple-500 mt-2"
+                            className="w-full text-xs text-blue-500 dark:text-blue-400 mt-2 hover:underline"
                             onClick={handleViewAll}
                         >
                             Ver todas →
