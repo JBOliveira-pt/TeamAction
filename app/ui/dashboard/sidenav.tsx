@@ -462,6 +462,7 @@ export default function SideNav() {
                     )}
                     {!isCreatingProfile && activeProfile === 'atleta' && (
                         <>
+                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
                                 icon={<LayoutDashboard size={20} />}
                                 label="Painel do jogador"
@@ -469,15 +470,9 @@ export default function SideNav() {
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
-                                icon={<Heart size={20} />}
-                                label="Médico"
-                                href="/dashboard/atleta/medico"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<TrendingUp size={20} />}
-                                label="Estatísticas de treino"
-                                href="/dashboard/atleta/estatisticas"
+                                icon={<Calendar size={20} />}
+                                label="Calendário"
+                                href="/dashboard/atleta/calendario"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
@@ -492,15 +487,67 @@ export default function SideNav() {
                                 href="/dashboard/atleta/notas"
                                 onClick={() => setIsOpen(false)}
                             />
+                            <NavSectionLabel>Saúde</NavSectionLabel>
+                            <NavItem
+                                icon={<Heart size={20} />}
+                                label="Médico"
+                                href="/dashboard/atleta/medico"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Activity size={20} />}
+                                label="Condição Física"
+                                href="/dashboard/pai/condicao-fisica"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Desempenho</NavSectionLabel>
+                            <NavItem
+                                icon={<TrendingUp size={20} />}
+                                label="Estatísticas de treino"
+                                href="/dashboard/atleta/estatisticas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Trophy size={20} />}
+                                label="Jogos"
+                                href="/dashboard/pai/jogos"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Financeiro</NavSectionLabel>
+                            <NavItem
+                                icon={<Receipt size={20} />}
+                                label="Mensalidades"
+                                href="/dashboard/pai/mensalidades"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavSectionLabel>Clube</NavSectionLabel>
+                            <NavItem
+                                icon={<Bell size={20} />}
+                                label="Comunicados"
+                                href="/dashboard/pai/comunicados"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<ShieldCheck size={20} />}
+                                label="Autorizações"
+                                href="/dashboard/pai/autorizacoes"
+                                onClick={() => setIsOpen(false)}
+                            />
                         </>
                     )}
                     {!isCreatingProfile && activeProfile === 'pai' && (
                         <>
-                            <NavSectionLabel>O Meu Filho</NavSectionLabel>
+                            <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
                                 icon={<LayoutDashboard size={20} />}
                                 label="Painel do filho"
                                 href="/dashboard/pai"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Calendar size={20} />}
+                                label="Calendário"
+                                href="/dashboard/pai/calendario"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
@@ -533,13 +580,6 @@ export default function SideNav() {
                                 icon={<Trophy size={20} />}
                                 label="Jogos"
                                 href="/dashboard/pai/jogos"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavSectionLabel>Agenda</NavSectionLabel>
-                            <NavItem
-                                icon={<Calendar size={20} />}
-                                label="Calendário"
-                                href="/dashboard/pai/calendario"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavSectionLabel>Financeiro</NavSectionLabel>

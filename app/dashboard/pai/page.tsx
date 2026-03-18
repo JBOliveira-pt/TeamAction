@@ -1,131 +1,299 @@
 'use client';
 
-import { Activity, Calendar, ChevronRight, Heart, Receipt } from 'lucide-react';
-import Link from 'next/link';
+// ─── mock data (substitui por fetch real quando tiveres a API) ───────────────
+const atleta = {
+    nome: 'Martim Silva',
+    posicao: 'Extremo Direito',
+    numero: 7,
+    equipa: 'Sub-16 Masculinos',
+    mao: 'Mão Direita',
+    estado: 'Ativo',
+    epoca: '24/25',
+    proximoTreino: { hora: 'Qua 18h30', local: 'Pav. Escola Sec. Almada' },
+};
 
-function StatCard({
-    title,
-    value,
-    sub,
-    valueColor,
-    href,
-}: {
-    title: string;
-    value: string;
-    sub?: string;
-    valueColor?: string;
-    href?: string;
-}) {
-    const inner = (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col gap-2 h-full">
-            <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                    {title}
-                </span>
-                {href && <ChevronRight size={16} className="text-gray-400" />}
-            </div>
-            <span
-                className={`text-2xl font-bold ${valueColor ?? 'text-gray-900 dark:text-white'}`}
-            >
-                {value}
-            </span>
-            {sub && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {sub}
-                </span>
-            )}
-        </div>
-    );
-    return href ? <Link href={href}>{inner}</Link> : <div>{inner}</div>;
-}
+const kpis = [
+    {
+        title: 'Assiduidade',
+        value: '89%',
+        sub: '24/27 treinos',
+        color: 'text-emerald-500',
+    },
+    {
+        title: 'Golos Época',
+        value: '23',
+        sub: '2.1 / jogo',
+        color: 'text-gray-900 dark:text-white',
+    },
+    {
+        title: 'Assistências',
+        value: '11',
+        sub: 'Top 5 equipa',
+        color: 'text-gray-900 dark:text-white',
+    },
+    {
+        title: 'Min. Jogados',
+        value: '380',
+        sub: '11 jogos',
+        color: 'text-gray-900 dark:text-white',
+    },
+];
 
-function QuickLink({
-    icon,
-    label,
-    href,
-}: {
-    icon: React.ReactNode;
-    label: string;
-    href: string;
-}) {
+const condicaoFisica = [
+    { label: 'Peso', valor: '68 kg', pct: 55, color: '#00d4ff' },
+    { label: 'Altura', valor: '176 cm', pct: 72, color: '#10b981' },
+    { label: 'Velocidade (30m)', valor: '4.3s', pct: 74, color: '#f59e0b' },
+    { label: 'Impulsão Vertical', valor: '48 cm', pct: 60, color: '#8b5cf6' },
+];
+
+const macros = [
+    {
+        label: 'Proteína',
+        atual: '130g',
+        meta: '150g',
+        pct: 87,
+        color: '#00d4ff',
+    },
+    {
+        label: 'Hidratos',
+        atual: '240g',
+        meta: '280g',
+        pct: 86,
+        color: '#10b981',
+    },
+    { label: 'Gordura', atual: '52g', meta: '60g', pct: 87, color: '#f59e0b' },
+];
+
+const eventos = [
+    {
+        data: '4 Mar · 18h30',
+        tipo: 'Treino',
+        tipoCor: 'purple',
+        descricao: 'Sessão Tática',
+        local: 'Pav. Escola Sec. Almada',
+        estado: 'Confirmado',
+        estadoCor: 'green',
+    },
+    {
+        data: '8 Mar · 15h',
+        tipo: 'Jogo',
+        tipoCor: 'blue',
+        descricao: 'vs Odivelas',
+        local: 'Casa',
+        estado: 'Pendente',
+        estadoCor: 'orange',
+    },
+    {
+        data: '11 Mar · 18h30',
+        tipo: 'Treino',
+        tipoCor: 'purple',
+        descricao: 'Sessão Física',
+        local: 'Pav. Escola Sec. Almada',
+        estado: 'Agendado',
+        estadoCor: 'blue',
+    },
+];
+
+const badgeColors: Record<string, string> = {
+    green: 'bg-emerald-950 text-emerald-400 border border-emerald-800',
+    red: 'bg-red-950 text-red-400 border border-red-800',
+    orange: 'bg-amber-950 text-amber-400 border border-amber-800',
+    blue: 'bg-cyan-950 text-cyan-400 border border-cyan-800',
+    purple: 'bg-indigo-950 text-indigo-400 border border-indigo-800',
+};
+
+function Badge({ label, color }: { label: string; color: string }) {
     return (
-        <Link
-            href={href}
-            className="flex items-center gap-3 p-4 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        <span
+            className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${badgeColors[color] ?? badgeColors.blue}`}
         >
-            <span className="text-blue-500">{icon}</span>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                {label}
-            </span>
-            <ChevronRight size={16} className="text-gray-400 ml-auto" />
-        </Link>
+            {label}
+        </span>
     );
 }
 
+// ─── page ─────────────────────────────────────────────────────────────────────
 export default function PaiDashboard() {
     return (
         <main className="p-6 space-y-6 bg-gray-50 dark:bg-gray-950 min-h-screen">
-            <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Painel do filho
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                    Visão geral da época atual
-                </p>
+            {/* ── Cabeçalho do atleta ── */}
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex items-center gap-5">
+                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 flex items-center justify-center text-3xl flex-shrink-0">
+                    👦
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                        {atleta.nome}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        {atleta.posicao} · Nº {atleta.numero} · {atleta.equipa}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge label={atleta.mao} color="blue" />
+                        <Badge label={atleta.estado} color="green" />
+                        <Badge label={`Época ${atleta.epoca}`} color="purple" />
+                    </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Próximo treino
+                    </p>
+                    <p className="text-base font-bold text-gray-900 dark:text-white mt-1">
+                        {atleta.proximoTreino.hora}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        {atleta.proximoTreino.local}
+                    </p>
+                </div>
             </div>
 
-            {/* stat cards */}
+            {/* ── KPI cards ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                    title="Status médico"
-                    value="Disponível"
-                    valueColor="text-emerald-500"
-                    href="/dashboard/pai/medico"
-                />
-                <StatCard
-                    title="Participação"
-                    value="—"
-                    sub="em 1 sessões nesta temporada"
-                />
-                <StatCard
-                    title="Próximo treino"
-                    value="—"
-                    sub="Sem treinos agendados"
-                />
-                <StatCard
-                    title="Mensalidades"
-                    value="Em dia"
-                    valueColor="text-emerald-500"
-                    href="/dashboard/pai/mensalidades"
-                />
+                {kpis.map((k) => (
+                    <div
+                        key={k.title}
+                        className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col gap-2"
+                    >
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {k.title}
+                        </span>
+                        <span
+                            className={`text-3xl font-bold font-mono ${k.color}`}
+                        >
+                            {k.value}
+                        </span>
+                        <span className="text-xs text-gray-400">{k.sub}</span>
+                    </div>
+                ))}
             </div>
 
-            {/* quick links */}
+            {/* ── Condição Física + Plano Alimentar ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Condição Física */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col gap-4">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        💪 Condição Física
+                    </span>
+                    <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800">
+                        {condicaoFisica.map((s) => (
+                            <div
+                                key={s.label}
+                                className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                            >
+                                <span className="text-sm text-gray-500 dark:text-gray-400 w-40 flex-shrink-0">
+                                    {s.label}
+                                </span>
+                                <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full"
+                                        style={{
+                                            width: `${s.pct}%`,
+                                            background: s.color,
+                                        }}
+                                    />
+                                </div>
+                                <span className="text-sm font-bold font-mono text-gray-900 dark:text-white w-14 text-right">
+                                    {s.valor}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Plano Alimentar */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col gap-4">
+                    <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        🥗 Plano Alimentar Hoje
+                    </span>
+                    <div className="flex flex-col gap-4">
+                        {macros.map((m) => (
+                            <div key={m.label}>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="text-gray-600 dark:text-gray-300 font-medium">
+                                        {m.label}
+                                    </span>
+                                    <span
+                                        className="font-semibold"
+                                        style={{ color: m.color }}
+                                    >
+                                        {m.atual} / {m.meta}
+                                    </span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full"
+                                        style={{
+                                            width: `${m.pct}%`,
+                                            background: m.color,
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-xs text-center text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        2.320 kcal consumidas de 2.680 kcal
+                    </p>
+                </div>
+            </div>
+
+            {/* ── Próximos Eventos ── */}
             <div>
-                <h2 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">
-                    Acesso rápido
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <QuickLink
-                        icon={<Heart size={20} />}
-                        label="Médico"
-                        href="/dashboard/pai/medico"
-                    />
-                    <QuickLink
-                        icon={<Activity size={20} />}
-                        label="Condição Física"
-                        href="/dashboard/pai/condicao-fisica"
-                    />
-                    <QuickLink
-                        icon={<Calendar size={20} />}
-                        label="Calendário"
-                        href="/dashboard/pai/calendario"
-                    />
-                    <QuickLink
-                        icon={<Receipt size={20} />}
-                        label="Mensalidades"
-                        href="/dashboard/pai/mensalidades"
-                    />
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                    📅 Próximos Eventos
+                    <span className="flex-1 border-t border-gray-200 dark:border-gray-800 ml-2" />
+                </h3>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                                {[
+                                    'Data',
+                                    'Tipo',
+                                    'Descrição',
+                                    'Local',
+                                    'Estado',
+                                ].map((h) => (
+                                    <th
+                                        key={h}
+                                        className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                                    >
+                                        {h}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {eventos.map((e) => (
+                                <tr
+                                    key={e.data}
+                                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                                >
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {e.data}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <Badge
+                                            label={e.tipo}
+                                            color={e.tipoCor}
+                                        />
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                                        {e.descricao}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                                        {e.local}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <Badge
+                                            label={e.estado}
+                                            color={e.estadoCor}
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>
