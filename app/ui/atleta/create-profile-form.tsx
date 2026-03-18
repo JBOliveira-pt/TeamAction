@@ -325,13 +325,13 @@ export default function CreateAtletaProfileForm({
                         className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                         <ArrowLeftIcon className="w-4 h-4" />
-                        {isAdmin ? "Ignorar por agora" : "Cancelar"}
+                        Cancelar
                     </Link>
                     <button
                         type="submit"
                         disabled={isPending}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors"
-                        Cancelar
+                    >
                         {isPending ? "A guardar..." : "Criar Perfil"}
                     </button>
                 </div>
