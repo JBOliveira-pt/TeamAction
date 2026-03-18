@@ -8,7 +8,7 @@ const incialbibliotecaData = [
         views: 34,
         added: "3 Mar",
         mine: true,
-        badge: "bg-blue-600",
+        badge: "bg-purple-600",
     },
     {
         title: "Defesa 5-1 Agressiva",
@@ -32,7 +32,7 @@ const incialbibliotecaData = [
         views: 41,
         added: "20 Fev",
         mine: true,
-        badge: "bg-blue-600",
+        badge: "bg-purple-600",
     },
     {
         title: "Bloco Baixo 6-0",
@@ -64,7 +64,7 @@ const incialbibliotecaData = [
         views: 27,
         added: "5 Fev",
         mine: true,
-        badge: "bg-blue-600",
+        badge: "bg-purple-600",
     },
     {
         title: "Saída Guarda-Redes",
@@ -135,7 +135,7 @@ export default function Biblioteca() {
         if (!newTitle.trim()) return;
         const badge =
             newCategory === "Ataque"
-                ? "bg-blue-600"
+                ? "bg-purple-600"
                 : newCategory === "Defesa"
                   ? "bg-red-600"
                   : newCategory === "Transição"
@@ -160,19 +160,19 @@ export default function Biblioteca() {
             {/* Modal Nova Jogada */}
             {showNewModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xs border border-purple-200 flex flex-col gap-4 animate-fade-in">
-                        <div className="text-base font-bold text-purple-700 flex items-center gap-2 mb-2">
+                    <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-6 w-full max-w-xs border border-blue-100 dark:border-blue-900 flex flex-col gap-4 animate-fade-in">
+                        <div className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-2">
                             <span>✨</span> Nova Jogada
                         </div>
                         <input
-                            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            className="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                             placeholder="Nome da jogada"
                             value={newTitle}
                             onChange={(e) => setNewTitle(e.target.value)}
                             autoFocus
                         />
                         <select
-                            className="border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            className="border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
                         >
@@ -190,7 +190,7 @@ export default function Biblioteca() {
                                 Guardar
                             </button>
                             <button
-                                className="flex-1 bg-gray-100 text-gray-700 rounded-lg py-2 font-bold border border-gray-200 hover:bg-gray-200 transition text-sm"
+                                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg py-2 font-bold border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm"
                                 onClick={() => setShowNewModal(false)}
                             >
                                 Cancelar
@@ -200,13 +200,13 @@ export default function Biblioteca() {
                 </div>
             )}
             <div className="w-full">
-                <h2 className="text-3xl text-purple-800 flex items-center gap-3 mb-1 drop-shadow-sm w-full">
-                    <span className="text-xl">📚</span> Biblioteca Tática
+                <h2 className="text-2xl font-bold text-purple-700 dark:text-purple-400 flex items-center gap-3 mb-1 w-full">
+                    <span>📚</span> Biblioteca Tática
                 </h2>
-                <div className="text-green-700 text-xs font-semibold tracking-wide mb-6 w-full">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-6 w-full">
                     {biblioteca.length} jogadas ·{" "}
                     {biblioteca.filter((d) => d.mine).length} criadas por ti
-                </div>
+                </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 mb-6 w-full">
                 <input
@@ -214,19 +214,19 @@ export default function Biblioteca() {
                     placeholder="Pesquisar jogadas..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 bg-white rounded-lg text-sm text-gray-900 placeholder:text-gray-400 shadow"
+                    className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 shadow"
                 />
                 {categories.map((cat) => (
                     <button
                         key={cat}
-                        className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all duration-150 shadow-sm ${filter === cat ? "bg-purple-600 text-white border-purple-600 scale-105" : "bg-white text-purple-700 border-gray-300 hover:bg-purple-50"}`}
+                        className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all duration-150 shadow-sm ${filter === cat ? "bg-purple-600 text-white border-purple-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"}`}
                         onClick={() => setFilter(cat)}
                     >
                         {cat === "As Minhas" ? <span>★</span> : cat}
                     </button>
                 ))}
                 <button
-                    className="ml-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-bold text-sm border border-purple-600 shadow hover:bg-purple-700 transition-all"
+                    className="ml-2 px-5 py-2.5 bg-purple-600 text-white rounded-xl font-bold text-sm shadow hover:bg-purple-700 transition-all flex items-center gap-1"
                     onClick={handleNewDoc}
                 >
                     <span className="text-base">＋</span> Nova Jogada
@@ -236,7 +236,7 @@ export default function Biblioteca() {
                 {filteredBiblioteca.map((doc, idx) => (
                     <div
                         key={idx}
-                        className="bg-white border border-purple-100 rounded-xl p-4 flex flex-col gap-2 relative shadow-md hover:shadow-lg transition-all"
+                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-2 relative shadow-sm hover:shadow-md transition-all"
                     >
                         <div className="absolute top-3 right-3">
                             {doc.mine && (
@@ -278,7 +278,7 @@ export default function Biblioteca() {
                                 ))}
                             </svg>
                         </div>
-                        <div className="font-bold text-base text-gray-900">
+                        <div className="font-bold text-base text-gray-900 dark:text-white">
                             {doc.title}
                         </div>
                         <div className="text-xs">
@@ -288,26 +288,26 @@ export default function Biblioteca() {
                                 {doc.category}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <span>{doc.views} visualizações</span>
                             <span>·</span>
                             <span>{doc.added}</span>
                         </div>
                         <div className="flex gap-2 mt-2">
                             <button
-                                className="flex-1 bg-white text-purple-700 rounded-lg py-2 font-bold border border-purple-200 hover:bg-purple-50 hover:border-purple-400 transition-all shadow-sm text-sm"
+                                className="flex-1 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 rounded-lg py-2 font-bold border border-gray-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all shadow-sm text-sm"
                                 onClick={() => handleView(doc)}
                             >
                                 <span className="text-sm">👁️</span> Ver
                             </button>
                             <button
-                                className="flex-1 bg-white text-blue-700 rounded-lg py-2 font-bold border border-blue-200 hover:bg-blue-50 hover:border-blue-400 transition-all shadow-sm text-sm"
+                                className="flex-1 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 rounded-lg py-2 font-bold border border-blue-200 dark:border-blue-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all shadow-sm text-sm"
                                 onClick={() => handleEdit(doc, idx)}
                             >
                                 <span className="text-sm">✏️</span> Editar
                             </button>
                             <button
-                                className="flex-1 bg-white text-red-700 rounded-lg py-2 font-bold border border-red-200 hover:bg-red-50 hover:border-red-400 transition-all shadow-sm text-sm"
+                                className="flex-1 bg-white dark:bg-gray-700 text-red-700 dark:text-red-400 rounded-lg py-2 font-bold border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shadow-sm text-sm"
                                 onClick={() => handleRemove(idx)}
                             >
                                 <span className="text-sm">🗑️</span> Remover
@@ -318,7 +318,7 @@ export default function Biblioteca() {
             </div>
             {modal && (
                 <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-8 shadow-2xl min-w-[320px] max-w-[90vw] text-gray-900 border-2 border-purple-200">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-2xl min-w-[320px] max-w-[90vw] text-gray-900 dark:text-gray-100 border border-blue-100 dark:border-blue-900">
                         <div className="font-bold text-lg mb-2">
                             {modal.type === "view"
                                 ? "Visualizar Jogada"

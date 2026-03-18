@@ -126,7 +126,7 @@ export default function Assiduidade() {
             {/* Modal Registar Sessão */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-green-100 dark:border-green-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
                         <button
                             className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={() => setShowModal(false)}
@@ -135,10 +135,10 @@ export default function Assiduidade() {
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-green-600 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 📝
                             </span>
-                            <h3 className="text-2xl font-extrabold text-green-700 dark:text-green-300">
+                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
                                 Registar Nova Sessão
                             </h3>
                         </div>
@@ -222,22 +222,22 @@ export default function Assiduidade() {
             )}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold mb-2 text-green-700 dark:text-green-300 flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-green-700 dark:text-green-400 flex items-center gap-3">
                         <span>✅</span> Assiduidade
                     </h2>
-                    <div className="text-muted text-base text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Seniores Masculinos · Março 2025
-                    </div>
+                    </p>
                 </div>
                 <div className="flex gap-2">
                     <button
-                        className="px-6 py-3 rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all bg-gray-200 dark:bg-gray-800 text-green-700 hover:bg-green-100 dark:hover:bg-green-900"
+                        className="px-5 py-2.5 rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                         onClick={handleExportAllPDF}
                     >
                         <span className="text-xl">⬇️</span> Exportar
                     </button>
                     <button
-                        className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all"
+                        className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all"
                         onClick={() => setShowModal(true)}
                     >
                         <span className="text-xl">＋</span> Registar Sessão
@@ -477,22 +477,22 @@ export default function Assiduidade() {
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100 dark:bg-gray-900">
                         <tr>
-                            <th className="py-3 px-4 text-left">ATLETA</th>
-                            <th className="py-3 px-4 text-left">Nº</th>
-                            <th className="py-3 px-4 text-left">POSIÇÃO</th>
+                            <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">ATLETA</th>
+                            <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Nº</th>
+                            <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">POSIÇÃO</th>
                             {sessions.map((s) => (
-                                <th key={s} className="py-3 px-4 text-center">
+                                <th key={s} className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     {s}
                                 </th>
                             ))}
-                            <th className="py-3 px-4 text-center">%</th>
+                            <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">%</th>
                         </tr>
                     </thead>
                     <tbody>
                         {athletesState.map((a, idx) => (
                             <tr
                                 key={idx}
-                                className="hover:bg-green-50 dark:hover:bg-green-900 cursor-pointer"
+                                className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                                 onClick={() => {
                                     setEditIndex(idx);
                                     setEditAthlete({ ...a });
@@ -544,10 +544,10 @@ export default function Assiduidade() {
                                                 ×
                                             </button>
                                             <div className="flex flex-col items-center mb-6">
-                                                <span className="text-green-600 text-4xl mb-2">
+                                                <span className="text-blue-600 text-4xl mb-2">
                                                     👤
                                                 </span>
-                                                <h3 className="text-2xl font-extrabold text-green-700 dark:text-green-300">
+                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                                                     Editar Atleta
                                                 </h3>
                                             </div>
@@ -760,7 +760,7 @@ export default function Assiduidade() {
                                                     </div>
                                                 </div>
                                                 <div className="flex-1">
-                                                    <h1 className="text-3xl font-extrabold text-green-800 mb-1 tracking-tight">
+                                                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 tracking-tight">
                                                         Ficha Individual de
                                                         Atleta
                                                     </h1>

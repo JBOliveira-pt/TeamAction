@@ -52,7 +52,7 @@ export default function Games() {
             {/* Modal Novo Jogo */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-orange-100 dark:border-orange-900">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
                         <button
                             className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
                             onClick={handleCloseModal}
@@ -61,10 +61,10 @@ export default function Games() {
                             ×
                         </button>
                         <div className="flex flex-col items-center mb-6">
-                            <span className="text-orange-600 text-4xl mb-2">
+                            <span className="text-blue-600 text-4xl mb-2">
                                 🏆
                             </span>
-                            <h3 className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                                 Novo Jogo
                             </h3>
                         </div>
@@ -144,7 +144,7 @@ export default function Games() {
                             <div className="flex gap-2 mt-4">
                                 <button
                                     type="submit"
-                                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 rounded-lg transition-all"
+                                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg transition-all"
                                 >
                                     Guardar
                                 </button>
@@ -163,15 +163,15 @@ export default function Games() {
             {/* Cabeçalho */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl text-orange-700 flex items-center gap-3 mb-1">
-                        <span className="text-2xl">🏆</span> Jogos
+                    <h2 className="text-2xl font-bold text-amber-700 dark:text-amber-400 flex items-center gap-3 mb-1">
+                        <span>🏆</span> Jogos
                     </h2>
-                    <p className="text-base text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Planeie e acompanhe jogos e competições.
                     </p>
                 </div>
                 <button
-                    className="px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-400 text-white rounded-xl font-bold text-base shadow hover:from-orange-700 hover:to-orange-500 transition-all flex items-center gap-2"
+                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-base shadow transition-all flex items-center gap-2"
                     onClick={handleOpenModal}
                 >
                     <span className="text-xl">＋</span> Novo Jogo
@@ -179,16 +179,16 @@ export default function Games() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 rounded-xl p-6 shadow-md flex flex-col justify-between">
-                    <span className="text-xs text-gray-500 font-semibold">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                         JOGOS REALIZADOS
                     </span>
                     <span className="text-3xl font-bold text-orange-600">
                         12
                     </span>
-                    <span className="text-xs text-gray-400">8V · 2E · 2D</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">8V · 2E · 2D</span>
                 </div>
                 <div className="bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded-xl p-6 shadow-md flex flex-col justify-between">
-                    <span className="text-xs text-gray-500 font-semibold">
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                         PRÓXIMO JOGO
                     </span>
                     <span className="text-xl font-bold text-green-600">
@@ -200,23 +200,23 @@ export default function Games() {
                 </div>
             </div>
             <div className="mb-8">
-                <div className="text-2xl text-orange-700 flex items-center gap-2 mb-4">
-                    <span className="text-xl">🏅</span> Últimos Jogos
+                <div className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
+                    <span>🏅</span> Últimos Jogos
                 </div>
                 <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow">
                     <table className="min-w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-900">
                             <tr>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Data
                                 </th>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Adversário
                                 </th>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Resultado
                                 </th>
-                                <th className="p-3 text-left text-xs font-bold text-gray-500 uppercase">
+                                <th className="p-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                                     Local
                                 </th>
                             </tr>
@@ -227,7 +227,7 @@ export default function Games() {
                                     key={idx}
                                     className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all"
                                 >
-                                    <td className="p-3 font-medium text-orange-700 whitespace-nowrap">
+                                    <td className="p-3 font-medium text-blue-600 dark:text-blue-400 whitespace-nowrap">
                                         {g.date}
                                     </td>
                                     <td className="p-3">{g.opponent}</td>

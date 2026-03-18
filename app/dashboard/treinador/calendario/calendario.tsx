@@ -141,7 +141,7 @@ export default function Calendario({
     };
 
     return (
-        <div className="w-full min-h-[80vh] flex flex-col">
+        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col">
             {/* Modal de criação de evento */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
@@ -241,29 +241,28 @@ export default function Calendario({
             {/* Cabeçalho do calendário */}
             <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <span className="text-blue-600 text-4xl">📅</span>{" "}
-                        Calendário de Andebol
+                    <h2 className="text-2xl font-bold text-blue-700 dark:text-blue-400 flex items-center gap-3">
+                        <span>📅</span> Calendário de Andebol
                     </h2>
-                    <p className="text-base text-gray-600 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Planeamento de treinos, jogos e recuperação
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
                     {/* Botão para abrir modal de criação de evento */}
                     <button
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-blue-700 transition-all"
+                        className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-bold shadow hover:bg-blue-700 transition-all flex items-center gap-2"
                         onClick={handleOpenModal}
                     >
-                        + Criar Evento
+                        <span>＋</span> Criar Evento
                     </button>
-                    <button className="rounded-lg px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all">
+                    <button className="rounded-lg px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all">
                         ◀
                     </button>
                     <span className="font-bold text-gray-800 dark:text-gray-200 text-lg">
                         {month}
                     </span>
-                    <button className="rounded-lg px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all">
+                    <button className="rounded-lg px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900 transition-all">
                         ▶
                     </button>
                 </div>
@@ -348,19 +347,19 @@ export default function Calendario({
             <div className="flex gap-8 mt-8 justify-center w-full">
                 <div className="flex items-center gap-2">
                     <span className="w-4 h-4 rounded bg-violet-500 inline-block"></span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                         Treino
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="w-4 h-4 rounded bg-red-500 inline-block"></span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                         Jogo
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="w-4 h-4 rounded bg-emerald-500 inline-block"></span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                         Recuperação
                     </span>
                 </div>

@@ -400,6 +400,19 @@ export default function SideNav() {
                                 href="/dashboard/treinador/calendario"
                                 onClick={() => setIsOpen(false)}
                             />
+                            <NavSectionLabel>Plantel</NavSectionLabel>
+                            <NavItem
+                                icon={<Users size={20} />}
+                                label="Equipa de Atletas"
+                                href="/dashboard/treinador/equipa-atletas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<User size={20} />}
+                                label="Equipa Técnica"
+                                href="/dashboard/treinador/equipa-tecnica"
+                                onClick={() => setIsOpen(false)}
+                            />
                             <NavSectionLabel>Treino</NavSectionLabel>
                             <NavItem
                                 icon={<CheckSquare size={20} />}
@@ -627,6 +640,7 @@ function LockedNavItem({
         </div>
     );
 }
+
 
 function NavItem({
     href,

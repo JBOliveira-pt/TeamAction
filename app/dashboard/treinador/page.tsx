@@ -58,12 +58,6 @@ export default function TreinadorDashboard() {
                             >
                                 Ver Estatísticas
                             </Link>
-                            <Link
-                                href="/dashboard/treinador/create"
-                                className="px-4 py-2 bg-blue-700 text-white rounded-lg font-bold shadow hover:bg-blue-800 transition-all"
-                            >
-                                Criar Perfil de Treinador
-                            </Link>
                         </div>
                     </div>
 
@@ -96,7 +90,7 @@ export default function TreinadorDashboard() {
 
                     {/* Secção visual diferente: cards em destaque */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-                        <div className="rounded-2xl bg-white dark:bg-gray-900 border-2 border-blue-200 dark:border-blue-900 p-8 shadow-lg flex flex-col items-center text-center">
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 p-8 shadow-lg flex flex-col items-center text-center">
                             <span className="text-4xl mb-2">🏋️‍♂️</span>
                             <h3 className="font-bold text-lg mb-1 text-blue-700 dark:text-blue-300">
                                 Próximo Treino
@@ -107,7 +101,7 @@ export default function TreinadorDashboard() {
                                 Pavilhão Municipal
                             </p>
                         </div>
-                        <div className="rounded-2xl bg-white dark:bg-gray-900 border-2 border-green-200 dark:border-green-900 p-8 shadow-lg flex flex-col items-center text-center">
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 p-8 shadow-lg flex flex-col items-center text-center">
                             <span className="text-4xl mb-2">📈</span>
                             <h3 className="font-bold text-lg mb-1 text-green-700 dark:text-green-300">
                                 Assiduidade
@@ -116,7 +110,7 @@ export default function TreinadorDashboard() {
                                 91% esta semana
                             </p>
                         </div>
-                        <div className="rounded-2xl bg-white dark:bg-gray-900 border-2 border-yellow-200 dark:border-yellow-900 p-8 shadow-lg flex flex-col items-center text-center">
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 p-8 shadow-lg flex flex-col items-center text-center">
                             <span className="text-4xl mb-2">⭐</span>
                             <h3 className="font-bold text-lg mb-1 text-yellow-700 dark:text-yellow-300">
                                 Atleta em Destaque
@@ -128,7 +122,7 @@ export default function TreinadorDashboard() {
                             </p>
                         </div>
                         {/* Estatísticas rápidas do plantel */}
-                        <div className="rounded-2xl bg-white dark:bg-gray-900 border-2 border-indigo-200 dark:border-indigo-900 p-8 shadow-lg flex flex-col items-center text-center">
+                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 p-8 shadow-lg flex flex-col items-center text-center">
                             <span className="text-4xl mb-2">📊</span>
                             <h3 className="font-bold text-lg mb-1 text-indigo-700 dark:text-indigo-300">
                                 Plantel
@@ -183,7 +177,7 @@ export default function TreinadorDashboard() {
                         <div className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
                             Próximos Eventos
                         </div>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800">
+                        <ul className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                             <li className="flex items-center justify-between p-4">
                                 <span className="font-semibold">
                                     Treino Técnico
@@ -213,7 +207,7 @@ export default function TreinadorDashboard() {
 
                     {/* Secção de destaques recentes */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm flex flex-col gap-2">
+                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col gap-2">
                             <div className="text-base font-bold text-gray-900 dark:text-white mb-2">
                                 Últimas Sessões
                             </div>
@@ -229,7 +223,7 @@ export default function TreinadorDashboard() {
                                 <li>8 Mar - Jogo Amigável - Vitória 3-2</li>
                             </ul>
                         </div>
-                        <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm flex flex-col gap-2">
+                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col gap-2">
                             <div className="text-base font-bold text-gray-900 dark:text-white mb-2">
                                 Notas do Treinador
                             </div>
