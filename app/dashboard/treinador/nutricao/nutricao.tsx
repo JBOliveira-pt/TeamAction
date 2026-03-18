@@ -83,7 +83,7 @@ import React, { useState } from "react";
 import DonutChart from "./ui/DonutChart";
 // UI: DonutChart será extraído para componente próprio
 // Estrutura de exemplo para histórico de planos nutricionais
-type NutritionPlan = {
+export type NutritionPlan = {
     id: number;
     name: string;
     description: string;
