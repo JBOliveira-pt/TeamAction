@@ -18,16 +18,56 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 async function getAtletaByClerkUser(
     clerkUserId: string,
 ): Promise<Atleta | null> {
-    const users = await sql<{ email: string }[]>`
-        SELECT email FROM users WHERE clerk_user_id = ${clerkUserId}
+    const usersRows = await sql<
+        {
+            id: string;
+            name: string | null;
+            email: string;
+            image_url: string | null;
+            data_nascimento?: string | null;
+            morada?: string | null;
+            telefone?: string | null;
+            peso_kg?: number | null;
+            altura_cm?: number | null;
+            nif?: string | null;
+            status?: string | null;
+            created_at?: string;
+            updated_at?: string;
+        }[]
+    >`
+        SELECT *
+        FROM users
+        WHERE clerk_user_id = ${clerkUserId}
+        LIMIT 1
     `;
-    if (!users.length) return null;
 
-    const atletas = await sql<Atleta[]>`
-        SELECT * FROM utilizador WHERE email = ${users[0].email}
-    `;
+    const user = usersRows[0];
+    if (!user) return null;
 
-    return atletas[0] ?? null;
+    const fullName = (user.name || "").trim();
+    const [nome, ...rest] = fullName.length > 0 ? fullName.split(/\s+/) : [""];
+
+    return {
+        id: 0,
+        nome: nome || "Usuário",
+        sobrenome: rest.join(" "),
+        data_nascimento: user.data_nascimento || "",
+        morada: user.morada || null,
+        telemovel: user.telefone || null,
+        email: user.email,
+        foto_perfil_url: user.image_url || null,
+        peso_kg: user.peso_kg ?? null,
+        altura_cm: user.altura_cm ?? null,
+        nif: user.nif || "",
+        estado:
+            user.status === "inativo"
+                ? "Inativo"
+                : user.status === "pendente"
+                  ? "Pendente"
+                  : "Ativo",
+        created_at: user.created_at || new Date().toISOString(),
+        updated_at: user.updated_at || new Date().toISOString(),
+    };
 }
 
 function estadoBadge(estado: string) {
@@ -50,14 +90,14 @@ export default async function PerfilUtilizadorPage() {
         redirect("/dashboard/utilizador/perfil/criar");
     }
 
-    const nascimentoFormatted = new Date(
-        atleta.data_nascimento,
-    ).toLocaleDateString("pt-PT");
+    const nascimentoFormatted = atleta.data_nascimento
+        ? new Date(atleta.data_nascimento).toLocaleDateString("pt-PT")
+        : "-";
 
     return (
         <div className="max-w-3xl mx-auto p-6 space-y-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Perfil Utilizador
+                Perfil do Usuário
             </h1>
             <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="h-20 bg-gradient-to-r from-emerald-500 to-teal-600" />

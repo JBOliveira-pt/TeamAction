@@ -185,7 +185,7 @@ export async function adminLoginAction(formData: FormData): Promise<void> {
             WHERE role = 'admin'
         `;
     } catch (error) {
-        console.error("Falha ao normalizar papeis de utilizadores:", error);
+        console.error("Falha ao normalizar papeis de usuários:", error);
     }
 
     const token = createAdminSessionToken();
@@ -369,11 +369,11 @@ export async function adminDeleteUserAction(
         } catch (error) {
             if (isClerkNotFoundError(error)) {
                 console.info(
-                    "Utilizador ja nao existia no Clerk durante exclusao:",
+                    "Usuário ja nao existia no Clerk durante exclusao:",
                     targetUser.clerk_user_id,
                 );
             } else {
-                console.error("Falha ao remover utilizador no Clerk:", error);
+                console.error("Falha ao remover usuário no Clerk:", error);
                 clerkDeletionWarning = true;
             }
         }
@@ -400,10 +400,7 @@ export async function adminDeleteUserAction(
             )
         `;
     } catch (error) {
-        console.error(
-            "Falha ao registar log de exclusao de utilizador:",
-            error,
-        );
+        console.error("Falha ao registar log de exclusao de usuário:", error);
     }
 
     revalidatePath("/admin/users");

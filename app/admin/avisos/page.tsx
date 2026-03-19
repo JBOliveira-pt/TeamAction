@@ -31,15 +31,14 @@ function getAlertFromParams(searchParams?: SearchParams) {
     if (searchParams.error === "user") {
         return {
             kind: "error" as const,
-            message: "Selecione um utilizador para envio individual.",
+            message: "Selecione um usuário para envio individual.",
         };
     }
 
     if (searchParams.error === "org") {
         return {
             kind: "error" as const,
-            message:
-                "O utilizador selecionado não possui organização associada.",
+            message: "O usuário selecionado não possui organização associada.",
         };
     }
 
@@ -73,7 +72,7 @@ export default async function AdminAvisosPage({
                     Emitir Avisos
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    O aviso aparecerá como pop-up para os utilizadores quando
+                    O aviso aparecerá como pop-up para os usuários quando
                     fizerem login.
                 </p>
             </header>

@@ -7,7 +7,7 @@ export default async function CriarPerfilUtilizadorPage() {
             <Breadcrumbs
                 breadcrumbs={[
                     {
-                        label: "Perfil Utilizador",
+                        label: "Perfil do Usuário",
                         href: "/dashboard/utilizador/perfil",
                     },
                     {

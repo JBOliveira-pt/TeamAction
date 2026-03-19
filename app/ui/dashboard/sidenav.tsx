@@ -1,8 +1,9 @@
 // app/ui/dashboard/sidenav.tsx
-'use client';
+"use client";
 
-import { DashboardHeader } from '@/app/components/header';
-import { useUser } from '@clerk/nextjs';
+import { DashboardHeader } from "@/app/components/header";
+import { AccountType } from "@/app/lib/account-type";
+import { useUser } from "@clerk/nextjs";
 import {
     Activity,
     BarChart2,
@@ -28,16 +29,20 @@ import {
     User,
     Users,
     X,
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default function SideNav() {
+type SideNavProps = {
+    accountType: AccountType;
+};
+
+export default function SideNav({ accountType }: SideNavProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeProfile, setActiveProfile] = useState<
-        'atleta' | 'treinador' | 'pai' | 'presidente' | null
+        "atleta" | "treinador" | "pai" | "presidente" | null
     >(null);
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
@@ -47,62 +52,35 @@ export default function SideNav() {
         foto?: string;
     } | null>(null);
 
-    type AccountType = 'presidente' | 'treinador' | 'atleta' | 'responsavel';
-
-    const normalizeAccountType = (value: unknown): AccountType | null => {
-        if (typeof value !== 'string') return null;
-        const normalized = value.toLowerCase();
-
-        if (
-            normalized === 'presidente' ||
-            normalized === 'treinador' ||
-            normalized === 'atleta' ||
-            normalized === 'responsavel'
-        ) {
-            return normalized;
-        }
-
-        return null;
-    };
-
-    const accountType = normalizeAccountType(
-        clerkUser?.unsafeMetadata?.accountType ??
-            clerkUser?.publicMetadata?.accountType,
-    );
-
-    const forcedProfile: 'presidente' | 'treinador' | 'atleta' | 'pai' | null =
-        accountType === 'responsavel'
-            ? 'pai'
-            : accountType === 'presidente' ||
-                accountType === 'treinador' ||
-                accountType === 'atleta'
+    const forcedProfile: "presidente" | "treinador" | "atleta" | "pai" | null =
+        accountType === "responsavel"
+            ? "pai"
+            : accountType === "presidente" ||
+                accountType === "treinador" ||
+                accountType === "atleta"
               ? accountType
               : null;
 
     const accountTypeLabel =
-        accountType === 'presidente'
-            ? 'Presidente'
-            : accountType === 'treinador'
-              ? 'Treinador'
-              : accountType === 'atleta'
-                ? 'Atleta'
-                : accountType === 'responsavel'
-                  ? 'Responsável'
+        accountType === "presidente"
+            ? "Presidente"
+            : accountType === "treinador"
+              ? "Treinador"
+              : accountType === "atleta"
+                ? "Atleta"
+                : accountType === "responsavel"
+                  ? "Responsável"
                   : null;
 
-    useEffect(() => {
-        if (forcedProfile) {
-            setActiveProfile(forcedProfile);
-        }
-    }, [forcedProfile]);
+    const selectedProfile = forcedProfile || activeProfile;
 
     useEffect(() => {
         async function fetchUserData() {
             if (!isLoaded || !clerkUser) return;
 
             try {
-                const response = await fetch('/api/debug/user', {
-                    cache: 'no-store',
+                const response = await fetch("/api/debug/user", {
+                    cache: "no-store",
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -115,7 +93,7 @@ export default function SideNav() {
                     }
                 }
             } catch (error) {
-                console.error('Erro ao buscar dados do usuário:', error);
+                console.error("Erro ao buscar dados do usuário:", error);
             }
         }
 
@@ -123,7 +101,7 @@ export default function SideNav() {
     }, [isLoaded, clerkUser, pathname]);
 
     const isCreatingProfile = pathname.startsWith(
-        '/dashboard/utilizador/perfil/criar',
+        "/dashboard/utilizador/perfil/criar",
     );
 
     const mobileMenuTrigger = (
@@ -141,13 +119,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'presidente' ? null : 'presidente',
+                        activeProfile === "presidente" ? null : "presidente",
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'presidente'
-                        ? 'bg-violet-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "presidente"
+                        ? "bg-violet-600 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 🏛️ Presidente
@@ -155,13 +133,13 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'treinador' ? null : 'treinador',
+                        activeProfile === "treinador" ? null : "treinador",
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'treinador'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "treinador"
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 🧑‍🏫 Treinador
@@ -169,25 +147,25 @@ export default function SideNav() {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === 'atleta' ? null : 'atleta',
+                        activeProfile === "atleta" ? null : "atleta",
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'atleta'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "atleta"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 🏃 Atleta
             </button>
             <button
                 onClick={() =>
-                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
+                    setActiveProfile(activeProfile === "pai" ? null : "pai")
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === 'pai'
-                        ? 'bg-amber-500 text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    activeProfile === "pai"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
                 👨‍👦 Pai/Enc.
@@ -203,28 +181,24 @@ export default function SideNav() {
         : {
               name:
                   isLoaded && clerkUser
-                      ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
-                      : 'Usuario',
-              role:
-                  accountTypeLabel ||
-                  (isLoaded && clerkUser
-                      ? (clerkUser.publicMetadata?.role as string) || 'user'
-                      : 'user'),
+                      ? clerkUser.fullName || clerkUser.firstName || "Usuario"
+                      : "Usuario",
+              role: accountTypeLabel || "Conta",
               foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
           };
 
     const profileHref =
-        forcedProfile === 'presidente' || activeProfile === 'presidente'
-            ? '/dashboard/presidente/perfil'
-            : forcedProfile === 'atleta' || activeProfile === 'atleta'
-              ? '/dashboard/utilizador/perfil'
-              : forcedProfile === 'treinador' || activeProfile === 'treinador'
-                ? '/dashboard/treinador'
-                : '/dashboard';
+        selectedProfile === "presidente"
+            ? "/dashboard/presidente/perfil"
+            : selectedProfile === "atleta"
+              ? "/dashboard/utilizador/perfil"
+              : selectedProfile === "treinador"
+                ? "/dashboard/treinador"
+                : "/dashboard";
 
     const settingsHref =
-        forcedProfile === 'presidente' || activeProfile === 'presidente'
-            ? '/dashboard/presidente/definicoes'
+        selectedProfile === "presidente"
+            ? "/dashboard/presidente/definicoes"
             : undefined;
 
     return (
@@ -250,7 +224,7 @@ export default function SideNav() {
           fixed top-0 left-0 z-40
           w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
           transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
@@ -284,7 +258,7 @@ export default function SideNav() {
                             </p>
                         </div>
                     )}
-                    {!isCreatingProfile && activeProfile === 'presidente' && (
+                    {!isCreatingProfile && selectedProfile === "presidente" && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -385,7 +359,7 @@ export default function SideNav() {
                         </>
                     )}
 
-                    {!isCreatingProfile && activeProfile === 'treinador' && (
+                    {!isCreatingProfile && selectedProfile === "treinador" && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -473,7 +447,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {!isCreatingProfile && activeProfile === 'atleta' && (
+                    {!isCreatingProfile && selectedProfile === "atleta" && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -548,7 +522,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {!isCreatingProfile && activeProfile === 'pai' && (
+                    {!isCreatingProfile && selectedProfile === "pai" && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -617,7 +591,7 @@ export default function SideNav() {
                             />
                         </>
                     )}
-                    {!isCreatingProfile && !activeProfile && (
+                    {!isCreatingProfile && !selectedProfile && (
                         <>
                             <NavItem
                                 icon={<BarChart3 size={20} />}
@@ -646,7 +620,7 @@ export default function SideNav() {
                             <NavItem
                                 href="/dashboard/users"
                                 icon={<CircleUserRound size={20} />}
-                                label="Utilizadores"
+                                label="Usuários"
                                 onClick={() => setIsOpen(false)}
                             />
                         </>
@@ -681,7 +655,6 @@ function LockedNavItem({
     );
 }
 
-
 function NavItem({
     href,
     icon,
@@ -696,9 +669,9 @@ function NavItem({
     const pathname = usePathname();
 
     const exactMatchPaths = [
-        '/dashboard',
-        '/dashboard/presidente',
-        '/dashboard/treinador',
+        "/dashboard",
+        "/dashboard/presidente",
+        "/dashboard/treinador",
     ];
 
     const active = exactMatchPaths.includes(href)
@@ -711,15 +684,15 @@ function NavItem({
             onClick={onClick}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
                 active
-                    ? 'bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
+                    ? "bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
             }`}
         >
             <span
                 className={
                     active
-                        ? 'text-blue-500 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors'
+                        ? "text-blue-500 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
                 }
             >
                 {icon}

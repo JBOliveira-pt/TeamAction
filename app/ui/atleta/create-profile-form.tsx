@@ -38,6 +38,11 @@ const inputBase =
 const iconBase =
     "pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500 peer-focus:text-emerald-400 transition-colors";
 
+const ATHLETE_HEIGHT_MIN_CM = 100;
+const ATHLETE_HEIGHT_MAX_CM = 300;
+const ATHLETE_WEIGHT_MIN_KG = 10;
+const ATHLETE_WEIGHT_MAX_KG = 300;
+
 interface CreateAtletaProfileFormProps {
     cancelHref?: string;
 }
@@ -70,7 +75,7 @@ export default function CreateAtletaProfileForm({
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Perfil Utilizador
+                            Perfil do Usuário
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             Preencha todos os campos para criar o seu perfil
@@ -279,8 +284,9 @@ export default function CreateAtletaProfileForm({
                                 id="peso_kg"
                                 name="peso_kg"
                                 type="number"
-                                step="0.1"
-                                min="0"
+                                step="0.01"
+                                min={ATHLETE_WEIGHT_MIN_KG}
+                                max={ATHLETE_WEIGHT_MAX_KG}
                                 className={inputBase}
                                 placeholder="75.5"
                             />
@@ -301,7 +307,8 @@ export default function CreateAtletaProfileForm({
                                 name="altura_cm"
                                 type="number"
                                 step="0.1"
-                                min="0"
+                                min={ATHLETE_HEIGHT_MIN_CM}
+                                max={ATHLETE_HEIGHT_MAX_CM}
                                 className={inputBase}
                                 placeholder="178"
                             />

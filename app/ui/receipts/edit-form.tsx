@@ -233,7 +233,7 @@ export default function ReceiptEditForm({
                                             Enviado por:{" "}
                                             <span className="text-gray-900 dark:text-white font-medium">
                                                 {receipt.sent_by_user_name ||
-                                                    "Utilizador desconhecido"}
+                                                    "Usuário desconhecido"}
                                             </span>
                                         </p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -253,9 +253,8 @@ export default function ReceiptEditForm({
                                         </p>
                                         {!canSend && (
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                Apenas o utilizador que criou
-                                                este recibo pode marcar como
-                                                enviado.
+                                                Apenas o usuário que criou este
+                                                recibo pode marcar como enviado.
                                             </p>
                                         )}
                                     </>

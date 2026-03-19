@@ -62,6 +62,12 @@ const NIPC_DIGITS_LENGTH = 9;
 const PHONE_DIGITS_LENGTH = 9;
 const PORTUGAL_PHONE_PREFIX = "(351) ";
 const WEBSITE_PREFIX = "https://";
+const ATHLETE_HEIGHT_MIN_CM = 100;
+const ATHLETE_HEIGHT_MAX_CM = 300;
+const ATHLETE_WEIGHT_MIN_KG = 10;
+const ATHLETE_WEIGHT_MAX_KG = 300;
+const ATHLETE_WEIGHT_DECIMALS_REGEX = /^\d+(\.\d{1,2})?$/;
+const ATHLETE_WEIGHT_INPUT_REGEX = /^\d{0,3}(\.\d{0,2})?$/;
 const BREACHED_PASSWORD_MESSAGE =
     "A Palavra-passe foi encontrada em um leak de dados online. Para a segurança da sua conta, por favor, utilize outra palavra-passe.";
 const PRECHECK_PENDING_MESSAGE =
@@ -79,7 +85,18 @@ const EMAIL_PRECHECK_OK_MESSAGE =
 const EMAIL_PRECHECK_INVALID_MESSAGE =
     "Verificação prévia: informe um e-mail válido (ex.: domínio .com, .pt, .org, .net).";
 
-type SignUpStage = "form" | "president-profile" | "trainer-profile" | "verify";
+type SignUpStage =
+    | "form"
+    | "president-profile"
+    | "trainer-profile"
+    | "athlete-profile"
+    | "verify";
+
+type AthleteLookupOption = {
+    value: string;
+    label: string;
+    email?: string;
+};
 
 const ACCOUNT_TYPE_OPTIONS: {
     value: AccountType;
@@ -114,15 +131,101 @@ const ACCOUNT_TYPE_OPTIONS: {
 ];
 
 function isAthleteDataValid(alturaCm: string, pesoKg: string) {
+    const trimmedWeight = pesoKg.trim();
     const alturaNum = Number(alturaCm);
     const pesoNum = Number(pesoKg);
 
     return (
+        alturaCm.trim().length > 0 &&
+        trimmedWeight.length > 0 &&
         !Number.isNaN(alturaNum) &&
-        alturaNum > 0 &&
+        alturaNum >= ATHLETE_HEIGHT_MIN_CM &&
+        alturaNum <= ATHLETE_HEIGHT_MAX_CM &&
         !Number.isNaN(pesoNum) &&
-        pesoNum > 0
+        pesoNum >= ATHLETE_WEIGHT_MIN_KG &&
+        pesoNum <= ATHLETE_WEIGHT_MAX_KG &&
+        ATHLETE_WEIGHT_DECIMALS_REGEX.test(trimmedWeight)
     );
+}
+
+function normalizeAthleteHeightInput(value: string): string {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 3);
+    if (!digitsOnly) return "";
+
+    const numeric = Number(digitsOnly);
+    if (numeric > ATHLETE_HEIGHT_MAX_CM) {
+        return String(ATHLETE_HEIGHT_MAX_CM);
+    }
+
+    return digitsOnly;
+}
+
+function normalizeAthleteWeightInput(value: string): string {
+    const sanitized = value.replace(/,/g, ".").replace(/[^\d.]/g, "");
+
+    const [integerPartRaw, ...decimalParts] = sanitized.split(".");
+    const integerPart = integerPartRaw.slice(0, 3);
+    const decimalPart = decimalParts.join("").slice(0, 2);
+    const hasDot = sanitized.includes(".");
+
+    let candidate = integerPart;
+    if (hasDot) {
+        candidate = `${integerPart}.${decimalPart}`;
+    }
+
+    if (!ATHLETE_WEIGHT_INPUT_REGEX.test(candidate)) {
+        return "";
+    }
+
+    if (!integerPart) {
+        return hasDot ? "0." : "";
+    }
+
+    const numeric = Number(candidate);
+    if (!Number.isNaN(numeric) && numeric > ATHLETE_WEIGHT_MAX_KG) {
+        return String(ATHLETE_WEIGHT_MAX_KG);
+    }
+
+    return candidate;
+}
+
+function clampAthleteHeightInput(value: string): string {
+    if (!value.trim()) {
+        return "";
+    }
+
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+        return "";
+    }
+
+    if (numeric < ATHLETE_HEIGHT_MIN_CM) {
+        return String(ATHLETE_HEIGHT_MIN_CM);
+    }
+
+    if (numeric > ATHLETE_HEIGHT_MAX_CM) {
+        return String(ATHLETE_HEIGHT_MAX_CM);
+    }
+
+    return String(Math.trunc(numeric));
+}
+
+function clampAthleteWeightInput(value: string): string {
+    if (!value.trim()) {
+        return "";
+    }
+
+    const numeric = Number(value);
+    if (Number.isNaN(numeric)) {
+        return "";
+    }
+
+    const clamped = Math.min(
+        ATHLETE_WEIGHT_MAX_KG,
+        Math.max(ATHLETE_WEIGHT_MIN_KG, numeric),
+    );
+
+    return String(Number(clamped.toFixed(2)));
 }
 
 function formatDateForInput(date: Date): string {
@@ -323,6 +426,24 @@ export default function CustomSignUpForm() {
     const [trainerPostalCode, setTrainerPostalCode] = useState("");
     const [trainerAddress, setTrainerAddress] = useState("");
     const [trainerCity, setTrainerCity] = useState("");
+    const [athleteClubName, setAthleteClubName] = useState("");
+    const [athleteTrainerName, setAthleteTrainerName] = useState("");
+    const [athleteTeamName, setAthleteTeamName] = useState("");
+    const [athletePostalCode, setAthletePostalCode] = useState("");
+    const [athleteAddress, setAthleteAddress] = useState("");
+    const [athleteCity, setAthleteCity] = useState("");
+    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState("");
+    const [athleteClubOptions, setAthleteClubOptions] = useState<
+        AthleteLookupOption[]
+    >([]);
+    const [athleteTrainerOptions, setAthleteTrainerOptions] = useState<
+        AthleteLookupOption[]
+    >([]);
+    const [athleteTeamOptions, setAthleteTeamOptions] = useState<
+        AthleteLookupOption[]
+    >([]);
+    const [athleteResponsibleEmailOptions, setAthleteResponsibleEmailOptions] =
+        useState<AthleteLookupOption[]>([]);
     const emailInputRef = useRef<HTMLInputElement | null>(null);
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
     const emailPrecheckTimeoutRef = useRef<number | null>(null);
@@ -528,6 +649,18 @@ export default function CustomSignUpForm() {
         [minimumAgeForAccountType],
     );
 
+    const athleteAge = useMemo(() => {
+        if (accountType !== "atleta" || !birthDate) {
+            return null;
+        }
+
+        return calculateAge(birthDate);
+    }, [accountType, birthDate]);
+
+    const athleteNeedsResponsible = useMemo(() => {
+        return athleteAge !== null && athleteAge < MIN_ADULT_SIGNUP_AGE;
+    }, [athleteAge]);
+
     const trainerTechnicalLevelOptions = useMemo(
         () =>
             trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE
@@ -537,6 +670,50 @@ export default function CustomSignUpForm() {
                 : [],
         [trainerCourseModality, trainerTechnicalLevelOptionsByModality],
     );
+
+    const selectedAthleteClubOption = useMemo(() => {
+        const normalized = athleteClubName.trim().toLowerCase();
+        if (!normalized) return null;
+
+        return (
+            athleteClubOptions.find(
+                (option) => option.label.trim().toLowerCase() === normalized,
+            ) || null
+        );
+    }, [athleteClubName, athleteClubOptions]);
+
+    const selectedAthleteTrainerOption = useMemo(() => {
+        const normalized = athleteTrainerName.trim().toLowerCase();
+        if (!normalized) return null;
+
+        return (
+            athleteTrainerOptions.find(
+                (option) => option.label.trim().toLowerCase() === normalized,
+            ) || null
+        );
+    }, [athleteTrainerName, athleteTrainerOptions]);
+
+    const selectedAthleteTeamOption = useMemo(() => {
+        const normalized = athleteTeamName.trim().toLowerCase();
+        if (!normalized) return null;
+
+        return (
+            athleteTeamOptions.find(
+                (option) => option.label.trim().toLowerCase() === normalized,
+            ) || null
+        );
+    }, [athleteTeamName, athleteTeamOptions]);
+
+    const selectedResponsibleOption = useMemo(() => {
+        const normalized = athleteResponsibleEmail.trim().toLowerCase();
+        if (!normalized) return null;
+
+        return (
+            athleteResponsibleEmailOptions.find(
+                (option) => option.label.trim().toLowerCase() === normalized,
+            ) || null
+        );
+    }, [athleteResponsibleEmail, athleteResponsibleEmailOptions]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -603,6 +780,81 @@ export default function CustomSignUpForm() {
         trainerCourseModality,
         trainerTechnicalLevel,
         trainerTechnicalLevelOptions,
+    ]);
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const loadAthleteOptions = async () => {
+            const query = [
+                athleteClubName,
+                athleteTrainerName,
+                athleteTeamName,
+                athleteResponsibleEmail,
+            ]
+                .map((value) => value.trim())
+                .sort((a, b) => b.length - a.length)[0];
+
+            if (!query || query.length < 2) {
+                if (!isCancelled) {
+                    setAthleteClubOptions([]);
+                    setAthleteTrainerOptions([]);
+                    setAthleteTeamOptions([]);
+                    setAthleteResponsibleEmailOptions([]);
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `/api/athlete-profile/options?query=${encodeURIComponent(query)}`,
+                );
+
+                if (!response.ok) {
+                    if (!isCancelled) {
+                        setAthleteClubOptions([]);
+                        setAthleteTrainerOptions([]);
+                        setAthleteTeamOptions([]);
+                        setAthleteResponsibleEmailOptions([]);
+                    }
+                    return;
+                }
+
+                const data = (await response.json()) as {
+                    clubOptions?: AthleteLookupOption[];
+                    trainerOptions?: AthleteLookupOption[];
+                    teamOptions?: AthleteLookupOption[];
+                    responsibleEmailOptions?: AthleteLookupOption[];
+                };
+
+                if (!isCancelled) {
+                    setAthleteClubOptions(data.clubOptions || []);
+                    setAthleteTrainerOptions(data.trainerOptions || []);
+                    setAthleteTeamOptions(data.teamOptions || []);
+                    setAthleteResponsibleEmailOptions(
+                        data.responsibleEmailOptions || [],
+                    );
+                }
+            } catch {
+                if (!isCancelled) {
+                    setAthleteClubOptions([]);
+                    setAthleteTrainerOptions([]);
+                    setAthleteTeamOptions([]);
+                    setAthleteResponsibleEmailOptions([]);
+                }
+            }
+        };
+
+        void loadAthleteOptions();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [
+        athleteClubName,
+        athleteTrainerName,
+        athleteTeamName,
+        athleteResponsibleEmail,
     ]);
 
     useEffect(() => {
@@ -684,6 +936,46 @@ export default function CustomSignUpForm() {
             isCancelled = true;
         };
     }, [trainerPostalCode]);
+
+    useEffect(() => {
+        const normalizedPostalCode = normalizePostalCode(athletePostalCode);
+
+        if (athletePostalCode !== normalizedPostalCode) {
+            setAthletePostalCode(normalizedPostalCode);
+            return;
+        }
+
+        if (!normalizedPostalCode) {
+            setAthleteCity("");
+            return;
+        }
+
+        if (!POSTAL_CODE_REGEX.test(normalizedPostalCode)) {
+            setAthleteCity("");
+            return;
+        }
+
+        let isCancelled = false;
+
+        const resolveCity = async () => {
+            try {
+                const city = await fetchCityByPostalCode(normalizedPostalCode);
+                if (!isCancelled) {
+                    setAthleteCity(city || "");
+                }
+            } catch {
+                if (!isCancelled) {
+                    setAthleteCity("");
+                }
+            }
+        };
+
+        void resolveCity();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [athletePostalCode]);
 
     const passwordValidation = useMemo(
         () => validatePasswordPolicy(password),
@@ -880,6 +1172,48 @@ export default function CustomSignUpForm() {
         return null;
     };
 
+    const validateAthleteProfile = () => {
+        if (!isAthleteDataValid(alturaCm, pesoKg)) {
+            return "Para atleta, Altura deve estar entre 100 e 300 cm. Peso deve estar entre 10 e 300 kg, com no máximo 2 casas decimais.";
+        }
+
+        if (athleteClubName.trim().length > 0 && !selectedAthleteClubOption) {
+            return "Selecione um clube existente da lista.";
+        }
+
+        if (
+            athleteTrainerName.trim().length > 0 &&
+            !selectedAthleteTrainerOption
+        ) {
+            return "Selecione um treinador existente da lista.";
+        }
+
+        if (athleteTeamName.trim().length > 0 && !selectedAthleteTeamOption) {
+            return "Selecione uma equipa existente da lista.";
+        }
+
+        const normalizedPostalCode = normalizePostalCode(athletePostalCode);
+        if (
+            normalizedPostalCode.length > 0 &&
+            !POSTAL_CODE_REGEX.test(normalizedPostalCode)
+        ) {
+            return "Código Postal inválido. Use o formato 0000-000.";
+        }
+
+        if (normalizedPostalCode && !athleteCity.trim()) {
+            return "Código Postal inválido. Informe um Código Postal válido de Portugal.";
+        }
+
+        if (
+            athleteNeedsResponsible &&
+            !isValidEmailFormat(athleteResponsibleEmail)
+        ) {
+            return "Para menores de 18 anos, é obrigatório indicar um e-mail válido de Responsável.";
+        }
+
+        return null;
+    };
+
     const createSignupAndSendVerification = async (): Promise<boolean> => {
         if (!signUp) {
             setErrorMessage(
@@ -977,6 +1311,42 @@ export default function CustomSignUpForm() {
                               country: PORTUGAL_COUNTRY,
                           }
                         : null,
+                athleteProfile:
+                    accountType === "atleta"
+                        ? {
+                              altura_cm: alturaCm,
+                              peso_kg: pesoKg,
+                              clubName:
+                                  selectedAthleteClubOption?.label || null,
+                              trainerName:
+                                  selectedAthleteTrainerOption?.label || null,
+                              teamName:
+                                  selectedAthleteTeamOption?.label || null,
+                              postalCode:
+                                  normalizePostalCode(athletePostalCode) ||
+                                  null,
+                              address: athleteAddress.trim() || null,
+                              city: athleteCity.trim() || null,
+                              country: PORTUGAL_COUNTRY,
+                              responsibleEmail:
+                                  athleteNeedsResponsible &&
+                                  athleteResponsibleEmail.trim().length > 0
+                                      ? athleteResponsibleEmail.trim()
+                                      : null,
+                              clubPendingApproval: Boolean(
+                                  selectedAthleteClubOption,
+                              ),
+                              trainerPendingApproval: Boolean(
+                                  selectedAthleteTrainerOption,
+                              ),
+                              teamPendingApproval: Boolean(
+                                  selectedAthleteTeamOption,
+                              ),
+                              responsiblePendingApproval:
+                                  athleteNeedsResponsible &&
+                                  athleteResponsibleEmail.trim().length > 0,
+                          }
+                        : null,
             },
         });
 
@@ -1061,14 +1431,6 @@ export default function CustomSignUpForm() {
             return;
         }
 
-        if (accountType === "atleta" && !isAthleteDataValid(alturaCm, pesoKg)) {
-            setIsSubmitting(false);
-            setErrorMessage(
-                "Para atleta, altura e peso são obrigatórios e devem ser válidos.",
-            );
-            return;
-        }
-
         if (accountType === "presidente") {
             setIsSubmitting(false);
             setStage("president-profile");
@@ -1078,6 +1440,12 @@ export default function CustomSignUpForm() {
         if (accountType === "treinador") {
             setIsSubmitting(false);
             setStage("trainer-profile");
+            return;
+        }
+
+        if (accountType === "atleta") {
+            setIsSubmitting(false);
+            setStage("athlete-profile");
             return;
         }
 
@@ -1193,6 +1561,49 @@ export default function CustomSignUpForm() {
         }
     };
 
+    const handleAthleteProfileSubmit = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        if (!isLoaded) return;
+
+        setIsSubmitting(true);
+        setErrorMessage(null);
+
+        const athleteError = validateAthleteProfile();
+        if (athleteError) {
+            setIsSubmitting(false);
+            setErrorMessage(athleteError);
+            return;
+        }
+
+        try {
+            const didStartVerification =
+                await createSignupAndSendVerification();
+            if (!didStartVerification) {
+                return;
+            }
+        } catch (error) {
+            const message = getClerkErrorMessage(error);
+            if (isClerkInvalidEmailError(error)) {
+                setStage("form");
+                focusEmailFieldForEdit();
+                setErrorMessage(`${message}`);
+            } else if (isClerkPasswordBreachError(error)) {
+                setStage("form");
+                focusPasswordFieldForEdit();
+                setErrorMessage(
+                    `${message} Edite a palavra-passe para continuar.`,
+                );
+            } else {
+                setErrorMessage(message);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] || null;
         if (!file) {
@@ -1259,11 +1670,12 @@ export default function CustomSignUpForm() {
             return;
         }
 
-        if (accountType === "atleta" && !isAthleteDataValid(alturaCm, pesoKg)) {
+        const athleteValidationError =
+            accountType === "atleta" ? validateAthleteProfile() : null;
+
+        if (athleteValidationError) {
             setIsSubmitting(false);
-            setErrorMessage(
-                "Para atleta, altura e peso são obrigatórios e devem ser válidos.",
-            );
+            setErrorMessage(athleteValidationError);
             return;
         }
 
@@ -1296,6 +1708,41 @@ export default function CustomSignUpForm() {
             if (accountType === "atleta") {
                 payload.append("altura_cm", alturaCm);
                 payload.append("peso_kg", pesoKg);
+                payload.append(
+                    "athlete_club_name",
+                    selectedAthleteClubOption?.label || "",
+                );
+                payload.append(
+                    "athlete_trainer_name",
+                    selectedAthleteTrainerOption?.label || "",
+                );
+                payload.append(
+                    "athlete_team_name",
+                    selectedAthleteTeamOption?.label || "",
+                );
+                payload.append(
+                    "athlete_postal_code",
+                    normalizePostalCode(athletePostalCode),
+                );
+                payload.append("athlete_address", athleteAddress.trim());
+                payload.append("athlete_city", athleteCity.trim());
+                payload.append("athlete_country", PORTUGAL_COUNTRY);
+                payload.append(
+                    "athlete_responsible_email",
+                    athleteResponsibleEmail.trim(),
+                );
+                payload.append(
+                    "athlete_club_is_existing",
+                    String(Boolean(selectedAthleteClubOption)),
+                );
+                payload.append(
+                    "athlete_trainer_is_existing",
+                    String(Boolean(selectedAthleteTrainerOption)),
+                );
+                payload.append(
+                    "athlete_team_is_existing",
+                    String(Boolean(selectedAthleteTeamOption)),
+                );
             }
             if (accountType === "presidente") {
                 payload.append("president_club_name", presidentClubName.trim());
@@ -1736,43 +2183,6 @@ export default function CustomSignUpForm() {
                             </div>
                         </div>
 
-                        {accountType === "atleta" && (
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                        Altura (cm)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        step="0.1"
-                                        value={alturaCm}
-                                        onChange={(event) =>
-                                            setAlturaCm(event.target.value)
-                                        }
-                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                                        placeholder="Ex: 172"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                        Peso (kg)
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min={1}
-                                        step="0.1"
-                                        value={pesoKg}
-                                        onChange={(event) =>
-                                            setPesoKg(event.target.value)
-                                        }
-                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
-                                        placeholder="Ex: 63.5"
-                                    />
-                                </div>
-                            </div>
-                        )}
-
                         {errorMessage && (
                             <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
                                 {errorMessage}
@@ -2004,6 +2414,333 @@ export default function CustomSignUpForm() {
                                 />
                             </div>
                         </div>
+
+                        {errorMessage && (
+                            <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
+                                {errorMessage}
+                            </p>
+                        )}
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setStage("form")}
+                                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-emerald-600"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!isLoaded || isSubmitting}
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
+                            >
+                                {isSubmitting
+                                    ? "A criar conta..."
+                                    : "Concluir perfil"}
+                            </button>
+                        </div>
+                    </form>
+                ) : stage === "athlete-profile" ? (
+                    <form
+                        className="space-y-6"
+                        onSubmit={handleAthleteProfileSubmit}
+                    >
+                        <div className="rounded-lg border border-blue-200/20 bg-slate-900/50 p-4">
+                            <p className="text-sm font-semibold text-white">
+                                Atleta - Dados Desportivos
+                            </p>
+                            <p className="mt-1 text-xs text-slate-300">
+                                Preencha os dados para criar o perfil de atleta.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Altura (cm)
+                                </label>
+                                <input
+                                    type="number"
+                                    min={ATHLETE_HEIGHT_MIN_CM}
+                                    max={ATHLETE_HEIGHT_MAX_CM}
+                                    step="1"
+                                    required
+                                    value={alturaCm}
+                                    onChange={(event) =>
+                                        setAlturaCm(
+                                            normalizeAthleteHeightInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    onBlur={(event) =>
+                                        setAlturaCm(
+                                            clampAthleteHeightInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Ex: 172"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Peso (kg)
+                                </label>
+                                <input
+                                    type="number"
+                                    min={ATHLETE_WEIGHT_MIN_KG}
+                                    max={ATHLETE_WEIGHT_MAX_KG}
+                                    step="0.01"
+                                    required
+                                    value={pesoKg}
+                                    onChange={(event) =>
+                                        setPesoKg(
+                                            normalizeAthleteWeightInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    onBlur={(event) =>
+                                        setPesoKg(
+                                            clampAthleteWeightInput(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Ex: 63.5"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-3">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Clube (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    list="athlete-club-options"
+                                    value={athleteClubName}
+                                    onChange={(event) =>
+                                        setAthleteClubName(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Pesquisar clube"
+                                />
+                                <datalist id="athlete-club-options">
+                                    {athleteClubOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.label}
+                                        />
+                                    ))}
+                                </datalist>
+                                {athleteClubName.trim().length > 0 &&
+                                    !selectedAthleteClubOption && (
+                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                            Não existe clube cadastrado com esse
+                                            nome.
+                                        </p>
+                                    )}
+                                {selectedAthleteClubOption && (
+                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                        Pendente de aprovação do clube{" "}
+                                        <strong>
+                                            {selectedAthleteClubOption.label}
+                                        </strong>
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Treinador (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    list="athlete-trainer-options"
+                                    value={athleteTrainerName}
+                                    onChange={(event) =>
+                                        setAthleteTrainerName(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Pesquisar treinador"
+                                />
+                                <datalist id="athlete-trainer-options">
+                                    {athleteTrainerOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.label}
+                                        />
+                                    ))}
+                                </datalist>
+                                {athleteTrainerName.trim().length > 0 &&
+                                    !selectedAthleteTrainerOption && (
+                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                            Não existe treinador cadastrado com
+                                            esse nome.
+                                        </p>
+                                    )}
+                                {selectedAthleteTrainerOption && (
+                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                        Pendente de aprovação do treinador{" "}
+                                        <strong>
+                                            {selectedAthleteTrainerOption.label}
+                                        </strong>
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Equipa (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    list="athlete-team-options"
+                                    value={athleteTeamName}
+                                    onChange={(event) =>
+                                        setAthleteTeamName(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Pesquisar equipa"
+                                />
+                                <datalist id="athlete-team-options">
+                                    {athleteTeamOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.label}
+                                        />
+                                    ))}
+                                </datalist>
+                                {athleteTeamName.trim().length > 0 &&
+                                    !selectedAthleteTeamOption && (
+                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                            Não existe equipa cadastrada com
+                                            esse nome.
+                                        </p>
+                                    )}
+                                {selectedAthleteTeamOption && (
+                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                        Pendente de aprovação da equipa
+                                        <strong>
+                                            {selectedAthleteTeamOption.label}
+                                        </strong>
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-3">
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Morada (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={athleteAddress}
+                                    onChange={(event) =>
+                                        setAthleteAddress(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Rua, número, complemento..."
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Código Postal (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={athletePostalCode}
+                                    onChange={(event) =>
+                                        setAthletePostalCode(
+                                            normalizePostalCode(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    maxLength={8}
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="0000-000"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Cidade
+                                </label>
+                                <input
+                                    type="text"
+                                    value={athleteCity}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                    placeholder="Preenchida automaticamente"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    País
+                                </label>
+                                <input
+                                    type="text"
+                                    value={PORTUGAL_COUNTRY}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        {athleteNeedsResponsible && (
+                            <div className="space-y-1 rounded-lg border border-red-500/40 bg-red-500/10 p-4">
+                                <label className="block text-sm font-medium text-red-200">
+                                    Responsável (e-mail obrigatório para menor)
+                                </label>
+                                <input
+                                    type="email"
+                                    required
+                                    list="athlete-responsible-email-options"
+                                    value={athleteResponsibleEmail}
+                                    onChange={(event) =>
+                                        setAthleteResponsibleEmail(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-red-400/40 bg-slate-900/60 px-3 py-3 text-sm text-white outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 transition-all"
+                                    placeholder="email do responsável"
+                                />
+                                <datalist id="athlete-responsible-email-options">
+                                    {athleteResponsibleEmailOptions.map(
+                                        (option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ),
+                                    )}
+                                </datalist>
+                                {athleteResponsibleEmail.trim().length > 0 && (
+                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                        Pendente de aprovação do responsável de
+                                        e-mail{" "}
+                                        <strong>
+                                            {athleteResponsibleEmail.trim()}
+                                        </strong>
+                                    </p>
+                                )}
+                            </div>
+                        )}
 
                         {errorMessage && (
                             <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">

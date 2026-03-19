@@ -58,7 +58,7 @@ function getProfileBadge(accountType: AccountType | null) {
     }
 
     return {
-        label: "Utilizador",
+        label: "Usuário",
         className:
             "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200",
     };
@@ -107,7 +107,7 @@ export default async function AdminUsersPage({
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        Utilizadores
+                        Usuários
                     </h1>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         Pesquisa global e acesso ao perfil para edição.
@@ -203,7 +203,7 @@ export default async function AdminUsersPage({
                                     className="px-4 py-6 text-gray-500 dark:text-gray-400"
                                     colSpan={5}
                                 >
-                                    Nenhum utilizador encontrado.
+                                    Nenhum usuário encontrado.
                                 </td>
                             </tr>
                         )}

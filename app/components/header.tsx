@@ -1,6 +1,5 @@
 "use client";
 
-
 import { Avatar } from "@/app/components/avatar";
 import { Button } from "@/app/components/button";
 import { NotificationDropdown } from "@/app/components/notification-dropdown";
@@ -10,7 +9,6 @@ import { LogOut, Moon, Settings, Sun, User, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
-
 
 interface DashboardHeaderProps {
     mobileMenuTrigger?: ReactNode;
@@ -25,7 +23,6 @@ interface DashboardHeaderProps {
         foto?: string;
     };
 }
-
 
 export function DashboardHeader({
     mobileMenuTrigger,
@@ -43,15 +40,12 @@ export function DashboardHeader({
     const { signOut } = useClerk();
     const router = useRouter();
 
-
     useEffect(() => {
         setMounted(true);
     }, []);
 
-
     useEffect(() => {
         if (!userMenuOpen) return;
-
 
         function handleClickOutside(e: MouseEvent) {
             if (
@@ -62,12 +56,10 @@ export function DashboardHeader({
             }
         }
 
-
         document.addEventListener("mousedown", handleClickOutside);
         return () =>
             document.removeEventListener("mousedown", handleClickOutside);
     }, [userMenuOpen]);
-
 
     const getInitials = (name: string) => {
         return name
@@ -77,7 +69,6 @@ export function DashboardHeader({
             .toUpperCase()
             .slice(0, 2);
     };
-
 
     return (
         <header className="fixed top-0 right-0 left-0 lg:left-64 h-20 bg-white dark:bg-gray-950 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 z-40 px-4 md:px-8 flex items-center justify-between transition-all">
@@ -89,7 +80,6 @@ export function DashboardHeader({
                     <div className="hidden lg:flex">{profileTabs}</div>
                 )}
             </div>
-
 
             <div className="flex items-center gap-2 md:gap-4 pl-4">
                 <div className="flex gap-1 text-gray-600 dark:text-gray-400">
@@ -111,7 +101,6 @@ export function DashboardHeader({
                     <NotificationDropdown />
                 </div>
 
-
                 <div
                     ref={userMenuRef}
                     className="relative flex items-center gap-3 border-l border-gray-200 dark:border-gray-800 pl-4 ml-2"
@@ -122,7 +111,7 @@ export function DashboardHeader({
                     >
                         <div className="text-right hidden md:block">
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {user?.name || "Utilizador"}
+                                {user?.name || "Usuário"}
                             </p>
                             <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
                                 {user?.role || "Guest"}
@@ -136,7 +125,6 @@ export function DashboardHeader({
                             }
                         />
                     </button>
-
 
                     {userMenuOpen && (
                         <div className="absolute right-0 top-full mt-3 w-52 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-xl py-1 z-50">
@@ -161,7 +149,9 @@ export function DashboardHeader({
                                     {settingsHref ? (
                                         <Link
                                             href={settingsHref}
-                                            onClick={() => setUserMenuOpen(false)}
+                                            onClick={() =>
+                                                setUserMenuOpen(false)
+                                            }
                                             className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                         >
                                             <Settings
@@ -203,4 +193,3 @@ export function DashboardHeader({
         </header>
     );
 }
-

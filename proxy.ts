@@ -22,8 +22,8 @@ function normalizeAccountType(value: unknown): AccountType | null {
 function defaultDashboardPath(accountType: AccountType): string {
     if (accountType === "presidente") return "/dashboard/presidente";
     if (accountType === "treinador") return "/dashboard/treinador";
-    if (accountType === "atleta") return "/dashboard/utilizador/perfil";
-    return "/dashboard";
+    if (accountType === "atleta") return "/dashboard/atleta";
+    return "/dashboard/pai";
 }
 
 function isPathAllowedForAccountType(
@@ -39,11 +39,14 @@ function isPathAllowedForAccountType(
     }
 
     if (accountType === "atleta") {
-        return path.startsWith("/dashboard/utilizador");
+        return (
+            path.startsWith("/dashboard/atleta") ||
+            path.startsWith("/dashboard/utilizador")
+        );
     }
 
     if (accountType === "responsavel") {
-        return path === "/dashboard";
+        return path.startsWith("/dashboard/pai");
     }
 
     return true;
@@ -60,6 +63,7 @@ const isPublicRoute = createRouteMatcher([
     "/api/password-breach-check(.*)",
     "/api/email-address-check(.*)",
     "/api/trainer-profile/options(.*)",
+    "/api/athlete-profile/options(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

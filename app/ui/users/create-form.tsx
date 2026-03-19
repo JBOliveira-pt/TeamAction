@@ -58,10 +58,10 @@ export default function CreateUserForm() {
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Novo Utilizador
+                                Novo Usuário
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                                Preencha as informações do utilizador
+                                Preencha as informações do usuário
                             </p>
                         </div>
                     </div>
@@ -211,7 +211,7 @@ export default function CreateUserForm() {
                 {/* Image Upload */}
                 <div className="mb-6 space-y-3">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Foto do Utilizador
+                        Foto do Usuário
                     </label>
 
                     <div className="flex items-start gap-4">
@@ -305,7 +305,7 @@ export default function CreateUserForm() {
                 </Link>
                 <Button type="submit">
                     <UserPlusIcon className="h-4 w-4" />
-                    Criar Utilizador
+                    Criar Usuário
                 </Button>
             </div>
         </form>

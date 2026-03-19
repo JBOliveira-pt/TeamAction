@@ -20,7 +20,7 @@ import { getOrganizationId } from "@/app/lib/data";
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 /**
- * Regista uma ação de utilizador em user_action_logs.
+ * Regista uma ação de usuário em user_action_logs.
  * Nunca lança excepção – falhas de logging não devem bloquear a ação principal.
  */
 async function logAction(
@@ -1328,6 +1328,12 @@ export async function createOrganizationAndAdmin(formData: FormData) {
 // Atleta Actions
 // ========================================
 
+const ATHLETE_HEIGHT_MIN_CM = 100;
+const ATHLETE_HEIGHT_MAX_CM = 300;
+const ATHLETE_WEIGHT_MIN_KG = 10;
+const ATHLETE_WEIGHT_MAX_KG = 300;
+const ATHLETE_WEIGHT_DECIMALS_REGEX = /^\d+(\.\d{1,2})?$/;
+
 const AtletaFormSchema = z.object({
     nome: z.string().trim().min(1, { message: "Nome é obrigatório." }),
     sobrenome: z
@@ -1344,12 +1350,30 @@ const AtletaFormSchema = z.object({
         .min(1, { message: "Telemóvel é obrigatório." })
         .regex(/^[\d\s\+\-\(\)]{9,20}$/, { message: "Telemóvel inválido." }),
     email: z.string().email({ message: "Email inválido." }),
-    peso_kg: z.coerce
-        .number({ invalid_type_error: "Peso inválido." })
-        .positive({ message: "Peso deve ser positivo." }),
+    peso_kg: z
+        .string()
+        .trim()
+        .regex(ATHLETE_WEIGHT_DECIMALS_REGEX, {
+            message: "Peso deve ter no máximo 2 casas decimais.",
+        })
+        .transform((value) => Number(value))
+        .refine(
+            (value) =>
+                !Number.isNaN(value) &&
+                value >= ATHLETE_WEIGHT_MIN_KG &&
+                value <= ATHLETE_WEIGHT_MAX_KG,
+            {
+                message: `Peso deve estar entre ${ATHLETE_WEIGHT_MIN_KG} e ${ATHLETE_WEIGHT_MAX_KG} kg.`,
+            },
+        ),
     altura_cm: z.coerce
         .number({ invalid_type_error: "Altura inválida." })
-        .positive({ message: "Altura deve ser positiva." }),
+        .min(ATHLETE_HEIGHT_MIN_CM, {
+            message: `Altura deve estar entre ${ATHLETE_HEIGHT_MIN_CM} e ${ATHLETE_HEIGHT_MAX_CM} cm.`,
+        })
+        .max(ATHLETE_HEIGHT_MAX_CM, {
+            message: `Altura deve estar entre ${ATHLETE_HEIGHT_MIN_CM} e ${ATHLETE_HEIGHT_MAX_CM} cm.`,
+        }),
     nif: z
         .string()
         .trim()
@@ -1430,13 +1454,97 @@ export async function createAtletaProfile(
     }
 
     try {
-        await sql`
-            INSERT INTO utilizador
-                (nome, sobrenome, data_nascimento, morada, telemovel, email, foto_perfil_url, peso_kg, altura_cm, nif, estado)
-            VALUES
-                (${nome}, ${sobrenome}, ${data_nascimento}, ${morada}, ${telemovel},
-                 ${email}, ${foto_perfil_url}, ${peso_kg}, ${altura_cm}, ${nif}, 'Pendente')
+        const usersColumns = await sql<{ column_name: string }[]>`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
         `;
+
+        const hasUsersColumn = (column: string) =>
+            usersColumns.some((item) => item.column_name === column);
+
+        const fullName = `${nome} ${sobrenome}`.trim();
+
+        if (hasUsersColumn("name")) {
+            await sql`
+                UPDATE users
+                SET name = ${fullName}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("email")) {
+            await sql`
+                UPDATE users
+                SET email = ${email}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("data_nascimento")) {
+            await sql`
+                UPDATE users
+                SET data_nascimento = ${data_nascimento}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("morada")) {
+            await sql`
+                UPDATE users
+                SET morada = ${morada}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("telefone")) {
+            await sql`
+                UPDATE users
+                SET telefone = ${telemovel}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("peso_kg")) {
+            await sql`
+                UPDATE users
+                SET peso_kg = ${peso_kg}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("altura_cm")) {
+            await sql`
+                UPDATE users
+                SET altura_cm = ${altura_cm}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("nif")) {
+            await sql`
+                UPDATE users
+                SET nif = ${nif}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("status")) {
+            await sql`
+                UPDATE users
+                SET status = 'pendente', updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("image_url")) {
+            await sql`
+                UPDATE users
+                SET image_url = ${foto_perfil_url}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
     } catch (error: any) {
         if (error.code === "23505") {
             return {
@@ -1501,17 +1609,20 @@ export async function updateAtletaProfile(
         nif,
     } = validatedFields.data;
 
-    // Fetch existing profile to preserve photo if none uploaded
-    const existing = await sql<{ foto_perfil_url: string | null }[]>`
-        SELECT a.foto_perfil_url
-        FROM utilizador a
-        JOIN users u ON u.email = a.email
-        WHERE u.clerk_user_id = ${userId}
+    let foto_perfil_url: string | null = null;
+
+    const existingUser = await sql<{ image_url: string | null }[]>`
+        SELECT image_url
+        FROM users
+        WHERE clerk_user_id = ${userId}
+        LIMIT 1
     `;
-    if (!existing.length) {
+
+    if (!existingUser.length) {
         return { errors: {}, message: "Perfil não encontrado." };
     }
-    let foto_perfil_url = existing[0].foto_perfil_url;
+
+    foto_perfil_url = existingUser[0].image_url;
 
     const fotoFile = formData.get("foto_perfil") as File | null;
     if (fotoFile && fotoFile.size > 0) {
@@ -1538,24 +1649,88 @@ export async function updateAtletaProfile(
     }
 
     try {
-        await sql`
-            UPDATE utilizador
-            SET
-                nome             = ${nome},
-                sobrenome        = ${sobrenome},
-                data_nascimento  = ${data_nascimento},
-                morada           = ${morada},
-                telemovel        = ${telemovel},
-                email            = ${email},
-                foto_perfil_url  = ${foto_perfil_url},
-                peso_kg          = ${peso_kg},
-                altura_cm        = ${altura_cm},
-                nif              = ${nif},
-                updated_at       = NOW()
-            WHERE email IN (
-                SELECT email FROM users WHERE clerk_user_id = ${userId}
-            )
+        const usersColumns = await sql<{ column_name: string }[]>`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
         `;
+
+        const hasUsersColumn = (column: string) =>
+            usersColumns.some((item) => item.column_name === column);
+        const fullName = `${nome} ${sobrenome}`.trim();
+
+        if (hasUsersColumn("name")) {
+            await sql`
+                UPDATE users
+                SET name = ${fullName}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("email")) {
+            await sql`
+                UPDATE users
+                SET email = ${email}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("data_nascimento")) {
+            await sql`
+                UPDATE users
+                SET data_nascimento = ${data_nascimento}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("morada")) {
+            await sql`
+                UPDATE users
+                SET morada = ${morada}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("telefone")) {
+            await sql`
+                UPDATE users
+                SET telefone = ${telemovel}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("peso_kg")) {
+            await sql`
+                UPDATE users
+                SET peso_kg = ${peso_kg}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("altura_cm")) {
+            await sql`
+                UPDATE users
+                SET altura_cm = ${altura_cm}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("nif")) {
+            await sql`
+                UPDATE users
+                SET nif = ${nif}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersColumn("image_url")) {
+            await sql`
+                UPDATE users
+                SET image_url = ${foto_perfil_url}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
     } catch (error: any) {
         if (error.code === "23505") {
             return {

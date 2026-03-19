@@ -22,7 +22,7 @@ export function AdminDeleteUserDangerZone({
                         Zona de perigo
                     </h2>
                     <p className="text-sm text-rose-800 dark:text-rose-300">
-                        Excluir este utilizador remove permanentemente a conta e
+                        Excluir este usuário remove permanentemente a conta e
                         todos os dados vinculados na base de dados.
                     </p>
                     <button
@@ -30,7 +30,7 @@ export function AdminDeleteUserDangerZone({
                         onClick={() => setShowModal(true)}
                         className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-700"
                     >
-                        Excluir utilizador
+                        Excluir usuário
                     </button>
                 </div>
             </div>
@@ -43,7 +43,7 @@ export function AdminDeleteUserDangerZone({
                         </h3>
                         <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                             Esta acao e irreversivel. Todos os dados vinculados
-                            a este utilizador serao excluidos da base de dados.
+                            a este usuário serao excluidos da base de dados.
                         </p>
 
                         <p className="mt-4 text-sm font-medium text-gray-800 dark:text-gray-200">

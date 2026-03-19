@@ -42,6 +42,12 @@ function LoginPageContent() {
         }
     }, [searchParams, currentView]);
 
+    useEffect(() => {
+        if (isLoaded && isSignedIn) {
+            router.replace("/dashboard");
+        }
+    }, [isLoaded, isSignedIn, router]);
+
     // Mostrar loading enquanto verifica autenticação
     if (!isLoaded) {
         return (

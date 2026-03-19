@@ -106,7 +106,7 @@ export default async function AdminUserDetailPage({
         if (resolvedSearchParams?.error === "delete") {
             return {
                 kind: "error" as const,
-                message: "Falha ao excluir o utilizador. Tente novamente.",
+                message: "Falha ao excluir o usuário. Tente novamente.",
             };
         }
 
@@ -114,7 +114,7 @@ export default async function AdminUserDetailPage({
             return {
                 kind: "warning" as const,
                 message:
-                    "Utilizador removido da base de dados, mas houve falha ao remover no Clerk.",
+                    "Usuário removido da base de dados, mas houve falha ao remover no Clerk.",
             };
         }
 
@@ -125,7 +125,7 @@ export default async function AdminUserDetailPage({
         <div className="space-y-4">
             <header>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Perfil do Utilizador
+                    Perfil do Usuário
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                     Verificação e alteração de dados cadastrais.
@@ -206,7 +206,7 @@ export default async function AdminUserDetailPage({
                         </select>
                         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             O papel de acesso e inferido automaticamente como
-                            Utilizador para qualquer funcao.
+                            Usuário para qualquer funcao.
                         </p>
                     </div>
 

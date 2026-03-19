@@ -11,7 +11,7 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
     const searchParams = useSearchParams();
     const { isSignedIn } = useAuth();
     const { openSignIn, signOut } = useClerk();
-    const callbackUrl = searchParams.get("callbackUrl") || "/signup";
+    const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
     const handleOpenSignIn = async () => {
         if (isSignedIn) {
@@ -80,7 +80,7 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                         <>
                             <p className="text-center text-xs text-amber-300">
                                 Sessão ativa detectada. Para entrar com outro
-                                utilizador, escolha Trocar conta.
+                                usuário, escolha Trocar conta.
                             </p>
                             <button
                                 type="button"

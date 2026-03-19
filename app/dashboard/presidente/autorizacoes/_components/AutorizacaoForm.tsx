@@ -11,7 +11,7 @@ const TIPOS = ["Aprovação", "Recusa", "Transferência", "Suspensão", "Outro"]
 export default function AutorizacaoForm({ users }: { users: User[] }) {
     const [state, action, isPending] = useActionState<State, FormData>(
         registarAutorizacao,
-        null
+        null,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -43,9 +43,11 @@ export default function AutorizacaoForm({ users }: { users: User[] }) {
                         required
                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
                     >
-                        <option value="">Seleciona o utilizador</option>
+                        <option value="">Seleciona o usuário</option>
                         {users.map((u) => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
+                            <option key={u.id} value={u.id}>
+                                {u.name}
+                            </option>
                         ))}
                     </select>
                 </div>
@@ -60,14 +62,18 @@ export default function AutorizacaoForm({ users }: { users: User[] }) {
                     >
                         <option value="">Seleciona o tipo</option>
                         {TIPOS.map((t) => (
-                            <option key={t} value={t}>{t}</option>
+                            <option key={t} value={t}>
+                                {t}
+                            </option>
                         ))}
                     </select>
                 </div>
             </div>
 
             <div className="space-y-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">Notas</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    Notas
+                </label>
                 <textarea
                     name="notas"
                     rows={3}
@@ -88,4 +94,3 @@ export default function AutorizacaoForm({ users }: { users: User[] }) {
         </form>
     );
 }
-

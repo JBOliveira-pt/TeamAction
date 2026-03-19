@@ -1,7 +1,6 @@
 const shimmer =
     "before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 dark:before:via-white/10 before:to-transparent";
 
-
 export function CardSkeleton() {
     return (
         <div
@@ -19,7 +18,6 @@ export function CardSkeleton() {
     );
 }
 
-
 export function CardsSkeleton() {
     return (
         <>
@@ -33,7 +31,6 @@ export function CardsSkeleton() {
         </>
     );
 }
-
 
 export function RevenueChartSkeleton() {
     return (
@@ -52,7 +49,6 @@ export function RevenueChartSkeleton() {
     );
 }
 
-
 export function InvoiceSkeleton() {
     return (
         <div className="flex flex-row items-center justify-between border-b border-gray-200 dark:border-gray-800 py-4">
@@ -67,7 +63,6 @@ export function InvoiceSkeleton() {
         </div>
     );
 }
-
 
 export function LatestInvoicesSkeleton() {
     return (
@@ -91,7 +86,6 @@ export function LatestInvoicesSkeleton() {
         </div>
     );
 }
-
 
 export default function DashboardSkeleton() {
     return (
@@ -120,7 +114,6 @@ export default function DashboardSkeleton() {
         </div>
     );
 }
-
 
 export function TableRowSkeleton() {
     return (
@@ -153,7 +146,6 @@ export function TableRowSkeleton() {
     );
 }
 
-
 export function InvoicesMobileSkeleton() {
     return (
         <div className="mb-2 w-full rounded-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4">
@@ -178,7 +170,6 @@ export function InvoicesMobileSkeleton() {
     );
 }
 
-
 export function InvoicesTableSkeleton() {
     return (
         <div className="mt-6 flow-root">
@@ -195,12 +186,42 @@ export function InvoicesTableSkeleton() {
                     <table className="hidden min-w-full text-gray-900 dark:text-gray-100 md:table">
                         <thead className="rounded-lg text-left text-sm font-normal">
                             <tr>
-                                <th scope="col" className="px-4 py-5 text-xs font-medium text-gray-600 dark:text-gray-400 sm:pl-6">CLIENTE</th>
-                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">EMAIL</th>
-                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">VALOR</th>
-                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">DATA</th>
-                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">STATUS</th>
-                                <th scope="col" className="relative pb-4 pl-3 pr-6 pt-2 sm:pr-6"><span className="sr-only">Edit</span></th>
+                                <th
+                                    scope="col"
+                                    className="px-4 py-5 text-xs font-medium text-gray-600 dark:text-gray-400 sm:pl-6"
+                                >
+                                    CLIENTE
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
+                                >
+                                    EMAIL
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
+                                >
+                                    VALOR
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
+                                >
+                                    DATA
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
+                                >
+                                    STATUS
+                                </th>
+                                <th
+                                    scope="col"
+                                    className="relative pb-4 pl-3 pr-6 pt-2 sm:pr-6"
+                                >
+                                    <span className="sr-only">Edit</span>
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-900">
@@ -217,7 +238,6 @@ export function InvoicesTableSkeleton() {
         </div>
     );
 }
-
 
 export function UsersMobileSkeleton() {
     return (
@@ -239,7 +259,6 @@ export function UsersMobileSkeleton() {
         </div>
     );
 }
-
 
 export function UsersTableRowSkeleton() {
     return (
@@ -266,7 +285,6 @@ export function UsersTableRowSkeleton() {
     );
 }
 
-
 export function UsersTableSkeleton() {
     return (
         <div className="w-full">
@@ -285,10 +303,32 @@ export function UsersTableSkeleton() {
                             <table className="hidden min-w-full md:table">
                                 <thead className="bg-gray-50 dark:bg-gray-800/50">
                                     <tr>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Utilizador</th>
-                                        <th scope="col" className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                                        <th scope="col" className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Função</th>
-                                        <th scope="col" className="relative py-4 pl-3 pr-6"><span className="sr-only">Ações</span></th>
+                                        <th
+                                            scope="col"
+                                            className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Usuário
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Email
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Função
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="relative py-4 pl-3 pr-6"
+                                        >
+                                            <span className="sr-only">
+                                                Ações
+                                            </span>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -308,9 +348,7 @@ export function UsersTableSkeleton() {
     );
 }
 
-
 // ============= CUSTOMERS SKELETONS =============
-
 
 export function CustomersMobileSkeleton() {
     return (
@@ -346,7 +384,6 @@ export function CustomersMobileSkeleton() {
     );
 }
 
-
 export function CustomersTableRowSkeleton() {
     return (
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
@@ -378,7 +415,6 @@ export function CustomersTableRowSkeleton() {
     );
 }
 
-
 export function CustomersTableSkeleton() {
     return (
         <div className="w-full">
@@ -397,12 +433,44 @@ export function CustomersTableSkeleton() {
                             <table className="hidden min-w-full md:table">
                                 <thead className="bg-gray-50 dark:bg-gray-800/50">
                                     <tr>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
-                                        <th scope="col" className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                                        <th scope="col" className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Faturas</th>
-                                        <th scope="col" className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Pendente</th>
-                                        <th scope="col" className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Pago</th>
-                                        <th scope="col" className="relative py-4 pl-3 pr-6"><span className="sr-only">Ações</span></th>
+                                        <th
+                                            scope="col"
+                                            className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Cliente
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Email
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Faturas
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Pendente
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-3 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider"
+                                        >
+                                            Pago
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="relative py-4 pl-3 pr-6"
+                                        >
+                                            <span className="sr-only">
+                                                Ações
+                                            </span>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -422,7 +490,6 @@ export function CustomersTableSkeleton() {
     );
 }
 
-
 // ============= PRESIDENTE SKELETONS =============
 
 const shimmerDark =
@@ -430,7 +497,9 @@ const shimmerDark =
 
 export function PresidenteStatCardSkeleton() {
     return (
-        <div className={`${shimmerDark} relative overflow-hidden bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5`}>
+        <div
+            className={`${shimmerDark} relative overflow-hidden bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5`}
+        >
             <div className="h-3 w-24 rounded bg-gray-200 dark:bg-slate-800 mb-3" />
             <div className="h-8 w-16 rounded bg-gray-200 dark:bg-slate-800" />
         </div>
@@ -440,12 +509,24 @@ export function PresidenteStatCardSkeleton() {
 export function PresidenteTableRowSkeleton() {
     return (
         <tr className="border-b border-gray-200 dark:border-slate-800/50 last:border-0">
-            <td className="px-6 py-4"><div className="h-4 w-32 rounded bg-gray-200 dark:bg-slate-800" /></td>
-            <td className="px-6 py-4"><div className="h-4 w-20 rounded bg-gray-200 dark:bg-slate-800" /></td>
-            <td className="px-6 py-4"><div className="h-4 w-24 rounded bg-gray-200 dark:bg-slate-800" /></td>
-            <td className="px-6 py-4"><div className="h-4 w-12 rounded bg-gray-200 dark:bg-slate-800" /></td>
-            <td className="px-6 py-4"><div className="h-6 w-16 rounded-full bg-gray-200 dark:bg-slate-800" /></td>
-            <td className="px-6 py-4"><div className="h-4 w-16 rounded bg-gray-200 dark:bg-slate-800" /></td>
+            <td className="px-6 py-4">
+                <div className="h-4 w-32 rounded bg-gray-200 dark:bg-slate-800" />
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-4 w-20 rounded bg-gray-200 dark:bg-slate-800" />
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-4 w-24 rounded bg-gray-200 dark:bg-slate-800" />
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-4 w-12 rounded bg-gray-200 dark:bg-slate-800" />
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-6 w-16 rounded-full bg-gray-200 dark:bg-slate-800" />
+            </td>
+            <td className="px-6 py-4">
+                <div className="h-4 w-16 rounded bg-gray-200 dark:bg-slate-800" />
+            </td>
         </tr>
     );
 }
@@ -512,7 +593,10 @@ export function PresidenteDetailPageSkeleton() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="space-y-4">
                     {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 space-y-3">
+                        <div
+                            key={i}
+                            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-5 space-y-3"
+                        >
                             <div className="h-4 w-24 rounded bg-gray-200 dark:bg-slate-800" />
                             <div className="h-3 w-full rounded bg-gray-200 dark:bg-slate-800" />
                             <div className="h-3 w-3/4 rounded bg-gray-200 dark:bg-slate-800" />
@@ -561,7 +645,10 @@ export function PresidentePerfilSkeleton() {
                 </div>
                 <div className="lg:col-span-2 space-y-4">
                     {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 space-y-3">
+                        <div
+                            key={i}
+                            className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-6 space-y-3"
+                        >
                             <div className="h-4 w-32 rounded bg-gray-200 dark:bg-slate-800" />
                             <div className="h-3 w-full rounded bg-gray-200 dark:bg-slate-700" />
                             <div className="h-3 w-2/3 rounded bg-gray-200 dark:bg-slate-700" />
@@ -572,5 +659,3 @@ export function PresidentePerfilSkeleton() {
         </div>
     );
 }
-
-

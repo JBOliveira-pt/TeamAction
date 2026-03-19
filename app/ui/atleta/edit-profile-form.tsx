@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { updateAtletaProfile } from '@/app/lib/actions';
-import type { Atleta, AtletaState } from '@/app/lib/definitions';
+import { updateAtletaProfile } from "@/app/lib/actions";
+import type { Atleta, AtletaState } from "@/app/lib/definitions";
 import {
     ArrowLeftIcon,
     AtSymbolIcon,
@@ -12,10 +12,10 @@ import {
     PhotoIcon,
     ScaleIcon,
     UserIcon,
-} from '@heroicons/react/24/outline';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useActionState, useState } from 'react';
+} from "@heroicons/react/24/outline";
+import Image from "next/image";
+import Link from "next/link";
+import { useActionState, useState } from "react";
 
 const initialState: AtletaState = { errors: {}, message: null };
 
@@ -33,15 +33,20 @@ function FieldError({ errors }: { errors?: string[] }) {
 }
 
 const inputBase =
-    'peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all';
+    "peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all";
 
 const iconBase =
-    'pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500 peer-focus:text-emerald-400 transition-colors';
+    "pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 dark:text-gray-500 peer-focus:text-emerald-400 transition-colors";
+
+const ATHLETE_HEIGHT_MIN_CM = 100;
+const ATHLETE_HEIGHT_MAX_CM = 300;
+const ATHLETE_WEIGHT_MIN_KG = 10;
+const ATHLETE_WEIGHT_MAX_KG = 300;
 
 // Normalise date (string or Date object) to YYYY-MM-DD for <input type="date">
 function toDateInputValue(date: string | Date) {
-    if (!date) return '';
-    const d = typeof date === 'string' ? new Date(date) : date;
+    if (!date) return "";
+    const d = typeof date === "string" ? new Date(date) : date;
     return d.toISOString().slice(0, 10);
 }
 
@@ -73,7 +78,7 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Editar Perfil Utilizador
+                            Editar Perfil do Usuário
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             Atualize os seus dados e guarde as alterações
@@ -102,8 +107,8 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                             className="cursor-pointer text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline"
                         >
                             {preview
-                                ? 'Alterar foto'
-                                : 'Adicionar foto de perfil'}
+                                ? "Alterar foto"
+                                : "Adicionar foto de perfil"}
                         </label>
                         <p className="text-xs text-gray-400 mt-0.5">
                             JPG, PNG ou WEBP · máx 5MB · deixe em branco para
@@ -246,7 +251,7 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                                 id="telemovel"
                                 name="telemovel"
                                 type="tel"
-                                defaultValue={atleta.telemovel ?? ''}
+                                defaultValue={atleta.telemovel ?? ""}
                                 className={inputBase}
                                 placeholder="+351 912 345 678"
                             />
@@ -269,7 +274,7 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                             id="morada"
                             name="morada"
                             type="text"
-                            defaultValue={atleta.morada ?? ''}
+                            defaultValue={atleta.morada ?? ""}
                             className={inputBase}
                             placeholder="Rua Exemplo, 123, 1000-001 Lisboa"
                         />
@@ -292,9 +297,10 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                                 id="peso_kg"
                                 name="peso_kg"
                                 type="number"
-                                step="0.1"
-                                min="0"
-                                defaultValue={atleta.peso_kg ?? ''}
+                                step="0.01"
+                                min={ATHLETE_WEIGHT_MIN_KG}
+                                max={ATHLETE_WEIGHT_MAX_KG}
+                                defaultValue={atleta.peso_kg ?? ""}
                                 className={inputBase}
                                 placeholder="75.5"
                             />
@@ -315,8 +321,9 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                                 name="altura_cm"
                                 type="number"
                                 step="0.1"
-                                min="0"
-                                defaultValue={atleta.altura_cm ?? ''}
+                                min={ATHLETE_HEIGHT_MIN_CM}
+                                max={ATHLETE_HEIGHT_MAX_CM}
+                                defaultValue={atleta.altura_cm ?? ""}
                                 className={inputBase}
                                 placeholder="178"
                             />
@@ -347,7 +354,7 @@ export default function EditAtletaProfileForm({ atleta }: { atleta: Atleta }) {
                         disabled={isPending}
                         className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold rounded-lg text-sm transition-colors"
                     >
-                        {isPending ? 'A guardar...' : 'Guardar Alterações'}
+                        {isPending ? "A guardar..." : "Guardar Alterações"}
                     </button>
                 </div>
             </div>

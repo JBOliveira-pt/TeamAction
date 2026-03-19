@@ -16,7 +16,7 @@ function SubmitButton() {
             type="submit"
             disabled={pending}
             className="rounded-lg border border-gray-700 p-2 hover:bg-red-500/10 hover:border-red-500/50 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Deletar utilizador"
+            title="Deletar usuário"
         >
             <span className="sr-only">Delete</span>
             <TrashIcon className="w-5 h-5 text-gray-400 group-hover:text-red-400 transition-colors" />
@@ -38,7 +38,7 @@ export function DeleteUserButton({
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (!confirm("Tem certeza que deseja deletar este utilizador?")) {
+        if (!confirm("Tem certeza que deseja deletar este usuário?")) {
             return;
         }
 
@@ -47,7 +47,7 @@ export function DeleteUserButton({
             await deleteAction(id);
         } catch (error) {
             console.error(error);
-            alert("Erro ao deletar utilizador");
+            alert("Erro ao deletar usuário");
         } finally {
             setIsDeleting(false);
         }
@@ -64,7 +64,7 @@ export function DeleteUserButton({
             setShowModal(false);
         } catch (error) {
             console.error(error);
-            alert("Erro ao deletar utilizador");
+            alert("Erro ao deletar usuário");
         } finally {
             setIsDeleting(false);
         }
@@ -87,7 +87,7 @@ export function DeleteUserButton({
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-lg font-semibold text-white">
-                                    Deletar Utilizador
+                                    Deletar Usuário
                                 </h3>
                                 <p className="text-sm text-gray-400 mt-1">
                                     Esta ação é irreversível
@@ -101,11 +101,11 @@ export function DeleteUserButton({
                                 ⚠️ Atenção: Esta ação irá:
                             </p>
                             <ul className="text-sm text-red-300 space-y-1 list-disc list-inside">
-                                <li>Excluir permanentemente o utilizador</li>
+                                <li>Excluir permanentemente o usuário</li>
                                 <li>Remover todos os dados da organização</li>
                                 <li>
                                     Excluir todos os clientes, faturas e
-                                    utilizadores associados
+                                    usuários associados
                                 </li>
                             </ul>
                         </div>

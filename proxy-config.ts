@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
     "/api/password-breach-check(.*)",
     "/api/email-address-check(.*)",
     "/api/trainer-profile/options(.*)",
+    "/api/athlete-profile/options(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

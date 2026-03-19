@@ -19,6 +19,11 @@ const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MIN_SIGNUP_AGE = 5;
 const MIN_ADULT_SIGNUP_AGE = 18;
 const MAX_SIGNUP_AGE = 120;
+const ATHLETE_HEIGHT_MIN_CM = 100;
+const ATHLETE_HEIGHT_MAX_CM = 300;
+const ATHLETE_WEIGHT_MIN_KG = 10;
+const ATHLETE_WEIGHT_MAX_KG = 300;
+const ATHLETE_WEIGHT_DECIMALS_REGEX = /^\d+(\.\d{1,2})?$/;
 const ADULT_ONLY_ACCOUNT_TYPES: AccountType[] = [
     "presidente",
     "treinador",
@@ -57,6 +62,23 @@ type TrainerProfileInput = {
     country: string;
 };
 
+type AthleteProfileInput = {
+    alturaCm: number;
+    pesoKg: number;
+    clubName: string | null;
+    trainerName: string | null;
+    teamName: string | null;
+    postalCode: string | null;
+    address: string | null;
+    city: string | null;
+    country: string;
+    responsibleEmail: string | null;
+    clubPendingApproval: boolean;
+    trainerPendingApproval: boolean;
+    teamPendingApproval: boolean;
+    responsiblePendingApproval: boolean;
+};
+
 function getOptionalString(formData: FormData, field: string): string | null {
     const value = formData.get(field);
     if (typeof value !== "string") {
@@ -78,6 +100,28 @@ function normalizePostalCode(value: string | null): string | null {
     }
 
     return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4)}`;
+}
+
+function isValidEmailFormat(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function parseBooleanFlag(formData: FormData, field: string): boolean {
+    const value = formData.get(field);
+    return typeof value === "string" && value.toLowerCase() === "true";
+}
+
+async function hasTable(tableName: string): Promise<boolean> {
+    const rows = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
+              AND table_name = ${tableName}
+        ) AS exists
+    `;
+
+    return Boolean(rows[0]?.exists);
 }
 
 function parsePresidentProfile(formData: FormData): {
@@ -281,6 +325,104 @@ async function parseTrainerProfile(formData: FormData): Promise<{
     };
 }
 
+function parseAthleteProfile(
+    formData: FormData,
+    age: number,
+): {
+    value?: AthleteProfileInput;
+    error?: string;
+} {
+    const heightRaw = formData.get("altura_cm");
+    const weightRaw = formData.get("peso_kg");
+    const weightRawTrimmed =
+        typeof weightRaw === "string" ? weightRaw.trim() : "";
+    const alturaCm =
+        typeof heightRaw === "string" && heightRaw.trim().length > 0
+            ? Number(heightRaw)
+            : null;
+    const pesoKg =
+        typeof weightRaw === "string" && weightRaw.trim().length > 0
+            ? Number(weightRaw)
+            : null;
+
+    if (
+        alturaCm === null ||
+        Number.isNaN(alturaCm) ||
+        alturaCm < ATHLETE_HEIGHT_MIN_CM ||
+        alturaCm > ATHLETE_HEIGHT_MAX_CM ||
+        pesoKg === null ||
+        Number.isNaN(pesoKg) ||
+        pesoKg < ATHLETE_WEIGHT_MIN_KG ||
+        pesoKg > ATHLETE_WEIGHT_MAX_KG ||
+        !ATHLETE_WEIGHT_DECIMALS_REGEX.test(weightRawTrimmed)
+    ) {
+        return {
+            error: "Para atleta, Altura deve estar entre 100 e 300 cm. Peso deve estar entre 10 e 300 kg, com no máximo 2 casas decimais.",
+        };
+    }
+
+    const postalCodeRaw = getOptionalString(formData, "athlete_postal_code");
+    const postalCode = normalizePostalCode(postalCodeRaw);
+    const city = getOptionalString(formData, "athlete_city");
+
+    if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
+        return {
+            error: "Código Postal inválido. Use o formato 0000-000.",
+        };
+    }
+
+    if (postalCode && !city) {
+        return {
+            error: "Cidade é obrigatória quando Código Postal é preenchido.",
+        };
+    }
+
+    const responsibleEmail = getOptionalString(
+        formData,
+        "athlete_responsible_email",
+    );
+    const athleteNeedsResponsible = age < MIN_ADULT_SIGNUP_AGE;
+
+    if (athleteNeedsResponsible) {
+        if (!responsibleEmail || !isValidEmailFormat(responsibleEmail)) {
+            return {
+                error: "Para menores de 18 anos, é obrigatório indicar um e-mail válido de Responsável.",
+            };
+        }
+    }
+
+    return {
+        value: {
+            alturaCm,
+            pesoKg,
+            clubName: getOptionalString(formData, "athlete_club_name"),
+            trainerName: getOptionalString(formData, "athlete_trainer_name"),
+            teamName: getOptionalString(formData, "athlete_team_name"),
+            postalCode,
+            address: getOptionalString(formData, "athlete_address"),
+            city,
+            country: PORTUGAL_COUNTRY,
+            responsibleEmail: athleteNeedsResponsible ? responsibleEmail : null,
+            clubPendingApproval: parseBooleanFlag(
+                formData,
+                "athlete_club_pending_approval",
+            ),
+            trainerPendingApproval: parseBooleanFlag(
+                formData,
+                "athlete_trainer_pending_approval",
+            ),
+            teamPendingApproval: parseBooleanFlag(
+                formData,
+                "athlete_team_pending_approval",
+            ),
+            responsiblePendingApproval: parseBooleanFlag(
+                formData,
+                "athlete_responsible_pending_approval",
+            ),
+        },
+    };
+}
+
 function normalizeAccountType(value: unknown): AccountType | null {
     if (typeof value !== "string") return null;
 
@@ -480,6 +622,10 @@ export async function POST(req: Request) {
             accountType === "treinador"
                 ? await parseTrainerProfile(formData)
                 : { value: undefined, error: undefined };
+        const athleteProfileResult =
+            accountType === "atleta"
+                ? parseAthleteProfile(formData, age)
+                : { value: undefined, error: undefined };
 
         if (presidentProfileResult.error) {
             return Response.json(
@@ -495,36 +641,16 @@ export async function POST(req: Request) {
             );
         }
 
+        if (athleteProfileResult.error) {
+            return Response.json(
+                { error: athleteProfileResult.error },
+                { status: 400 },
+            );
+        }
+
         const presidentProfile = presidentProfileResult.value;
         const trainerProfile = trainerProfileResult.value;
-        const heightRaw = formData.get("altura_cm");
-        const weightRaw = formData.get("peso_kg");
-        const alturaCm =
-            typeof heightRaw === "string" && heightRaw.trim().length > 0
-                ? Number(heightRaw)
-                : null;
-        const pesoKg =
-            typeof weightRaw === "string" && weightRaw.trim().length > 0
-                ? Number(weightRaw)
-                : null;
-
-        if (accountType === "atleta") {
-            if (
-                alturaCm === null ||
-                Number.isNaN(alturaCm) ||
-                alturaCm <= 0 ||
-                pesoKg === null ||
-                Number.isNaN(pesoKg) ||
-                pesoKg <= 0
-            ) {
-                return Response.json(
-                    {
-                        error: "Para atleta, altura e peso são obrigatórios e devem ser válidos.",
-                    },
-                    { status: 400 },
-                );
-            }
-        }
+        const athleteProfile = athleteProfileResult.value;
 
         const client = await clerkClient();
         const currentUser = await client.users.getUser(userId);
@@ -532,7 +658,7 @@ export async function POST(req: Request) {
 
         if (!currentEmail) {
             return Response.json(
-                { error: "Nao foi possivel validar o email do utilizador." },
+                { error: "Nao foi possivel validar o email do usuário." },
                 { status: 400 },
             );
         }
@@ -597,12 +723,7 @@ export async function POST(req: Request) {
                 trainerProfile:
                     accountType === "treinador" ? trainerProfile : null,
                 athleteProfile:
-                    accountType === "atleta"
-                        ? {
-                              altura_cm: alturaCm,
-                              peso_kg: pesoKg,
-                          }
-                        : null,
+                    accountType === "atleta" ? athleteProfile : null,
                 profilePhotoUrl:
                     uploadedImageUrl ||
                     (typeof currentUser.unsafeMetadata?.profilePhotoUrl ===
@@ -638,6 +759,37 @@ export async function POST(req: Request) {
             currentUser,
             uploadedImageUrl,
         );
+
+        const usersAccountTypeColumns = await sql<{ column_name: string }[]>`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
+              AND column_name IN ('account_type', 'tipo_conta')
+        `;
+
+        const hasUsersAccountTypeColumn = usersAccountTypeColumns.some(
+            (column) => column.column_name === "account_type",
+        );
+        const hasUsersTipoContaColumn = usersAccountTypeColumns.some(
+            (column) => column.column_name === "tipo_conta",
+        );
+
+        if (hasUsersAccountTypeColumn) {
+            await sql`
+                UPDATE users
+                SET account_type = ${accountType}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
+
+        if (hasUsersTipoContaColumn) {
+            await sql`
+                UPDATE users
+                SET tipo_conta = ${accountType}, updated_at = NOW()
+                WHERE clerk_user_id = ${userId}
+            `;
+        }
 
         if (accountType === "presidente" && presidentProfile) {
             const userOrg = await sql<
@@ -904,6 +1056,264 @@ export async function POST(req: Request) {
                     updated_at = NOW()
                 WHERE clerk_user_id = ${userId}
             `;
+        }
+
+        if (accountType === "atleta" && athleteProfile) {
+            const athleteTable = (await hasTable("users")) ? "users" : null;
+
+            if (athleteTable) {
+                const columns = await sql<{ column_name: string }[]>`
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = ${athleteTable}
+                `;
+
+                const hasAthleteColumn = (column: string) =>
+                    columns.some((item) => item.column_name === column);
+
+                const athleteExists = await sql<{ id: string }[]>`
+                    SELECT id
+                    FROM users
+                    WHERE clerk_user_id = ${userId}
+                    LIMIT 1
+                `;
+
+                if (athleteExists.length > 0) {
+                    if (hasAthleteColumn("name")) {
+                        await sql`
+                            UPDATE users
+                            SET name = ${fullName}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("data_nascimento")) {
+                        await sql`
+                            UPDATE users
+                            SET data_nascimento = ${birthDate}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("morada")) {
+                        await sql`
+                            UPDATE users
+                            SET morada = ${athleteProfile.address}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("codigo_postal")) {
+                        await sql`
+                            UPDATE users
+                            SET codigo_postal = ${athleteProfile.postalCode}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("cidade")) {
+                        await sql`
+                            UPDATE users
+                            SET cidade = ${athleteProfile.city}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("pais")) {
+                        await sql`
+                            UPDATE users
+                            SET pais = ${athleteProfile.country}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("peso_kg")) {
+                        await sql`
+                            UPDATE users
+                            SET peso_kg = ${athleteProfile.pesoKg}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("altura_cm")) {
+                        await sql`
+                            UPDATE users
+                            SET altura_cm = ${athleteProfile.alturaCm}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+
+                    if (hasAthleteColumn("image_url")) {
+                        await sql`
+                            UPDATE users
+                            SET image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
+                            WHERE clerk_user_id = ${userId}
+                        `;
+                    }
+                }
+            }
+        }
+
+        if (accountType === "atleta" && athleteProfile) {
+            const hasPendingRelationsTable = await hasTable(
+                "atleta_relacoes_pendentes",
+            );
+
+            if (hasPendingRelationsTable) {
+                const athleteUserRows = await sql<{ id: string }[]>`
+                    SELECT id
+                    FROM users
+                    WHERE clerk_user_id = ${userId}
+                    LIMIT 1
+                `;
+
+                const athleteUserId = athleteUserRows[0]?.id;
+                if (athleteUserId) {
+                    await sql`
+                        DELETE FROM atleta_relacoes_pendentes
+                        WHERE atleta_user_id = ${athleteUserId}
+                          AND status = 'pendente'
+                    `;
+
+                    if (
+                        athleteProfile.clubPendingApproval &&
+                        athleteProfile.clubName
+                    ) {
+                        const hasClubsTable = await hasTable("clubes");
+                        const clubId = hasClubsTable
+                            ? ((
+                                  await sql<{ id: string }[]>`
+                                      SELECT id::text AS id
+                                      FROM clubes
+                                      WHERE LOWER(nome) = LOWER(${athleteProfile.clubName})
+                                      LIMIT 1
+                                  `
+                              )[0]?.id ?? null)
+                            : null;
+
+                        await sql`
+                            INSERT INTO atleta_relacoes_pendentes (
+                                atleta_user_id,
+                                relation_kind,
+                                status,
+                                alvo_nome,
+                                alvo_clube_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (
+                                ${athleteUserId},
+                                'clube',
+                                'pendente',
+                                ${athleteProfile.clubName},
+                                ${clubId},
+                                NOW(),
+                                NOW()
+                            )
+                            ON CONFLICT DO NOTHING
+                        `;
+                    }
+
+                    if (
+                        athleteProfile.trainerPendingApproval &&
+                        athleteProfile.trainerName
+                    ) {
+                        const trainerRows = await sql<{ id: string }[]>`
+                            SELECT id::text AS id
+                            FROM users
+                            WHERE LOWER(name) = LOWER(${athleteProfile.trainerName})
+                            LIMIT 1
+                        `;
+
+                        await sql`
+                            INSERT INTO atleta_relacoes_pendentes (
+                                atleta_user_id,
+                                relation_kind,
+                                status,
+                                alvo_nome,
+                                alvo_treinador_user_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (
+                                ${athleteUserId},
+                                'treinador',
+                                'pendente',
+                                ${athleteProfile.trainerName},
+                                ${trainerRows[0]?.id ?? null},
+                                NOW(),
+                                NOW()
+                            )
+                            ON CONFLICT DO NOTHING
+                        `;
+                    }
+
+                    if (
+                        athleteProfile.teamPendingApproval &&
+                        athleteProfile.teamName
+                    ) {
+                        const hasTeamsTable = await hasTable("equipas");
+                        const teamId = hasTeamsTable
+                            ? ((
+                                  await sql<{ id: string }[]>`
+                                      SELECT id::text AS id
+                                      FROM equipas
+                                      WHERE LOWER(nome) = LOWER(${athleteProfile.teamName})
+                                      LIMIT 1
+                                  `
+                              )[0]?.id ?? null)
+                            : null;
+
+                        await sql`
+                            INSERT INTO atleta_relacoes_pendentes (
+                                atleta_user_id,
+                                relation_kind,
+                                status,
+                                alvo_nome,
+                                alvo_equipa_id,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (
+                                ${athleteUserId},
+                                'equipa',
+                                'pendente',
+                                ${athleteProfile.teamName},
+                                ${teamId},
+                                NOW(),
+                                NOW()
+                            )
+                            ON CONFLICT DO NOTHING
+                        `;
+                    }
+
+                    if (
+                        athleteProfile.responsiblePendingApproval &&
+                        athleteProfile.responsibleEmail
+                    ) {
+                        await sql`
+                            INSERT INTO atleta_relacoes_pendentes (
+                                atleta_user_id,
+                                relation_kind,
+                                status,
+                                alvo_email,
+                                created_at,
+                                updated_at
+                            )
+                            VALUES (
+                                ${athleteUserId},
+                                'responsavel',
+                                'pendente',
+                                ${athleteProfile.responsibleEmail},
+                                NOW(),
+                                NOW()
+                            )
+                            ON CONFLICT DO NOTHING
+                        `;
+                    }
+                }
+            }
         }
 
         return Response.json({

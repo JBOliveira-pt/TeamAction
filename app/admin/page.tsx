@@ -66,7 +66,7 @@ export default async function AdminOverviewPage() {
                     Painel de Controlo - Administrador
                 </h1>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Gestão central de utilizadores, auditoria de interações e
+                    Gestão central de usuários, auditoria de interações e
                     comunicação por avisos.
                 </p>
             </header>

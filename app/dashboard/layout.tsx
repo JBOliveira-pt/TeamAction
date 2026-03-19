@@ -1,7 +1,7 @@
 import SideNav from "@/app/ui/dashboard/sidenav";
 import { LoginAvisoPopup } from "@/app/components/login-aviso-popup";
 import { UserInteractionTracker } from "@/app/components/user-interaction-tracker";
-import { normalizeAccountType } from "@/app/lib/account-type";
+import { AccountType, normalizeAccountType } from "@/app/lib/account-type";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -40,7 +40,7 @@ export default async function Layout({
 
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
-            <SideNav />
+            <SideNav accountType={accountType as AccountType} />
             <main className="flex-1 overflow-y-auto lg:ml-64 mt-20">
                 <UserInteractionTracker />
                 <LoginAvisoPopup />
