@@ -1,23 +1,15 @@
 "use client";
 import Link from "next/link";
-import SidebarEquipas, { Atleta, Staff } from "./components/SidebarEquipas";
+import SidebarEquipas from "./components/SidebarEquipas";
+import { atletasIniciais } from "./equipa-atletas/equipaatletas";
+import { staffInicial } from "./equipa-tecnica/equipatecnica";
 
 export default function TreinadorDashboard() {
-    // Exemplo de dados
     const userName = "Treinador João";
     const equipa = "Seniores Masculinos";
-    const nAtletas = 18;
-    const atletas: Atleta[] = [
-        { id: 1, nome: "Carlos Silva", posicao: "Guarda-Redes" },
-        { id: 2, nome: "Miguel Costa", posicao: "Ponta Direita" },
-        { id: 3, nome: "Rui Santos", posicao: "Central" },
-        // ...mais atletas
-    ];
-    const staff: Staff[] = [
-        { id: 1, nome: "Ana Lopes", funcao: "Fisioterapeuta" },
-        { id: 2, nome: "Pedro Almeida", funcao: "Treinador Adjunto" },
-        // ...mais staff
-    ];
+    const nAtletas = atletasIniciais.length;
+    const atletas = atletasIniciais;
+    const staff = staffInicial;
 
     return (
         <div className="bg-gray-100 dark:bg-gray-900 w-full min-h-screen p-6">

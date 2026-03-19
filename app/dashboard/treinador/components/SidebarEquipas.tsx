@@ -5,12 +5,14 @@ export type Atleta = {
     id: number;
     nome: string;
     posicao: string;
+    [key: string]: unknown;
 };
 
 export type Staff = {
     id: number;
     nome: string;
     funcao: string;
+    [key: string]: unknown;
 };
 
 type SidebarEquipasProps = {
@@ -28,7 +30,9 @@ export default function SidebarEquipas({
         <div className="relative flex-shrink-0 flex">
             <aside
                 className={`bg-white dark:bg-gray-800 rounded-xl shadow mb-6 md:mb-0 overflow-hidden transition-all duration-300 ease-in-out ${
-                    collapsed ? "w-0 opacity-0 p-0" : "w-full md:w-64 p-4 opacity-100"
+                    collapsed
+                        ? "w-0 opacity-0 p-0"
+                        : "w-full md:w-64 p-4 opacity-100"
                 }`}
             >
                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
