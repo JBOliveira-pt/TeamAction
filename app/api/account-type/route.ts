@@ -6,6 +6,10 @@ import {
     PRESIDENT_SPORT_OPTIONS,
     normalizePresidentSport,
 } from "@/app/lib/president-sport-options";
+import {
+    TRAINER_AMATEUR_COURSE_VALUE,
+    isValidNationality,
+} from "@/app/lib/trainer-profile-options";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -13,7 +17,13 @@ type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MIN_SIGNUP_AGE = 5;
+const MIN_ADULT_SIGNUP_AGE = 18;
 const MAX_SIGNUP_AGE = 120;
+const ADULT_ONLY_ACCOUNT_TYPES: AccountType[] = [
+    "presidente",
+    "treinador",
+    "responsavel",
+];
 const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
 const PORTUGAL_COUNTRY = "Portugal";
 
@@ -23,6 +33,23 @@ type PresidentProfileInput = {
     iban: string | null;
     nipc: string | null;
     website: string | null;
+    phone: string | null;
+    postalCode: string | null;
+    address: string | null;
+    city: string | null;
+    country: string;
+};
+
+type TrainerProfileInput = {
+    modality: string;
+    nationality: string;
+    courseType: "amador" | "ipjd_pnft";
+    courseModalityId: number | null;
+    courseModalityName: string | null;
+    technicalLevelId: number | null;
+    technicalLevelCode: string | null;
+    technicalLevelName: string | null;
+    technicalLevelDescription: string | null;
     phone: string | null;
     postalCode: string | null;
     address: string | null;
@@ -106,6 +133,154 @@ function parsePresidentProfile(formData: FormData): {
     };
 }
 
+async function parseTrainerProfile(formData: FormData): Promise<{
+    value?: TrainerProfileInput;
+    error?: string;
+}> {
+    const modality = getOptionalString(formData, "trainer_modality");
+    const nationality = getOptionalString(formData, "trainer_nationality");
+    const courseModalityIdRaw = getOptionalString(
+        formData,
+        "trainer_course_modality_id",
+    );
+    const technicalLevelIdRaw = getOptionalString(
+        formData,
+        "trainer_technical_level_id",
+    );
+    const postalCodeRaw = getOptionalString(formData, "trainer_postal_code");
+    const postalCode = normalizePostalCode(postalCodeRaw);
+    const city = getOptionalString(formData, "trainer_city");
+
+    if (!modality) {
+        return { error: "Modalidade é obrigatória para Treinador." };
+    }
+
+    if (!PRESIDENT_SPORT_OPTIONS.some((option) => option === modality)) {
+        return { error: "Modalidade inválida para Treinador." };
+    }
+
+    if (!nationality) {
+        return { error: "Nacionalidade é obrigatória para Treinador." };
+    }
+
+    if (!isValidNationality(nationality)) {
+        return { error: "Nacionalidade inválida para Treinador." };
+    }
+
+    if (!courseModalityIdRaw) {
+        return { error: "Curso IPJD/PNFT é obrigatório para Treinador." };
+    }
+
+    let courseType: "amador" | "ipjd_pnft" = "amador";
+    let courseModalityId: number | null = null;
+    let courseModalityName: string | null = null;
+    let technicalLevelId: number | null = null;
+    let technicalLevelCode: string | null = null;
+    let technicalLevelName: string | null = null;
+    let technicalLevelDescription: string | null = null;
+
+    if (courseModalityIdRaw !== TRAINER_AMATEUR_COURSE_VALUE) {
+        courseType = "ipjd_pnft";
+
+        const parsedCourseModalityId = Number(courseModalityIdRaw);
+        if (!Number.isInteger(parsedCourseModalityId)) {
+            return { error: "Curso IPJD/PNFT inválido para Treinador." };
+        }
+
+        if (!technicalLevelIdRaw) {
+            return {
+                error: "Grau Técnico é obrigatório quando existe vínculo ao IPJD/PNFT.",
+            };
+        }
+
+        const parsedTechnicalLevelId = Number(technicalLevelIdRaw);
+        if (!Number.isInteger(parsedTechnicalLevelId)) {
+            return { error: "Grau Técnico inválido para Treinador." };
+        }
+
+        const modalityRows = await sql<{ id: number; name: string }[]>`
+            SELECT id, name
+            FROM modalidades
+            WHERE id = ${parsedCourseModalityId}
+            LIMIT 1
+        `;
+
+        const modality = modalityRows[0];
+        if (!modality) {
+            return { error: "Curso IPJD/PNFT inválido para Treinador." };
+        }
+
+        const technicalLevelRows = await sql<
+            {
+                id: number;
+                code: string;
+                name: string;
+                description: string;
+            }[]
+        >`
+            SELECT id, code, name, description
+            FROM graus_tecnicos
+            WHERE id = ${parsedTechnicalLevelId}
+            LIMIT 1
+        `;
+
+        const technicalLevel = technicalLevelRows[0];
+        if (!technicalLevel) {
+            return { error: "Grau Técnico inválido para Treinador." };
+        }
+
+        const courseRows = await sql<{ id: number }[]>`
+            SELECT id
+            FROM cursos
+            WHERE modality_id = ${parsedCourseModalityId}
+              AND level_id = ${parsedTechnicalLevelId}
+            LIMIT 1
+        `;
+
+        if (courseRows.length === 0) {
+            return { error: "Combinação de curso e grau técnico inválida." };
+        }
+
+        courseModalityId = parsedCourseModalityId;
+        courseModalityName = modality.name;
+        technicalLevelId = parsedTechnicalLevelId;
+        technicalLevelCode = technicalLevel.code;
+        technicalLevelName = technicalLevel.name;
+        technicalLevelDescription = technicalLevel.description;
+    }
+
+    if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
+        return {
+            error: "Código Postal inválido. Use o formato 0000-000.",
+        };
+    }
+
+    if (postalCode && !city) {
+        return {
+            error: "Cidade é obrigatória quando Código Postal é preenchido.",
+        };
+    }
+
+    return {
+        value: {
+            modality,
+            nationality,
+            courseType,
+            courseModalityId,
+            courseModalityName,
+            technicalLevelId,
+            technicalLevelCode,
+            technicalLevelName,
+            technicalLevelDescription,
+            phone: getOptionalString(formData, "trainer_phone"),
+            postalCode,
+            address: getOptionalString(formData, "trainer_address"),
+            city,
+            country: PORTUGAL_COUNTRY,
+        },
+    };
+}
+
 function normalizeAccountType(value: unknown): AccountType | null {
     if (typeof value !== "string") return null;
 
@@ -138,6 +313,12 @@ function calculateAge(birthDateIso: string): number | null {
     }
 
     return age;
+}
+
+function getMinimumAgeForAccountType(accountType: AccountType): number {
+    return ADULT_ONLY_ACCOUNT_TYPES.includes(accountType)
+        ? MIN_ADULT_SIGNUP_AGE
+        : MIN_SIGNUP_AGE;
 }
 
 async function ensureUserExistsWithOrganization(
@@ -260,10 +441,24 @@ export async function POST(req: Request) {
         }
 
         const age = calculateAge(birthDateRaw);
-        if (age === null || age < MIN_SIGNUP_AGE || age > MAX_SIGNUP_AGE) {
+        if (age === null || age > MAX_SIGNUP_AGE) {
             return Response.json(
                 {
                     error: `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
+                },
+                { status: 400 },
+            );
+        }
+
+        const minimumAgeForAccountType =
+            getMinimumAgeForAccountType(accountType);
+        if (age < minimumAgeForAccountType) {
+            return Response.json(
+                {
+                    error:
+                        minimumAgeForAccountType === MIN_ADULT_SIGNUP_AGE
+                            ? "Para Presidente, Treinador e Responsável, a idade mínima é 18 anos."
+                            : `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
                 },
                 { status: 400 },
             );
@@ -281,6 +476,10 @@ export async function POST(req: Request) {
             accountType === "presidente"
                 ? parsePresidentProfile(formData)
                 : { value: undefined, error: undefined };
+        const trainerProfileResult =
+            accountType === "treinador"
+                ? await parseTrainerProfile(formData)
+                : { value: undefined, error: undefined };
 
         if (presidentProfileResult.error) {
             return Response.json(
@@ -289,7 +488,15 @@ export async function POST(req: Request) {
             );
         }
 
+        if (trainerProfileResult.error) {
+            return Response.json(
+                { error: trainerProfileResult.error },
+                { status: 400 },
+            );
+        }
+
         const presidentProfile = presidentProfileResult.value;
+        const trainerProfile = trainerProfileResult.value;
         const heightRaw = formData.get("altura_cm");
         const weightRaw = formData.get("peso_kg");
         const alturaCm =
@@ -387,6 +594,8 @@ export async function POST(req: Request) {
                 age,
                 presidentProfile:
                     accountType === "presidente" ? presidentProfile : null,
+                trainerProfile:
+                    accountType === "treinador" ? trainerProfile : null,
                 athleteProfile:
                     accountType === "atleta"
                         ? {
@@ -592,6 +801,65 @@ export async function POST(req: Request) {
                 await sql`
                     UPDATE users
                     SET pais = ${presidentProfile.country}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+        }
+
+        if (accountType === "treinador" && trainerProfile) {
+            const userExtraColumns = await sql<{ column_name: string }[]>`
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'users'
+                  AND column_name IN (
+                    'telefone',
+                    'codigo_postal',
+                    'morada',
+                    'cidade',
+                    'pais'
+                  )
+            `;
+
+            const hasUserColumn = (column: string) =>
+                userExtraColumns.some((item) => item.column_name === column);
+
+            if (hasUserColumn("telefone")) {
+                await sql`
+                    UPDATE users
+                    SET telefone = ${trainerProfile.phone}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("codigo_postal")) {
+                await sql`
+                    UPDATE users
+                    SET codigo_postal = ${trainerProfile.postalCode}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("morada")) {
+                await sql`
+                    UPDATE users
+                    SET morada = ${trainerProfile.address}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("cidade")) {
+                await sql`
+                    UPDATE users
+                    SET cidade = ${trainerProfile.city}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("pais")) {
+                await sql`
+                    UPDATE users
+                    SET pais = ${trainerProfile.country}, updated_at = NOW()
                     WHERE clerk_user_id = ${userId}
                 `;
             }

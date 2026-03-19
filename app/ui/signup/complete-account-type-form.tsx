@@ -22,14 +22,34 @@ import {
     validatePasswordPolicy,
 } from "@/app/lib/password-policy";
 import { PRESIDENT_SPORT_OPTIONS } from "@/app/lib/president-sport-options";
+import {
+    COUNTRY_OPTIONS,
+    type SelectOption,
+    TRAINER_AMATEUR_COURSE_LABEL,
+    TRAINER_AMATEUR_COURSE_VALUE,
+    isValidNationality,
+} from "@/app/lib/trainer-profile-options";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MIN_SIGNUP_AGE = 5;
+const MIN_ADULT_SIGNUP_AGE = 18;
 const MAX_SIGNUP_AGE = 120;
+const ADULT_ONLY_ACCOUNT_TYPES: AccountType[] = [
+    "presidente",
+    "treinador",
+    "responsavel",
+];
 const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
 const PORTUGAL_COUNTRY = "Portugal";
+const IBAN_PREFIX = "PT50";
+const IBAN_BODY_DIGITS_LENGTH = 21;
+const IBAN_FORMATTED_MAX_LENGTH = 31;
+const NIPC_DIGITS_LENGTH = 9;
+const PHONE_DIGITS_LENGTH = 9;
+const PORTUGAL_PHONE_PREFIX = "(351) ";
+const WEBSITE_PREFIX = "https://";
 const BREACHED_PASSWORD_MESSAGE =
     "Password has been found in an online data breach. For account safety, please use a different password.";
 const PRECHECK_PENDING_MESSAGE =
@@ -40,16 +60,16 @@ const PRECHECK_OK_MESSAGE =
     "Verificação prévia concluída: não foram detetadas exposições conhecidas.";
 const PRECHECK_UNAVAILABLE_MESSAGE =
     "Verificação prévia indisponível no momento. Pode continuar e o Clerk fará a validação final.";
-type CompleteStage = "form" | "president-profile";
+type CompleteStage = "form" | "president-profile" | "trainer-profile";
 
 function formatDateForInput(date: Date): string {
     return date.toISOString().split("T")[0];
 }
 
-function getBirthDateBounds() {
+function getBirthDateBounds(minimumAge: number) {
     const today = new Date();
     const maxBirthDate = new Date(today);
-    maxBirthDate.setFullYear(today.getFullYear() - MIN_SIGNUP_AGE);
+    maxBirthDate.setFullYear(today.getFullYear() - minimumAge);
 
     const minBirthDate = new Date(today);
     minBirthDate.setFullYear(today.getFullYear() - MAX_SIGNUP_AGE);
@@ -58,6 +78,14 @@ function getBirthDateBounds() {
         minBirthDate: formatDateForInput(minBirthDate),
         maxBirthDate: formatDateForInput(maxBirthDate),
     };
+}
+
+function getMinimumAgeForAccountType(accountType: AccountType | null): number {
+    if (!accountType) return MIN_SIGNUP_AGE;
+
+    return ADULT_ONLY_ACCOUNT_TYPES.includes(accountType)
+        ? MIN_ADULT_SIGNUP_AGE
+        : MIN_SIGNUP_AGE;
 }
 
 function calculateAge(birthDateIso: string): number | null {
@@ -85,6 +113,75 @@ function normalizePostalCode(value: string): string {
     }
 
     return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 7)}`;
+}
+
+function extractIbanBodyDigits(value: string): string {
+    const normalized = value.toUpperCase().replace(/\s/g, "");
+    const withoutPrefix = normalized.startsWith(IBAN_PREFIX)
+        ? normalized.slice(IBAN_PREFIX.length)
+        : normalized;
+
+    return withoutPrefix.replace(/\D/g, "").slice(0, IBAN_BODY_DIGITS_LENGTH);
+}
+
+function normalizeIban(value: string): string {
+    const digits = extractIbanBodyDigits(value);
+    if (!digits) {
+        return "";
+    }
+
+    const firstPart = digits.slice(0, 20);
+    const lastDigit = digits.slice(20, 21);
+    const firstGroups = firstPart.match(/.{1,4}/g) || [];
+    const groups = [...firstGroups, lastDigit].filter(Boolean);
+
+    return `${IBAN_PREFIX} ${groups.join(" ")}`;
+}
+
+function isIbanEffectivelyEmpty(value: string): boolean {
+    return extractIbanBodyDigits(value).length === 0;
+}
+
+function extractNipcDigits(value: string): string {
+    return value.replace(/\D/g, "").slice(0, NIPC_DIGITS_LENGTH);
+}
+
+function formatNipc(value: string): string {
+    const digits = extractNipcDigits(value);
+    const chunks = digits.match(/.{1,3}/g) || [];
+    return chunks.join(" ");
+}
+
+function extractPortuguesePhoneDigits(value: string): string {
+    const withoutPrefix = value.startsWith(PORTUGAL_PHONE_PREFIX)
+        ? value.slice(PORTUGAL_PHONE_PREFIX.length)
+        : value.replace(/^\(351\)\s?/, "");
+
+    return withoutPrefix.replace(/\D/g, "").slice(0, PHONE_DIGITS_LENGTH);
+}
+
+function formatPortuguesePhone(value: string): string {
+    const digits = extractPortuguesePhoneDigits(value);
+    const chunks = digits.match(/.{1,3}/g) || [];
+    const groupedDigits = chunks.join(" ");
+
+    return groupedDigits ? `${PORTUGAL_PHONE_PREFIX}${groupedDigits}` : "";
+}
+
+function normalizeWebsite(value: string): string {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
+        return "";
+    }
+
+    const withoutProtocol = trimmed.replace(/^https?:\/\//i, "");
+    return `${WEBSITE_PREFIX}${withoutProtocol}`;
+}
+
+function isWebsiteEffectivelyEmpty(value: string): boolean {
+    const trimmed = value.trim();
+    return trimmed.length === 0 || trimmed === WEBSITE_PREFIX;
 }
 
 async function fetchCityByPostalCode(
@@ -146,7 +243,6 @@ export default function CompleteAccountTypeForm({
     initialLastName = "",
     initialEmail = "",
 }: CompleteAccountTypeFormProps) {
-    const { minBirthDate, maxBirthDate } = getBirthDateBounds();
     const router = useRouter();
     const [firstName, setFirstName] = useState(initialFirstName);
     const [lastName, setLastName] = useState(initialLastName);
@@ -161,7 +257,7 @@ export default function CompleteAccountTypeForm({
     const [passwordPrecheckNotice, setPasswordPrecheckNotice] = useState<
         string | null
     >(null);
-    const [selected, setSelected] = useState<AccountType | null>(null);
+    const [selected, setSelected] = useState<AccountType>("presidente");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -179,7 +275,22 @@ export default function CompleteAccountTypeForm({
     const [presidentPostalCode, setPresidentPostalCode] = useState("");
     const [presidentAddress, setPresidentAddress] = useState("");
     const [presidentCity, setPresidentCity] = useState("");
-    const [isResolvingCity, setIsResolvingCity] = useState(false);
+    const [trainerModality, setTrainerModality] = useState("");
+    const [trainerNationality, setTrainerNationality] = useState("");
+    const [trainerCourseModality, setTrainerCourseModality] = useState(
+        TRAINER_AMATEUR_COURSE_VALUE,
+    );
+    const [trainerTechnicalLevel, setTrainerTechnicalLevel] = useState("");
+    const [trainerCourseModalityOptions, setTrainerCourseModalityOptions] =
+        useState<SelectOption[]>([]);
+    const [
+        trainerTechnicalLevelOptionsByModality,
+        setTrainerTechnicalLevelOptionsByModality,
+    ] = useState<Record<string, SelectOption[]>>({});
+    const [trainerPhone, setTrainerPhone] = useState("");
+    const [trainerPostalCode, setTrainerPostalCode] = useState("");
+    const [trainerAddress, setTrainerAddress] = useState("");
+    const [trainerCity, setTrainerCity] = useState("");
     const precheckNoticeTimeoutRef = useRef<number | null>(null);
     const pendingNoticeTimeoutRef = useRef<number | null>(null);
     const precheckNoticeLockedUntilRef = useRef(0);
@@ -230,6 +341,180 @@ export default function CompleteAccountTypeForm({
             : passwordValidation.strength === "media"
               ? "bg-amber-500"
               : "bg-emerald-500";
+
+    const accountTypeLabel = useMemo(() => {
+        return (
+            OPTIONS.find((option) => option.value === selected)?.label ||
+            "Conta"
+        );
+    }, [selected]);
+
+    const minimumAgeForSelectedAccountType = useMemo(
+        () => getMinimumAgeForAccountType(selected),
+        [selected],
+    );
+
+    const { minBirthDate, maxBirthDate } = useMemo(
+        () => getBirthDateBounds(minimumAgeForSelectedAccountType),
+        [minimumAgeForSelectedAccountType],
+    );
+
+    const trainerTechnicalLevelOptions = useMemo(
+        () =>
+            trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE
+                ? trainerTechnicalLevelOptionsByModality[
+                      trainerCourseModality
+                  ] || []
+                : [],
+        [trainerCourseModality, trainerTechnicalLevelOptionsByModality],
+    );
+
+    useEffect(() => {
+        let isCancelled = false;
+
+        const loadTrainerOptions = async () => {
+            try {
+                const response = await fetch("/api/trainer-profile/options");
+                if (!response.ok) {
+                    if (!isCancelled) {
+                        setTrainerCourseModalityOptions([]);
+                        setTrainerTechnicalLevelOptionsByModality({});
+                    }
+                    return;
+                }
+
+                const data = (await response.json()) as {
+                    courseModalityOptions?: SelectOption[];
+                    technicalLevelOptionsByModality?: Record<
+                        string,
+                        SelectOption[]
+                    >;
+                };
+
+                if (!isCancelled) {
+                    setTrainerCourseModalityOptions(
+                        data.courseModalityOptions || [],
+                    );
+                    setTrainerTechnicalLevelOptionsByModality(
+                        data.technicalLevelOptionsByModality || {},
+                    );
+                }
+            } catch {
+                if (!isCancelled) {
+                    setTrainerCourseModalityOptions([]);
+                    setTrainerTechnicalLevelOptionsByModality({});
+                }
+            }
+        };
+
+        void loadTrainerOptions();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (trainerCourseModality === TRAINER_AMATEUR_COURSE_VALUE) {
+            if (trainerTechnicalLevel) {
+                setTrainerTechnicalLevel("");
+            }
+            return;
+        }
+
+        if (
+            trainerTechnicalLevel &&
+            !trainerTechnicalLevelOptions.some(
+                (option) => option.value === trainerTechnicalLevel,
+            )
+        ) {
+            setTrainerTechnicalLevel("");
+        }
+    }, [
+        trainerCourseModality,
+        trainerTechnicalLevel,
+        trainerTechnicalLevelOptions,
+    ]);
+
+    useEffect(() => {
+        const normalizedPostalCode = normalizePostalCode(presidentPostalCode);
+
+        if (presidentPostalCode !== normalizedPostalCode) {
+            setPresidentPostalCode(normalizedPostalCode);
+            return;
+        }
+
+        if (!normalizedPostalCode) {
+            setPresidentCity("");
+            return;
+        }
+
+        if (!POSTAL_CODE_REGEX.test(normalizedPostalCode)) {
+            setPresidentCity("");
+            return;
+        }
+
+        let isCancelled = false;
+
+        const resolveCity = async () => {
+            try {
+                const city = await fetchCityByPostalCode(normalizedPostalCode);
+                if (!isCancelled) {
+                    setPresidentCity(city || "");
+                }
+            } catch {
+                if (!isCancelled) {
+                    setPresidentCity("");
+                }
+            }
+        };
+
+        void resolveCity();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [presidentPostalCode]);
+
+    useEffect(() => {
+        const normalizedPostalCode = normalizePostalCode(trainerPostalCode);
+
+        if (trainerPostalCode !== normalizedPostalCode) {
+            setTrainerPostalCode(normalizedPostalCode);
+            return;
+        }
+
+        if (!normalizedPostalCode) {
+            setTrainerCity("");
+            return;
+        }
+
+        if (!POSTAL_CODE_REGEX.test(normalizedPostalCode)) {
+            setTrainerCity("");
+            return;
+        }
+
+        let isCancelled = false;
+
+        const resolveCity = async () => {
+            try {
+                const city = await fetchCityByPostalCode(normalizedPostalCode);
+                if (!isCancelled) {
+                    setTrainerCity(city || "");
+                }
+            } catch {
+                if (!isCancelled) {
+                    setTrainerCity("");
+                }
+            }
+        };
+
+        void resolveCity();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [trainerPostalCode]);
 
     useEffect(() => {
         return () => {
@@ -385,9 +670,18 @@ export default function CompleteAccountTypeForm({
         }
 
         const age = calculateAge(birthDate);
-        if (age === null || age < MIN_SIGNUP_AGE || age > MAX_SIGNUP_AGE) {
+        if (age === null || age > MAX_SIGNUP_AGE) {
             setError(
                 `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
+            );
+            return;
+        }
+
+        if (age < minimumAgeForSelectedAccountType) {
+            setError(
+                minimumAgeForSelectedAccountType === MIN_ADULT_SIGNUP_AGE
+                    ? "Para Presidente, Treinador e Responsável, a idade mínima é 18 anos."
+                    : `A idade deve estar entre ${MIN_SIGNUP_AGE} e ${MAX_SIGNUP_AGE} anos.`,
             );
             return;
         }
@@ -432,7 +726,56 @@ export default function CompleteAccountTypeForm({
             return;
         }
 
+        if (selected === "treinador" && stage === "form") {
+            setError(null);
+            setStage("trainer-profile");
+            return;
+        }
+
         if (selected === "presidente") {
+            const normalizedIban = extractIbanBodyDigits(presidentIban);
+            if (
+                normalizedIban.length > 0 &&
+                normalizedIban.length !== IBAN_BODY_DIGITS_LENGTH
+            ) {
+                setError(
+                    `IBAN deve começar com ${IBAN_PREFIX} e conter mais ${IBAN_BODY_DIGITS_LENGTH} dígitos.`,
+                );
+                return;
+            }
+
+            const presidentPhoneDigits =
+                extractPortuguesePhoneDigits(presidentPhone);
+            if (
+                presidentPhoneDigits.length > 0 &&
+                presidentPhoneDigits.length !== PHONE_DIGITS_LENGTH
+            ) {
+                setError(
+                    "Telefone deve conter exatamente 9 dígitos após (351).",
+                );
+                return;
+            }
+
+            if (
+                !isWebsiteEffectivelyEmpty(presidentWebsite) &&
+                (!presidentWebsite.startsWith(WEBSITE_PREFIX) ||
+                    !/^https:\/\/.+/i.test(presidentWebsite.trim()))
+            ) {
+                setError("Website deve começar com https://.");
+                return;
+            }
+
+            const nipcDigits = extractNipcDigits(presidentNipc);
+            if (
+                nipcDigits.length > 0 &&
+                nipcDigits.length !== NIPC_DIGITS_LENGTH
+            ) {
+                setError(
+                    "NIPC deve conter exatamente 9 dígitos no formato 000 000 000.",
+                );
+                return;
+            }
+
             if (!presidentClubName.trim()) {
                 setError("Nome do clube é obrigatório.");
                 return;
@@ -464,7 +807,84 @@ export default function CompleteAccountTypeForm({
 
             if (normalizedPostalCode && !presidentCity.trim()) {
                 setError(
-                    "Cidade é obrigatória quando o Código Postal é preenchido.",
+                    "Código Postal inválido. Informe um Código Postal válido de Portugal.",
+                );
+                return;
+            }
+        }
+
+        if (selected === "treinador") {
+            if (!trainerModality.trim()) {
+                setError("Modalidade é obrigatória.");
+                return;
+            }
+
+            if (
+                !PRESIDENT_SPORT_OPTIONS.some(
+                    (option) => option === trainerModality.trim(),
+                )
+            ) {
+                setError("Selecione uma modalidade válida da lista.");
+                return;
+            }
+
+            if (!trainerNationality.trim()) {
+                setError("Nacionalidade é obrigatória.");
+                return;
+            }
+
+            if (!isValidNationality(trainerNationality)) {
+                setError("Selecione uma nacionalidade válida da lista.");
+                return;
+            }
+
+            if (!trainerCourseModality.trim()) {
+                setError("Curso IPJD/PNFT é obrigatório.");
+                return;
+            }
+
+            if (trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE) {
+                const selectedCourseModality =
+                    trainerCourseModalityOptions.find(
+                        (option) => option.value === trainerCourseModality,
+                    );
+
+                if (!selectedCourseModality) {
+                    setError("Selecione um curso IPJD/PNFT válido.");
+                    return;
+                }
+
+                if (!trainerTechnicalLevel.trim()) {
+                    setError(
+                        "Grau Técnico é obrigatório para curso IPJD/PNFT.",
+                    );
+                    return;
+                }
+
+                if (
+                    !trainerTechnicalLevelOptions.some(
+                        (option) => option.value === trainerTechnicalLevel,
+                    )
+                ) {
+                    setError(
+                        "A combinação de curso e grau técnico é inválida.",
+                    );
+                    return;
+                }
+            }
+
+            const normalizedPostalCode = normalizePostalCode(trainerPostalCode);
+            if (
+                normalizedPostalCode.length > 0 &&
+                !POSTAL_CODE_REGEX.test(normalizedPostalCode)
+            ) {
+                setError("Código Postal inválido. Use o formato 0000-000.");
+                return;
+            }
+
+            if (normalizedPostalCode && !trainerCity.trim()) {
+                setError(
+                    "Código Postal inválido. Informe um Código Postal válido de Portugal.",
                 );
                 return;
             }
@@ -492,10 +912,30 @@ export default function CompleteAccountTypeForm({
             if (selected === "presidente") {
                 payload.append("president_club_name", presidentClubName.trim());
                 payload.append("president_sport", presidentSport.trim());
-                payload.append("president_iban", presidentIban.trim());
-                payload.append("president_nipc", presidentNipc.trim());
-                payload.append("president_website", presidentWebsite.trim());
-                payload.append("president_phone", presidentPhone.trim());
+                payload.append(
+                    "president_iban",
+                    isIbanEffectivelyEmpty(presidentIban)
+                        ? ""
+                        : normalizeIban(presidentIban),
+                );
+                payload.append(
+                    "president_nipc",
+                    extractNipcDigits(presidentNipc).length > 0
+                        ? formatNipc(presidentNipc)
+                        : "",
+                );
+                payload.append(
+                    "president_website",
+                    isWebsiteEffectivelyEmpty(presidentWebsite)
+                        ? ""
+                        : presidentWebsite.trim(),
+                );
+                payload.append(
+                    "president_phone",
+                    extractPortuguesePhoneDigits(presidentPhone).length > 0
+                        ? presidentPhone.trim()
+                        : "",
+                );
                 payload.append(
                     "president_postal_code",
                     normalizePostalCode(presidentPostalCode),
@@ -503,6 +943,29 @@ export default function CompleteAccountTypeForm({
                 payload.append("president_address", presidentAddress.trim());
                 payload.append("president_city", presidentCity.trim());
                 payload.append("president_country", PORTUGAL_COUNTRY);
+            }
+            if (selected === "treinador") {
+                payload.append("trainer_modality", trainerModality.trim());
+                payload.append(
+                    "trainer_nationality",
+                    trainerNationality.trim(),
+                );
+                payload.append(
+                    "trainer_course_modality_id",
+                    trainerCourseModality,
+                );
+                payload.append(
+                    "trainer_technical_level_id",
+                    trainerTechnicalLevel,
+                );
+                payload.append("trainer_phone", trainerPhone.trim());
+                payload.append(
+                    "trainer_postal_code",
+                    normalizePostalCode(trainerPostalCode),
+                );
+                payload.append("trainer_address", trainerAddress.trim());
+                payload.append("trainer_city", trainerCity.trim());
+                payload.append("trainer_country", PORTUGAL_COUNTRY);
             }
 
             const response = await fetch("/api/account-type", {
@@ -532,36 +995,6 @@ export default function CompleteAccountTypeForm({
             );
         } finally {
             setIsSubmitting(false);
-        }
-    };
-
-    const handleResolveCityByPostalCode = async () => {
-        const postalCode = normalizePostalCode(presidentPostalCode);
-        if (!POSTAL_CODE_REGEX.test(postalCode)) {
-            setError("Código Postal inválido. Use o formato 0000-000.");
-            return;
-        }
-
-        setError(null);
-        setIsResolvingCity(true);
-
-        try {
-            const city = await fetchCityByPostalCode(postalCode);
-            if (!city) {
-                setError(
-                    "Não foi possível obter a cidade para este Código Postal.",
-                );
-                return;
-            }
-
-            setPresidentPostalCode(postalCode);
-            setPresidentCity(city);
-        } catch {
-            setError(
-                "Não foi possível obter a cidade para este Código Postal.",
-            );
-        } finally {
-            setIsResolvingCity(false);
         }
     };
 
@@ -923,7 +1356,7 @@ export default function CompleteAccountTypeForm({
                             </div>
                         )}
                     </>
-                ) : (
+                ) : stage === "president-profile" ? (
                     <div className="space-y-6">
                         <div className="rounded-lg border border-blue-200/20 bg-slate-900/50 p-4">
                             <p className="text-sm font-semibold text-white">
@@ -984,10 +1417,14 @@ export default function CompleteAccountTypeForm({
                                     type="text"
                                     value={presidentIban}
                                     onChange={(event) =>
-                                        setPresidentIban(event.target.value)
+                                        setPresidentIban(
+                                            normalizeIban(event.target.value),
+                                        )
                                     }
+                                    maxLength={IBAN_FORMATTED_MAX_LENGTH}
+                                    inputMode="numeric"
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="PT50..."
+                                    placeholder="PT50 0000 0000 0000 0000 0000 0"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -998,9 +1435,14 @@ export default function CompleteAccountTypeForm({
                                     type="text"
                                     value={presidentNipc}
                                     onChange={(event) =>
-                                        setPresidentNipc(event.target.value)
+                                        setPresidentNipc(
+                                            formatNipc(event.target.value),
+                                        )
                                     }
+                                    maxLength={11}
+                                    inputMode="numeric"
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Ex: 501 234 567"
                                 />
                             </div>
                         </div>
@@ -1014,10 +1456,14 @@ export default function CompleteAccountTypeForm({
                                     type="url"
                                     value={presidentWebsite}
                                     onChange={(event) =>
-                                        setPresidentWebsite(event.target.value)
+                                        setPresidentWebsite(
+                                            normalizeWebsite(
+                                                event.target.value,
+                                            ),
+                                        )
                                     }
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="https://"
+                                    placeholder="https://www.exemplo.com"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -1028,62 +1474,22 @@ export default function CompleteAccountTypeForm({
                                     type="tel"
                                     value={presidentPhone}
                                     onChange={(event) =>
-                                        setPresidentPhone(event.target.value)
+                                        setPresidentPhone(
+                                            formatPortuguesePhone(
+                                                event.target.value,
+                                            ),
+                                        )
                                     }
+                                    maxLength={17}
+                                    inputMode="numeric"
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Ex: (351) 912 345 678"
                                 />
                             </div>
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Código Postal (opcional)
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={presidentPostalCode}
-                                        onChange={(event) =>
-                                            setPresidentPostalCode(
-                                                normalizePostalCode(
-                                                    event.target.value,
-                                                ),
-                                            )
-                                        }
-                                        maxLength={8}
-                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                        placeholder="0000-000"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleResolveCityByPostalCode}
-                                        disabled={isResolvingCity}
-                                        className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
-                                    >
-                                        {isResolvingCity
-                                            ? "A obter..."
-                                            : "Obter cidade"}
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Cidade (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={presidentCity}
-                                    readOnly
-                                    aria-readonly="true"
-                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
-                                    placeholder="Preenchida automaticamente"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-1">
+                        <div className="grid gap-6 md:grid-cols-3">
+                            <div className="space-y-1 md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                     Morada (opcional)
                                 </label>
@@ -1094,9 +1500,239 @@ export default function CompleteAccountTypeForm({
                                         setPresidentAddress(event.target.value)
                                     }
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Complemento da morada"
+                                    placeholder="Rua, número, complemento..."
                                 />
                             </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Código Postal (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={presidentPostalCode}
+                                    onChange={(event) =>
+                                        setPresidentPostalCode(
+                                            normalizePostalCode(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    maxLength={8}
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="0000-000"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Cidade
+                                </label>
+                                <input
+                                    type="text"
+                                    value={presidentCity}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                    placeholder="Preenchida automaticamente"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    País
+                                </label>
+                                <input
+                                    type="text"
+                                    value={PORTUGAL_COUNTRY}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        <div className="rounded-lg border border-blue-200/20 bg-slate-900/50 p-4">
+                            <p className="text-sm font-semibold text-white">
+                                Treinador - Dados Profissionais
+                            </p>
+                            <p className="mt-1 text-xs text-slate-300">
+                                Complete os dados para criar o perfil de
+                                treinador.
+                            </p>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Modalidade
+                                </label>
+                                <select
+                                    required
+                                    value={trainerModality}
+                                    onChange={(event) =>
+                                        setTrainerModality(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="">
+                                        Selecione uma modalidade
+                                    </option>
+                                    {PRESIDENT_SPORT_OPTIONS.map((sport) => (
+                                        <option key={sport} value={sport}>
+                                            {sport}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Nacionalidade
+                                </label>
+                                <select
+                                    required
+                                    value={trainerNationality}
+                                    onChange={(event) =>
+                                        setTrainerNationality(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="">Selecione um país</option>
+                                    {COUNTRY_OPTIONS.map((country) => (
+                                        <option key={country} value={country}>
+                                            {country}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Cursos IPJD/PNFT
+                                </label>
+                                <select
+                                    required
+                                    value={trainerCourseModality}
+                                    onChange={(event) =>
+                                        setTrainerCourseModality(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option
+                                        value={TRAINER_AMATEUR_COURSE_VALUE}
+                                    >
+                                        {TRAINER_AMATEUR_COURSE_LABEL}
+                                    </option>
+                                    {trainerCourseModalityOptions.map(
+                                        (option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.value}
+                                            >
+                                                {option.label}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </div>
+
+                            {trainerCourseModality !==
+                                TRAINER_AMATEUR_COURSE_VALUE && (
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Grau Técnico
+                                    </label>
+                                    <select
+                                        required
+                                        value={trainerTechnicalLevel}
+                                        onChange={(event) =>
+                                            setTrainerTechnicalLevel(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    >
+                                        <option value="">
+                                            Selecione o grau técnico
+                                        </option>
+                                        {trainerTechnicalLevelOptions.map(
+                                            (option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-3">
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Morada (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={trainerAddress}
+                                    onChange={(event) =>
+                                        setTrainerAddress(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="Rua, número, complemento..."
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Código Postal (opcional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={trainerPostalCode}
+                                    onChange={(event) =>
+                                        setTrainerPostalCode(
+                                            normalizePostalCode(
+                                                event.target.value,
+                                            ),
+                                        )
+                                    }
+                                    maxLength={8}
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="0000-000"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Cidade
+                                </label>
+                                <input
+                                    type="text"
+                                    value={trainerCity}
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                    placeholder="Preenchida automaticamente"
+                                />
+                            </div>
+
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                     País
@@ -1125,13 +1761,19 @@ export default function CompleteAccountTypeForm({
                     </p>
                 )}
 
-                <div className="flex justify-end gap-3">
-                    {stage === "president-profile" && (
+                <div
+                    className={`flex flex-col gap-3 sm:flex-row sm:items-center ${
+                        stage === "form"
+                            ? "sm:justify-end"
+                            : "sm:justify-between"
+                    }`}
+                >
+                    {stage !== "form" && (
                         <button
                             type="button"
                             onClick={() => setStage("form")}
                             disabled={isSubmitting}
-                            className="inline-flex items-center justify-center rounded-lg border border-gray-500 px-5 py-2.5 text-sm font-semibold text-gray-200 transition-all disabled:opacity-60"
+                            className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-emerald-600 disabled:opacity-60"
                         >
                             Voltar
                         </button>
@@ -1146,7 +1788,9 @@ export default function CompleteAccountTypeForm({
                             ? "A guardar..."
                             : stage === "president-profile"
                               ? "Concluir perfil"
-                              : "Continuar"}
+                              : stage === "trainer-profile"
+                                ? "Concluir perfil"
+                                : `Continuar como ${accountTypeLabel}`}
                     </button>
                 </div>
             </div>
