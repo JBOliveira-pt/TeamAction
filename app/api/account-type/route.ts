@@ -10,6 +10,7 @@ import {
     TRAINER_AMATEUR_COURSE_VALUE,
     isValidNationality,
 } from "@/app/lib/trainer-profile-options";
+import { sendResponsibleInviteEmail } from "@/app/lib/send-responsible-invite";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -71,7 +72,7 @@ type AthleteProfileInput = {
     postalCode: string | null;
     address: string | null;
     city: string | null;
-    country: string;
+    country: string | null;
     responsibleEmail: string | null;
     clubPendingApproval: boolean;
     trainerPendingApproval: boolean;
@@ -365,23 +366,25 @@ function parseAthleteProfile(
     const postalCode = normalizePostalCode(postalCodeRaw);
     const city = getOptionalString(formData, "athlete_city");
 
-    if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
-        return {
-            error: "Código Postal inválido. Use o formato 0000-000.",
-        };
-    }
-
-    if (postalCode && !city) {
-        return {
-            error: "Cidade é obrigatória quando Código Postal é preenchido.",
-        };
-    }
-
     const responsibleEmail = getOptionalString(
         formData,
         "athlete_responsible_email",
     );
     const athleteNeedsResponsible = age < MIN_ADULT_SIGNUP_AGE;
+
+    if (!athleteNeedsResponsible) {
+        if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
+            return {
+                error: "Código Postal inválido. Use o formato 0000-000.",
+            };
+        }
+
+        if (postalCode && !city) {
+            return {
+                error: "Cidade é obrigatória quando Código Postal é preenchido.",
+            };
+        }
+    }
 
     if (athleteNeedsResponsible) {
         if (!responsibleEmail || !isValidEmailFormat(responsibleEmail)) {
@@ -398,10 +401,12 @@ function parseAthleteProfile(
             clubName: getOptionalString(formData, "athlete_club_name"),
             trainerName: getOptionalString(formData, "athlete_trainer_name"),
             teamName: getOptionalString(formData, "athlete_team_name"),
-            postalCode,
-            address: getOptionalString(formData, "athlete_address"),
-            city,
-            country: PORTUGAL_COUNTRY,
+            postalCode: athleteNeedsResponsible ? null : postalCode,
+            address: athleteNeedsResponsible
+                ? null
+                : getOptionalString(formData, "athlete_address"),
+            city: athleteNeedsResponsible ? null : city,
+            country: athleteNeedsResponsible ? null : PORTUGAL_COUNTRY,
             responsibleEmail: athleteNeedsResponsible ? responsibleEmail : null,
             clubPendingApproval: parseBooleanFlag(
                 formData,
@@ -1311,8 +1316,82 @@ export async function POST(req: Request) {
                             )
                             ON CONFLICT DO NOTHING
                         `;
+
+                        // Send invitation email to the responsible person
+                        try {
+                            await sendResponsibleInviteEmail(
+                                athleteUserId,
+                                fullName,
+                                athleteProfile.responsibleEmail,
+                            );
+                        } catch (inviteError) {
+                            console.error(
+                                "[ACCOUNT_TYPE] Failed to send responsible invite email:",
+                                inviteError,
+                            );
+                        }
                     }
                 }
+            }
+        }
+
+        // When a "responsavel" completes signup, auto-link to athletes that
+        // invited this email via atleta_relacoes_pendentes
+        if (accountType === "responsavel") {
+            try {
+                const hasPendingTable = await hasTable(
+                    "atleta_relacoes_pendentes",
+                );
+                if (hasPendingTable) {
+                    const responsavelUserRows = await sql<{ id: string }[]>`
+                        SELECT id
+                        FROM users
+                        WHERE clerk_user_id = ${userId}
+                        LIMIT 1
+                    `;
+                    const responsavelDbId = responsavelUserRows[0]?.id;
+
+                    if (responsavelDbId) {
+                        // Check for columns before updating
+                        const pendingColumns = await sql<
+                            { column_name: string }[]
+                        >`
+                            SELECT column_name
+                            FROM information_schema.columns
+                            WHERE table_schema = 'public'
+                              AND table_name = 'atleta_relacoes_pendentes'
+                              AND column_name IN ('alvo_responsavel_user_id')
+                        `;
+                        const hasResponsavelUserIdColumn =
+                            pendingColumns.length > 0;
+
+                        if (hasResponsavelUserIdColumn) {
+                            await sql`
+                                UPDATE atleta_relacoes_pendentes
+                                SET alvo_responsavel_user_id = ${responsavelDbId},
+                                    status = 'aprovado',
+                                    updated_at = NOW()
+                                WHERE relation_kind = 'responsavel'
+                                  AND status = 'pendente'
+                                  AND LOWER(alvo_email) = LOWER(${currentEmail})
+                            `;
+                        } else {
+                            await sql`
+                                UPDATE atleta_relacoes_pendentes
+                                SET status = 'aprovado',
+                                    updated_at = NOW()
+                                WHERE relation_kind = 'responsavel'
+                                  AND status = 'pendente'
+                                  AND LOWER(alvo_email) = LOWER(${currentEmail})
+                            `;
+                        }
+                    }
+                }
+            } catch (linkError) {
+                console.error(
+                    "[ACCOUNT_TYPE] Failed to auto-link responsavel:",
+                    linkError,
+                );
             }
         }
 

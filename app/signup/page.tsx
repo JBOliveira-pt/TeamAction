@@ -6,8 +6,34 @@ import {
 } from "@/app/lib/account-type";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { verifyInviteToken } from "@/app/lib/invite-token";
 
-export default async function SignUpPage() {
+interface SignUpPageProps {
+    searchParams: Promise<{ invite?: string }>;
+}
+
+export default async function SignUpPage({ searchParams }: SignUpPageProps) {
+    const params = await searchParams;
+    const inviteToken =
+        typeof params.invite === "string" ? params.invite : null;
+
+    let invite: {
+        token: string;
+        athleteName: string;
+        responsibleEmail: string;
+    } | null = null;
+
+    if (inviteToken) {
+        const payload = verifyInviteToken(inviteToken);
+        if (payload) {
+            invite = {
+                token: inviteToken,
+                athleteName: payload.athleteName,
+                responsibleEmail: payload.responsibleEmail,
+            };
+        }
+    }
+
     const { userId } = await auth();
 
     if (userId) {
@@ -41,6 +67,7 @@ export default async function SignUpPage() {
                         initialFirstName={initialFirstName}
                         initialLastName={initialLastName}
                         initialEmail={initialEmail}
+                        invite={invite}
                     />
                 </div>
             </main>
@@ -58,7 +85,7 @@ export default async function SignUpPage() {
             />
 
             <div className="relative z-10 min-h-screen p-6 flex items-center justify-center">
-                <CustomSignUpForm />
+                <CustomSignUpForm invite={invite} />
             </div>
         </main>
     );

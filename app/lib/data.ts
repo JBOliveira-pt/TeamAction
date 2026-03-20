@@ -1,4 +1,5 @@
 import postgres, { type Sql } from "postgres";
+import crypto from "node:crypto";
 import {
     Customer,
     CustomerField,
@@ -16,6 +17,9 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 
 const isDev = process.env.NODE_ENV !== "production";
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
+const MIN_ADULT_SIGNUP_AGE = 18;
+const MINOR_ATHLETE_TEMP_PROFILE_TYPE = "Aviso";
+const MINOR_ATHLETE_TEMP_PROFILE_TITLE = "Mensagem do Administrador";
 
 function normalizeAccountType(value: unknown): AccountType | null {
     if (typeof value !== "string") return null;
@@ -31,6 +35,77 @@ function normalizeAccountType(value: unknown): AccountType | null {
     }
 
     return null;
+}
+
+function isValidEmailFormat(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function createDeterministicUuid(seed: string): string {
+    const hex = crypto.createHash("sha256").update(seed).digest("hex");
+    const normalized = hex.slice(0, 32);
+
+    return `${normalized.slice(0, 8)}-${normalized.slice(8, 12)}-${normalized.slice(12, 16)}-${normalized.slice(16, 20)}-${normalized.slice(20, 32)}`;
+}
+
+async function maybeCreateMinorAthleteTemporaryProfileNotice(params: {
+    organizationId: string;
+    clerkUserId: string;
+    dbUserId: string;
+    sessionId: string;
+}) {
+    const client = await clerkClient();
+    const clerkUser = await client.users.getUser(params.clerkUserId);
+
+    const accountType = normalizeAccountType(
+        clerkUser.unsafeMetadata?.accountType ??
+            clerkUser.publicMetadata?.accountType,
+    );
+
+    if (accountType !== "atleta") {
+        return;
+    }
+
+    const ageRaw =
+        clerkUser.unsafeMetadata?.age ?? clerkUser.publicMetadata?.age;
+    const age = typeof ageRaw === "number" ? ageRaw : Number(ageRaw);
+
+    if (!Number.isFinite(age) || age >= MIN_ADULT_SIGNUP_AGE) {
+        return;
+    }
+
+    const athleteProfileMetadata = clerkUser.unsafeMetadata?.athleteProfile as
+        | { responsibleEmail?: unknown }
+        | undefined;
+    const responsibleEmailRaw = athleteProfileMetadata?.responsibleEmail;
+    const responsibleEmail =
+        typeof responsibleEmailRaw === "string"
+            ? responsibleEmailRaw.trim()
+            : "";
+
+    if (!responsibleEmail || !isValidEmailFormat(responsibleEmail)) {
+        return;
+    }
+
+    const notificationId = createDeterministicUuid(
+        `minor-athlete-temp-profile:${params.dbUserId}:${params.sessionId}`,
+    );
+    const message = `Este é um perfil temporário, precisas da validação de seu responsável (e-mail: ${responsibleEmail}) para acesso integral à plataforma`;
+
+    await sql`
+        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+        VALUES (
+            ${notificationId},
+            ${params.organizationId},
+            ${params.dbUserId},
+            ${MINOR_ATHLETE_TEMP_PROFILE_TITLE},
+            ${message},
+            ${MINOR_ATHLETE_TEMP_PROFILE_TYPE},
+            false,
+            NOW()
+        )
+        ON CONFLICT (id) DO NOTHING
+    `;
 }
 
 export async function fetchUsers() {
@@ -1506,7 +1581,7 @@ export async function fetchNotificacoes() {
         const organizationId = await getOrganizationId({
             allowAutoProvision: false,
         });
-        const { userId } = await auth();
+        const { userId, sessionId } = await auth();
 
         if (!userId) {
             return [];
@@ -1522,6 +1597,22 @@ export async function fetchNotificacoes() {
 
         if (!dbUserId) {
             return [];
+        }
+
+        if (sessionId) {
+            try {
+                await maybeCreateMinorAthleteTemporaryProfileNotice({
+                    organizationId,
+                    clerkUserId: userId,
+                    dbUserId,
+                    sessionId,
+                });
+            } catch (error) {
+                console.error(
+                    "Failed to create temporary-profile notice for minor athlete:",
+                    error,
+                );
+            }
         }
 
         const data = await sql<

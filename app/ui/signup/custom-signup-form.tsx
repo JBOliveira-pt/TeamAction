@@ -368,7 +368,15 @@ async function fetchCityByPostalCode(
     return data.places?.[0]?.["place name"]?.trim() || null;
 }
 
-export default function CustomSignUpForm() {
+export default function CustomSignUpForm({
+    invite,
+}: {
+    invite?: {
+        token: string;
+        athleteName: string;
+        responsibleEmail: string;
+    } | null;
+}) {
     const router = useRouter();
     const { isLoaded, signUp, setActive } = useSignUp();
 
@@ -379,8 +387,10 @@ export default function CustomSignUpForm() {
 
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
-    const [emailAddress, setEmailAddress] = useState("");
-    const [emailTouched, setEmailTouched] = useState(false);
+    const [emailAddress, setEmailAddress] = useState(
+        invite?.responsibleEmail ?? "",
+    );
+    const [emailTouched, setEmailTouched] = useState(!!invite);
     const [isEmailPrecheckPassed, setIsEmailPrecheckPassed] = useState(false);
     const [emailPrecheckNotice, setEmailPrecheckNotice] = useState<
         string | null
@@ -395,7 +405,9 @@ export default function CustomSignUpForm() {
     const [passwordPrecheckNotice, setPasswordPrecheckNotice] = useState<
         string | null
     >(null);
-    const [accountType, setAccountType] = useState<AccountType>("presidente");
+    const [accountType, setAccountType] = useState<AccountType>(
+        invite ? "responsavel" : "presidente",
+    );
     const [verificationCode, setVerificationCode] = useState("");
     const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
     const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
@@ -432,7 +444,9 @@ export default function CustomSignUpForm() {
     const [athletePostalCode, setAthletePostalCode] = useState("");
     const [athleteAddress, setAthleteAddress] = useState("");
     const [athleteCity, setAthleteCity] = useState("");
-    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState("");
+    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState(
+        "teamaction@outlook.pt",
+    );
     const [athleteClubOptions, setAthleteClubOptions] = useState<
         AthleteLookupOption[]
     >([]);
@@ -938,6 +952,19 @@ export default function CustomSignUpForm() {
     }, [trainerPostalCode]);
 
     useEffect(() => {
+        if (athleteNeedsResponsible) {
+            if (athleteAddress) {
+                setAthleteAddress("");
+            }
+            if (athletePostalCode) {
+                setAthletePostalCode("");
+            }
+            if (athleteCity) {
+                setAthleteCity("");
+            }
+            return;
+        }
+
         const normalizedPostalCode = normalizePostalCode(athletePostalCode);
 
         if (athletePostalCode !== normalizedPostalCode) {
@@ -975,7 +1002,12 @@ export default function CustomSignUpForm() {
         return () => {
             isCancelled = true;
         };
-    }, [athletePostalCode]);
+    }, [
+        athleteNeedsResponsible,
+        athleteAddress,
+        athleteCity,
+        athletePostalCode,
+    ]);
 
     const passwordValidation = useMemo(
         () => validatePasswordPolicy(password),
@@ -1192,16 +1224,18 @@ export default function CustomSignUpForm() {
             return "Selecione uma equipa existente da lista.";
         }
 
-        const normalizedPostalCode = normalizePostalCode(athletePostalCode);
-        if (
-            normalizedPostalCode.length > 0 &&
-            !POSTAL_CODE_REGEX.test(normalizedPostalCode)
-        ) {
-            return "Código Postal inválido. Use o formato 0000-000.";
-        }
+        if (!athleteNeedsResponsible) {
+            const normalizedPostalCode = normalizePostalCode(athletePostalCode);
+            if (
+                normalizedPostalCode.length > 0 &&
+                !POSTAL_CODE_REGEX.test(normalizedPostalCode)
+            ) {
+                return "Código Postal inválido. Use o formato 0000-000.";
+            }
 
-        if (normalizedPostalCode && !athleteCity.trim()) {
-            return "Código Postal inválido. Informe um Código Postal válido de Portugal.";
+            if (normalizedPostalCode && !athleteCity.trim()) {
+                return "Código Postal inválido. Informe um Código Postal válido de Portugal.";
+            }
         }
 
         if (
@@ -1322,12 +1356,19 @@ export default function CustomSignUpForm() {
                                   selectedAthleteTrainerOption?.label || null,
                               teamName:
                                   selectedAthleteTeamOption?.label || null,
-                              postalCode:
-                                  normalizePostalCode(athletePostalCode) ||
-                                  null,
-                              address: athleteAddress.trim() || null,
-                              city: athleteCity.trim() || null,
-                              country: PORTUGAL_COUNTRY,
+                              postalCode: athleteNeedsResponsible
+                                  ? null
+                                  : normalizePostalCode(athletePostalCode) ||
+                                    null,
+                              address: athleteNeedsResponsible
+                                  ? null
+                                  : athleteAddress.trim() || null,
+                              city: athleteNeedsResponsible
+                                  ? null
+                                  : athleteCity.trim() || null,
+                              country: athleteNeedsResponsible
+                                  ? null
+                                  : PORTUGAL_COUNTRY,
                               responsibleEmail:
                                   athleteNeedsResponsible &&
                                   athleteResponsibleEmail.trim().length > 0
@@ -1722,11 +1763,22 @@ export default function CustomSignUpForm() {
                 );
                 payload.append(
                     "athlete_postal_code",
-                    normalizePostalCode(athletePostalCode),
+                    athleteNeedsResponsible
+                        ? ""
+                        : normalizePostalCode(athletePostalCode),
                 );
-                payload.append("athlete_address", athleteAddress.trim());
-                payload.append("athlete_city", athleteCity.trim());
-                payload.append("athlete_country", PORTUGAL_COUNTRY);
+                payload.append(
+                    "athlete_address",
+                    athleteNeedsResponsible ? "" : athleteAddress.trim(),
+                );
+                payload.append(
+                    "athlete_city",
+                    athleteNeedsResponsible ? "" : athleteCity.trim(),
+                );
+                payload.append(
+                    "athlete_country",
+                    athleteNeedsResponsible ? "" : PORTUGAL_COUNTRY,
+                );
                 payload.append(
                     "athlete_responsible_email",
                     athleteResponsibleEmail.trim(),
@@ -1742,6 +1794,25 @@ export default function CustomSignUpForm() {
                 payload.append(
                     "athlete_team_is_existing",
                     String(Boolean(selectedAthleteTeamOption)),
+                );
+                payload.append(
+                    "athlete_club_pending_approval",
+                    String(Boolean(selectedAthleteClubOption)),
+                );
+                payload.append(
+                    "athlete_trainer_pending_approval",
+                    String(Boolean(selectedAthleteTrainerOption)),
+                );
+                payload.append(
+                    "athlete_team_pending_approval",
+                    String(Boolean(selectedAthleteTeamOption)),
+                );
+                payload.append(
+                    "athlete_responsible_pending_approval",
+                    String(
+                        athleteNeedsResponsible &&
+                            athleteResponsibleEmail.trim().length > 0,
+                    ),
                 );
             }
             if (accountType === "presidente") {
@@ -1862,22 +1933,41 @@ export default function CustomSignUpForm() {
 
                 {stage === "form" ? (
                     <form className="space-y-6" onSubmit={handleCreateAccount}>
+                        {invite && (
+                            <div className="rounded-lg border border-blue-400/40 bg-blue-950/40 p-4">
+                                <p className="text-sm font-medium text-blue-200">
+                                    🎉 Foi convidado(a) como{" "}
+                                    <strong>Responsável</strong> do atleta{" "}
+                                    <strong>{invite.athleteName}</strong>.
+                                </p>
+                                <p className="mt-1 text-xs text-blue-300/80">
+                                    Complete o registo abaixo para vincular-se
+                                    ao atleta.
+                                </p>
+                            </div>
+                        )}
                         <div className="grid gap-6 md:grid-cols-2">
                             {ACCOUNT_TYPE_OPTIONS.map((option) => {
                                 const Icon = option.icon;
                                 const active = accountType === option.value;
+                                const lockedByInvite =
+                                    !!invite && option.value !== "responsavel";
 
                                 return (
                                     <button
                                         key={option.value}
                                         type="button"
+                                        disabled={lockedByInvite}
                                         onClick={() =>
+                                            !lockedByInvite &&
                                             setAccountType(option.value)
                                         }
                                         className={`text-left rounded-lg border p-4 transition-colors ${
-                                            active
-                                                ? "border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20"
-                                                : "border-gray-200 dark:border-gray-700 hover:border-emerald-400"
+                                            lockedByInvite
+                                                ? "opacity-40 cursor-not-allowed border-gray-700"
+                                                : active
+                                                  ? "border-emerald-500 bg-emerald-50/30 dark:bg-emerald-900/20"
+                                                  : "border-gray-200 dark:border-gray-700 hover:border-emerald-400"
                                         }`}
                                     >
                                         <div className="flex items-start gap-3">
@@ -1946,8 +2036,10 @@ export default function CustomSignUpForm() {
                                         ref={emailInputRef}
                                         type="email"
                                         required
+                                        readOnly={!!invite}
                                         value={emailAddress}
                                         onChange={(event) => {
+                                            if (invite) return;
                                             setEmailAddress(event.target.value);
                                             if (!emailTouched) {
                                                 setEmailTouched(true);
@@ -1955,7 +2047,7 @@ export default function CustomSignUpForm() {
                                             setIsEmailPrecheckPassed(false);
                                         }}
                                         onBlur={() => setEmailTouched(true)}
-                                        className="peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        className={`peer block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray dark:placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all ${invite ? "opacity-60 cursor-not-allowed" : ""}`}
                                         placeholder="email@exemplo.com"
                                     />
                                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
@@ -2636,71 +2728,77 @@ export default function CustomSignUpForm() {
                             </div>
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-3">
-                            <div className="space-y-1 md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Morada (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={athleteAddress}
-                                    onChange={(event) =>
-                                        setAthleteAddress(event.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Rua, número, complemento..."
-                                />
-                            </div>
+                        {!athleteNeedsResponsible && (
+                            <>
+                                <div className="grid gap-6 md:grid-cols-3">
+                                    <div className="space-y-1 md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                            Morada (opcional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={athleteAddress}
+                                            onChange={(event) =>
+                                                setAthleteAddress(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                            placeholder="Rua, número, complemento..."
+                                        />
+                                    </div>
 
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Código Postal (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={athletePostalCode}
-                                    onChange={(event) =>
-                                        setAthletePostalCode(
-                                            normalizePostalCode(
-                                                event.target.value,
-                                            ),
-                                        )
-                                    }
-                                    maxLength={8}
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="0000-000"
-                                />
-                            </div>
-                        </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                            Código Postal (opcional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={athletePostalCode}
+                                            onChange={(event) =>
+                                                setAthletePostalCode(
+                                                    normalizePostalCode(
+                                                        event.target.value,
+                                                    ),
+                                                )
+                                            }
+                                            maxLength={8}
+                                            className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                            placeholder="0000-000"
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="grid gap-6 md:grid-cols-2">
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Cidade
-                                </label>
-                                <input
-                                    type="text"
-                                    value={athleteCity}
-                                    readOnly
-                                    aria-readonly="true"
-                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
-                                    placeholder="Preenchida automaticamente"
-                                />
-                            </div>
+                                <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                            Cidade
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={athleteCity}
+                                            readOnly
+                                            aria-readonly="true"
+                                            className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                            placeholder="Preenchida automaticamente"
+                                        />
+                                    </div>
 
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    País
-                                </label>
-                                <input
-                                    type="text"
-                                    value={PORTUGAL_COUNTRY}
-                                    readOnly
-                                    aria-readonly="true"
-                                    className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
-                                />
-                            </div>
-                        </div>
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                            País
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={PORTUGAL_COUNTRY}
+                                            readOnly
+                                            aria-readonly="true"
+                                            className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
                         {athleteNeedsResponsible && (
                             <div className="space-y-1 rounded-lg border border-red-500/40 bg-red-500/10 p-4">
