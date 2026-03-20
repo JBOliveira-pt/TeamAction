@@ -62,8 +62,8 @@ export function AdminAvisoForm({
             selectedScope === "user"
                 ? selectedUser
                     ? `${selectedUser.name} (${selectedUser.email})`
-                    : "Usuário específico (nenhum selecionado)"
-                : "Todos os usuários";
+                    : "Utilizador específico (nenhum selecionado)"
+                : "Todos os utilizadores";
 
         setPreview({ titulo, descricao, destinatario });
         setShowModal(true);
@@ -85,7 +85,7 @@ export function AdminAvisoForm({
             >
                 <div>
                     <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                        Titulo
+                        Título
                     </label>
                     <input
                         name="titulo"
@@ -116,15 +116,15 @@ export function AdminAvisoForm({
                         onChange={(event) => setScope(event.target.value)}
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                     >
-                        <option value="all">Todos os usuários</option>
-                        <option value="user">Usuário específico</option>
+                        <option value="all">Todos os utilizadores</option>
+                        <option value="user">Utilizador específico</option>
                     </select>
                 </div>
 
                 {scope === "user" && (
                     <div>
                         <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                            Usuário (opcional)
+                            Utilizador (opcional)
                         </label>
                         <select
                             name="userId"

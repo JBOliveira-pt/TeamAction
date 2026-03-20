@@ -1,11 +1,11 @@
 import { Metadata } from "next";
-import { fetchReceiptDetail } from "@/app/lib/receipts-data";
-import ReceiptEditForm from "@/app/ui/receipts/edit-form";
-import Breadcrumbs from "@/app/ui/invoices/breadcrumbs";
+import { fetchReciboDetail } from "@/app/lib/receipts-data";
+import ReciboDetailForm from "@/app/ui/receipts/edit-form";
+import Breadcrumbs from "@/app/ui/components/breadcrumbs";
 import { getCurrentUser } from "@/app/lib/auth-helpers";
 
 export const metadata: Metadata = {
-    title: "Receipt | TeamAction Dashboard",
+    title: "Recibo | TeamAction Dashboard",
 };
 
 export const dynamic = "force-dynamic";
@@ -16,12 +16,12 @@ export default async function Page({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const receipt = await fetchReceiptDetail(id);
+    const recibo = await fetchReciboDetail(id);
     const currentUser = await getCurrentUser();
     const canSend =
         !!currentUser &&
         (currentUser.role === "admin" ||
-            currentUser.id === receipt.receipt_created_by);
+            currentUser.id === recibo.recibo_created_by);
 
     return (
         <main className="p-5">
@@ -29,13 +29,13 @@ export default async function Page({
                 breadcrumbs={[
                     { label: "Recibos", href: "/dashboard/receipts" },
                     {
-                        label: "Visualização",
+                        label: "Visualizacao",
                         href: `/dashboard/receipts/${id}`,
                         active: true,
                     },
                 ]}
             />
-            <ReceiptEditForm receipt={receipt} canSend={canSend} />
+            <ReciboDetailForm recibo={recibo} canSend={canSend} />
         </main>
     );
 }

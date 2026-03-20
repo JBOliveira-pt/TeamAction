@@ -5,30 +5,30 @@ import {
     EyeIcon,
 } from "@heroicons/react/24/outline";
 import { isUserAdmin, getCurrentUser } from "@/app/lib/auth-helpers";
-import { sendReceiptAction } from "@/app/lib/receipt-actions";
+import { sendReciboAction } from "@/app/lib/receipt-actions";
 
-export async function ReceiptActions({
-    receiptId,
-    receiptCreatedBy,
+export async function ReciboActions({
+    reciboId,
+    reciboCreatedBy,
     status,
     pdfUrl,
 }: {
-    receiptId: string;
-    receiptCreatedBy: string | null;
-    status: "pending_send" | "sent_to_customer";
+    reciboId: string;
+    reciboCreatedBy: string | null;
+    status: "pendente_envio" | "enviado_atleta";
     pdfUrl: string | null;
 }) {
     const isAdmin = await isUserAdmin();
     const currentUser = await getCurrentUser();
     const canSend =
-        isAdmin || (currentUser && currentUser.id === receiptCreatedBy);
+        isAdmin || (currentUser && currentUser.id === reciboCreatedBy);
 
-    const sendWithId = sendReceiptAction.bind(null, receiptId);
+    const sendWithId = sendReciboAction.bind(null, reciboId);
 
     return (
         <div className="flex items-center justify-end gap-2">
             <Link
-                href={`/dashboard/receipts/${receiptId}`}
+                href={`/dashboard/receipts/${reciboId}`}
                 className="rounded-lg border border-gray-700 p-2 hover:bg-gray-800 hover:border-gray-600 transition-all group"
                 title="Rever"
             >
@@ -47,7 +47,7 @@ export async function ReceiptActions({
                 </a>
             ) : null}
 
-            {canSend && status === "pending_send" ? (
+            {canSend && status === "pendente_envio" ? (
                 <form action={sendWithId}>
                     <button
                         type="submit"

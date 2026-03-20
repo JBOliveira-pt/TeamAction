@@ -1,5 +1,5 @@
 import CreateAtletaProfileForm from "@/app/ui/atleta/create-profile-form";
-import Breadcrumbs from "@/app/ui/invoices/breadcrumbs";
+import Breadcrumbs from "@/app/ui/components/breadcrumbs";
 
 export default async function CriarPerfilUtilizadorPage() {
     return (

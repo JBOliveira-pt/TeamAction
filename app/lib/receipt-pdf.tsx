@@ -11,30 +11,32 @@ import {
 } from "@react-pdf/renderer";
 import { formatCurrencyPTBR } from "./utils";
 
-export type ReceiptPdfData = {
-    receiptNumber: number;
+const MESES_NOMES: Record<number, string> = {
+    1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
+    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+};
+
+export type ReciboPdfData = {
+    reciboNumber: number;
     issueDate: string;
     receivedDate: string;
-    issuer: {
-        name: string;
-        email: string;
-        iban: string;
+    clube: {
+        nome: string;
+        nipc: string | null;
+        morada: string | null;
+        cidade: string | null;
     };
-    customer: {
-        name: string;
-        nif: string | null;
-        endereco_fiscal: string | null;
+    atleta: {
+        nome: string;
     };
-    invoice: {
-        id: string;
+    mensalidade: {
+        mes: number;
+        ano: number;
         amount: number;
-        date: string;
+        dataPagamento: string | null;
     };
-    fiscal: {
-        activityCode: string;
-        taxRegime: string;
-        irsWithholding: string;
-    };
+    issuerIban: string;
 };
 
 const styles = StyleSheet.create({
@@ -49,7 +51,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 6,
     },
-    receiptNumber: {
+    reciboNumber: {
         fontSize: 12,
         textAlign: "center",
         marginBottom: 12,
@@ -78,16 +80,16 @@ const styles = StyleSheet.create({
     },
 });
 
-interface ReceiptDocumentProps {
-    data: ReceiptPdfData;
+interface ReciboDocumentProps {
+    data: ReciboPdfData;
 }
 
-const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => (
+const ReciboDocument: React.FC<ReciboDocumentProps> = ({ data }) => (
     <Document>
         <Page size="A4" style={styles.page}>
-            <Text style={styles.title}>Recibo</Text>
-            <Text style={styles.receiptNumber}>
-                Numero: {data.receiptNumber}
+            <Text style={styles.title}>Recibo de Mensalidade</Text>
+            <Text style={styles.reciboNumber}>
+                Numero: {data.reciboNumber}
             </Text>
 
             <View style={styles.section}>
@@ -100,47 +102,34 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => (
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados do emissor</Text>
-                <Text style={styles.row}>Nome: {data.issuer.name}</Text>
-                <Text style={styles.row}>Email: {data.issuer.email}</Text>
-                <Text style={styles.row}>IBAN: {data.issuer.iban}</Text>
+                <Text style={styles.sectionTitle}>Dados do clube (emissor)</Text>
+                <Text style={styles.row}>Nome: {data.clube.nome}</Text>
+                <Text style={styles.row}>NIPC: {data.clube.nipc ?? "-"}</Text>
+                <Text style={styles.row}>Morada: {data.clube.morada ?? "-"}</Text>
+                <Text style={styles.row}>Cidade: {data.clube.cidade ?? "-"}</Text>
+                <Text style={styles.row}>IBAN: {data.issuerIban}</Text>
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados do cliente</Text>
+                <Text style={styles.sectionTitle}>Dados do atleta</Text>
                 <Text style={styles.row}>
-                    Nome ou Razao Social: {data.customer.name}
-                </Text>
-                <Text style={styles.row}>
-                    NIF/NIPC: {data.customer.nif ?? "-"}
-                </Text>
-                <Text style={styles.row}>
-                    Morada: {data.customer.endereco_fiscal ?? "-"}
+                    Nome: {data.atleta.nome}
                 </Text>
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados da fatura</Text>
-                <Text style={styles.row}>Referencia: {data.invoice.id}</Text>
-                <Text style={styles.row}>Data: {data.invoice.date}</Text>
+                <Text style={styles.sectionTitle}>Dados da mensalidade</Text>
                 <Text style={styles.row}>
-                    Valor recebido: {formatCurrencyPTBR(data.invoice.amount)}
+                    Periodo: {MESES_NOMES[data.mensalidade.mes] ?? data.mensalidade.mes} / {data.mensalidade.ano}
+                </Text>
+                <Text style={styles.row}>
+                    Valor recebido: {formatCurrencyPTBR(data.mensalidade.amount)}
+                </Text>
+                <Text style={styles.row}>
+                    Data de pagamento: {data.mensalidade.dataPagamento ?? "-"}
                 </Text>
                 <Text style={styles.row}>
                     Metodo de pagamento: Transferencia bancaria
-                </Text>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados fiscais</Text>
-                <Text style={styles.row}>
-                    Atividade exercida: {data.fiscal.activityCode}
-                </Text>
-                <Text style={styles.row}>
-                    Regime de IVA: {data.fiscal.taxRegime}
-                </Text>
-                <Text style={styles.row}>
-                    Retencao na fonte (IRS): {data.fiscal.irsWithholding}
                 </Text>
             </View>
 
@@ -148,26 +137,22 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => (
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Assinatura</Text>
-                <Text style={{ marginTop: 20 }}>{data.issuer.name}</Text>
+                <Text style={{ marginTop: 20 }}>{data.clube.nome}</Text>
             </View>
         </Page>
     </Document>
 );
 
-export async function generateReceiptPdf(
-    data: ReceiptPdfData,
+export async function generateReciboPdf(
+    data: ReciboPdfData,
 ): Promise<Buffer> {
     try {
-        console.log("🎨 Gerando PDF para recibo #" + data.receiptNumber);
-        const buffer = await renderToBuffer(<ReceiptDocument data={data} />);
-        console.log(
-            "✅ PDF gerado com sucesso, tamanho:",
-            buffer.length,
-            "bytes",
-        );
+        console.log("Gerando PDF para recibo #" + data.reciboNumber);
+        const buffer = await renderToBuffer(<ReciboDocument data={data} />);
+        console.log("PDF gerado com sucesso, tamanho:", buffer.length, "bytes");
         return Buffer.from(buffer);
     } catch (error) {
-        console.error("❌ Erro ao gerar PDF:", error);
+        console.error("Erro ao gerar PDF:", error);
         throw error;
     }
 }

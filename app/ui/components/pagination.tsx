@@ -1,4 +1,3 @@
-// app/ui/invoices/pagination.tsx
 "use client";
 
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
@@ -22,7 +21,6 @@ export default function Pagination({ totalPages }: { totalPages: number }) {
 
     return (
         <div className="flex flex-col items-center justify-center gap-2">
-            {/* Info de páginas */}
             <span className="hidden sm:block text-sm text-gray-600 dark:text-gray-500 mr-4">
                 Página {currentPage} de {totalPages}
             </span>
@@ -84,12 +82,9 @@ function PaginationNumber({
     const className = clsx(
         "flex h-10 w-10 items-center justify-center text-sm font-medium rounded-lg transition-all",
         {
-            // Active state - destaque azul
             "bg-blue-600 text-white shadow-lg shadow-blue-600/25": isActive,
-            // Hover state para números normais
             "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent hover:border-gray-200 dark:hover:border-gray-700":
                 !isActive && position !== "middle",
-            // Ellipsis (...)
             "text-gray-400 dark:text-gray-600 cursor-default pointer-events-none":
                 position === "middle",
         },
@@ -116,13 +111,10 @@ function PaginationArrow({
     const className = clsx(
         "flex h-10 w-10 items-center justify-center rounded-lg border transition-all",
         {
-            // Disabled state
             "pointer-events-none border-gray-200 dark:border-gray-800 text-gray-300 dark:text-gray-700 cursor-not-allowed":
                 isDisabled,
-            // Normal state
             "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600":
                 !isDisabled,
-            // Spacing
             "mr-2": direction === "left",
             "ml-2": direction === "right",
         },

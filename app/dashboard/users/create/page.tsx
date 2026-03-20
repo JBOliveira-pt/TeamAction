@@ -1,4 +1,4 @@
-import Breadcrumbs from "@/app/ui/invoices/breadcrumbs";
+import Breadcrumbs from "@/app/ui/components/breadcrumbs";
 import CreateUserForm from "@/app/ui/users/create-form";
 import { Metadata } from "next";
 

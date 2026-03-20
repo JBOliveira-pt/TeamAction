@@ -36,66 +36,39 @@ export async function GET() {
 
         const totalCount = await sql`
             SELECT COUNT(*) as total
-            FROM receipts
+            FROM recibos
             WHERE organization_id = ${organizationId}
-            AND status = 'pending_send'
+            AND status = 'pendente_envio'
         `;
 
-        const columnCheck = await sql<{ has_receipt_number: boolean }[]>`
-            SELECT EXISTS (
-                SELECT 1
-                FROM information_schema.columns
-                WHERE table_schema = 'public'
-                    AND table_name = 'receipts'
-                    AND column_name = 'receipt_number'
-            ) AS has_receipt_number
+        const pendingRecibos = await sql`
+            SELECT
+                recibos.id,
+                recibos.recibo_number,
+                recibos.amount,
+                recibos.received_date,
+                recibos.status,
+                COALESCE(atletas.nome, 'Atleta removido') as atleta_nome
+            FROM recibos
+            LEFT JOIN atletas ON recibos.atleta_id = atletas.id
+            WHERE recibos.organization_id = ${organizationId}
+            AND recibos.status = 'pendente_envio'
+            ORDER BY recibos.created_at DESC
+            LIMIT 5
         `;
 
-        const hasReceiptNumber = columnCheck[0]?.has_receipt_number === true;
-
-        const pendingReceipts = hasReceiptNumber
-            ? await sql`
-                SELECT
-                    receipts.id,
-                    receipts.receipt_number,
-                    receipts.amount,
-                    receipts.received_date,
-                    receipts.status,
-                    customers.name as customer_name
-                FROM receipts
-                JOIN customers ON receipts.customer_id = customers.id
-                WHERE receipts.organization_id = ${organizationId}
-                AND receipts.status = 'pending_send'
-                ORDER BY receipts.received_date DESC
-                LIMIT 5
-            `
-            : await sql`
-                SELECT
-                    receipts.id,
-                    receipts.amount,
-                    receipts.received_date,
-                    receipts.status,
-                    customers.name as customer_name
-                FROM receipts
-                JOIN customers ON receipts.customer_id = customers.id
-                WHERE receipts.organization_id = ${organizationId}
-                AND receipts.status = 'pending_send'
-                ORDER BY receipts.received_date DESC
-                LIMIT 5
-            `;
-
-        const formatted = pendingReceipts.map((receipt: any) => ({
-            id: receipt.id,
-            receipt_number: receipt.receipt_number ?? receipt.id.slice(0, 8),
-            customer_name: receipt.customer_name,
-            amount: receipt.amount,
-            received_date: receipt.received_date,
-            status: receipt.status,
+        const formatted = pendingRecibos.map((recibo: any) => ({
+            id: recibo.id,
+            recibo_number: recibo.recibo_number,
+            atleta_nome: recibo.atleta_nome,
+            amount: recibo.amount,
+            received_date: recibo.received_date,
+            status: recibo.status,
         }));
 
         return new Response(
             JSON.stringify({
-                receipts: formatted,
+                recibos: formatted,
                 total: Number(totalCount[0].total),
             }),
             {
@@ -106,7 +79,7 @@ export async function GET() {
     } catch (error) {
         console.error("API Error:", error);
         return new Response(
-            JSON.stringify({ error: "Failed to fetch receipts" }),
+            JSON.stringify({ error: "Failed to fetch recibos" }),
             { status: 500 },
         );
     }

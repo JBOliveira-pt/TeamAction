@@ -1,6 +1,6 @@
 import type { Atleta } from "@/app/lib/definitions";
 import EditAtletaProfileForm from "@/app/ui/atleta/edit-profile-form";
-import Breadcrumbs from "@/app/ui/invoices/breadcrumbs";
+import Breadcrumbs from "@/app/ui/components/breadcrumbs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import postgres from "postgres";

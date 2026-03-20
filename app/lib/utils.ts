@@ -1,5 +1,3 @@
-import { Revenue } from "./definitions";
-
 export const formatCurrency = (
     amount: number | string,
     locale: string = "en-US",
@@ -41,34 +39,6 @@ export const formatDateToLocal = (
     };
     const formatter = new Intl.DateTimeFormat(locale, options);
     return formatter.format(date);
-};
-
-export const generateYAxis = (revenue: Revenue[]) => {
-    // Revenue values are stored in cents; build labels in EUR.
-    const yAxisLabels: string[] = [];
-    const highestRecord = Math.max(...revenue.map((month) => month.revenue), 0);
-
-    // Aim for 6 ticks max to keep the axis readable.
-    const maxTicks = 6;
-    const step =
-        highestRecord === 0
-            ? 0
-            : Math.ceil(highestRecord / (maxTicks - 1) / 100000) * 100000;
-    const topLabel = step === 0 ? 0 : Math.ceil(highestRecord / step) * step;
-
-    for (let i = topLabel; i >= 0; i -= step || 1) {
-        const euros = i / 100;
-        const label =
-            euros >= 1000
-                ? `€ ${(euros / 1000).toFixed(1).replace(/\.0$/, "")}k`
-                : `€ ${euros.toFixed(0)}`;
-        yAxisLabels.push(label);
-        if (yAxisLabels.length >= maxTicks) {
-            break;
-        }
-    }
-
-    return { yAxisLabels, topLabel };
 };
 
 export const generatePagination = (currentPage: number, totalPages: number) => {

@@ -16,6 +16,41 @@ export type AdminUserRow = {
     clerk_user_id: string | null;
     created_at: string | null;
     updated_at: string | null;
+    iban: string | null;
+    data_nascimento: string | null;
+    telefone: string | null;
+    sobrenome: string | null;
+    morada: string | null;
+    peso_kg: number | null;
+    altura_cm: number | null;
+    nif: string | null;
+    codigo_postal: string | null;
+    cidade: string | null;
+    pais: string | null;
+};
+
+export type AdminAtletaRow = {
+    id: string;
+    posicao: string | null;
+    numero_camisola: number | null;
+    equipa_id: string | null;
+    equipa_nome: string | null;
+    estado: string | null;
+    federado: boolean | null;
+    numero_federado: string | null;
+    mao_dominante: string | null;
+};
+
+export type AdminStaffRow = {
+    id: string;
+    funcao: string | null;
+    equipa_id: string | null;
+    equipa_nome: string | null;
+};
+
+export type AdminEquipaOption = {
+    id: string;
+    nome: string;
 };
 
 export type UserActionLogRow = {
@@ -174,6 +209,21 @@ export async function fetchAdminUsersForSelect() {
 }
 
 export async function fetchAdminUserById(id: string) {
+    const optionalCols = await sql<{ column_name: string }[]>`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'users'
+          AND column_name IN (
+              'iban', 'data_nascimento', 'telefone',
+              'sobrenome', 'morada', 'peso_kg', 'altura_cm',
+              'nif', 'codigo_postal', 'cidade', 'pais'
+          )
+    `;
+
+    const has = (col: string) =>
+        optionalCols.some((c) => c.column_name === col);
+
     const data = await sql<AdminUserRow[]>`
         SELECT
             u.id,
@@ -185,7 +235,18 @@ export async function fetchAdminUserById(id: string) {
             o.name AS organization_name,
             u.clerk_user_id,
             u.created_at,
-            u.updated_at
+            u.updated_at,
+            ${has("iban") ? sql`u.iban` : sql`NULL`} AS iban,
+            ${has("data_nascimento") ? sql`u.data_nascimento::text` : sql`NULL`} AS data_nascimento,
+            ${has("telefone") ? sql`u.telefone` : sql`NULL`} AS telefone,
+            ${has("sobrenome") ? sql`u.sobrenome` : sql`NULL`} AS sobrenome,
+            ${has("morada") ? sql`u.morada` : sql`NULL`} AS morada,
+            ${has("peso_kg") ? sql`u.peso_kg` : sql`NULL`} AS peso_kg,
+            ${has("altura_cm") ? sql`u.altura_cm` : sql`NULL`} AS altura_cm,
+            ${has("nif") ? sql`u.nif` : sql`NULL`} AS nif,
+            ${has("codigo_postal") ? sql`u.codigo_postal` : sql`NULL`} AS codigo_postal,
+            ${has("cidade") ? sql`u.cidade` : sql`NULL`} AS cidade,
+            ${has("pais") ? sql`u.pais` : sql`NULL`} AS pais
         FROM users u
         LEFT JOIN organizations o ON o.id = u.organization_id
         WHERE u.id = ${id}
@@ -383,6 +444,96 @@ export async function fetchAdminActionTypeMonthlySeries(): Promise<
     }
 
     return series;
+}
+
+export async function fetchAdminAtletaByUserId(
+    userId: string,
+): Promise<AdminAtletaRow | null> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'atletas'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return null;
+
+    const hasUserIdCol = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'atletas' AND column_name = 'user_id'
+        ) AS exists
+    `;
+    if (!hasUserIdCol[0]?.exists) return null;
+
+    const data = await sql<AdminAtletaRow[]>`
+        SELECT
+            a.id,
+            a.posicao,
+            a.numero_camisola,
+            a.equipa_id,
+            e.nome AS equipa_nome,
+            a.estado,
+            a.federado,
+            a.numero_federado,
+            a.mao_dominante
+        FROM atletas a
+        LEFT JOIN equipas e ON e.id = a.equipa_id
+        WHERE a.user_id = ${userId}
+        LIMIT 1
+    `;
+    return data[0] ?? null;
+}
+
+export async function fetchAdminStaffByUserId(
+    userId: string,
+): Promise<AdminStaffRow | null> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'staff'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return null;
+
+    const hasUserIdCol = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'staff' AND column_name = 'user_id'
+        ) AS exists
+    `;
+    if (!hasUserIdCol[0]?.exists) return null;
+
+    const data = await sql<AdminStaffRow[]>`
+        SELECT
+            s.id,
+            s.funcao,
+            s.equipa_id,
+            e.nome AS equipa_nome
+        FROM staff s
+        LEFT JOIN equipas e ON e.id = s.equipa_id
+        WHERE s.user_id = ${userId}
+        LIMIT 1
+    `;
+    return data[0] ?? null;
+}
+
+export async function fetchAdminEquipasByOrg(
+    organizationId: string,
+): Promise<AdminEquipaOption[]> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'equipas'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    return sql<AdminEquipaOption[]>`
+        SELECT id, nome
+        FROM equipas
+        WHERE organization_id = ${organizationId}
+        ORDER BY nome ASC
+    `;
 }
 
 export async function fetchUserByClerkId(clerkUserId: string) {

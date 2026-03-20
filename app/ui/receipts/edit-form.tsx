@@ -2,30 +2,34 @@
 
 import { useState } from "react";
 import { formatCurrencyPTBR, formatDateToLocal } from "@/app/lib/utils";
-import { RECEIPT_ACTIVITIES } from "@/app/lib/receipt-activities";
 
-export default function ReceiptEditForm({
-    receipt,
+const MESES_NOMES: Record<number, string> = {
+    1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
+    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+};
+
+export default function ReciboDetailForm({
+    recibo,
     canSend,
 }: {
-    receipt: {
-        receipt_id: string;
-        receipt_number: number;
-        status: "pending_send" | "sent_to_customer";
+    recibo: {
+        recibo_id: string;
+        recibo_number: number;
+        status: "pendente_envio" | "enviado_atleta";
         received_date: string;
         amount: number;
-        activity_code: string | null;
-        tax_regime: string;
-        irs_withholding: string;
         pdf_url: string | null;
-        invoice_id: string;
-        invoice_date: string;
-        invoice_payment_date: string | null;
-        customer_name: string;
-        customer_nif: string | null;
-        customer_address: string | null;
-        sent_at?: string | null;
-        sent_by_user_name?: string | null;
+        recibo_created_by: string | null;
+        mensalidade_id: string;
+        mensalidade_mes: number;
+        mensalidade_ano: number;
+        data_pagamento: string | null;
+        atleta_id: string;
+        atleta_nome: string;
+        sent_at: string | null;
+        sent_by_user_name: string | null;
+        issuer_iban: string;
     };
     canSend: boolean;
 }) {
@@ -35,9 +39,8 @@ export default function ReceiptEditForm({
         text: string;
     } | null>(null);
 
-    const isSent = receipt.status === "sent_to_customer";
+    const isSent = recibo.status === "enviado_atleta";
 
-    // Função para formatar data e hora do envio
     const formatSentDateTime = (
         dateString: string | null | undefined,
     ): string => {
@@ -51,13 +54,6 @@ export default function ReceiptEditForm({
             minute: "2-digit",
             second: "2-digit",
         });
-    };
-
-    // Função para obter o nome da atividade baseado no código
-    const getActivityLabel = (code: string | null): string => {
-        if (!code) return "-";
-        const activity = RECEIPT_ACTIVITIES.find((a) => a.code === code);
-        return activity ? `${activity.code} - ${activity.label}` : code;
     };
 
     const handleToggleSent = async () => {
@@ -74,22 +70,21 @@ export default function ReceiptEditForm({
 
         try {
             const response = await fetch(
-                `/api/receipts/${receipt.receipt_id}/mark-sent`,
+                `/api/receipts/${recibo.recibo_id}/mark-sent`,
                 {
                     method: "POST",
                 },
             );
 
             if (!response.ok) {
-                throw new Error("Failed to mark receipt as sent");
+                throw new Error("Failed to mark recibo as sent");
             }
 
             setMessage({
                 type: "success",
-                text: "Recibo marcado como enviado ao cliente.",
+                text: "Recibo marcado como enviado ao atleta.",
             });
 
-            // Reload page after 2 seconds
             setTimeout(() => {
                 window.location.reload();
             }, 2000);
@@ -109,15 +104,15 @@ export default function ReceiptEditForm({
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                     <div>
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Recibo #{receipt.receipt_number}
+                            Recibo #{recibo.recibo_number}
                         </h2>
                         <p className="text-sm text-gray-500">
-                            Valor: {formatCurrencyPTBR(receipt.amount)}
+                            Valor: {formatCurrencyPTBR(recibo.amount)}
                         </p>
                     </div>
-                    {receipt.pdf_url ? (
+                    {recibo.pdf_url ? (
                         <a
-                            href={receipt.pdf_url}
+                            href={recibo.pdf_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
@@ -127,7 +122,6 @@ export default function ReceiptEditForm({
                     ) : null}
                 </div>
 
-                {/* Error/Success Messages */}
                 {message && (
                     <div
                         className={`mb-4 rounded-lg border p-3 text-sm ${
@@ -149,26 +143,18 @@ export default function ReceiptEditForm({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Cliente
+                                    Atleta
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
-                                    {receipt.customer_name}
+                                    {recibo.atleta_nome}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-gray-500 mb-1">
-                                    NIF/NIPC
+                                    Periodo da Mensalidade
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
-                                    {receipt.customer_nif ?? "-"}
-                                </p>
-                            </div>
-                            <div className="md:col-span-2">
-                                <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Morada Fiscal
-                                </p>
-                                <p className="text-gray-900 dark:text-white">
-                                    {receipt.customer_address ?? "-"}
+                                    {MESES_NOMES[recibo.mensalidade_mes] ?? recibo.mensalidade_mes}/{recibo.mensalidade_ano}
                                 </p>
                             </div>
                             <div>
@@ -176,43 +162,17 @@ export default function ReceiptEditForm({
                                     Data de Pagamento
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
-                                    {receipt.invoice_payment_date
-                                        ? formatDateToLocal(
-                                              receipt.invoice_payment_date,
-                                          )
+                                    {recibo.data_pagamento
+                                        ? formatDateToLocal(recibo.data_pagamento)
                                         : "-"}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Atividade Exercida
+                                    IBAN do Clube
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
-                                    {getActivityLabel(receipt.activity_code)}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Regime de IVA
-                                </p>
-                                <p className="text-gray-900 dark:text-white">
-                                    {receipt.tax_regime}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Retenção na Fonte (IRS)
-                                </p>
-                                <p className="text-gray-900 dark:text-white">
-                                    {receipt.irs_withholding}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-medium text-gray-500 mb-1">
-                                    Fatura ID
-                                </p>
-                                <p className="text-gray-900 dark:text-white">
-                                    {receipt.invoice_id}
+                                    {recibo.issuer_iban || "-"}
                                 </p>
                             </div>
                         </div>
@@ -232,15 +192,15 @@ export default function ReceiptEditForm({
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
                                             Enviado por:{" "}
                                             <span className="text-gray-900 dark:text-white font-medium">
-                                                {receipt.sent_by_user_name ||
-                                                    "Usuário desconhecido"}
+                                                {recibo.sent_by_user_name ||
+                                                    "Utilizador desconhecido"}
                                             </span>
                                         </p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
                                             Data e hora:{" "}
                                             <span className="text-gray-900 dark:text-white font-medium">
                                                 {formatSentDateTime(
-                                                    receipt.sent_at,
+                                                    recibo.sent_at,
                                                 )}
                                             </span>
                                         </p>
@@ -248,12 +208,12 @@ export default function ReceiptEditForm({
                                 ) : (
                                     <>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Recibo ainda não foi enviado ao
-                                            cliente
+                                            Recibo ainda nao foi enviado ao
+                                            atleta
                                         </p>
                                         {!canSend && (
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                Apenas o usuário que criou este
+                                                Apenas o utilizador que criou este
                                                 recibo pode marcar como enviado.
                                             </p>
                                         )}

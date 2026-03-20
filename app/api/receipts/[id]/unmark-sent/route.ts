@@ -29,11 +29,10 @@ export async function POST(
 
         const { id } = await params;
 
-        // Update receipt status to pending_send and clear sent_at/sent_by_user
         await sql`
-            UPDATE receipts
+            UPDATE recibos
             SET 
-                status = 'pending_send',
+                status = 'pendente_envio',
                 sent_at = NULL,
                 sent_by_user = NULL
             WHERE id = ${id}

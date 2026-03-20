@@ -43,11 +43,11 @@ export async function POST(
                 id: string;
                 created_by: string | null;
                 organization_id: string;
-                status: "pending_send" | "sent_to_customer";
+                status: "pendente_envio" | "enviado_atleta";
             }[]
         >`
             SELECT id, created_by, organization_id, status
-            FROM receipts
+            FROM recibos
             WHERE id = ${id}
         `;
 
@@ -71,18 +71,17 @@ export async function POST(
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        if (receipt.status === "sent_to_customer") {
+        if (receipt.status === "enviado_atleta") {
             return NextResponse.json(
-                { error: "Receipt already sent" },
+                { error: "Recibo ja enviado" },
                 { status: 409 },
             );
         }
 
-        // Update receipt status and sent_at timestamp
         await sql`
-            UPDATE receipts
+            UPDATE recibos
             SET 
-                status = 'sent_to_customer',
+                status = 'enviado_atleta',
                 sent_at = NOW(),
                 sent_by_user = ${currentUser.id}
             WHERE id = ${id}

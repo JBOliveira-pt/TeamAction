@@ -340,6 +340,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                             />
                             <NavItem
                                 icon={<FileText size={20} />}
+                                label="Recibos"
+                                href="/dashboard/receipts"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<FileText size={20} />}
                                 label="Documentos"
                                 href="/dashboard/presidente/documentos"
                                 onClick={() => setIsOpen(false)}

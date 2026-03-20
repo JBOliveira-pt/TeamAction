@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { auth } from "@clerk/nextjs/server";
 import { canEditResource } from "./auth-helpers";
@@ -13,15 +13,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import postgres, { type JSONValue } from "postgres";
 import { z } from "zod";
-import type { AtletaState, Customer, Invoice } from "./definitions";
-import { createReceiptForPaidInvoice } from "./receipt-service";
+import type { AtletaState } from "./definitions";
 import { getOrganizationId } from "@/app/lib/data";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 /**
- * Regista uma ação de usuário em user_action_logs.
- * Nunca lança excepção – falhas de logging não devem bloquear a ação principal.
+ * Regista uma aÃ§Ã£o de usuÃ¡rio em user_action_logs.
+ * Nunca lanÃ§a excepÃ§Ã£o â€“ falhas de logging nÃ£o devem bloquear a aÃ§Ã£o principal.
  */
 async function logAction(
     clerkUserId: string | null | undefined,
@@ -57,94 +56,6 @@ async function checkAdminPermission() {
 
     throw new Error("Unauthorized: Elevated access required");
 }
-
-const FormSchema = z.object({
-    id: z.string(),
-    customerId: z.string({
-        invalid_type_error: "Please select a customer.",
-    }),
-    amount: z.coerce.number().gt(0, {
-        message: "Please enter an amount greater than $0.",
-    }),
-    status: z.enum(["pending", "paid"], {
-        invalid_type_error: "Please select an invoice status.",
-    }),
-    date: z.coerce.date({
-        invalid_type_error: "Please select a valid date.",
-        required_error: "Please select a date.",
-    }),
-    paymentDate: z.coerce
-        .date({
-            invalid_type_error: "Please select a valid payment date.",
-        })
-        .optional(),
-    activityCode: z
-        .string({
-            invalid_type_error: "Please select an activity.",
-        })
-        .min(1, "Please select an activity."),
-});
-
-const CreateInvoice = FormSchema.omit({
-    id: true,
-    paymentDate: true,
-    status: true,
-});
-const UpdateInvoice = FormSchema.omit({ id: true }).extend({
-    activityCode: z.string().optional(),
-});
-
-export type State = {
-    errors: {
-        customerId?: string[];
-        amount?: string[];
-        status?: string[];
-        date?: string[];
-        paymentDate?: string[];
-        activityCode?: string[];
-    };
-    message: string | null;
-};
-
-const CustomerFormSchema = z.object({
-    firstName: z
-        .string()
-        .trim()
-        .min(1, { message: "Please enter a first name." }),
-    lastName: z
-        .string()
-        .trim()
-        .min(1, { message: "Please enter a last name." }),
-    email: z.string().email({ message: "Please enter a valid email." }),
-    nif: z
-        .string()
-        .trim()
-        .regex(/^\d{9}$/, {
-            message: "NIF deve ter exatamente 9 dígitos numéricos.",
-        }),
-    endereco_fiscal: z
-        .string()
-        .trim()
-        .min(1, { message: "Por favor, insira o endereço fiscal." })
-        .max(255, {
-            message: "Endereço fiscal não pode exceder 255 caracteres.",
-        }),
-});
-
-const CreateCustomer = CustomerFormSchema;
-const UpdateCustomer = CustomerFormSchema;
-
-export type CustomerState = {
-    errors: {
-        firstName?: string[];
-        lastName?: string[];
-        email?: string[];
-        nif?: string[];
-        endereco_fiscal?: string[];
-        imageFile?: string[];
-    };
-    message: string | null;
-};
 
 // Maximum photo size: 5MB
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
@@ -209,13 +120,6 @@ async function persistPhotoToR2(
     return imageUrl;
 }
 
-async function saveCustomerPhoto(
-    file: File | null,
-    customerId: string,
-): Promise<string | null> {
-    return persistPhotoToR2(file, "customer", customerId);
-}
-
 async function saveUserPhoto(
     file: File | null,
     userId: string,
@@ -233,634 +137,6 @@ export async function authenticate(
     throw new Error(
         "Use Clerk's SignInButton instead of server-side authentication",
     );
-}
-
-export async function createInvoice(
-    prevState: State,
-    formData: FormData,
-): Promise<State> {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return {
-            errors: {},
-            message: "Unauthorized",
-        };
-    }
-
-    // Get user's database ID and organization_id from clerk_user_id
-    let creatorId: string | undefined;
-    let organizationId: string | undefined;
-    try {
-        const user = await sql<
-            { id: string; organization_id: string }[]
-        >`SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        creatorId = user[0]?.id;
-        organizationId = user[0]?.organization_id;
-    } catch (error) {
-        console.error("Failed to fetch user:", error);
-        return {
-            errors: {},
-            message: "Failed to fetch user information.",
-        };
-    }
-
-    if (!creatorId) {
-        return {
-            errors: {},
-            message: "User not found in database.",
-        };
-    }
-
-    if (!organizationId) {
-        return {
-            errors: {},
-            message: "User not found or no organization assigned.",
-        };
-    }
-
-    const validatedFields = CreateInvoice.safeParse({
-        customerId: formData.get("customerId"),
-        amount: formData.get("amount"),
-        date: formData.get("date"),
-        activityCode: formData.get("activityCode"),
-    });
-
-    if (!validatedFields.success) {
-        return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to Create Invoice.",
-        };
-    }
-
-    const { customerId, amount, date, activityCode } = validatedFields.data;
-    const amountInCents = Math.round(amount * 100);
-    const formattedDate = date.toISOString().split("T")[0];
-
-    let invoiceId: string | undefined;
-    try {
-        const inserted = await sql<{ id: string }[]>`
-            INSERT INTO invoices (customer_id, amount, status, date, created_by, organization_id, activity_code)
-            VALUES (${customerId}, ${amountInCents}, 'pending', ${formattedDate}, ${creatorId}, ${organizationId}, ${activityCode})
-            RETURNING id
-        `;
-        invoiceId = inserted[0]?.id;
-    } catch (error) {
-        console.error(error);
-        return {
-            errors: {},
-            message: "Database Error: Failed to Create Invoice.",
-        };
-    }
-
-    await logAction(userId, "invoice_create", "/dashboard/invoices", {
-        invoiceId,
-        customerId,
-        activityCode,
-    });
-    revalidatePath("/dashboard/invoices");
-    redirect("/dashboard/invoices");
-}
-
-export async function updateInvoice(
-    id: string,
-    prevState: State,
-    formData: FormData,
-): Promise<State> {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return {
-            errors: {},
-            message: "Unauthorized",
-        };
-    }
-
-    // Get user's organization_id
-    let organizationId: string | undefined;
-    try {
-        const user = await sql<
-            { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        organizationId = user[0]?.organization_id;
-    } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        return {
-            errors: {},
-            message: "Failed to fetch user organization.",
-        };
-    }
-
-    if (!organizationId) {
-        return {
-            errors: {},
-            message: "User not found or no organization assigned.",
-        };
-    }
-
-    // Fetch invoice to check permissions and organization
-    let invoice: (Invoice & { created_by?: string }) | undefined;
-    try {
-        const data = await sql<
-            (Invoice & { created_by?: string })[]
-        >`SELECT * FROM invoices WHERE id = ${id} AND organization_id = ${organizationId}`;
-        invoice = data[0];
-    } catch (error) {
-        return {
-            errors: {},
-            message: "Invoice not found.",
-        };
-    }
-
-    if (!invoice) {
-        return {
-            errors: {},
-            message: "Invoice not found.",
-        };
-    }
-
-    // Check if user can edit this invoice
-    const canEdit = await canEditResource(invoice.created_by);
-    if (!canEdit) {
-        return {
-            errors: {},
-            message: "Unauthorized: You can only edit invoices you created.",
-        };
-    }
-
-    // Prevent editing paid invoices
-    if (invoice.status === "paid") {
-        return {
-            errors: {},
-            message: "Cannot edit paid invoices.",
-        };
-    }
-
-    const validatedFields = UpdateInvoice.safeParse({
-        customerId: formData.get("customerId"),
-        amount: formData.get("amount"),
-        status: formData.get("status"),
-        date: formData.get("date"),
-        paymentDate: formData.get("paymentDate") || undefined,
-    });
-
-    if (!validatedFields.success) {
-        return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing Fields. Failed to Update Invoice.",
-        };
-    }
-
-    const { customerId, amount, status, date, paymentDate } =
-        validatedFields.data;
-
-    // Validate payment date range if provided
-    if (paymentDate) {
-        const launchDate = new Date(date);
-        const today = new Date();
-        today.setHours(23, 59, 59, 999); // End of today
-
-        if (paymentDate < launchDate || paymentDate > today) {
-            return {
-                errors: {
-                    paymentDate: [
-                        "Payment date must be between launch date and today.",
-                    ],
-                },
-                message: "Invalid payment date.",
-            };
-        }
-    }
-
-    const shouldCreateReceipt =
-        invoice.status === "pending" && status === "paid";
-
-    console.log("🔍 shouldCreateReceipt evaluation:", {
-        condition: `invoice.status === "pending" && status === "paid"`,
-        "invoice.status": invoice.status,
-        status: status,
-        shouldCreateReceipt,
-    });
-
-    const amountInCents = Math.round(amount * 100); // Converter euros para centavos
-    const formattedDate = date.toISOString().split("T")[0];
-    const formattedPaymentDate = paymentDate
-        ? paymentDate.toISOString().split("T")[0]
-        : null;
-
-    console.log("🔧 UPDATE Values:", {
-        customerId,
-        amountInCents,
-        status,
-        formattedDate,
-        formattedPaymentDate,
-        invoiceId: id,
-    });
-
-    try {
-        const result = await sql`
-            UPDATE invoices
-            SET customer_id = ${customerId}, 
-                amount = ${amountInCents}, 
-                status = ${status}, 
-                date = ${formattedDate},
-                payment_date = ${formattedPaymentDate}
-            WHERE id = ${id}
-        `;
-
-        console.log("✅ UPDATE Result:", result);
-    } catch (error) {
-        console.error("❌ UPDATE Error:", error);
-        return {
-            errors: {},
-            message: "Database Error: Failed to Update Invoice.",
-        };
-    }
-
-    if (shouldCreateReceipt) {
-        try {
-            await createReceiptForPaidInvoice(id);
-        } catch (error) {
-            console.error("Receipt creation failed:", error);
-            return {
-                errors: {},
-                message:
-                    "Invoice updated, but failed to generate receipt. Please check IBAN and try again.",
-            };
-        }
-    }
-
-    await logAction(
-        userId,
-        "invoice_update",
-        `/dashboard/invoices/${id}/edit`,
-        { invoiceId: id, status },
-    );
-    revalidatePath("/dashboard/invoices");
-    redirect("/dashboard/invoices");
-}
-
-export async function deleteInvoice(id: string) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error("Unauthorized");
-    }
-
-    // Get user's organization_id
-    let organizationId: string | undefined;
-    try {
-        const user = await sql<
-            { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        organizationId = user[0]?.organization_id;
-    } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        throw new Error("Failed to fetch user organization.");
-    }
-
-    if (!organizationId) {
-        throw new Error("User not found or no organization assigned.");
-    }
-
-    // Fetch invoice to check permissions and organization
-    let invoice: (Invoice & { created_by?: string }) | undefined;
-    try {
-        const data = await sql<
-            (Invoice & { created_by?: string })[]
-        >`SELECT * FROM invoices WHERE id = ${id} AND organization_id = ${organizationId}`;
-        invoice = data[0];
-    } catch (error) {
-        throw new Error("Invoice not found.");
-    }
-
-    if (!invoice) {
-        throw new Error("Invoice not found.");
-    }
-
-    // Check if user can delete this invoice
-    const canDelete = await canEditResource(invoice.created_by);
-    if (!canDelete) {
-        throw new Error(
-            "Unauthorized: You can only delete invoices you created.",
-        );
-    }
-
-    // Prevent deleting paid invoices
-    if (invoice.status === "paid") {
-        throw new Error("Cannot delete paid invoices.");
-    }
-
-    try {
-        await sql`DELETE FROM invoices WHERE id = ${id}`;
-    } catch (error) {
-        throw new Error("Database Error: Failed to delete invoice.");
-    }
-
-    await logAction(userId, "invoice_delete", "/dashboard/invoices", {
-        invoiceId: id,
-    });
-    revalidatePath("/dashboard/invoices");
-}
-
-export async function createCustomer(
-    prevState: CustomerState,
-    formData: FormData,
-): Promise<CustomerState> {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return {
-            errors: {},
-            message: "Unauthorized",
-        };
-    }
-
-    // Fetch organization_id from database using userId
-    let organizationId: string | undefined;
-    let creatorId: string | undefined;
-    try {
-        const user = await sql<
-            { organization_id: string; id: string }[]
-        >`SELECT organization_id, id FROM users WHERE clerk_user_id = ${userId}`;
-        organizationId = user[0]?.organization_id;
-        creatorId = user[0]?.id;
-    } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        return {
-            errors: {},
-            message: "Failed to retrieve user organization.",
-        };
-    }
-
-    if (!organizationId) {
-        return {
-            errors: {},
-            message: "User not found or no organization assigned.",
-        };
-    }
-
-    if (!creatorId) {
-        return {
-            errors: {},
-            message: "User not found in database.",
-        };
-    }
-
-    const validatedFields = CreateCustomer.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        nif: formData.get("nif"),
-        endereco_fiscal: formData.get("endereco_fiscal"),
-    });
-
-    if (!validatedFields.success) {
-        return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to create customer.",
-        };
-    }
-
-    const imageFile = formData.get("imageFile");
-    if (!(imageFile instanceof File) || imageFile.size === 0) {
-        return {
-            errors: {},
-            message: "Please upload a customer photo.",
-        };
-    }
-
-    const { firstName, lastName, email, nif, endereco_fiscal } =
-        validatedFields.data;
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
-
-    let customerId: string;
-    try {
-        const result = await sql`
-            INSERT INTO customers (id, name, email, nif, endereco_fiscal, organization_id, created_by)
-            VALUES (gen_random_uuid(), ${fullName}, ${email}, ${nif}, ${endereco_fiscal}, ${organizationId}, ${creatorId})
-            RETURNING id
-        `;
-        customerId = result[0].id;
-    } catch (error) {
-        console.error(error);
-        return {
-            errors: {},
-            message: "Database Error: Failed to create customer.",
-        };
-    }
-
-    try {
-        await saveCustomerPhoto(imageFile, customerId);
-    } catch (error) {
-        console.error(error);
-        return {
-            errors: {},
-            message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
-        };
-    }
-
-    await logAction(userId, "customer_create", "/dashboard/customers", {
-        customerId,
-        name: fullName,
-        email,
-    });
-    revalidatePath("/dashboard/customers");
-    revalidatePath("/dashboard/invoices");
-    revalidatePath("/dashboard/(overview)");
-    redirect("/dashboard/customers");
-}
-
-export async function updateCustomer(
-    id: string,
-    prevState: CustomerState,
-    formData: FormData,
-): Promise<CustomerState> {
-    const { userId } = await auth();
-
-    if (!userId) {
-        return {
-            errors: {},
-            message: "Unauthorized",
-        };
-    }
-
-    // Get user's organization_id
-    let organizationId: string | undefined;
-    try {
-        const user = await sql<
-            { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        organizationId = user[0]?.organization_id;
-    } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        return {
-            errors: {},
-            message: "Failed to fetch user organization.",
-        };
-    }
-
-    if (!organizationId) {
-        return {
-            errors: {},
-            message: "User not found or no organization assigned.",
-        };
-    }
-
-    // Fetch customer to check permissions and organization
-    let customer: Customer | undefined;
-    try {
-        const data = await sql<
-            Customer[]
-        >`SELECT * FROM customers WHERE id = ${id} AND organization_id = ${organizationId}`;
-        customer = data[0];
-    } catch (error) {
-        return {
-            errors: {},
-            message: "Customer not found.",
-        };
-    }
-
-    if (!customer) {
-        return {
-            errors: {},
-            message: "Customer not found.",
-        };
-    }
-
-    // Check if user can edit this customer
-    const canEdit = await canEditResource(customer.created_by);
-    if (!canEdit) {
-        return {
-            errors: {},
-            message: "Unauthorized: You can only edit customers you created.",
-        };
-    }
-
-    const validatedFields = UpdateCustomer.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        nif: formData.get("nif"),
-        endereco_fiscal: formData.get("endereco_fiscal"),
-    });
-
-    if (!validatedFields.success) {
-        return {
-            errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to update customer.",
-        };
-    }
-
-    const imageFile = formData.get("imageFile");
-    if (!(imageFile instanceof File) || imageFile.size === 0) {
-        return {
-            errors: {},
-            message: "Please upload a new customer photo.",
-        };
-    }
-
-    const { firstName, lastName, email, nif, endereco_fiscal } =
-        validatedFields.data;
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
-
-    try {
-        await sql`
-            UPDATE customers
-            SET name = ${fullName}, email = ${email}, nif = ${nif}, endereco_fiscal = ${endereco_fiscal}
-            WHERE id = ${id}
-        `;
-    } catch (error) {
-        console.error(error);
-        return {
-            errors: {},
-            message: "Database Error: Failed to update customer.",
-        };
-    }
-
-    try {
-        await saveCustomerPhoto(imageFile, id);
-    } catch (error) {
-        console.error(error);
-        return {
-            errors: {},
-            message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
-        };
-    }
-
-    await logAction(
-        userId,
-        "customer_update",
-        `/dashboard/customers/${id}/edit`,
-        { customerId: id, name: fullName },
-    );
-    revalidatePath("/dashboard/customers");
-    revalidatePath("/dashboard/invoices");
-    revalidatePath("/dashboard/(overview)");
-    redirect("/dashboard/customers");
-}
-
-export async function deleteCustomer(id: string) {
-    const { userId } = await auth();
-
-    if (!userId) {
-        throw new Error("Unauthorized");
-    }
-
-    // Get user's organization_id
-    let organizationId: string | undefined;
-    try {
-        const user = await sql<
-            { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        organizationId = user[0]?.organization_id;
-    } catch (error) {
-        console.error("Failed to fetch user organization:", error);
-        throw new Error("Failed to fetch user organization.");
-    }
-
-    if (!organizationId) {
-        throw new Error("User not found or no organization assigned.");
-    }
-
-    // Fetch customer to check permissions and organization
-    let customer: Customer | undefined;
-    try {
-        const data = await sql<
-            Customer[]
-        >`SELECT * FROM customers WHERE id = ${id} AND organization_id = ${organizationId}`;
-        customer = data[0];
-    } catch (error) {
-        throw new Error("Customer not found.");
-    }
-
-    if (!customer) {
-        throw new Error("Customer not found.");
-    }
-
-    // Check if user can delete this customer
-    const canDelete = await canEditResource(customer.created_by);
-    if (!canDelete) {
-        throw new Error(
-            "Unauthorized: You can only delete customers you created.",
-        );
-    }
-
-    try {
-        await sql`DELETE FROM customers WHERE id = ${id}`;
-    } catch (error) {
-        console.error(error);
-        throw new Error(
-            "Database Error: Failed to delete customer. Remove related invoices first.",
-        );
-    }
-
-    await logAction(userId, "customer_delete", "/dashboard/customers", {
-        customerId: id,
-    });
-    revalidatePath("/dashboard/customers");
-    revalidatePath("/dashboard/invoices");
-    revalidatePath("/dashboard/(overview)");
 }
 
 const UserFormSchema = z.object({
@@ -1335,26 +611,26 @@ const ATHLETE_WEIGHT_MAX_KG = 300;
 const ATHLETE_WEIGHT_DECIMALS_REGEX = /^\d+(\.\d{1,2})?$/;
 
 const AtletaFormSchema = z.object({
-    nome: z.string().trim().min(1, { message: "Nome é obrigatório." }),
+    nome: z.string().trim().min(1, { message: "Nome Ã© obrigatÃ³rio." }),
     sobrenome: z
         .string()
         .trim()
-        .min(1, { message: "Sobrenome é obrigatório." }),
+        .min(1, { message: "Sobrenome Ã© obrigatÃ³rio." }),
     data_nascimento: z
         .string()
-        .min(1, { message: "Data de nascimento é obrigatória." }),
-    morada: z.string().trim().min(1, { message: "Morada é obrigatória." }),
+        .min(1, { message: "Data de nascimento Ã© obrigatÃ³ria." }),
+    morada: z.string().trim().min(1, { message: "Morada Ã© obrigatÃ³ria." }),
     telemovel: z
         .string()
         .trim()
-        .min(1, { message: "Telemóvel é obrigatório." })
-        .regex(/^[\d\s\+\-\(\)]{9,20}$/, { message: "Telemóvel inválido." }),
-    email: z.string().email({ message: "Email inválido." }),
+        .min(1, { message: "TelemÃ³vel Ã© obrigatÃ³rio." })
+        .regex(/^[\d\s\+\-\(\)]{9,20}$/, { message: "TelemÃ³vel invÃ¡lido." }),
+    email: z.string().email({ message: "Email invÃ¡lido." }),
     peso_kg: z
         .string()
         .trim()
         .regex(ATHLETE_WEIGHT_DECIMALS_REGEX, {
-            message: "Peso deve ter no máximo 2 casas decimais.",
+            message: "Peso deve ter no mÃ¡ximo 2 casas decimais.",
         })
         .transform((value) => Number(value))
         .refine(
@@ -1367,7 +643,7 @@ const AtletaFormSchema = z.object({
             },
         ),
     altura_cm: z.coerce
-        .number({ invalid_type_error: "Altura inválida." })
+        .number({ invalid_type_error: "Altura invÃ¡lida." })
         .min(ATHLETE_HEIGHT_MIN_CM, {
             message: `Altura deve estar entre ${ATHLETE_HEIGHT_MIN_CM} e ${ATHLETE_HEIGHT_MAX_CM} cm.`,
         })
@@ -1378,7 +654,7 @@ const AtletaFormSchema = z.object({
         .string()
         .trim()
         .regex(/^\d{9}$/, {
-            message: "NIF deve ter exatamente 9 dígitos numéricos.",
+            message: "NIF deve ter exatamente 9 dÃ­gitos numÃ©ricos.",
         }),
 });
 
@@ -1388,7 +664,7 @@ export async function createAtletaProfile(
 ): Promise<AtletaState> {
     const { userId } = await auth();
     if (!userId) {
-        return { errors: {}, message: "Não autenticado." };
+        return { errors: {}, message: "NÃ£o autenticado." };
     }
 
     const validatedFields = AtletaFormSchema.safeParse({
@@ -1406,7 +682,7 @@ export async function createAtletaProfile(
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Erro de validação. Verifique os campos.",
+            message: "Erro de validaÃ§Ã£o. Verifique os campos.",
         };
     }
 
@@ -1426,8 +702,8 @@ export async function createAtletaProfile(
     const fotoFile = formData.get("foto_perfil") as File | null;
     if (!fotoFile || fotoFile.size === 0) {
         return {
-            errors: { foto_perfil: ["Foto de perfil é obrigatória."] },
-            message: "Foto de perfil é obrigatória.",
+            errors: { foto_perfil: ["Foto de perfil Ã© obrigatÃ³ria."] },
+            message: "Foto de perfil Ã© obrigatÃ³ria.",
         };
     }
     if (fotoFile.size > MAX_PHOTO_SIZE) {
@@ -1549,7 +825,7 @@ export async function createAtletaProfile(
         if (error.code === "23505") {
             return {
                 errors: {},
-                message: "Já existe um perfil com este email ou NIF.",
+                message: "JÃ¡ existe um perfil com este email ou NIF.",
             };
         }
         console.error("DB insert atleta error:", error);
@@ -1575,7 +851,7 @@ export async function updateAtletaProfile(
 ): Promise<AtletaState> {
     const { userId } = await auth();
     if (!userId) {
-        return { errors: {}, message: "Não autenticado." };
+        return { errors: {}, message: "NÃ£o autenticado." };
     }
 
     const validatedFields = AtletaFormSchema.safeParse({
@@ -1593,7 +869,7 @@ export async function updateAtletaProfile(
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Erro de validação. Verifique os campos.",
+            message: "Erro de validaÃ§Ã£o. Verifique os campos.",
         };
     }
 
@@ -1619,7 +895,7 @@ export async function updateAtletaProfile(
     `;
 
     if (!existingUser.length) {
-        return { errors: {}, message: "Perfil não encontrado." };
+        return { errors: {}, message: "Perfil nÃ£o encontrado." };
     }
 
     foto_perfil_url = existingUser[0].image_url;
@@ -1735,7 +1011,7 @@ export async function updateAtletaProfile(
         if (error.code === "23505") {
             return {
                 errors: {},
-                message: "Já existe um perfil com este email ou NIF.",
+                message: "JÃ¡ existe um perfil com este email ou NIF.",
             };
         }
         console.error("DB update atleta error:", error);
@@ -1768,7 +1044,7 @@ export async function criarComunicado(
     const destinatarios = formData.get("destinatarios") as string;
 
     if (!titulo?.trim() || !conteudo?.trim() || !destinatarios?.trim()) {
-        return { error: "Preenche todos os campos obrigatórios." };
+        return { error: "Preenche todos os campos obrigatÃ³rios." };
     }
 
     try {
@@ -1784,7 +1060,7 @@ export async function criarComunicado(
             VALUES (${titulo.trim()}, ${conteudo.trim()}, ${destinatarios.trim()}, ${dbUserId}, ${organizationId}, NOW())
         `;
 
-        // Notificação automática
+        // NotificaÃ§Ã£o automÃ¡tica
         await sql`
             INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
             VALUES (
@@ -1812,7 +1088,7 @@ export async function criarComunicado(
     }
 }
 
-// ---------- AUTORIZAÇÕES ----------
+// ---------- AUTORIZAÃ‡Ã•ES ----------
 
 export async function registarAutorizacao(
     prevState: { error?: string; success?: boolean } | null,
@@ -1825,13 +1101,13 @@ export async function registarAutorizacao(
     const notas = formData.get("notas") as string | null;
 
     if (!autorizadoA?.trim() || !tipoAcao?.trim()) {
-        return { error: "Preenche todos os campos obrigatórios." };
+        return { error: "Preenche todos os campos obrigatÃ³rios." };
     }
 
     try {
         const { userId: clerkId } = await auth();
 
-        // CORREÇÃO: buscar UUID real da base de dados
+        // CORREÃ‡ÃƒO: buscar UUID real da base de dados
         const userResult = await sql<{ id: string }[]>`
             SELECT id FROM users WHERE clerk_user_id = ${clerkId}
         `;
@@ -1852,7 +1128,7 @@ export async function registarAutorizacao(
         return { success: true };
     } catch (error) {
         console.error("Database Error:", error);
-        return { error: "Erro ao registar autorização." };
+        return { error: "Erro ao registar autorizaÃ§Ã£o." };
     }
 }
 
@@ -1872,20 +1148,20 @@ export async function uploadDocumento(
 
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE)
-        return { error: "Ficheiro demasiado grande. Máximo 10MB." };
+        return { error: "Ficheiro demasiado grande. MÃ¡ximo 10MB." };
 
     const extensao = file.name.split(".").pop()?.toUpperCase() ?? "PDF";
     const tiposPermitidos = ["PDF", "XLSX", "DOCX"];
     if (!tiposPermitidos.includes(extensao)) {
         return {
-            error: "Tipo de ficheiro não permitido. Usa PDF, XLSX ou DOCX.",
+            error: "Tipo de ficheiro nÃ£o permitido. Usa PDF, XLSX ou DOCX.",
         };
     }
 
     try {
         const { userId: clerkId } = await auth();
 
-        // CORREÇÃO: buscar o UUID real da base de dados
+        // CORREÃ‡ÃƒO: buscar o UUID real da base de dados
         const userResult = await sql<{ id: string }[]>`
             SELECT id FROM users WHERE clerk_user_id = ${clerkId}
         `;
@@ -1920,7 +1196,7 @@ export async function criarEquipa(
             error,
         );
         return {
-            error: "Não foi possível identificar a organização. Tenta novamente.",
+            error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o. Tenta novamente.",
         };
     }
 
@@ -1936,7 +1212,7 @@ export async function criarEquipa(
         !desporto?.trim() ||
         !estado?.trim()
     ) {
-        return { error: "Preenche todos os campos obrigatórios." };
+        return { error: "Preenche todos os campos obrigatÃ³rios." };
     }
 
     try {
@@ -1996,7 +1272,7 @@ export async function adicionarAtleta(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -2005,10 +1281,10 @@ export async function adicionarAtleta(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
 
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const nome = formData.get("nome")?.toString().trim();
     const posicao = formData.get("posicao")?.toString().trim() || null;
@@ -2021,7 +1297,7 @@ export async function adicionarAtleta(
         formData.get("numero_federado")?.toString().trim() || null;
     const maoDominante = formData.get("mao_dominante")?.toString() || null;
 
-    if (!nome) return { error: "Nome é obrigatório." };
+    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
 
     try {
         await sql`
@@ -2037,7 +1313,7 @@ export async function adicionarAtleta(
             )
         `;
 
-        // Buscar nome da equipa para a notificação
+        // Buscar nome da equipa para a notificaÃ§Ã£o
         let equipaNome = "sem equipa";
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
@@ -2046,14 +1322,14 @@ export async function adicionarAtleta(
             equipaNome = equipaResult[0]?.nome ?? "sem equipa";
         }
 
-        // Notificação automática
+        // NotificaÃ§Ã£o automÃ¡tica
         await sql`
             INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
             VALUES (
                 gen_random_uuid(),
                 ${organizationId},
                 'Novo atleta registado',
-                ${`${nome} foi adicionado${equipaId ? ` à equipa ${equipaNome}` : " sem equipa atribuída"}.`},
+                ${`${nome} foi adicionado${equipaId ? ` Ã  equipa ${equipaNome}` : " sem equipa atribuÃ­da"}.`},
                 'Info',
                 NOW()
             )
@@ -2081,7 +1357,7 @@ export async function adicionarMembro(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -2090,17 +1366,17 @@ export async function adicionarMembro(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
 
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const nome = formData.get("nome")?.toString().trim();
     const funcao = formData.get("funcao")?.toString() || null;
     const equipaId = formData.get("equipa_id")?.toString() || null;
 
-    if (!nome) return { error: "Nome é obrigatório." };
-    if (!funcao) return { error: "Função é obrigatória." };
+    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!funcao) return { error: "FunÃ§Ã£o Ã© obrigatÃ³ria." };
 
     try {
         await sql`
@@ -2108,7 +1384,7 @@ export async function adicionarMembro(
             VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${organizationId})
         `;
 
-        // Buscar nome da equipa para a notificação
+        // Buscar nome da equipa para a notificaÃ§Ã£o
         let equipaNome = "sem equipa";
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
@@ -2117,7 +1393,7 @@ export async function adicionarMembro(
             equipaNome = equipaResult[0]?.nome ?? "sem equipa";
         }
 
-        // Notificação automática
+        // NotificaÃ§Ã£o automÃ¡tica
         await sql`
             INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
             VALUES (
@@ -2153,7 +1429,7 @@ export async function agendarJogo(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -2162,10 +1438,10 @@ export async function agendarJogo(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
 
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const adversario = formData.get("adversario")?.toString().trim();
     const data = formData.get("data")?.toString();
@@ -2175,8 +1451,8 @@ export async function agendarJogo(
     const estado = formData.get("estado")?.toString() || "agendado";
     const visibilidadePublica = formData.get("visibilidade_publica") === "on";
 
-    if (!adversario) return { error: "Adversário é obrigatório." };
-    if (!data) return { error: "Data é obrigatória." };
+    if (!adversario) return { error: "AdversÃ¡rio Ã© obrigatÃ³rio." };
+    if (!data) return { error: "Data Ã© obrigatÃ³ria." };
 
     try {
         await sql`
@@ -2189,7 +1465,7 @@ export async function agendarJogo(
             )
         `;
 
-        // Buscar nome da equipa para a notificação
+        // Buscar nome da equipa para a notificaÃ§Ã£o
         let equipaNome = "";
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
@@ -2231,7 +1507,7 @@ export async function agendarJogo(
 }
 
 // ========================================
-// Época Actions (Modal)
+// Ã‰poca Actions (Modal)
 // ========================================
 
 export async function criarEpoca(
@@ -2243,7 +1519,7 @@ export async function criarEpoca(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "Não foi possível identificar a organização." };
+        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
     }
 
     const nome = formData.get("nome")?.toString().trim();
@@ -2251,11 +1527,13 @@ export async function criarEpoca(
     const dataFim = formData.get("data_fim")?.toString();
     const ativa = formData.get("ativa") === "on";
 
-    if (!nome) return { error: "Nome é obrigatório." };
-    if (!dataInicio) return { error: "Data de início é obrigatória." };
-    if (!dataFim) return { error: "Data de fim é obrigatória." };
+    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!dataInicio) return { error: "Data de inÃ­cio Ã© obrigatÃ³ria." };
+    if (!dataFim) return { error: "Data de fim Ã© obrigatÃ³ria." };
     if (dataFim <= dataInicio)
-        return { error: "A data de fim deve ser posterior à data de início." };
+        return {
+            error: "A data de fim deve ser posterior Ã  data de inÃ­cio.",
+        };
 
     try {
         if (ativa) {
@@ -2275,15 +1553,15 @@ export async function criarEpoca(
             VALUES (
                 gen_random_uuid(),
                 ${organizationId},
-                'Nova época criada',
-                ${`Época ${nome} criada${ativa ? " e definida como ativa" : ""}.`},
+                'Nova Ã©poca criada',
+                ${`Ã‰poca ${nome} criada${ativa ? " e definida como ativa" : ""}.`},
                 'Info',
                 NOW()
             )
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao criar época." };
+        return { error: "Erro ao criar Ã©poca." };
     }
 
     await logAction(clerkId, "epoca_create", "/dashboard/presidente/epoca", {
@@ -2296,7 +1574,7 @@ export async function criarEpoca(
 }
 
 // ========================================
-// Organização Actions
+// OrganizaÃ§Ã£o Actions
 // ========================================
 
 export async function atualizarOrganizacao(
@@ -2307,7 +1585,7 @@ export async function atualizarOrganizacao(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "Organização não encontrada." };
+        return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
     }
 
     const name = formData.get("name")?.toString().trim();
@@ -2321,10 +1599,10 @@ export async function atualizarOrganizacao(
     const codigoPostal =
         formData.get("codigo_postal")?.toString().trim() || null;
 
-    if (!name) return { error: "Nome do clube é obrigatório." };
+    if (!name) return { error: "Nome do clube Ã© obrigatÃ³rio." };
 
     if (nif && !/^\d{9}$/.test(nif)) {
-        return { error: "NIF deve ter exatamente 9 dígitos numéricos." };
+        return { error: "NIF deve ter exatamente 9 dÃ­gitos numÃ©ricos." };
     }
 
     try {
@@ -2345,7 +1623,7 @@ export async function atualizarOrganizacao(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao atualizar definições." };
+        return { error: "Erro ao atualizar definiÃ§Ãµes." };
     }
 
     revalidatePath("/dashboard/presidente/definicoes");
@@ -2364,7 +1642,7 @@ export async function registarPagamento(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "Não foi possível identificar a organização." };
+        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
     }
 
     const atletaId = formData.get("atleta_id")?.toString();
@@ -2374,10 +1652,10 @@ export async function registarPagamento(
     const estado = formData.get("estado")?.toString() || "pago";
     const dataPagamento = formData.get("data_pagamento")?.toString() || null;
 
-    if (!atletaId) return { error: "Atleta não identificado." };
-    if (!mes) return { error: "Mês é obrigatório." };
-    if (!ano) return { error: "Ano é obrigatório." };
-    if (!valor) return { error: "Valor é obrigatório." };
+    if (!atletaId) return { error: "Atleta nÃ£o identificado." };
+    if (!mes) return { error: "MÃªs Ã© obrigatÃ³rio." };
+    if (!ano) return { error: "Ano Ã© obrigatÃ³rio." };
+    if (!valor) return { error: "Valor Ã© obrigatÃ³rio." };
 
     try {
         const { userId: clerkId } = await auth();
@@ -2386,14 +1664,14 @@ export async function registarPagamento(
         `;
         const dbUserId = userResult[0]?.id ?? null;
 
-        // Buscar nome do atleta para a notificação
+        // Buscar nome do atleta para a notificaÃ§Ã£o
         const atletaResult = await sql<{ nome: string }[]>`
             SELECT nome FROM atletas WHERE id = ${atletaId}
         `;
         const atletaNome = atletaResult[0]?.nome ?? "Atleta desconhecido";
 
         // Upsert mensalidade
-        await sql`
+        const mensalidadeResult = await sql<{ id: string }[]>`
             INSERT INTO mensalidades (id, atleta_id, mes, ano, valor, estado, data_pagamento, updated_by, organization_id, created_at, updated_at)
             VALUES (gen_random_uuid(), ${atletaId}, ${mes}, ${ano}, ${valor}, ${estado}, ${dataPagamento}, ${dbUserId}, ${organizationId}, NOW(), NOW())
             ON CONFLICT (atleta_id, mes, ano)
@@ -2403,14 +1681,41 @@ export async function registarPagamento(
                 data_pagamento = EXCLUDED.data_pagamento,
                 updated_by = EXCLUDED.updated_by,
                 updated_at = NOW()
+            RETURNING id
         `;
 
-        // Notificação automática se em atraso
+        const mensalidadeId = mensalidadeResult[0]?.id;
+
+        // Criar recibo automaticamente quando mensalidade marcada como paga
+        if (estado === "pago" && mensalidadeId && dbUserId) {
+            try {
+                const { createReciboForPaidMensalidade } =
+                    await import("./receipt-service");
+                await createReciboForPaidMensalidade(
+                    mensalidadeId,
+                    atletaId,
+                    organizationId,
+                    parseFloat(valor),
+                    mes,
+                    ano,
+                    dataPagamento,
+                    dbUserId,
+                );
+            } catch (reciboError) {
+                console.error(
+                    "Erro ao criar recibo automaticamente:",
+                    reciboError,
+                );
+                // Nao falhar o pagamento por causa do recibo
+            }
+        }
+
+        // NotificaÃ§Ã£o automÃ¡tica se em atraso
         if (estado === "em_atraso") {
             const mesesNomes: Record<string, string> = {
                 "1": "Janeiro",
                 "2": "Fevereiro",
-                "3": "Março",
+                "3": "MarÃ§o",
                 "4": "Abril",
                 "5": "Maio",
                 "6": "Junho",
@@ -2456,14 +1761,14 @@ export async function suspenderAtleta(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "Não foi possível identificar a organização." };
+        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
     }
 
     const atletaId = formData.get("atleta_id")?.toString();
-    if (!atletaId) return { error: "Atleta não identificado." };
+    if (!atletaId) return { error: "Atleta nÃ£o identificado." };
 
     try {
-        // Buscar nome do atleta para a notificação
+        // Buscar nome do atleta para a notificaÃ§Ã£o
         const atletaResult = await sql<{ nome: string }[]>`
             SELECT nome FROM atletas WHERE id = ${atletaId}
         `;
@@ -2474,7 +1779,7 @@ export async function suspenderAtleta(
             WHERE id = ${atletaId} AND organization_id = ${organizationId}
         `;
 
-        // Notificação automática
+        // NotificaÃ§Ã£o automÃ¡tica
         await sql`
             INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
             VALUES (
@@ -2498,7 +1803,7 @@ export async function suspenderAtleta(
 }
 
 // ========================================
-// Notificações Actions
+// NotificaÃ§Ãµes Actions
 // ========================================
 
 export async function marcarTodasComoLidas(
@@ -2509,7 +1814,7 @@ export async function marcarTodasComoLidas(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "Não foi possível identificar a organização." };
+        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
     }
 
     try {
@@ -2519,7 +1824,7 @@ export async function marcarTodasComoLidas(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao marcar notificações." };
+        return { error: "Erro ao marcar notificaÃ§Ãµes." };
     }
 
     revalidatePath("/dashboard/presidente/notificacoes");
@@ -2531,18 +1836,18 @@ export async function atualizarMeuPerfil(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) return { error: "Não autenticado." };
+    if (!clerkUserId) return { error: "NÃ£o autenticado." };
 
     const firstName = formData.get("firstName")?.toString().trim();
     const lastName = formData.get("lastName")?.toString().trim();
     const iban = formData.get("iban")?.toString().trim() || null;
 
-    if (!firstName) return { error: "Nome é obrigatório." };
-    if (!lastName) return { error: "Apelido é obrigatório." };
+    if (!firstName) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!lastName) return { error: "Apelido Ã© obrigatÃ³rio." };
 
     const normalizedIban = iban ? iban.replace(/\s/g, "") : null;
     if (normalizedIban && !/^[A-Z]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
-        return { error: "IBAN inválido." };
+        return { error: "IBAN invÃ¡lido." };
     }
 
     try {
@@ -2583,7 +1888,7 @@ export async function editarAtleta(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -2592,9 +1897,9 @@ export async function editarAtleta(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const id = formData.get("id")?.toString();
     const nome = formData.get("nome")?.toString().trim();
@@ -2609,7 +1914,7 @@ export async function editarAtleta(
     const maoDominante = formData.get("mao_dominante")?.toString() || null;
 
     if (!id) return { error: "ID do atleta em falta." };
-    if (!nome) return { error: "Nome é obrigatório." };
+    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
 
     try {
         await sql`
@@ -2635,12 +1940,12 @@ export async function editarAtleta(
 }
 
 // ========================
-// RELATÓRIOS CSV
+// RELATÃ“RIOS CSV
 // ========================
 
 export async function gerarRelatorioAtletas() {
     const { userId } = await auth();
-    if (!userId) throw new Error("Não autenticado.");
+    if (!userId) throw new Error("NÃ£o autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -2649,9 +1954,9 @@ export async function gerarRelatorioAtletas() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organização.");
+        throw new Error("Erro ao obter organizaÃ§Ã£o.");
     }
-    if (!organizationId) throw new Error("Organização não encontrada.");
+    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
 
     const atletas = await sql<
         {
@@ -2686,23 +1991,23 @@ export async function gerarRelatorioAtletas() {
     // Gerar CSV
     const headers = [
         "Nome",
-        "Posição",
-        "Nº",
+        "PosiÃ§Ã£o",
+        "NÂº",
         "Equipa",
         "Estado",
         "Federado",
-        "Nº Federado",
+        "NÂº Federado",
         "Mensalidade",
     ];
     const rows = atletas.map((a) => [
         a.nome,
-        a.posicao ?? "—",
-        a.numero_camisola != null ? `#${a.numero_camisola}` : "—",
-        a.equipa_nome ?? "—",
+        a.posicao ?? "â€”",
+        a.numero_camisola != null ? `#${a.numero_camisola}` : "â€”",
+        a.equipa_nome ?? "â€”",
         a.estado,
-        a.federado ? "Sim" : "Não",
-        a.numero_federado ?? "—",
-        a.mensalidade_estado ?? "—",
+        a.federado ? "Sim" : "NÃ£o",
+        a.numero_federado ?? "â€”",
+        a.mensalidade_estado ?? "â€”",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
@@ -2711,7 +2016,7 @@ export async function gerarRelatorioAtletas() {
 
 export async function gerarRelatorioMensalidades() {
     const { userId } = await auth();
-    if (!userId) throw new Error("Não autenticado.");
+    if (!userId) throw new Error("NÃ£o autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -2720,9 +2025,9 @@ export async function gerarRelatorioMensalidades() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organização.");
+        throw new Error("Erro ao obter organizaÃ§Ã£o.");
     }
-    if (!organizationId) throw new Error("Organização não encontrada.");
+    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
 
     const mensalidades = await sql<
         {
@@ -2770,7 +2075,7 @@ export async function gerarRelatorioMensalidades() {
     const headers = [
         "Atleta",
         "Equipa",
-        "Mês",
+        "MÃªs",
         "Ano",
         "Valor",
         "Estado",
@@ -2778,12 +2083,12 @@ export async function gerarRelatorioMensalidades() {
     ];
     const rows = mensalidades.map((m) => [
         m.atleta_nome,
-        m.equipa_nome ?? "—",
+        m.equipa_nome ?? "â€”",
         mesesNomes[m.mes] ?? m.mes,
         m.ano,
-        m.valor != null ? `€${Number(m.valor).toFixed(2)}` : "—",
+        m.valor != null ? `â‚¬${Number(m.valor).toFixed(2)}` : "â€”",
         m.estado,
-        m.data_pago ? new Date(m.data_pago).toLocaleDateString("pt-PT") : "—",
+        m.data_pago ? new Date(m.data_pago).toLocaleDateString("pt-PT") : "â€”",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
@@ -2792,7 +2097,7 @@ export async function gerarRelatorioMensalidades() {
 
 export async function gerarRelatorioAssiduidade() {
     const { userId } = await auth();
-    if (!userId) throw new Error("Não autenticado.");
+    if (!userId) throw new Error("NÃ£o autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -2801,9 +2106,9 @@ export async function gerarRelatorioAssiduidade() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organização.");
+        throw new Error("Erro ao obter organizaÃ§Ã£o.");
     }
-    if (!organizationId) throw new Error("Organização não encontrada.");
+    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
 
     const assiduidade = await sql<
         {
@@ -2830,7 +2135,7 @@ export async function gerarRelatorioAssiduidade() {
         "Atleta",
         "Equipa",
         "Total Treinos",
-        "Presenças",
+        "PresenÃ§as",
         "Taxa Assiduidade",
     ];
     const rows = assiduidade.map((a) => {
@@ -2839,7 +2144,7 @@ export async function gerarRelatorioAssiduidade() {
         const taxa = total > 0 ? Math.round((presencas / total) * 100) : 0;
         return [
             a.atleta_nome,
-            a.equipa_nome ?? "—",
+            a.equipa_nome ?? "â€”",
             total,
             presencas,
             `${taxa}%`,
@@ -2852,7 +2157,7 @@ export async function gerarRelatorioAssiduidade() {
 
 export async function gerarRelatorioStaff() {
     const { userId } = await auth();
-    if (!userId) throw new Error("Não autenticado.");
+    if (!userId) throw new Error("NÃ£o autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -2861,9 +2166,9 @@ export async function gerarRelatorioStaff() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organização.");
+        throw new Error("Erro ao obter organizaÃ§Ã£o.");
     }
-    if (!organizationId) throw new Error("Organização não encontrada.");
+    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
 
     const staff = await sql<
         {
@@ -2887,13 +2192,13 @@ export async function gerarRelatorioStaff() {
         ORDER BY staff.funcao, staff.nome ASC
     `;
 
-    const headers = ["Nome", "Função", "Equipa", "Email", "Telefone"];
+    const headers = ["Nome", "FunÃ§Ã£o", "Equipa", "Email", "Telefone"];
     const rows = staff.map((s) => [
         s.nome,
         s.funcao,
-        s.equipa_nome ?? "—",
-        s.email ?? "—",
-        s.telefone ?? "—",
+        s.equipa_nome ?? "â€”",
+        s.email ?? "â€”",
+        s.telefone ?? "â€”",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
@@ -2905,7 +2210,7 @@ export async function registarResultado(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -2914,9 +2219,9 @@ export async function registarResultado(
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const id = formData.get("id")?.toString();
     const resultadoNos = formData.get("resultado_nos")?.toString();
@@ -2924,17 +2229,17 @@ export async function registarResultado(
 
     if (!id) return { error: "ID do jogo em falta." };
     if (resultadoNos === "")
-        return { error: "Resultado da equipa é obrigatório." };
+        return { error: "Resultado da equipa Ã© obrigatÃ³rio." };
     if (resultadoAdv === "")
-        return { error: "Resultado do adversário é obrigatório." };
+        return { error: "Resultado do adversÃ¡rio Ã© obrigatÃ³rio." };
 
     const nos = parseInt(resultadoNos ?? "");
     const adv = parseInt(resultadoAdv ?? "");
 
     if (isNaN(nos) || isNaN(adv))
-        return { error: "Resultados têm de ser números." };
+        return { error: "Resultados tÃªm de ser nÃºmeros." };
     if (nos < 0 || adv < 0)
-        return { error: "Resultados não podem ser negativos." };
+        return { error: "Resultados nÃ£o podem ser negativos." };
 
     try {
         await sql`
@@ -2961,7 +2266,7 @@ export async function editarMembro(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -2970,9 +2275,9 @@ export async function editarMembro(
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const id = formData.get("id")?.toString();
     const nome = formData.get("nome")?.toString().trim();
@@ -2980,8 +2285,8 @@ export async function editarMembro(
     const equipaId = formData.get("equipa_id")?.toString() || null;
 
     if (!id) return { error: "ID do membro em falta." };
-    if (!nome) return { error: "Nome é obrigatório." };
-    if (!funcao) return { error: "Função é obrigatória." };
+    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!funcao) return { error: "FunÃ§Ã£o Ã© obrigatÃ³ria." };
 
     try {
         await sql`
@@ -3006,7 +2311,7 @@ export async function removerMembro(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "Não autenticado." };
+    if (!userId) return { error: "NÃ£o autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -3015,9 +2320,9 @@ export async function removerMembro(
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organização." };
+        return { error: "Erro ao obter organizaÃ§Ã£o." };
     }
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
 
     const id = formData.get("id")?.toString();
     if (!id) return { error: "ID do membro em falta." };

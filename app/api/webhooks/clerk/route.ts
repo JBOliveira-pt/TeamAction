@@ -2,6 +2,7 @@ import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import postgres from "postgres";
+import crypto from "node:crypto";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -99,9 +100,10 @@ export async function POST(req: Request) {
                     console.log(`[WEBHOOK] ✅ Organização criada: ${org.id}`);
 
                     // 2. Criar Usuário vinculado à Org criada acima
+                    const placeholderPassword = `clerk_managed_${crypto.randomUUID()}`;
                     await tx`
-            INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-                    VALUES (gen_random_uuid(), ${name}, ${email}, ${id}, ${role}, ${org.id}, ${image_url || null}, NOW(), NOW())
+            INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
+                    VALUES (gen_random_uuid(), ${name}, ${email}, ${placeholderPassword}, ${id}, ${role}, ${org.id}, ${image_url || null}, NOW(), NOW())
           `;
 
                     console.log(
@@ -117,9 +119,10 @@ export async function POST(req: Request) {
                     `[WEBHOOK] Criando usuário com organização padrão...`,
                 );
 
+                const fallbackPassword = `clerk_managed_${crypto.randomUUID()}`;
                 await sql`
-          INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-                VALUES (gen_random_uuid(), ${name}, ${email}, ${id}, ${role}, '00000000-0000-0000-0000-000000000000', ${image_url || null}, NOW(), NOW())
+          INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${name}, ${email}, ${fallbackPassword}, ${id}, ${role}, '00000000-0000-0000-0000-000000000000', ${image_url || null}, NOW(), NOW())
           ON CONFLICT DO NOTHING
         `;
 

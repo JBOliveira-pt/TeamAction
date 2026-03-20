@@ -1,24 +1,10 @@
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
-import { ReceiptsTableRow, Receipt } from "./definitions";
+import { RecibosTableRow, Recibo } from "./definitions";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 const ITEMS_PER_PAGE = 6;
-
-async function hasReceiptColumn(columnName: string): Promise<boolean> {
-    const data = await sql<{ exists: boolean }[]>`
-        SELECT EXISTS (
-            SELECT 1
-            FROM information_schema.columns
-            WHERE table_schema = 'public'
-              AND table_name = 'receipts'
-              AND column_name = ${columnName}
-        ) AS exists
-    `;
-
-    return data[0]?.exists === true;
-}
 
 async function requireOrganizationId(): Promise<string> {
     const { userId } = await auth();
@@ -38,450 +24,183 @@ async function requireOrganizationId(): Promise<string> {
     return orgId;
 }
 
-export type ReceiptFilters = {
+export type ReciboFilters = {
     query?: string;
-    customerId?: string;
-    status?: "pending_send" | "sent_to_customer";
-    dateFrom?: string;
-    dateTo?: string;
+    atletaId?: string;
+    status?: "pendente_envio" | "enviado_atleta";
 };
 
-export async function fetchFilteredReceipts(
-    filters: ReceiptFilters,
+export async function fetchFilteredRecibos(
+    filters: ReciboFilters,
     currentPage: number,
-): Promise<ReceiptsTableRow[]> {
+): Promise<RecibosTableRow[]> {
     const organizationId = await requireOrganizationId();
     const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-    const hasInvoiceId = await hasReceiptColumn("invoice_id");
-    const hasReceiptNumber = await hasReceiptColumn("receipt_number");
 
-    if (!hasInvoiceId || !hasReceiptNumber) {
-        const legacyConditions = [
-            sql`receipts.organization_id = ${organizationId}`,
-        ];
-
-        if (filters.query) {
-            const term = `%${filters.query}%`;
-            legacyConditions.push(
-                sql`(COALESCE(customers.name, '') ILIKE ${term}
-                    OR COALESCE(customers.email, '') ILIKE ${term}
-                    OR receipts.amount::text ILIKE ${term}
-                    OR receipts.id::text ILIKE ${term})`,
-            );
-        }
-
-        if (filters.customerId) {
-            legacyConditions.push(
-                sql`receipts.customer_id = ${filters.customerId}`,
-            );
-        }
-
-        if (filters.status) {
-            legacyConditions.push(sql`receipts.status = ${filters.status}`);
-        }
-
-        let legacyWhere = sql``;
-        if (legacyConditions.length > 0) {
-            legacyWhere = sql`WHERE ${legacyConditions[0]}`;
-            for (let i = 1; i < legacyConditions.length; i++) {
-                legacyWhere = sql`${legacyWhere} AND ${legacyConditions[i]}`;
-            }
-        }
-
-        const legacyData = await sql<ReceiptsTableRow[]>`
-            SELECT
-                receipts.id,
-                0::int AS receipt_number,
-                receipts.customer_id,
-                ''::text AS invoice_id,
-                receipts.amount,
-                receipts.received_date,
-                receipts.received_date AS invoice_date,
-                NULL::date AS payment_date,
-                receipts.status,
-                receipts.pdf_url,
-                receipts.created_by AS receipt_created_by,
-                COALESCE(customers.name, 'Cliente removido') AS customer_name,
-                COALESCE(customers.email, '') AS customer_email
-            FROM receipts
-            LEFT JOIN customers ON receipts.customer_id = customers.id
-            ${legacyWhere}
-            ORDER BY receipts.received_date DESC
-            LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
-        `;
-
-        return legacyData;
-    }
-
-    const conditions = [sql`receipts.organization_id = ${organizationId}`];
+    const conditions = [sql`recibos.organization_id = ${organizationId}`];
 
     if (filters.query) {
         const term = `%${filters.query}%`;
         conditions.push(
-            sql`(COALESCE(customers.name, '') ILIKE ${term}
-                OR COALESCE(customers.email, '') ILIKE ${term}
-                OR receipts.receipt_number::text ILIKE ${term}
-                OR receipts.amount::text ILIKE ${term}
-                OR invoices.id::text ILIKE ${term}
-                OR invoices.payment_date::text ILIKE ${term})`,
+            sql`(COALESCE(atletas.nome, '') ILIKE ${term}
+                OR recibos.recibo_number::text ILIKE ${term}
+                OR recibos.amount::text ILIKE ${term})`,
         );
     }
 
-    if (filters.customerId) {
-        conditions.push(sql`receipts.customer_id = ${filters.customerId}`);
+    if (filters.atletaId) {
+        conditions.push(sql`recibos.atleta_id = ${filters.atletaId}`);
     }
 
     if (filters.status) {
-        conditions.push(sql`receipts.status = ${filters.status}`);
+        conditions.push(sql`recibos.status = ${filters.status}`);
     }
 
-    if (filters.dateFrom) {
-        conditions.push(sql`DATE(invoices.date) = ${filters.dateFrom}`);
+    let whereClause = sql`WHERE ${conditions[0]}`;
+    for (let i = 1; i < conditions.length; i++) {
+        whereClause = sql`${whereClause} AND ${conditions[i]}`;
     }
 
-    if (filters.dateTo) {
-        conditions.push(sql`DATE(invoices.payment_date) = ${filters.dateTo}`);
-    }
-
-    let whereClause = sql``;
-    if (conditions.length > 0) {
-        whereClause = sql`WHERE ${conditions[0]}`;
-        for (let i = 1; i < conditions.length; i++) {
-            whereClause = sql`${whereClause} AND ${conditions[i]}`;
-        }
-    }
-
-    const data = await sql<ReceiptsTableRow[]>`
+    const data = await sql<RecibosTableRow[]>`
         SELECT
-            receipts.id,
-            receipts.receipt_number,
-            receipts.customer_id,
-            receipts.invoice_id,
-            receipts.amount,
-            receipts.received_date,
-            invoices.date AS invoice_date,
-            invoices.payment_date AS payment_date,
-            receipts.status,
-            receipts.pdf_url,
-            receipts.created_by AS receipt_created_by,
-            COALESCE(customers.name, 'Cliente removido') AS customer_name,
-            COALESCE(customers.email, '') AS customer_email
-        FROM receipts
-        JOIN invoices ON receipts.invoice_id = invoices.id
-        LEFT JOIN customers ON receipts.customer_id = customers.id
+            recibos.id,
+            recibos.recibo_number,
+            recibos.atleta_id,
+            recibos.mensalidade_id,
+            recibos.amount,
+            mensalidades.mes AS mensalidade_mes,
+            mensalidades.ano AS mensalidade_ano,
+            mensalidades.data_pagamento AS data_pagamento,
+            recibos.status,
+            recibos.pdf_url,
+            recibos.created_by AS recibo_created_by,
+            COALESCE(atletas.nome, 'Atleta removido') AS atleta_nome
+        FROM recibos
+        JOIN mensalidades ON recibos.mensalidade_id = mensalidades.id
+        LEFT JOIN atletas ON recibos.atleta_id = atletas.id
         ${whereClause}
-        ORDER BY invoices.payment_date DESC NULLS LAST, invoices.date DESC
+        ORDER BY recibos.created_at DESC
         LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
 
     return data;
 }
 
-export async function fetchReceiptsPages(filters: ReceiptFilters) {
+export async function fetchRecibosPages(filters: ReciboFilters) {
     const organizationId = await requireOrganizationId();
-    const hasInvoiceId = await hasReceiptColumn("invoice_id");
-    const hasReceiptNumber = await hasReceiptColumn("receipt_number");
 
-    if (!hasInvoiceId || !hasReceiptNumber) {
-        const legacyConditions = [
-            sql`receipts.organization_id = ${organizationId}`,
-        ];
-
-        if (filters.query) {
-            const term = `%${filters.query}%`;
-            legacyConditions.push(
-                sql`(COALESCE(customers.name, '') ILIKE ${term}
-                    OR COALESCE(customers.email, '') ILIKE ${term}
-                    OR receipts.amount::text ILIKE ${term}
-                    OR receipts.id::text ILIKE ${term})`,
-            );
-        }
-
-        if (filters.customerId) {
-            legacyConditions.push(
-                sql`receipts.customer_id = ${filters.customerId}`,
-            );
-        }
-
-        if (filters.status) {
-            legacyConditions.push(sql`receipts.status = ${filters.status}`);
-        }
-
-        let legacyWhere = sql``;
-        if (legacyConditions.length > 0) {
-            legacyWhere = sql`WHERE ${legacyConditions[0]}`;
-            for (let i = 1; i < legacyConditions.length; i++) {
-                legacyWhere = sql`${legacyWhere} AND ${legacyConditions[i]}`;
-            }
-        }
-
-        const legacyCount = await sql`
-            SELECT COUNT(*)
-            FROM receipts
-            LEFT JOIN customers ON receipts.customer_id = customers.id
-            ${legacyWhere}
-        `;
-
-        return Math.ceil(Number(legacyCount[0].count) / ITEMS_PER_PAGE);
-    }
-
-    const conditions = [sql`receipts.organization_id = ${organizationId}`];
+    const conditions = [sql`recibos.organization_id = ${organizationId}`];
 
     if (filters.query) {
         const term = `%${filters.query}%`;
         conditions.push(
-            sql`(COALESCE(customers.name, '') ILIKE ${term}
-                OR COALESCE(customers.email, '') ILIKE ${term}
-                OR receipts.receipt_number::text ILIKE ${term}
-                OR receipts.amount::text ILIKE ${term}
-                OR invoices.id::text ILIKE ${term}
-                OR invoices.payment_date::text ILIKE ${term})`,
+            sql`(COALESCE(atletas.nome, '') ILIKE ${term}
+                OR recibos.recibo_number::text ILIKE ${term}
+                OR recibos.amount::text ILIKE ${term})`,
         );
     }
 
-    if (filters.customerId) {
-        conditions.push(sql`receipts.customer_id = ${filters.customerId}`);
+    if (filters.atletaId) {
+        conditions.push(sql`recibos.atleta_id = ${filters.atletaId}`);
     }
 
     if (filters.status) {
-        conditions.push(sql`receipts.status = ${filters.status}`);
+        conditions.push(sql`recibos.status = ${filters.status}`);
     }
 
-    if (filters.dateFrom) {
-        conditions.push(sql`DATE(invoices.date) = ${filters.dateFrom}`);
-    }
-
-    if (filters.dateTo) {
-        conditions.push(sql`DATE(invoices.payment_date) = ${filters.dateTo}`);
-    }
-
-    let whereClause = sql``;
-    if (conditions.length > 0) {
-        whereClause = sql`WHERE ${conditions[0]}`;
-        for (let i = 1; i < conditions.length; i++) {
-            whereClause = sql`${whereClause} AND ${conditions[i]}`;
-        }
+    let whereClause = sql`WHERE ${conditions[0]}`;
+    for (let i = 1; i < conditions.length; i++) {
+        whereClause = sql`${whereClause} AND ${conditions[i]}`;
     }
 
     const data = await sql`
         SELECT COUNT(*)
-        FROM receipts
-        JOIN invoices ON receipts.invoice_id = invoices.id
-        LEFT JOIN customers ON receipts.customer_id = customers.id
+        FROM recibos
+        JOIN mensalidades ON recibos.mensalidade_id = mensalidades.id
+        LEFT JOIN atletas ON recibos.atleta_id = atletas.id
         ${whereClause}
     `;
 
     return Math.ceil(Number(data[0].count) / ITEMS_PER_PAGE);
 }
 
-export async function fetchReceiptById(receiptId: string): Promise<Receipt> {
+export async function fetchReciboById(reciboId: string): Promise<Recibo> {
     const organizationId = await requireOrganizationId();
-    const data = await sql<Receipt[]>`
+    const data = await sql<Recibo[]>`
         SELECT *
-        FROM receipts
-        WHERE id = ${receiptId} AND organization_id = ${organizationId}
+        FROM recibos
+        WHERE id = ${reciboId} AND organization_id = ${organizationId}
     `;
 
     if (!data[0]) {
-        throw new Error("Receipt not found");
+        throw new Error("Recibo nao encontrado");
     }
 
     return data[0];
 }
 
-export async function fetchReceiptDetail(receiptId: string) {
+export async function fetchReciboDetail(reciboId: string) {
     const organizationId = await requireOrganizationId();
-    const hasInvoiceId = await hasReceiptColumn("invoice_id");
-    const hasReceiptNumber = await hasReceiptColumn("receipt_number");
-
-    if (!hasInvoiceId || !hasReceiptNumber) {
-        const legacyData = await sql<
-            {
-                receipt_id: string;
-                receipt_number: number;
-                status: "pending_send" | "sent_to_customer";
-                received_date: string;
-                amount: number;
-                activity_code: string | null;
-                tax_regime: string;
-                irs_withholding: string;
-                pdf_url: string | null;
-                invoice_id: string;
-                invoice_date: string;
-                invoice_payment_date: string | null;
-                invoice_created_by: string | null;
-                receipt_created_by: string | null;
-                customer_id: string;
-                customer_name: string;
-                customer_nif: string | null;
-                customer_address: string | null;
-                sent_at: string | null;
-                sent_by_user_name: string | null;
-            }[]
-        >`
-            SELECT
-                receipts.id AS receipt_id,
-                0::int AS receipt_number,
-                receipts.status,
-                receipts.received_date,
-                receipts.amount,
-                receipts.activity_code,
-                receipts.tax_regime,
-                receipts.irs_withholding,
-                receipts.pdf_url,
-                receipts.sent_at,
-                receipts.created_by AS receipt_created_by,
-                ''::text AS invoice_id,
-                receipts.received_date AS invoice_date,
-                NULL::date AS invoice_payment_date,
-                NULL::text AS invoice_created_by,
-                customers.id AS customer_id,
-                customers.name AS customer_name,
-                customers.nif AS customer_nif,
-                customers.endereco_fiscal AS customer_address,
-                sent_by_user.name AS sent_by_user_name
-            FROM receipts
-            JOIN customers ON receipts.customer_id = customers.id
-            LEFT JOIN users AS sent_by_user ON receipts.sent_by_user = sent_by_user.id
-            WHERE receipts.id = ${receiptId} AND receipts.organization_id = ${organizationId}
-        `;
-
-        if (!legacyData[0]) {
-            throw new Error("Receipt not found");
-        }
-
-        return legacyData[0];
-    }
 
     const data = await sql<
         {
-            receipt_id: string;
-            receipt_number: number;
-            status: "pending_send" | "sent_to_customer";
+            recibo_id: string;
+            recibo_number: number;
+            status: "pendente_envio" | "enviado_atleta";
             received_date: string;
             amount: number;
-            activity_code: string | null;
-            tax_regime: string;
-            irs_withholding: string;
             pdf_url: string | null;
-            invoice_id: string;
-            invoice_date: string;
-            invoice_payment_date: string | null;
-            invoice_created_by: string | null;
-            receipt_created_by: string | null;
-            customer_id: string;
-            customer_name: string;
-            customer_nif: string | null;
-            customer_address: string | null;
+            recibo_created_by: string | null;
+            mensalidade_id: string;
+            mensalidade_mes: number;
+            mensalidade_ano: number;
+            data_pagamento: string | null;
+            atleta_id: string;
+            atleta_nome: string;
             sent_at: string | null;
             sent_by_user_name: string | null;
+            issuer_iban: string;
         }[]
     >`
         SELECT
-            receipts.id AS receipt_id,
-            receipts.receipt_number,
-            receipts.status,
-            receipts.received_date,
-            receipts.amount,
-            receipts.activity_code,
-            receipts.tax_regime,
-            receipts.irs_withholding,
-            receipts.pdf_url,
-            receipts.sent_at,
-            receipts.created_by AS receipt_created_by,
-            invoices.id AS invoice_id,
-            invoices.date AS invoice_date,
-            invoices.payment_date AS invoice_payment_date,
-            invoices.created_by AS invoice_created_by,
-            customers.id AS customer_id,
-            customers.name AS customer_name,
-            customers.nif AS customer_nif,
-            customers.endereco_fiscal AS customer_address,
+            recibos.id AS recibo_id,
+            recibos.recibo_number,
+            recibos.status,
+            recibos.received_date,
+            recibos.amount,
+            recibos.pdf_url,
+            recibos.sent_at,
+            recibos.issuer_iban,
+            recibos.created_by AS recibo_created_by,
+            mensalidades.id AS mensalidade_id,
+            mensalidades.mes AS mensalidade_mes,
+            mensalidades.ano AS mensalidade_ano,
+            mensalidades.data_pagamento,
+            atletas.id AS atleta_id,
+            COALESCE(atletas.nome, 'Atleta removido') AS atleta_nome,
             sent_by_user.name AS sent_by_user_name
-        FROM receipts
-        JOIN invoices ON receipts.invoice_id = invoices.id
-        JOIN customers ON receipts.customer_id = customers.id
-        LEFT JOIN users AS sent_by_user ON receipts.sent_by_user = sent_by_user.id
-        WHERE receipts.id = ${receiptId} AND receipts.organization_id = ${organizationId}
+        FROM recibos
+        JOIN mensalidades ON recibos.mensalidade_id = mensalidades.id
+        LEFT JOIN atletas ON recibos.atleta_id = atletas.id
+        LEFT JOIN users AS sent_by_user ON recibos.sent_by_user = sent_by_user.id
+        WHERE recibos.id = ${reciboId} AND recibos.organization_id = ${organizationId}
     `;
 
     if (!data[0]) {
-        throw new Error("Receipt not found");
+        throw new Error("Recibo nao encontrado");
     }
 
     return data[0];
 }
 
-export async function fetchReceiptCustomers() {
+export async function fetchReciboAtletas() {
     const organizationId = await requireOrganizationId();
-    const data = await sql<{ id: string; name: string }[]>`
-        SELECT id, name
-        FROM customers
-        WHERE organization_id = ${organizationId}
-        ORDER BY name ASC
+    const data = await sql<{ id: string; nome: string }[]>`
+        SELECT DISTINCT atletas.id, atletas.nome
+        FROM atletas
+        WHERE atletas.organization_id = ${organizationId}
+        ORDER BY atletas.nome ASC
     `;
 
     return data;
-}
-
-export async function fetchReceiptInvoiceDates() {
-    const organizationId = await requireOrganizationId();
-
-    if (!(await hasReceiptColumn("invoice_id"))) {
-        return [];
-    }
-
-    const data = await sql<{ date: string }[]>`
-        SELECT DISTINCT invoices.date
-        FROM receipts
-        JOIN invoices ON receipts.invoice_id = invoices.id
-        WHERE receipts.organization_id = ${organizationId}
-        ORDER BY invoices.date DESC
-    `;
-
-    return data.map((row) => row.date);
-}
-
-export async function fetchReceiptPaymentDates() {
-    const organizationId = await requireOrganizationId();
-
-    if (!(await hasReceiptColumn("invoice_id"))) {
-        return [];
-    }
-
-    const data = await sql<{ payment_date: string }[]>`
-        SELECT DISTINCT invoices.payment_date
-        FROM receipts
-        JOIN invoices ON receipts.invoice_id = invoices.id
-        WHERE receipts.organization_id = ${organizationId} AND invoices.payment_date IS NOT NULL
-        ORDER BY invoices.payment_date DESC
-    `;
-
-    return data.map((row) => row.payment_date);
-}
-
-export async function fetchReceiptAmountRange(): Promise<{
-    minAmount: number;
-    maxAmount: number;
-}> {
-    const organizationId = await requireOrganizationId();
-    const data = await sql<
-        { min_amount: number | null; max_amount: number | null }[]
-    >`
-        SELECT
-            MIN(receipts.amount) AS min_amount,
-            MAX(receipts.amount) AS max_amount
-        FROM receipts
-        WHERE receipts.organization_id = ${organizationId}
-    `;
-
-    const minAmount = data[0]?.min_amount ? Math.floor(data[0].min_amount) : 0;
-    const maxAmount = data[0]?.max_amount
-        ? Math.ceil(data[0].max_amount)
-        : 1000;
-
-    return {
-        minAmount,
-        maxAmount,
-    };
 }

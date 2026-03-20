@@ -2,8 +2,14 @@ import {
     adminDeleteUserAction,
     adminUpdateUserAction,
 } from "@/app/lib/admin-actions";
-import { fetchAdminUserById } from "@/app/lib/admin-data";
+import {
+    fetchAdminUserById,
+    fetchAdminAtletaByUserId,
+    fetchAdminStaffByUserId,
+    fetchAdminEquipasByOrg,
+} from "@/app/lib/admin-data";
 import { AdminDeleteUserDangerZone } from "../../../ui/admin/delete-user-danger-zone";
+import { AdminUserEditForm } from "../../../ui/admin/admin-user-edit-form";
 import { clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
@@ -35,6 +41,41 @@ function normalizeAccountType(value: unknown): AccountType | null {
     return null;
 }
 
+function getAccountTypeLabel(accountType: AccountType | null) {
+    switch (accountType) {
+        case "presidente":
+            return {
+                label: "Presidente",
+                className:
+                    "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+            };
+        case "treinador":
+            return {
+                label: "Treinador",
+                className:
+                    "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+            };
+        case "atleta":
+            return {
+                label: "Atleta",
+                className:
+                    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+            };
+        case "responsavel":
+            return {
+                label: "Pai/Enc.",
+                className:
+                    "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+            };
+        default:
+            return {
+                label: "Usuário",
+                className:
+                    "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200",
+            };
+    }
+}
+
 export default async function AdminUserDetailPage({
     params,
     searchParams,
@@ -50,20 +91,16 @@ export default async function AdminUserDetailPage({
         notFound();
     }
 
-    let accountType: AccountType = "responsavel";
+    let accountType: AccountType | null = null;
 
     if (user.clerk_user_id) {
         try {
             const client = await clerkClient();
             const clerkUser = await client.users.getUser(user.clerk_user_id);
-            const fromMetadata = normalizeAccountType(
+            accountType = normalizeAccountType(
                 clerkUser.unsafeMetadata?.accountType ??
                     clerkUser.publicMetadata?.accountType,
             );
-
-            if (fromMetadata) {
-                accountType = fromMetadata;
-            }
         } catch (error) {
             console.error("Falha ao obter accountType do Clerk:", error);
         }
@@ -71,6 +108,20 @@ export default async function AdminUserDetailPage({
 
     const updateAction = adminUpdateUserAction.bind(null, id);
     const deleteAction = adminDeleteUserAction.bind(null, id);
+    const badge = getAccountTypeLabel(accountType);
+
+    // Fetch profile-specific data in parallel
+    const [atletaData, staffData, equipas] = await Promise.all([
+        accountType === "atleta"
+            ? fetchAdminAtletaByUserId(user.id)
+            : Promise.resolve(null),
+        accountType === "treinador"
+            ? fetchAdminStaffByUserId(user.id)
+            : Promise.resolve(null),
+        user.organization_id
+            ? fetchAdminEquipasByOrg(user.organization_id)
+            : Promise.resolve([]),
+    ]);
 
     const alertMessage = (() => {
         if (resolvedSearchParams?.success === "1") {
@@ -80,10 +131,18 @@ export default async function AdminUserDetailPage({
             };
         }
 
+        if (resolvedSearchParams?.success === "email_pending") {
+            return {
+                kind: "success" as const,
+                message:
+                    "Dados atualizados. O novo email foi adicionado ao Clerk — o utilizador precisa verificá-lo para fazer login.",
+            };
+        }
+
         if (resolvedSearchParams?.error === "required") {
             return {
                 kind: "error" as const,
-                message: "Preencha todos os campos obrigatorios.",
+                message: "Preencha todos os campos obrigatórios.",
             };
         }
 
@@ -91,7 +150,7 @@ export default async function AdminUserDetailPage({
             return {
                 kind: "error" as const,
                 message:
-                    "Nao foi possivel atualizar o perfil. Tente novamente.",
+                    "Não foi possível atualizar o perfil. Tente novamente.",
             };
         }
 
@@ -99,7 +158,7 @@ export default async function AdminUserDetailPage({
             return {
                 kind: "error" as const,
                 message:
-                    "Confirmacao invalida. Digite exatamente deletarconta para excluir.",
+                    "Confirmação inválida. Digite exatamente deletarconta para excluir.",
             };
         }
 
@@ -136,17 +195,18 @@ export default async function AdminUserDetailPage({
                 <div
                     className={`rounded-lg border px-4 py-3 text-sm ${
                         alertMessage.kind === "success"
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                             : alertMessage.kind === "warning"
-                              ? "border-amber-300 bg-amber-50 text-amber-800"
-                              : "border-rose-300 bg-rose-50 text-rose-800"
+                              ? "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                              : "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
                     }`}
                 >
                     {alertMessage.message}
                 </div>
             )}
 
-            <section className="max-w-2xl space-y-4 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+            <section className="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+                {/* Read-only info */}
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
                         <p className="text-gray-500 dark:text-gray-400">ID</p>
@@ -156,67 +216,42 @@ export default async function AdminUserDetailPage({
                     </div>
                     <div>
                         <p className="text-gray-500 dark:text-gray-400">
-                            Organização
+                            Função
                         </p>
-                        <p className="text-gray-800 dark:text-gray-200">
-                            {user.organization_name || "-"}
-                        </p>
+                        <span
+                            className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${badge.className}`}
+                        >
+                            {badge.label}
+                        </span>
                     </div>
                 </div>
 
-                <form action={updateAction} className="space-y-3">
-                    <div>
-                        <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                            Nome
-                        </label>
-                        <input
-                            name="name"
-                            defaultValue={user.name}
-                            required
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                        />
-                    </div>
+                <hr className="border-gray-200 dark:border-gray-700" />
 
-                    <div>
-                        <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                            Email
-                        </label>
-                        <input
-                            type="email"
-                            name="email"
-                            defaultValue={user.email}
-                            required
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-1 block text-sm text-gray-700 dark:text-gray-300">
-                            Função
-                        </label>
-                        <select
-                            name="accountType"
-                            defaultValue={accountType}
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
-                        >
-                            <option value="presidente">Presidente</option>
-                            <option value="treinador">Treinador</option>
-                            <option value="atleta">Atleta</option>
-                            <option value="responsavel">Pai/Enc.</option>
-                        </select>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            O papel de acesso e inferido automaticamente como
-                            Usuário para qualquer funcao.
-                        </p>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
-                    >
-                        Guardar alterações
-                    </button>
-                </form>
+                <AdminUserEditForm
+                    updateAction={updateAction}
+                    accountType={accountType}
+                    user={{
+                        name: user.name,
+                        email: user.email,
+                        image_url: user.image_url,
+                        organization_name: user.organization_name,
+                        iban: user.iban,
+                        data_nascimento: user.data_nascimento,
+                        telefone: user.telefone,
+                        sobrenome: user.sobrenome,
+                        morada: user.morada,
+                        peso_kg: user.peso_kg,
+                        altura_cm: user.altura_cm,
+                        nif: user.nif,
+                        codigo_postal: user.codigo_postal,
+                        cidade: user.cidade,
+                        pais: user.pais,
+                    }}
+                    atletaData={atletaData}
+                    staffData={staffData}
+                    equipas={equipas}
+                />
             </section>
 
             <AdminDeleteUserDangerZone deleteAction={deleteAction} />

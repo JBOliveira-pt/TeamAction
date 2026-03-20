@@ -1,5 +1,6 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import postgres from "postgres";
+import crypto from "node:crypto";
 import { uploadImageToR2 } from "@/app/lib/r2-storage";
 import { hash } from "bcryptjs";
 import {
@@ -473,6 +474,7 @@ async function ensureUserExistsWithOrganization(
     role: "user",
     currentUser: any,
     uploadedImageUrl?: string | null,
+    hashedPassword?: string,
 ) {
     const email = currentUser.emailAddresses[0]?.emailAddress;
     const fullName =
@@ -497,6 +499,9 @@ async function ensureUserExistsWithOrganization(
         `;
         return;
     }
+
+    const passwordValue =
+        hashedPassword || `clerk_managed_${crypto.randomUUID()}`;
 
     await sql.begin(async (tx: any) => {
         const existingByEmail = await tx<
@@ -528,10 +533,21 @@ async function ensureUserExistsWithOrganization(
             RETURNING id
         `;
 
-        await tx`
-            INSERT INTO users (id, name, email, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${fullName}, ${email}, ${userId}, ${role}, ${newOrg[0].id}, ${uploadedImageUrl || currentUser.imageUrl || null}, NOW(), NOW())
-        `;
+        // User exists (e.g. from webhook) but has no org — update instead of insert
+        const existingUser = byClerk[0] || existingByEmail[0];
+        if (existingUser) {
+            await tx`
+                UPDATE users
+                SET clerk_user_id = ${userId}, role = ${role}, organization_id = ${newOrg[0].id},
+                    name = ${fullName}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
+                WHERE id = ${existingUser.id}
+            `;
+        } else {
+            await tx`
+                INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${fullName}, ${email}, ${passwordValue}, ${userId}, ${role}, ${newOrg[0].id}, ${uploadedImageUrl || currentUser.imageUrl || null}, NOW(), NOW())
+            `;
+        }
     });
 }
 
@@ -763,6 +779,7 @@ export async function POST(req: Request) {
             role,
             currentUser,
             uploadedImageUrl,
+            hashedPassword,
         );
 
         const usersAccountTypeColumns = await sql<{ column_name: string }[]>`

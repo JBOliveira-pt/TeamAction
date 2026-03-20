@@ -116,48 +116,22 @@ async function deleteByColumnIfExists(
     `;
 }
 
-async function deleteInvoicesAndReceiptsByUser(
+async function deleteRecibosByUser(
     tx: SqlExecutor,
     userId: string,
 ): Promise<void> {
-    const hasInvoices = await tableExists(tx, "invoices");
-    if (!hasInvoices) {
+    const hasRecibos = await tableExists(tx, "recibos");
+    if (!hasRecibos) {
         return;
     }
 
-    const hasInvoiceCreator = await columnExists(tx, "invoices", "created_by");
-    if (!hasInvoiceCreator) {
-        return;
+    const hasCreatedBy = await columnExists(tx, "recibos", "created_by");
+    if (hasCreatedBy) {
+        await tx`
+            DELETE FROM recibos
+            WHERE created_by = ${userId}
+        `;
     }
-
-    const hasReceipts = await tableExists(tx, "receipts");
-    if (hasReceipts) {
-        const [receiptHasCreatedBy, receiptHasInvoiceId] = await Promise.all([
-            columnExists(tx, "receipts", "created_by"),
-            columnExists(tx, "receipts", "invoice_id"),
-        ]);
-
-        if (receiptHasCreatedBy) {
-            await tx`
-                DELETE FROM receipts
-                WHERE created_by = ${userId}
-            `;
-        }
-
-        if (receiptHasInvoiceId) {
-            await tx`
-                DELETE FROM receipts
-                WHERE invoice_id IN (
-                    SELECT id FROM invoices WHERE created_by = ${userId}
-                )
-            `;
-        }
-    }
-
-    await tx`
-        DELETE FROM invoices
-        WHERE created_by = ${userId}
-    `;
 }
 
 export async function adminLoginAction(formData: FormData): Promise<void> {
@@ -206,50 +180,311 @@ export async function adminUpdateUserAction(
 
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
-    const accountType = normalizeAccountType(formData.get("accountType"));
+    const organizationName = String(
+        formData.get("organizationName") || "",
+    ).trim();
+    const profilePhoto = formData.get("profilePhoto");
+    const iban = String(formData.get("iban") || "").trim() || null;
+    const dataNascimento =
+        String(formData.get("dataNascimento") || "").trim() || null;
+    const telefone = String(formData.get("telefone") || "").trim() || null;
+    const rawPassword = String(formData.get("password") || "").trim();
 
-    if (!name || !email || !accountType) {
+    // Extended personal fields
+    const sobrenome = String(formData.get("sobrenome") || "").trim() || null;
+    const morada = String(formData.get("morada") || "").trim() || null;
+    const pesoKg = String(formData.get("pesoKg") || "").trim() || null;
+    const alturaCm = String(formData.get("alturaCm") || "").trim() || null;
+    const nif = String(formData.get("nif") || "").trim() || null;
+    const codigoPostal =
+        String(formData.get("codigoPostal") || "").trim() || null;
+    const cidade = String(formData.get("cidade") || "").trim() || null;
+    const pais = String(formData.get("pais") || "").trim() || null;
+
+    // Athlete-specific fields
+    const atletaId = String(formData.get("atletaId") || "").trim() || null;
+    const posicao = String(formData.get("posicao") || "").trim() || null;
+    const numeroCamisola =
+        String(formData.get("numeroCamisola") || "").trim() || null;
+    const equipaId = String(formData.get("equipaId") || "").trim() || null;
+    const estadoAtleta =
+        String(formData.get("estadoAtleta") || "").trim() || null;
+    const maoDominante =
+        String(formData.get("maoDominante") || "").trim() || null;
+    const federado = formData.get("federado") === "on";
+    const numeroFederado =
+        String(formData.get("numeroFederado") || "").trim() || null;
+
+    // Staff-specific fields
+    const staffId = String(formData.get("staffId") || "").trim() || null;
+    const funcaoStaff =
+        String(formData.get("funcaoStaff") || "").trim() || null;
+    const equipaIdStaff =
+        String(formData.get("equipaIdStaff") || "").trim() || null;
+
+    if (!name || !email) {
         redirect(`/admin/users/${userId}?error=required`);
     }
 
-    const role = "user";
+    let emailChanged = false;
 
     try {
-        const userData = await sql<{ clerk_user_id: string | null }[]>`
-            SELECT clerk_user_id
+        const userData = await sql<
+            {
+                clerk_user_id: string | null;
+                email: string;
+                organization_id: string | null;
+            }[]
+        >`
+            SELECT clerk_user_id, email, organization_id
             FROM users
             WHERE id = ${userId}
             LIMIT 1
         `;
 
-        const clerkUserId = userData[0]?.clerk_user_id;
-
-        if (clerkUserId) {
-            const client = await clerkClient();
-            const clerkUser = await client.users.getUser(clerkUserId);
-
-            await client.users.updateUserMetadata(clerkUserId, {
-                unsafeMetadata: {
-                    ...clerkUser.unsafeMetadata,
-                    accountType,
-                },
-                publicMetadata: {
-                    ...clerkUser.publicMetadata,
-                    accountType,
-                    role,
-                },
-            });
+        const currentUser = userData[0];
+        if (!currentUser) {
+            redirect(`/admin/users/${userId}?error=update`);
         }
 
-        await sql`
-            UPDATE users
-            SET name = ${name}, email = ${email}, role = ${role}, updated_at = NOW()
-            WHERE id = ${userId}
-        `;
+        const clerkUserId = currentUser.clerk_user_id;
 
+        // --- Photo upload via R2 ---
+        let imageUrl: string | null = null;
+        if (profilePhoto instanceof File && profilePhoto.size > 0) {
+            const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+            const ALLOWED_PHOTO_TYPES = [
+                "image/jpeg",
+                "image/png",
+                "image/webp",
+            ];
+            if (
+                !ALLOWED_PHOTO_TYPES.includes(profilePhoto.type) ||
+                profilePhoto.size > MAX_PHOTO_SIZE
+            ) {
+                redirect(`/admin/users/${userId}?error=update`);
+            }
+            const { uploadImageToR2 } = await import("@/app/lib/r2-storage");
+            imageUrl = await uploadImageToR2(profilePhoto, "user", userId);
+        }
+
+        // --- Clerk updates (name, email, password) ---
+        if (clerkUserId) {
+            const client = await clerkClient();
+
+            // Split name for Clerk first/last
+            const nameParts = name.split(/\s+/);
+            const firstName = nameParts[0] || name;
+            const lastName =
+                nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+            await client.users.updateUser(clerkUserId, {
+                firstName,
+                lastName,
+            });
+
+            // Handle email change via Clerk — creates an unverified email address
+            const previousEmail = currentUser.email.toLowerCase();
+            const newEmail = email.toLowerCase();
+            if (newEmail !== previousEmail) {
+                emailChanged = true;
+                await client.emailAddresses.createEmailAddress({
+                    userId: clerkUserId,
+                    emailAddress: email,
+                });
+            }
+
+            // Handle password change via Clerk
+            if (rawPassword.length > 0) {
+                await client.users.updateUser(clerkUserId, {
+                    password: rawPassword,
+                });
+            }
+        }
+
+        // --- Database: update users table ---
+        const hashedPassword =
+            rawPassword.length > 0 ? await bcrypt.hash(rawPassword, 12) : null;
+
+        // Discover optional columns
+        const optionalCols = await sql<{ column_name: string }[]>`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'users'
+              AND column_name IN (
+                  'iban', 'data_nascimento', 'telefone',
+                  'sobrenome', 'morada', 'peso_kg', 'altura_cm',
+                  'nif', 'codigo_postal', 'cidade', 'pais'
+              )
+        `;
+        const hasCol = (col: string) =>
+            optionalCols.some((c) => c.column_name === col);
+
+        // Core fields always present
+        if (hashedPassword && imageUrl) {
+            await sql`
+                UPDATE users
+                SET name = ${name}, email = ${email}, image_url = ${imageUrl},
+                    password = ${hashedPassword}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        } else if (hashedPassword) {
+            await sql`
+                UPDATE users
+                SET name = ${name}, email = ${email},
+                    password = ${hashedPassword}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        } else if (imageUrl) {
+            await sql`
+                UPDATE users
+                SET name = ${name}, email = ${email}, image_url = ${imageUrl},
+                    updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        } else {
+            await sql`
+                UPDATE users
+                SET name = ${name}, email = ${email},
+                    updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+
+        // Update optional columns individually
+        if (hasCol("iban")) {
+            await sql`
+                UPDATE users SET iban = ${iban}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("data_nascimento") && dataNascimento) {
+            await sql`
+                UPDATE users SET data_nascimento = ${dataNascimento}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("telefone")) {
+            await sql`
+                UPDATE users SET telefone = ${telefone}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("sobrenome")) {
+            await sql`
+                UPDATE users SET sobrenome = ${sobrenome}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("morada")) {
+            await sql`
+                UPDATE users SET morada = ${morada}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("peso_kg") && pesoKg !== null) {
+            await sql`
+                UPDATE users SET peso_kg = ${Number(pesoKg)}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("altura_cm") && alturaCm !== null) {
+            await sql`
+                UPDATE users SET altura_cm = ${Number(alturaCm)}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("nif")) {
+            await sql`
+                UPDATE users SET nif = ${nif}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("codigo_postal")) {
+            await sql`
+                UPDATE users SET codigo_postal = ${codigoPostal}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("cidade")) {
+            await sql`
+                UPDATE users SET cidade = ${cidade}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+        if (hasCol("pais")) {
+            await sql`
+                UPDATE users SET pais = ${pais}, updated_at = NOW()
+                WHERE id = ${userId}
+            `;
+        }
+
+        // --- Database: update atletas table ---
+        if (atletaId) {
+            const hasAtletas = await tableExists(sql, "atletas");
+            if (hasAtletas) {
+                await sql`
+                    UPDATE atletas
+                    SET posicao = ${posicao},
+                        numero_camisola = ${numeroCamisola ? Number(numeroCamisola) : null},
+                        equipa_id = ${equipaId || null},
+                        estado = ${estadoAtleta || "ativo"},
+                        federado = ${federado},
+                        numero_federado = ${federado ? numeroFederado : null},
+                        mao_dominante = ${maoDominante}
+                    WHERE id = ${atletaId}
+                `;
+            }
+        }
+
+        // --- Database: update staff table ---
+        if (staffId) {
+            const hasStaff = await tableExists(sql, "staff");
+            if (hasStaff) {
+                await sql`
+                    UPDATE staff
+                    SET funcao = ${funcaoStaff},
+                        equipa_id = ${equipaIdStaff || null}
+                    WHERE id = ${staffId}
+                `;
+            }
+        }
+
+        // --- Database: update organization name ---
+        if (organizationName && currentUser.organization_id) {
+            await sql`
+                UPDATE organizations
+                SET name = ${organizationName}, updated_at = NOW()
+                WHERE id = ${currentUser.organization_id}
+            `;
+        }
+
+        // --- Audit log ---
         await ensureAdminTables();
         const updateMetadata: JSONValue = JSON.parse(
-            JSON.stringify({ name, email, role, accountType }),
+            JSON.stringify({
+                name,
+                email,
+                organizationName: organizationName || null,
+                imageUrl: imageUrl || null,
+                photoUploaded: imageUrl !== null,
+                iban,
+                dataNascimento,
+                telefone,
+                sobrenome,
+                morada,
+                pesoKg,
+                alturaCm,
+                nif,
+                codigoPostal,
+                cidade,
+                pais,
+                atletaId,
+                staffId,
+                passwordChanged: rawPassword.length > 0,
+                emailChanged,
+            }),
         );
         await sql`
             INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
@@ -269,7 +504,9 @@ export async function adminUpdateUserAction(
 
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);
-    redirect(`/admin/users/${userId}?success=1`);
+    redirect(
+        `/admin/users/${userId}?success=${emailChanged ? "email_pending" : "1"}`,
+    );
 }
 
 export async function adminDeleteUserAction(
@@ -323,13 +560,7 @@ export async function adminDeleteUserAction(
         await sql.begin(async (tx) => {
             const executor = tx as unknown as SqlExecutor;
 
-            await deleteInvoicesAndReceiptsByUser(executor, userId);
-            await deleteByColumnIfExists(
-                executor,
-                "customers",
-                "created_by",
-                userId,
-            );
+            await deleteRecibosByUser(executor, userId);
             await deleteByColumnIfExists(
                 executor,
                 "atletas",

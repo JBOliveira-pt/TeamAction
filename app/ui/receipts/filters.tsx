@@ -1,96 +1,41 @@
 "use client";
 
-import { ReceiptFilters } from "@/app/lib/receipts-data";
-import DatePickerCalendar from "@/app/ui/components/date-picker-calendar";
+import { ReciboFilters } from "@/app/lib/receipts-data";
 
-export default function ReceiptFiltersForm({
-    customers,
-    invoiceDates,
-    paymentDates,
+export default function ReciboFiltersForm({
+    atletas,
     filters,
 }: {
-    customers: { id: string; name: string }[];
-    invoiceDates: string[];
-    paymentDates: string[];
-    filters: ReceiptFilters;
+    atletas: { id: string; nome: string }[];
+    filters: ReciboFilters;
 }) {
-    const handleDateFromChange = (date: string) => {
-        const form = document.querySelector(
-            'form[data-filter-form="receipts"]',
-        ) as HTMLFormElement;
-        const dateFromInput = form?.querySelector(
-            'input[name="dateFrom"]',
-        ) as HTMLInputElement;
-        if (dateFromInput) {
-            dateFromInput.value = date;
-        }
-    };
-
-    const handleDateToChange = (date: string) => {
-        const form = document.querySelector(
-            'form[data-filter-form="receipts"]',
-        ) as HTMLFormElement;
-        const dateToInput = form?.querySelector(
-            'input[name="dateTo"]',
-        ) as HTMLInputElement;
-        if (dateToInput) {
-            dateToInput.value = date;
-        }
-    };
-
     return (
         <form
-            className="grid gap-4 md:grid-cols-6"
+            className="grid gap-4 md:grid-cols-4"
             method="get"
-            data-filter-form="receipts"
+            data-filter-form="recibos"
         >
             <input type="hidden" name="query" value={filters.query || ""} />
-            <input
-                type="hidden"
-                name="dateFrom"
-                value={filters.dateFrom || ""}
-            />
-            <input type="hidden" name="dateTo" value={filters.dateTo || ""} />
 
-            <div className="md:col-span-2">
+            <div className="md:col-span-1">
                 <label className="block text-xs font-medium text-gray-500 mb-1">
-                    Cliente
+                    Atleta
                 </label>
                 <select
-                    name="customer"
-                    defaultValue={filters.customerId || ""}
+                    name="atleta"
+                    defaultValue={filters.atletaId || ""}
                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
                 >
                     <option value="">Todos</option>
-                    {customers.map((customer) => (
-                        <option key={customer.id} value={customer.id}>
-                            {customer.name}
+                    {atletas.map((atleta) => (
+                        <option key={atleta.id} value={atleta.id}>
+                            {atleta.nome}
                         </option>
                     ))}
                 </select>
             </div>
 
-            <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-500 mb-1">
-                    Datas das Faturas
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                    <DatePickerCalendar
-                        availableDates={invoiceDates}
-                        selectedDate={filters.dateFrom}
-                        onChange={handleDateFromChange}
-                        placeholder="Lançamento"
-                    />
-                    <DatePickerCalendar
-                        availableDates={paymentDates}
-                        selectedDate={filters.dateTo}
-                        onChange={handleDateToChange}
-                        placeholder="Pagamento"
-                    />
-                </div>
-            </div>
-
-            <div>
+            <div className="md:col-span-1">
                 <label className="block text-xs font-medium text-gray-500 mb-1">
                     Estado
                 </label>
@@ -100,12 +45,12 @@ export default function ReceiptFiltersForm({
                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
                 >
                     <option value="">Todos</option>
-                    <option value="pending_send">Pendente de envio</option>
-                    <option value="sent_to_customer">Enviado ao cliente</option>
+                    <option value="pendente_envio">Pendente de envio</option>
+                    <option value="enviado_atleta">Enviado ao atleta</option>
                 </select>
             </div>
 
-            <div className="md:col-span-6 flex items-center gap-2">
+            <div className="md:col-span-2 flex items-end gap-2">
                 <button
                     type="submit"
                     className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
