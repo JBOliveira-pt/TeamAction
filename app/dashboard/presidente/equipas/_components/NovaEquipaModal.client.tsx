@@ -5,29 +5,23 @@ import { criarEquipa } from "@/app/lib/actions";
 import { X } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
-
-const ESCALOES = [
-    "Sub-8", "Sub-10", "Sub-12", "Sub-14",
-    "Sub-16", "Sub-18", "Sub-20", "Juniores", "Seniores",
-];
-
-const DESPORTOS = [
-    "Futebol", "Futsal", "Basquetebol",
-    "Andebol", "Voleibol", "Rugby", "Outro",
-];
+type Escalao = { id: number; nome: string };
 
 const ESTADOS = [
-    { value: "ativa",        label: "Ativa" },
-    { value: "periodo_off",  label: "Período Off" },
-    { value: "inativa",      label: "Inativa" },
+    { value: "ativa",       label: "Ativa"        },
+    { value: "periodo_off", label: "Período Off"   },
+    { value: "inativa",     label: "Inativa"       },
 ];
 
-export default function NovaEquipaModal() {
+export default function NovaEquipaModal({
+    escaloes,
+    desporto,
+}: {
+    escaloes: Escalao[];
+    desporto: string;
+}) {
     const [open, setOpen] = useState(false);
-    const [state, action, isPending] = useActionState<State, FormData>(
-        criarEquipa,
-        null
-    );
+    const [state, action, isPending] = useActionState<State, FormData>(criarEquipa, null);
     const formRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => {
@@ -48,15 +42,9 @@ export default function NovaEquipaModal() {
 
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    {/* Backdrop */}
-                    <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setOpen(false)}
-                    />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
-                    {/* Modal */}
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
-                        {/* Header */}
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nova Equipa</h2>
                             <button
@@ -67,13 +55,27 @@ export default function NovaEquipaModal() {
                             </button>
                         </div>
 
+                        {/* Desporto do clube (apenas informativo) */}
+                        {desporto && (
+                            <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+                                <span className="text-xs text-violet-400 font-medium">Desporto do clube:</span>
+                                <span className="text-xs text-violet-300 font-semibold">{desporto}</span>
+                            </div>
+                        )}
+
+                        {/* Campo hidden para enviar desporto */}
+                        <input type="hidden" name="desporto" value={desporto} form="form-nova-equipa" />
+
                         {state?.error && (
                             <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
                                 {state.error}
                             </div>
                         )}
 
-                        <form ref={formRef} action={action} className="space-y-4">
+                        <form id="form-nova-equipa" ref={formRef} action={action} className="space-y-4">
+                            {/* Hidden desporto */}
+                            <input type="hidden" name="desporto" value={desporto} />
+
                             {/* Nome */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -82,13 +84,13 @@ export default function NovaEquipaModal() {
                                 <input
                                     name="nome"
                                     type="text"
-                                    placeholder="Ex: Futebol Seniores A"
+                                    placeholder="Ex: Seniores A"
                                     required
                                     className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
                                 />
                             </div>
 
-                            {/* Escalão + Desporto */}
+                            {/* Escalão + Estado */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -100,43 +102,26 @@ export default function NovaEquipaModal() {
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         <option value="">Seleciona</option>
-                                        {ESCALOES.map((e) => (
-                                            <option key={e} value={e}>{e}</option>
+                                        {escaloes.map((e) => (
+                                            <option key={e.id} value={e.nome}>{e.nome}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Desporto <span className="text-red-400">*</span>
+                                        Estado <span className="text-red-400">*</span>
                                     </label>
                                     <select
-                                        name="desporto"
+                                        name="estado"
                                         required
+                                        defaultValue="ativa"
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
-                                        <option value="">Seleciona</option>
-                                        {DESPORTOS.map((d) => (
-                                            <option key={d} value={d}>{d}</option>
+                                        {ESTADOS.map((s) => (
+                                            <option key={s.value} value={s.value}>{s.label}</option>
                                         ))}
                                     </select>
                                 </div>
-                            </div>
-
-                            {/* Estado */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Estado <span className="text-red-400">*</span>
-                                </label>
-                                <select
-                                    name="estado"
-                                    required
-                                    defaultValue="ativa"
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                >
-                                    {ESTADOS.map((s) => (
-                                        <option key={s.value} value={s.value}>{s.label}</option>
-                                    ))}
-                                </select>
                             </div>
 
                             {/* Botões */}
@@ -163,3 +148,4 @@ export default function NovaEquipaModal() {
         </>
     );
 }
+

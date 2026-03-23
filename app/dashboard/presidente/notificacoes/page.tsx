@@ -1,13 +1,17 @@
 import { fetchNotificacoes } from "@/app/lib/data";
 import MarcarLidasButton from "./_components/MarcarLidasButton.client";
+import MarcarLidaButton from "./_components/MarcarLidaButton.client";
+
 
 export const dynamic = 'force-dynamic';
+
 
 const tipoStyle: Record<string, { badge: string; icon: string }> = {
     "Alerta": { badge: "bg-red-500/10 text-red-400",   icon: "🔴" },
     "Aviso":  { badge: "bg-amber-500/10 text-amber-400", icon: "🟡" },
     "Info":   { badge: "bg-cyan-500/10 text-cyan-400",  icon: "🔵" },
 };
+
 
 const formatData = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -19,6 +23,7 @@ const formatData = (dateStr: string) => {
     if (date.toDateString() === ontem.toDateString()) return "Ontem";
     return date.toLocaleDateString("pt-PT", { day: "2-digit", month: "short" });
 };
+
 
 export default async function NotificacoesPage() {
     const notificacoes = await fetchNotificacoes();
@@ -62,9 +67,12 @@ export default async function NotificacoesPage() {
                                 </div>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{n.descricao}</p>
                             </div>
-                            <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                                {formatData(n.created_at)}
-                            </span>
+                            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                    {formatData(n.created_at)}
+                                </span>
+                                <MarcarLidaButton id={n.id} lida={n.lida} />
+                            </div>
                         </div>
                     ))
                 )}
