@@ -1130,3 +1130,62 @@ export async function fetchNotificacoes() {
         throw new Error("Failed to fetch notificacoes.");
     }
 }
+
+export async function fetchEscaloes(): Promise<{ id: number; nome: string }[]> {
+    try {
+        return await sql<{ id: number; nome: string }[]>`
+            SELECT id, nome FROM escaloes ORDER BY id ASC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch escaloes.");
+    }
+}
+
+export async function fetchDesportoOrg(): Promise<string> {
+    try {
+        const organizationId = await getOrganizationId();
+        const result = await sql<{ desporto: string }[]>`
+            SELECT desporto FROM organizations WHERE id = ${organizationId}
+        `;
+        return result[0]?.desporto ?? "";
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch desporto.");
+    }
+}
+
+export async function fetchConvitesPendentes() {
+    try {
+        const organizationId = await getOrganizationId();
+        return await sql<{
+            id: string;
+            atleta_user_id: string;
+            user_name: string;
+            user_email: string;
+            user_image: string | null;
+            status: string;
+            created_at: string;
+        }[]>`
+            SELECT
+                arp.id,
+                arp.atleta_user_id,
+                u.name  AS user_name,
+                u.email AS user_email,
+                u.image_url AS user_image,
+                arp.status,
+                arp.created_at::text
+            FROM atleta_relacoes_pendentes arp
+            JOIN users u ON u.id = arp.atleta_user_id
+            WHERE arp.alvo_clube_id = ${organizationId}
+            AND arp.relation_kind = 'clube'
+            ORDER BY arp.created_at DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+
+
