@@ -1,521 +1,494 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
-interface Exercise {
-    name: string;
-    description: string;
-    category: string;
-    duration: string;
-    icon: string;
-    level: string;
+type Exercicio = {
+    id: string;
+    nome: string;
+    descricao: string;
+    categoria: string;
+    duracao_min: number;
+    nivel: string;
+    created_at: string;
+};
+
+const CATEGORIAS = ["Técnico", "Tático", "Físico", "Misto"] as const;
+const NIVEIS = ["Fácil", "Médio", "Intenso", "Difícil"] as const;
+type Categoria = (typeof CATEGORIAS)[number];
+type Nivel = (typeof NIVEIS)[number];
+
+const CATEGORIA_COLORS: Record<Categoria, string> = {
+    "Técnico": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    "Tático":  "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    "Físico":  "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+    "Misto":   "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+};
+
+const NIVEL_COLORS: Record<Nivel, string> = {
+    "Fácil":   "bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+    "Médio":   "bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+    "Intenso": "bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+    "Difícil": "bg-red-200 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+};
+
+const CATEGORIA_ICONS: Record<Categoria, string> = {
+    "Técnico": "🎯",
+    "Tático":  "🛡️",
+    "Físico":  "💪",
+    "Misto":   "🤾",
+};
+
+type FormState = {
+    nome: string;
+    descricao: string;
+    categoria: Categoria;
+    duracao_min: string | number;
+    nivel: Nivel;
+};
+
+const FORM_VAZIO: FormState = {
+    nome: "",
+    descricao: "",
+    categoria: "Técnico",
+    duracao_min: "",
+    nivel: "Fácil",
+};
+
+function CampoTexto({
+    label,
+    obrigatorio,
+    erro,
+    children,
+}: {
+    label: string;
+    obrigatorio?: boolean;
+    erro?: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                {label}{obrigatorio && <span className="text-red-500 ml-0.5">*</span>}
+            </label>
+            {children}
+            {erro && <p className="text-xs text-red-500">{erro}</p>}
+        </div>
+    );
 }
 
-const initialExercises: Exercise[] = [
-    {
-        name: "Remate em Suspensão",
-        description:
-            "Exercício de remate após salto, focando técnica e precisão.",
-        category: "Técnico",
-        duration: "12min",
-        icon: "🤾‍♂️",
-        level: "Médio",
-    },
-    {
-        name: "Passe em Movimento",
-        description:
-            "Sequência de passes rápidos entre jogadores em deslocação.",
-        category: "Técnico",
-        duration: "10min",
-        icon: "🔄",
-        level: "Fácil",
-    },
-    {
-        name: "Defesa 6x0",
-        description: "Organização defensiva em linha, com foco na comunicação.",
-        category: "Tático",
-        duration: "20min",
-        icon: "🛡️",
-        level: "Médio",
-    },
-    {
-        name: "Contra-ataque Rápido",
-        description: "Transição ofensiva após recuperação de bola.",
-        category: "Misto",
-        duration: "15min",
-        icon: "🏃‍♂️",
-        level: "Intenso",
-    },
-    {
-        name: "Finta e Remate",
-        description:
-            "Exercício de finta individual seguida de remate à baliza.",
-        category: "Técnico",
-        duration: "10min",
-        icon: "🎯",
-        level: "Difícil",
-    },
-    {
-        name: "Circuito de Resistência",
-        description:
-            "Estações de exercícios físicos para melhorar resistência.",
-        category: "Físico",
-        duration: "25min",
-        icon: "💪",
-        level: "Intenso",
-    },
-    {
-        name: "Jogo Reduzido 4x4",
-        description:
-            "Jogo condicionado para trabalhar tática e tomada de decisão.",
-        category: "Misto",
-        duration: "18min",
-        icon: "🤾‍♀️",
-        level: "Médio",
-    },
-    {
-        name: "Sprint Intervalado",
-        description: "Sprints curtos com pausas para melhorar explosão.",
-        category: "Físico",
-        duration: "15min",
-        icon: "⚡",
-        level: "Intenso",
-    },
-];
+const INPUT_CLASS =
+    "w-full rounded-xl border px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-teal-400 focus:outline-none transition-all";
+const INPUT_ERRO = "border-red-400";
+const INPUT_OK   = "border-gray-300 dark:border-gray-700";
 
-export default function Exercises() {
-    const [editModal, setEditModal] = useState(false);
-    const [editIndex, setEditIndex] = useState<number | null>(null);
-    const [editExercise, setEditExercise] = useState<Exercise>({
-        name: "",
-        description: "",
-        category: "Técnico",
-        duration: "",
-        icon: "🤾‍♂️",
-        level: "Fácil",
-    });
-    const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
-    const categories = [
-        "Todos",
-        ...Array.from(new Set(exercises.map((e) => e.category))),
-    ];
-    const [selectedCategory, setSelectedCategory] = useState("Todos");
-    const [search, setSearch] = useState("");
-    const [showModal, setShowModal] = useState(false);
-    const [newExercise, setNewExercise] = useState<Exercise>({
-        name: "",
-        description: "",
-        category: "Técnico",
-        duration: "",
-        icon: "🤾‍♂️",
-        level: "Fácil",
-    });
-    const filteredExercises = exercises.filter(
-        (e) =>
-            (selectedCategory === "Todos" || e.category === selectedCategory) &&
-            (search === "" ||
-                e.name.toLowerCase().includes(search.toLowerCase()) ||
-                e.description.toLowerCase().includes(search.toLowerCase())),
-    );
+export default function Exercicios() {
+    const [exercicios, setExercicios] = useState<Exercicio[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const [pesquisa, setPesquisa] = useState("");
+    const [filtroCategoria, setFiltroCategoria] = useState<"Todos" | Categoria>("Todos");
+
+    // Modal criar
+    const [showCriar, setShowCriar] = useState(false);
+    const [formCriar, setFormCriar] = useState<FormState>(FORM_VAZIO);
+    const [errosCriar, setErrosCriar] = useState<Record<string, string>>({});
+    const [savingCriar, setSavingCriar] = useState(false);
+
+    // Modal editar
+    const [exercicioEdit, setExercicioEdit] = useState<Exercicio | null>(null);
+    const [formEdit, setFormEdit] = useState<FormState>(FORM_VAZIO);
+    const [errosEdit, setErrosEdit] = useState<Record<string, string>>({});
+    const [savingEdit, setSavingEdit] = useState(false);
+
+    // Fetch exercicios
+    useEffect(() => {
+        fetch("/api/exercicios")
+            .then((r) => r.json())
+            .then((data) => { setExercicios(data); setLoading(false); })
+            .catch(() => setLoading(false));
+    }, []);
+
+    const exerciciosFiltrados = useMemo(() => {
+        return exercicios.filter((e) => {
+            const matchCategoria = filtroCategoria === "Todos" || e.categoria === filtroCategoria;
+            const matchPesquisa =
+                pesquisa === "" ||
+                e.nome.toLowerCase().includes(pesquisa.toLowerCase()) ||
+                e.descricao.toLowerCase().includes(pesquisa.toLowerCase());
+            return matchCategoria && matchPesquisa;
+        });
+    }, [exercicios, filtroCategoria, pesquisa]);
+
+    // Validação partilhada
+    function validar(form: FormState) {
+        const e: Record<string, string> = {};
+        if (!form.nome.trim() || form.nome.trim().length < 3)
+            e.nome = "Nome deve ter pelo menos 3 caracteres.";
+        if (form.nome.trim().length > 100)
+            e.nome = "Nome não pode ter mais de 100 caracteres.";
+        if (!form.descricao.trim())
+            e.descricao = "Descrição obrigatória.";
+        if (form.descricao.trim().length > 500)
+            e.descricao = "Descrição não pode ter mais de 500 caracteres.";
+        const dur = Number(form.duracao_min);
+        if (!form.duracao_min || isNaN(dur) || dur < 5 || dur > 120)
+            e.duracao_min = "Duração entre 5 e 120 minutos.";
+        return e;
+    }
+
+    // Criar
+    async function handleCriar(e: React.FormEvent) {
+        e.preventDefault();
+        const erros = validar(formCriar);
+        if (Object.keys(erros).length > 0) { setErrosCriar(erros); return; }
+        setErrosCriar({});
+        setSavingCriar(true);
+        try {
+            const res = await fetch("/api/exercicios", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...formCriar, duracao_min: Number(formCriar.duracao_min) }),
+            });
+            if (res.ok) {
+                const novo: Exercicio = await res.json();
+                setExercicios((prev) => [novo, ...prev]);
+                setShowCriar(false);
+                setFormCriar(FORM_VAZIO);
+            } else {
+                setErrosCriar({ geral: await res.text() });
+            }
+        } finally {
+            setSavingCriar(false);
+        }
+    }
+
+    // Editar
+    function abrirEditar(ex: Exercicio) {
+        setExercicioEdit(ex);
+        setFormEdit({
+            nome: ex.nome,
+            descricao: ex.descricao,
+            categoria: ex.categoria as Categoria,
+            duracao_min: ex.duracao_min,
+            nivel: ex.nivel as Nivel,
+        });
+        setErrosEdit({});
+    }
+
+    async function handleEditar(e: React.FormEvent) {
+        e.preventDefault();
+        if (!exercicioEdit) return;
+        const erros = validar(formEdit);
+        if (Object.keys(erros).length > 0) { setErrosEdit(erros); return; }
+        setErrosEdit({});
+        setSavingEdit(true);
+        try {
+            const res = await fetch(`/api/exercicios/${exercicioEdit.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...formEdit, duracao_min: Number(formEdit.duracao_min) }),
+            });
+            if (res.ok) {
+                setExercicios((prev) =>
+                    prev.map((ex) =>
+                        ex.id === exercicioEdit.id
+                            ? { ...ex, ...formEdit, duracao_min: Number(formEdit.duracao_min) }
+                            : ex,
+                    ),
+                );
+                setExercicioEdit(null);
+            } else {
+                setErrosEdit({ geral: await res.text() });
+            }
+        } finally {
+            setSavingEdit(false);
+        }
+    }
+
+    async function eliminarExercicio(id: string) {
+        await fetch(`/api/exercicios/${id}`, { method: "DELETE" });
+        setExercicios((prev) => prev.filter((ex) => ex.id !== id));
+        setExercicioEdit(null);
+    }
+
+    // Formulário reutilizável
+    function FormExercicio({
+        form,
+        setForm,
+        erros,
+        saving,
+        onSubmit,
+        onCancel,
+        labelSubmit,
+    }: {
+        form: FormState;
+        setForm: React.Dispatch<React.SetStateAction<FormState>>;
+        erros: Record<string, string>;
+        saving: boolean;
+        onSubmit: (e: React.FormEvent) => void;
+        onCancel: () => void;
+        labelSubmit: string;
+    }) {
+        return (
+            <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4">
+                {erros.geral && (
+                    <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2">
+                        {erros.geral}
+                    </p>
+                )}
+
+                <CampoTexto label="Nome" obrigatorio erro={erros.nome}>
+                    <input
+                        type="text"
+                        maxLength={100}
+                        placeholder="Ex: Remate em Suspensão"
+                        className={`${INPUT_CLASS} ${erros.nome ? INPUT_ERRO : INPUT_OK}`}
+                        value={form.nome}
+                        onChange={(e) => setForm((v) => ({ ...v, nome: e.target.value }))}
+                    />
+                    <p className="text-xs text-gray-400 text-right">{form.nome.length}/100</p>
+                </CampoTexto>
+
+                <CampoTexto label="Descrição" obrigatorio erro={erros.descricao}>
+                    <textarea
+                        rows={3}
+                        maxLength={500}
+                        placeholder="Descreva o objectivo e como executar o exercício"
+                        className={`${INPUT_CLASS} resize-none ${erros.descricao ? INPUT_ERRO : INPUT_OK}`}
+                        value={form.descricao}
+                        onChange={(e) => setForm((v) => ({ ...v, descricao: e.target.value }))}
+                    />
+                    <p className="text-xs text-gray-400 text-right">{form.descricao.length}/500</p>
+                </CampoTexto>
+
+                <div className="grid grid-cols-2 gap-3">
+                    <CampoTexto label="Categoria" obrigatorio erro={erros.categoria}>
+                        <select
+                            className={`${INPUT_CLASS} ${erros.categoria ? INPUT_ERRO : INPUT_OK}`}
+                            value={form.categoria}
+                            onChange={(e) => setForm((v) => ({ ...v, categoria: e.target.value as Categoria }))}
+                        >
+                            {CATEGORIAS.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </CampoTexto>
+
+                    <CampoTexto label="Nível" obrigatorio erro={erros.nivel}>
+                        <select
+                            className={`${INPUT_CLASS} ${erros.nivel ? INPUT_ERRO : INPUT_OK}`}
+                            value={form.nivel}
+                            onChange={(e) => setForm((v) => ({ ...v, nivel: e.target.value as Nivel }))}
+                        >
+                            {NIVEIS.map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                            ))}
+                        </select>
+                    </CampoTexto>
+                </div>
+
+                <CampoTexto label="Duração (minutos)" obrigatorio erro={erros.duracao_min}>
+                    <input
+                        type="number"
+                        min={5}
+                        max={120}
+                        placeholder="Ex: 15"
+                        className={`${INPUT_CLASS} ${erros.duracao_min ? INPUT_ERRO : INPUT_OK}`}
+                        value={form.duracao_min}
+                        onChange={(e) => setForm((v) => ({ ...v, duracao_min: e.target.value }))}
+                    />
+                    {!erros.duracao_min && (
+                        <p className="text-xs text-gray-400">Entre 5 e 120 minutos</p>
+                    )}
+                </CampoTexto>
+
+                <div className="flex gap-2 pt-2">
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all"
+                    >
+                        {saving ? "A guardar..." : labelSubmit}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        );
+    }
 
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6">
-            {/* Modal Editar Exercício */}
-            {editModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
-                        <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
-                            onClick={() => setEditModal(false)}
-                            aria-label="Fechar"
-                        >
-                            ×
-                        </button>
-                        <div className="flex flex-col items-center mb-6">
-                            <span className="text-blue-600 text-4xl mb-2">
-                                ✏️
-                            </span>
-                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                                Editar Exercício
-                            </h3>
-                        </div>
-                        <form
-                            className="flex flex-col gap-4 text-base"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                if (editIndex !== null) {
-                                    setExercises((prev) =>
-                                        prev.map((ex, idx) =>
-                                            idx === editIndex
-                                                ? editExercise
-                                                : ex,
-                                        ),
-                                    );
-                                }
-                                setEditModal(false);
-                            }}
-                        >
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Nome:
-                                </label>
-                                <input
-                                    type="text"
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={editExercise.name}
-                                    onChange={(e) =>
-                                        setEditExercise((ev) => ({
-                                            ...ev,
-                                            name: e.target.value,
-                                        }))
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Descrição:
-                                </label>
-                                <textarea
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={editExercise.description}
-                                    onChange={(e) =>
-                                        setEditExercise((ev) => ({
-                                            ...ev,
-                                            description: e.target.value,
-                                        }))
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Categoria:
-                                    </label>
-                                    <select
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={editExercise.category}
-                                        onChange={(e) =>
-                                            setEditExercise((ev) => ({
-                                                ...ev,
-                                                category: e.target.value,
-                                            }))
-                                        }
-                                    >
-                                        <option value="Técnico">Técnico</option>
-                                        <option value="Tático">Tático</option>
-                                        <option value="Físico">Físico</option>
-                                        <option value="Misto">Misto</option>
-                                    </select>
-                                </div>
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Duração:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={editExercise.duration}
-                                        onChange={(e) =>
-                                            setEditExercise((ev) => ({
-                                                ...ev,
-                                                duration: e.target.value,
-                                            }))
-                                        }
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Ícone:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={editExercise.icon}
-                                        onChange={(e) =>
-                                            setEditExercise((ev) => ({
-                                                ...ev,
-                                                icon: e.target.value,
-                                            }))
-                                        }
-                                        maxLength={2}
-                                        required
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Nível:
-                                    </label>
-                                    <select
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={editExercise.level}
-                                        onChange={(e) =>
-                                            setEditExercise((ev) => ({
-                                                ...ev,
-                                                level: e.target.value,
-                                            }))
-                                        }
-                                    >
-                                        <option value="Fácil">Fácil</option>
-                                        <option value="Médio">Médio</option>
-                                        <option value="Intenso">Intenso</option>
-                                        <option value="Difícil">Difícil</option>
-                                    </select>
+
+            {/* ── MODAL CRIAR ───────────────────────────────────────────── */}
+            {showCriar && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">🤾</span>
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Criar Exercício</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Adicione um exercício à biblioteca</p>
                                 </div>
                             </div>
                             <button
-                                type="submit"
-                                className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
+                                onClick={() => setShowCriar(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-xl font-bold transition-all"
+                                aria-label="Fechar"
                             >
-                                <span className="flex items-center justify-center gap-2">
-                                    <span>💾</span>
-                                    Guardar Alterações
-                                </span>
+                                ×
                             </button>
-                        </form>
+                        </div>
+                        <FormExercicio
+                            form={formCriar}
+                            setForm={setFormCriar}
+                            erros={errosCriar}
+                            saving={savingCriar}
+                            onSubmit={handleCriar}
+                            onCancel={() => setShowCriar(false)}
+                            labelSubmit="Guardar Exercício"
+                        />
                     </div>
                 </div>
             )}
-            {/* Modal Criar Exercício */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
-                        <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
-                            onClick={() => setShowModal(false)}
-                            aria-label="Fechar"
-                        >
-                            ×
-                        </button>
-                        <div className="flex flex-col items-center mb-6">
-                            <span className="text-blue-600 text-4xl mb-2">
-                                🏋️‍♂️
-                            </span>
-                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                                Criar Exercício
-                            </h3>
-                        </div>
-                        <form
-                            className="flex flex-col gap-4 text-base"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                setExercises((prev) => [...prev, newExercise]);
-                                setShowModal(false);
-                                setNewExercise({
-                                    name: "",
-                                    description: "",
-                                    category: "Técnico",
-                                    duration: "",
-                                    icon: "🤾‍♂️",
-                                    level: "Fácil",
-                                });
-                            }}
-                        >
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Nome:
-                                </label>
-                                <input
-                                    type="text"
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={newExercise.name}
-                                    onChange={(e) =>
-                                        setNewExercise((ev) => ({
-                                            ...ev,
-                                            name: e.target.value,
-                                        }))
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Descrição:
-                                </label>
-                                <textarea
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={newExercise.description}
-                                    onChange={(e) =>
-                                        setNewExercise((ev) => ({
-                                            ...ev,
-                                            description: e.target.value,
-                                        }))
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div className="flex gap-2">
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Categoria:
-                                    </label>
-                                    <select
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={newExercise.category}
-                                        onChange={(e) =>
-                                            setNewExercise((ev) => ({
-                                                ...ev,
-                                                category: e.target.value,
-                                            }))
-                                        }
-                                    >
-                                        <option value="Técnico">Técnico</option>
-                                        <option value="Tático">Tático</option>
-                                        <option value="Físico">Físico</option>
-                                        <option value="Misto">Misto</option>
-                                    </select>
-                                </div>
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Duração:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={newExercise.duration}
-                                        onChange={(e) =>
-                                            setNewExercise((ev) => ({
-                                                ...ev,
-                                                duration: e.target.value,
-                                            }))
-                                        }
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Ícone:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={newExercise.icon}
-                                        onChange={(e) =>
-                                            setNewExercise((ev) => ({
-                                                ...ev,
-                                                icon: e.target.value,
-                                            }))
-                                        }
-                                        maxLength={2}
-                                        required
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                        Nível:
-                                    </label>
-                                    <select
-                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                        value={newExercise.level}
-                                        onChange={(e) =>
-                                            setNewExercise((ev) => ({
-                                                ...ev,
-                                                level: e.target.value,
-                                            }))
-                                        }
-                                    >
-                                        <option value="Fácil">Fácil</option>
-                                        <option value="Médio">Médio</option>
-                                        <option value="Intenso">Intenso</option>
-                                        <option value="Difícil">Difícil</option>
-                                    </select>
+
+            {/* ── MODAL EDITAR ──────────────────────────────────────────── */}
+            {exercicioEdit && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">✏️</span>
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Editar Exercício</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{exercicioEdit.nome}</p>
                                 </div>
                             </div>
                             <button
-                                type="submit"
-                                className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
+                                onClick={() => setExercicioEdit(null)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-xl font-bold transition-all"
+                                aria-label="Fechar"
                             >
-                                <span className="flex items-center justify-center gap-2">
-                                    <span>＋</span>
-                                    Guardar Exercício
-                                </span>
+                                ×
                             </button>
-                        </form>
+                        </div>
+                        <FormExercicio
+                            form={formEdit}
+                            setForm={setFormEdit}
+                            erros={errosEdit}
+                            saving={savingEdit}
+                            onSubmit={handleEditar}
+                            onCancel={() => setExercicioEdit(null)}
+                            labelSubmit="Guardar Alterações"
+                        />
+                        <div className="px-6 pb-6">
+                            <button
+                                onClick={() => eliminarExercicio(exercicioEdit.id)}
+                                className="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl transition-all text-sm border border-red-200 dark:border-red-800"
+                            >
+                                Eliminar Exercício
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
-            {/* Cabeçalho */}
+
+            {/* ── CABEÇALHO ─────────────────────────────────────────────── */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-teal-700 dark:text-teal-400 flex items-center gap-3">
-                        <span>🤾‍♂️</span> Exercícios de Andebol
+                        <span>🤾</span> Exercícios
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Biblioteca pessoal + partilhada · {exercises.length} exercícios
+                        Biblioteca de exercícios · {exercicios.length} exercício{exercicios.length !== 1 ? "s" : ""}
                     </p>
                 </div>
                 <button
-                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all"
-                    onClick={() => setShowModal(true)}
+                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-2"
+                    onClick={() => { setFormCriar(FORM_VAZIO); setErrosCriar({}); setShowCriar(true); }}
                 >
                     <span className="text-xl">＋</span> Criar Exercício
                 </button>
             </div>
-            {/* Filtros */}
-            <div className="mb-6 flex flex-col md:flex-row gap-2 items-center">
+
+            {/* ── FILTROS ───────────────────────────────────────────────── */}
+            <div className="mb-6 flex flex-col md:flex-row gap-3 items-start md:items-center">
                 <input
                     type="text"
-                    placeholder="🔍 Pesquisar exercícios..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full md:w-1/3 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    placeholder="Pesquisar exercícios..."
+                    value={pesquisa}
+                    onChange={(e) => setPesquisa(e.target.value)}
+                    className="w-full md:w-72 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400 placeholder:text-gray-400"
                 />
-                <div className="flex gap-2 mt-2 md:mt-0">
-                    {categories.map((cat) => (
+                <div className="flex flex-wrap gap-2">
+                    {(["Todos", ...CATEGORIAS] as const).map((cat) => (
                         <button
                             key={cat}
-                            className={`px-3 py-1 rounded-lg font-bold text-sm border transition-all ${selectedCategory === cat ? "bg-teal-600 text-white border-teal-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20"}`}
-                            onClick={() => setSelectedCategory(cat)}
+                            onClick={() => setFiltroCategoria(cat as "Todos" | Categoria)}
+                            className={`px-3 py-1.5 rounded-lg font-bold text-sm border transition-all ${
+                                filtroCategoria === cat
+                                    ? "bg-teal-600 text-white border-teal-600"
+                                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+                            }`}
                         >
                             {cat}
                         </button>
                     ))}
                 </div>
             </div>
-            {/* Lista de Exercícios */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredExercises.map((e, idx) => (
-                    <div
-                        key={idx}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow p-5 flex flex-col justify-between min-h-[140px] transition-all hover:scale-[1.02] hover:shadow-lg cursor-pointer"
-                        onClick={() => {
-                            setEditIndex(idx);
-                            setEditExercise(e);
-                            setEditModal(true);
-                        }}
-                    >
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-2xl">{e.icon}</span>
-                            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                                {e.name}
-                            </span>
-                            <span
-                                className={`ml-auto px-2 py-1 rounded text-xs font-bold ${e.category === "Técnico" ? "bg-blue-100 text-blue-700" : e.category === "Tático" ? "bg-purple-100 text-purple-700" : e.category === "Físico" ? "bg-yellow-100 text-yellow-700" : e.category === "Misto" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
-                            >
-                                {e.category}
-                            </span>
+
+            {/* ── GRELHA ────────────────────────────────────────────────── */}
+            {loading ? (
+                <div className="text-center py-16 text-gray-400">A carregar exercícios...</div>
+            ) : exerciciosFiltrados.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                    {exercicios.length === 0
+                        ? "Ainda não há exercícios. Crie o primeiro!"
+                        : "Nenhum exercício encontrado para os filtros aplicados."}
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {exerciciosFiltrados.map((ex) => (
+                        <div
+                            key={ex.id}
+                            onClick={() => abrirEditar(ex)}
+                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5 flex flex-col gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all"
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-2xl shrink-0">
+                                        {CATEGORIA_ICONS[ex.categoria as Categoria] ?? "🤾"}
+                                    </span>
+                                    <span className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">
+                                        {ex.nome}
+                                    </span>
+                                </div>
+                                <span className={`shrink-0 px-2 py-1 rounded-lg text-xs font-bold ${CATEGORIA_COLORS[ex.categoria as Categoria] ?? ""}`}>
+                                    {ex.categoria}
+                                </span>
+                            </div>
+
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2">
+                                {ex.descricao}
+                            </p>
+
+                            <div className="flex items-center justify-between mt-auto pt-1 border-t border-gray-100 dark:border-gray-700">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    ⏱ {ex.duracao_min} min
+                                </span>
+                                <span className={`px-2 py-1 rounded-lg text-xs font-bold ${NIVEL_COLORS[ex.nivel as Nivel] ?? ""}`}>
+                                    {ex.nivel}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            {e.description}
-                        </div>
-                        <div className="flex items-center gap-4 mt-auto">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                ⏱ {e.duration}
-                            </span>
-                            <span
-                                className={`ml-auto px-2 py-1 rounded text-xs font-bold ${e.level === "Fácil" ? "bg-blue-200 text-blue-800" : e.level === "Médio" ? "bg-green-200 text-green-800" : e.level === "Intenso" ? "bg-yellow-200 text-yellow-800" : e.level === "Difícil" ? "bg-red-200 text-red-800" : "bg-gray-200 text-gray-800"}`}
-                            >
-                                {e.level}
-                            </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -370,7 +370,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
                                 icon={<User size={20} />}
-                                label="Dashboard Treinador"
+                                label="Início"
                                 href="/dashboard/treinador"
                                 onClick={() => setIsOpen(false)}
                             />
@@ -383,14 +383,8 @@ export default function SideNav({ accountType }: SideNavProps) {
                             <NavSectionLabel>Plantel</NavSectionLabel>
                             <NavItem
                                 icon={<Users size={20} />}
-                                label="Equipa de Atletas"
+                                label="Equipa"
                                 href="/dashboard/treinador/equipa-atletas"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                icon={<User size={20} />}
-                                label="Equipa Técnica"
-                                href="/dashboard/treinador/equipa-tecnica"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavSectionLabel>Treino</NavSectionLabel>

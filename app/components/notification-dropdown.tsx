@@ -3,7 +3,7 @@
 import { Bell, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/app/components/button";
-import { useRouter } from "next/dist/client/components/navigation";
+import { usePathname, useRouter } from "next/dist/client/components/navigation";
 
 interface Notificacao {
     id: string;
@@ -27,6 +27,7 @@ export function NotificationDropdown() {
     const [loading, setLoading] = useState(false);
     const [positionAbove, setPositionAbove] = useState(false);
     const router = useRouter();
+
     const containerRef = useRef<HTMLDivElement>(null);
 
     const fetchData = async () => {
@@ -76,9 +77,14 @@ export function NotificationDropdown() {
         setIsOpen(!isOpen);
     };
 
+    const pathname = usePathname();
+    const notifHref = pathname?.startsWith("/dashboard/treinador")
+        ? "/dashboard/treinador/notificacoes"
+        : "/dashboard/presidente/notificacoes";
+
     const handleVerTodas = () => {
         setIsOpen(false);
-        router.push("/dashboard/presidente/notificacoes");
+        router.push(notifHref);
     };
 
     const showBadge = !loading && total > 0;

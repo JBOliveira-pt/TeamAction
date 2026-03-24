@@ -1,237 +1,273 @@
-"use client";
 import Link from "next/link";
-import SidebarEquipas from "./components/SidebarEquipas";
-import { atletasIniciais } from "./equipa-atletas/equipaatletas";
-import { staffInicial } from "./equipa-tecnica/equipatecnica";
+import { auth } from "@clerk/nextjs/server";
+import postgres from "postgres";
 
-export default function TreinadorDashboard() {
-    const userName = "Treinador João";
-    const equipa = "Seniores Masculinos";
-    const nAtletas = atletasIniciais.length;
-    const atletas = atletasIniciais;
-    const staff = staffInicial;
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+
+async function fetchDashboardData() {
+    const { userId } = await auth();
+    if (!userId) return null;
+
+    const userRows = await sql<{ id: string; name: string; organization_id: string }[]>`
+        SELECT id, name, organization_id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+    `;
+    const user = userRows[0];
+    if (!user) return null;
+
+    const orgId = user.organization_id;
+    const hoje = new Date().toISOString().split("T")[0];
+
+    const [
+        atletasResult,
+        proximaSessaoResult,
+        proximoJogoResult,
+        ultimasSessoesResult,
+        assiduidadeResult,
+    ] = await Promise.all([
+        // Total atletas ativos
+        sql<{ total: number }[]>`
+            SELECT COUNT(*)::int AS total FROM atletas
+            WHERE organization_id = ${orgId} AND estado = 'Ativo'
+        `,
+        // Próxima sessão
+        sql<{ id: string; data: string; tipo: string; duracao_min: number }[]>`
+            SELECT id, data::text, tipo, duracao_min FROM sessoes
+            WHERE organization_id = ${orgId} AND data >= ${hoje}::date
+            ORDER BY data ASC LIMIT 1
+        `,
+        // Próximo jogo
+        sql<{ id: string; adversario: string; data: string; casa_fora: string }[]>`
+            SELECT id, adversario, data::text, casa_fora FROM jogos
+            WHERE organization_id = ${orgId} AND estado = 'agendado' AND data >= ${hoje}::date
+            ORDER BY data ASC LIMIT 1
+        `,
+        // Últimas 3 sessões
+        sql<{ id: string; data: string; tipo: string }[]>`
+            SELECT id, data::text, tipo FROM sessoes
+            WHERE organization_id = ${orgId}
+            ORDER BY data DESC LIMIT 3
+        `,
+        // Assiduidade geral: % de presenças
+        sql<{ total: number; presencas: number }[]>`
+            SELECT
+                COUNT(*)::int AS total,
+                SUM(CASE WHEN estado = 'P' THEN 1 ELSE 0 END)::int AS presencas
+            FROM assiduidade
+            WHERE sessao_id IN (
+                SELECT id FROM sessoes WHERE organization_id = ${orgId}
+            )
+        `,
+    ]).catch(() => [null, null, null, null, null]);
+
+    // Atleta mais assíduo
+    const atletaDestaqueResult = await sql<{ nome: string; pct: number }[]>`
+        SELECT a.nome,
+               ROUND(100.0 * SUM(CASE WHEN ass.estado = 'P' THEN 1 ELSE 0 END) / NULLIF(COUNT(ass.id), 0))::int AS pct
+        FROM assiduidade ass
+        JOIN atletas a ON a.id = ass.atleta_id
+        WHERE ass.sessao_id IN (
+            SELECT id FROM sessoes WHERE organization_id = ${orgId}
+        )
+        GROUP BY a.id, a.nome
+        HAVING COUNT(ass.id) >= 3
+        ORDER BY pct DESC LIMIT 1
+    `.catch(() => []);
+
+    const totalAtletas = atletasResult?.[0]?.total ?? 0;
+    const proximaSessao = proximaSessaoResult?.[0] ?? null;
+    const proximoJogo = proximoJogoResult?.[0] ?? null;
+    const ultimasSessoes = ultimasSessoesResult ?? [];
+    const totalRegistos = assiduidadeResult?.[0]?.total ?? 0;
+    const totalPresencas = assiduidadeResult?.[0]?.presencas ?? 0;
+    const pctAssiduidade = totalRegistos > 0 ? Math.round((totalPresencas / totalRegistos) * 100) : null;
+    const atletaDestaque = atletaDestaqueResult?.[0] ?? null;
+
+    return {
+        nome: user.name,
+        totalAtletas,
+        proximaSessao,
+        proximoJogo,
+        ultimasSessoes,
+        pctAssiduidade,
+        atletaDestaque,
+    };
+}
+
+function formatData(iso: string) {
+    return new Date(iso).toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
+}
+
+export default async function TreinadorDashboard() {
+    const data = await fetchDashboardData();
+
+    const nome = data?.nome ?? "Treinador";
+    const primeiroNome = nome.split(" ")[0];
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-900 w-full min-h-screen p-6">
-            {/* Layout com sidebar à esquerda */}
-            <div className="flex flex-col md:flex-row gap-8">
-                {/* Sidebar de equipas */}
-                <SidebarEquipas atletas={atletas} staff={staff} />
-                <div className="flex-1">
-                    {/* Header */}
-                    <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                            <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                                Olá,{" "}
-                                <span className="text-blue-600 dark:text-blue-400">
-                                    {userName}
-                                </span>
-                            </h2>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {equipa} · {nAtletas} atletas
-                            </p>
-                        </div>
-                        <div className="flex gap-2 flex-wrap items-center">
-                            <Link
-                                href="/dashboard/treinador/sessoes"
-                                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold shadow hover:bg-purple-700 transition-all"
-                            >
-                                Nova Sessão
-                            </Link>
-                            <Link
-                                href="/dashboard/treinador/assiduidade"
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold shadow hover:bg-green-700 transition-all"
-                            >
-                                Registar Presença
-                            </Link>
-                            <Link
-                                href="/dashboard/treinador/estatisticas-ao-vivo"
-                                className="px-4 py-2 bg-gray-800 text-white rounded-lg font-semibold shadow hover:bg-gray-900 transition-all"
-                            >
-                                Ver Estatísticas
-                            </Link>
-                        </div>
+        <div className="w-full min-h-screen bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-8">
+
+                {/* ── Cabeçalho ── */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                            Olá,{" "}
+                            <span className="text-blue-600 dark:text-blue-400">
+                                {primeiroNome}
+                            </span>{" "}
+                            👋
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {data?.totalAtletas ?? 0} atletas ativos
+                        </p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                        <Link
+                            href="/dashboard/treinador/sessoes"
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold text-sm shadow hover:bg-purple-700 transition-all"
+                        >
+                            Nova Sessão
+                        </Link>
+                        <Link
+                            href="/dashboard/treinador/assiduidade"
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm shadow hover:bg-green-700 transition-all"
+                        >
+                            Registar Presença
+                        </Link>
+                    </div>
+                </div>
+
+                {/* ── Cards de destaque ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+                    {/* Próxima sessão */}
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 p-6 shadow-sm flex flex-col gap-2">
+                        <span className="text-3xl">🏋️</span>
+                        <h3 className="font-bold text-sm text-blue-700 dark:text-blue-300 uppercase tracking-wide">
+                            Próxima Sessão
+                        </h3>
+                        {data?.proximaSessao ? (
+                            <>
+                                <p className="font-bold text-gray-800 dark:text-gray-100">
+                                    {data.proximaSessao.tipo}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {formatData(data.proximaSessao.data)} · {data.proximaSessao.duracao_min} min
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-400">Sem sessões agendadas</p>
+                        )}
                     </div>
 
-                    {/* Notificações/avisos */}
-                    <div className="mb-8">
-                        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 flex items-center gap-4 mb-2">
-                            <span className="text-2xl">🔔</span>
-                            <div>
-                                <div className="font-semibold text-yellow-800 dark:text-yellow-200">
-                                    Aviso: Treino de amanhã alterado para 21:00!
-                                </div>
-                                <div className="text-xs text-yellow-700 dark:text-yellow-300">
-                                    13 Mar 2026
-                                </div>
-                            </div>
-                        </div>
-                        <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 flex items-center gap-4">
-                            <span className="text-2xl">📄</span>
-                            <div>
-                                <div className="font-semibold text-red-800 dark:text-red-200">
-                                    Documento de inscrição pendente para 2
-                                    atletas.
-                                </div>
-                                <div className="text-xs text-red-700 dark:text-red-300">
-                                    Atenção: regularizar até 15 Mar
-                                </div>
-                            </div>
-                        </div>
+                    {/* Próximo jogo */}
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-700 p-6 shadow-sm flex flex-col gap-2">
+                        <span className="text-3xl">🏆</span>
+                        <h3 className="font-bold text-sm text-amber-700 dark:text-amber-300 uppercase tracking-wide">
+                            Próximo Jogo
+                        </h3>
+                        {data?.proximoJogo ? (
+                            <>
+                                <p className="font-bold text-gray-800 dark:text-gray-100 truncate">
+                                    vs {data.proximoJogo.adversario}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {formatData(data.proximoJogo.data)} · {data.proximoJogo.casa_fora === "casa" ? "Casa" : "Fora"}
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-400">Sem jogos agendados</p>
+                        )}
                     </div>
 
-                    {/* Secção visual diferente: cards em destaque */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 p-8 shadow-lg flex flex-col items-center text-center">
-                            <span className="text-4xl mb-2">🏋️‍♂️</span>
-                            <h3 className="font-bold text-lg mb-1 text-blue-700 dark:text-blue-300">
-                                Próximo Treino
-                            </h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                                15 Mar, 20:00
-                                <br />
-                                Pavilhão Municipal
-                            </p>
-                        </div>
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 p-8 shadow-lg flex flex-col items-center text-center">
-                            <span className="text-4xl mb-2">📈</span>
-                            <h3 className="font-bold text-lg mb-1 text-green-700 dark:text-green-300">
-                                Assiduidade
-                            </h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                                91% esta semana
-                            </p>
-                        </div>
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 p-8 shadow-lg flex flex-col items-center text-center">
-                            <span className="text-4xl mb-2">⭐</span>
-                            <h3 className="font-bold text-lg mb-1 text-yellow-700 dark:text-yellow-300">
-                                Atleta em Destaque
-                            </h3>
-                            <p className="text-gray-700 dark:text-gray-300">
-                                Bruno Dias
-                                <br />
-                                Assiduidade: 100%
-                            </p>
-                        </div>
-                        {/* Estatísticas rápidas do plantel */}
-                        <div className="rounded-2xl bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 p-8 shadow-lg flex flex-col items-center text-center">
-                            <span className="text-4xl mb-2">📊</span>
-                            <h3 className="font-bold text-lg mb-1 text-indigo-700 dark:text-indigo-300">
-                                Plantel
-                            </h3>
-                            <ul className="text-gray-700 dark:text-gray-300 text-sm space-y-1">
-                                <li>18 atletas</li>
-                                <li>Golos: 32</li>
-                                <li>Cartões: 4 amarelos, 1 vermelho</li>
-                                <li>Presenças médias: 16</li>
-                            </ul>
-                        </div>
+                    {/* Assiduidade */}
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 p-6 shadow-sm flex flex-col gap-2">
+                        <span className="text-3xl">📈</span>
+                        <h3 className="font-bold text-sm text-green-700 dark:text-green-300 uppercase tracking-wide">
+                            Assiduidade
+                        </h3>
+                        {data?.pctAssiduidade !== null ? (
+                            <>
+                                <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                                    {data!.pctAssiduidade}%
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">média geral</p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-400">Sem registos ainda</p>
+                        )}
                     </div>
 
-                    {/* Destaque de atletas */}
-                    <div className="mb-10">
-                        <div className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-                            Atletas em Destaque
-                        </div>
-                        <div className="flex flex-wrap gap-4">
-                            <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 min-w-[180px] flex flex-col items-center">
-                                <span className="text-2xl">🥇</span>
-                                <div className="font-semibold text-green-800 dark:text-green-200">
-                                    Bruno Dias
-                                </div>
-                                <div className="text-xs text-green-700 dark:text-green-300">
-                                    Assiduidade: 100%
-                                </div>
-                            </div>
-                            <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 min-w-[180px] flex flex-col items-center">
-                                <span className="text-2xl">⚡</span>
-                                <div className="font-semibold text-blue-800 dark:text-blue-200">
-                                    João Silva
-                                </div>
-                                <div className="text-xs text-blue-700 dark:text-blue-300">
-                                    Melhor desempenho físico
-                                </div>
-                            </div>
-                            <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 min-w-[180px] flex flex-col items-center">
-                                <span className="text-2xl">🎯</span>
-                                <div className="font-semibold text-yellow-800 dark:text-yellow-200">
-                                    Miguel Costa
-                                </div>
-                                <div className="text-xs text-yellow-700 dark:text-yellow-300">
-                                    Mais golos
-                                </div>
-                            </div>
-                        </div>
+                    {/* Atleta em destaque */}
+                    <div className="rounded-2xl bg-white dark:bg-gray-800 border border-yellow-200 dark:border-yellow-700 p-6 shadow-sm flex flex-col gap-2">
+                        <span className="text-3xl">⭐</span>
+                        <h3 className="font-bold text-sm text-yellow-700 dark:text-yellow-300 uppercase tracking-wide">
+                            Atleta em Destaque
+                        </h3>
+                        {data?.atletaDestaque ? (
+                            <>
+                                <p className="font-bold text-gray-800 dark:text-gray-100">
+                                    {data.atletaDestaque.nome}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Assiduidade: {data.atletaDestaque.pct}%
+                                </p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-400">Sem dados suficientes</p>
+                        )}
                     </div>
+                </div>
 
-                    {/* Próximos eventos */}
-                    <div className="mb-10">
-                        <div className="text-lg font-bold mb-2 text-gray-900 dark:text-white">
-                            Próximos Eventos
-                        </div>
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <li className="flex items-center justify-between p-4">
-                                <span className="font-semibold">
-                                    Treino Técnico
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    15 Mar, 20:00
-                                </span>
-                            </li>
-                            <li className="flex items-center justify-between p-4">
-                                <span className="font-semibold">
-                                    Jogo Amigável vs. Rivais
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    18 Mar, 18:00
-                                </span>
-                            </li>
-                            <li className="flex items-center justify-between p-4">
-                                <span className="font-semibold">
-                                    Reunião de equipa
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    20 Mar, 21:00
-                                </span>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Secção de destaques recentes */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col gap-2">
-                            <div className="text-base font-bold text-gray-900 dark:text-white mb-2">
+                {/* ── Últimas sessões + Atalhos ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Últimas sessões */}
+                    <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-base text-gray-900 dark:text-white">
                                 Últimas Sessões
-                            </div>
-                            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                                <li>
-                                    13 Mar - Treino Físico - 17 atletas
-                                    presentes
-                                </li>
-                                <li>
-                                    11 Mar - Treino Técnico - 16 atletas
-                                    presentes
-                                </li>
-                                <li>8 Mar - Jogo Amigável - Vitória 3-2</li>
-                            </ul>
+                            </h3>
+                            <Link href="/dashboard/treinador/sessoes" className="text-xs text-blue-500 hover:underline">
+                                Ver todas →
+                            </Link>
                         </div>
-                        <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col gap-2">
-                            <div className="text-base font-bold text-gray-900 dark:text-white mb-2">
-                                Notas do Treinador
-                            </div>
-                            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                                <li>⚡ Manter o foco nos treinos técnicos.</li>
-                                <li>
-                                    💡 Incentivar a assiduidade dos atletas.
-                                </li>
-                                <li>
-                                    🔥 Preparar estratégia para o próximo jogo.
-                                </li>
+                        {data?.ultimasSessoes?.length ? (
+                            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {data.ultimasSessoes.map((s) => (
+                                    <li key={s.id} className="flex items-center justify-between py-2 text-sm">
+                                        <span className="font-medium text-gray-700 dark:text-gray-300">{s.tipo}</span>
+                                        <span className="text-gray-400 text-xs">{formatData(s.data)}</span>
+                                    </li>
+                                ))}
                             </ul>
+                        ) : (
+                            <p className="text-sm text-gray-400">Nenhuma sessão registada ainda.</p>
+                        )}
+                    </div>
+
+                    {/* Atalhos rápidos */}
+                    <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex flex-col gap-3">
+                        <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                            Atalhos Rápidos
+                        </h3>
+                        <div className="grid grid-cols-2 gap-2">
+                            {[
+                                { label: "Calendário", href: "/dashboard/treinador/calendario", emoji: "📅" },
+                                { label: "Exercícios", href: "/dashboard/treinador/exercicios", emoji: "📋" },
+                                { label: "Quadro Tático", href: "/dashboard/treinador/quadro-tatico", emoji: "🗺️" },
+                                { label: "Jogos", href: "/dashboard/treinador/jogos", emoji: "🏆" },
+                                { label: "Equipa", href: "/dashboard/treinador/equipa-atletas", emoji: "👥" },
+                                { label: "Biblioteca", href: "/dashboard/treinador/biblioteca", emoji: "📚" },
+                            ].map(({ label, href, emoji }) => (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-all text-sm font-medium text-gray-700 dark:text-gray-300"
+                                >
+                                    <span>{emoji}</span> {label}
+                                </Link>
+                            ))}
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
     );
 }
