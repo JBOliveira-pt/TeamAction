@@ -158,15 +158,18 @@ function ModalNovoJogo({ equipas, onCreate, onClose }: {
     const [saving, setSaving] = useState(false);
     const [erroData, setErroData] = useState("");
 
-    // Pesquisa com debounce
+    // Resultados derivados — sem useEffect para limpar
+    const resultadosMostrar = adversarioNaPlataforma && pesquisa.trim().length >= 2 ? resultados : [];
+
+    // Pesquisa com debounce — setState apenas dentro dos callbacks assíncronos
     useEffect(() => {
-        if (!adversarioNaPlataforma) return;
-        if (pesquisa.trim().length < 2) { setResultados([]); return; }
+        if (!adversarioNaPlataforma || pesquisa.trim().length < 2) return;
         if (searchTimer.current) clearTimeout(searchTimer.current);
-        setBuscando(true);
         searchTimer.current = setTimeout(async () => {
+            setBuscando(true);
             const res = await fetch(`/api/clubes?q=${encodeURIComponent(pesquisa.trim())}`);
             if (res.ok) setResultados(await res.json());
+            else setResultados([]);
             setBuscando(false);
         }, 350);
         return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
@@ -193,6 +196,7 @@ function ModalNovoJogo({ equipas, onCreate, onClose }: {
             return;
         }
         setErroData("");
+        if (!equipaId) { setErroData("Seleciona uma equipa."); return; }
         setSaving(true);
         await onCreate({ adversario: adversarioFinal, data: dataJogo, casa_fora: casaFora, local, equipa_id: equipaId });
         setSaving(false);
@@ -268,9 +272,9 @@ function ModalNovoJogo({ equipas, onCreate, onClose }: {
 
                             {buscando && <p className="text-xs text-gray-400 text-center">A pesquisar...</p>}
 
-                            {!buscando && resultados.length > 0 && (
+                            {!buscando && resultadosMostrar.length > 0 && (
                                 <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
-                                    {resultados.map((c) => (
+                                    {resultadosMostrar.map((c) => (
                                         <button
                                             key={c.id}
                                             onClick={() => { setClubeSelecionado(c); setPesquisa(c.name); setResultados([]); }}
@@ -285,7 +289,7 @@ function ModalNovoJogo({ equipas, onCreate, onClose }: {
                                 </div>
                             )}
 
-                            {!buscando && pesquisa.trim().length >= 2 && resultados.length === 0 && !clubeSelecionado && (
+                            {!buscando && pesquisa.trim().length >= 2 && resultadosMostrar.length === 0 && !clubeSelecionado && (
                                 <p className="text-sm text-gray-400 text-center py-2">Nenhum clube encontrado na plataforma.</p>
                             )}
 
@@ -358,13 +362,14 @@ function ModalNovoJogo({ equipas, onCreate, onClose }: {
                                     </select>
                                 </div>
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Equipa</label>
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Equipa <span className="text-red-500">*</span></label>
                                     <select
                                         className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
                                         value={equipaId}
                                         onChange={(e) => setEquipaId(e.target.value)}
+                                        required
                                     >
-                                        <option value="">Nenhuma</option>
+                                        <option value="">Selecionar equipa</option>
                                         {equipas.map((eq) => (
                                             <option key={eq.id} value={eq.id}>{eq.nome}</option>
                                         ))}

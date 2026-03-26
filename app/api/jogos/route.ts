@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
 
     const user = await getUser(userId);
     if (!user) return new Response("User not found", { status: 404 });
+    if (!user.organization_id) return new Response("Utilizador sem organização", { status: 400 });
 
     const body = await req.json() as {
         adversario?: string;
@@ -78,35 +79,42 @@ export async function POST(req: NextRequest) {
     if (dataJogo < hoje)
         return new Response("Não é possível agendar um jogo em data já passada.", { status: 400 });
 
+    if (!body.equipa_id) return new Response("Equipa é obrigatória.", { status: 400 });
+
     const casaFora = body.casa_fora === "fora" ? "fora" : "casa";
     const local = body.local?.trim() || null;
-    const equipaId = body.equipa_id || null;
+    const equipaId = body.equipa_id;
 
-    const rows = await sql<{
-        id: string;
-        adversario: string;
-        data: string;
-        casa_fora: string;
-        local: string | null;
-        estado: string;
-        resultado_nos: number | null;
-        resultado_adv: number | null;
-        equipa_id: string | null;
-    }[]>`
-        INSERT INTO jogos (id, adversario, data, equipa_id, casa_fora, local, estado, visibilidade_publica, organization_id)
-        VALUES (
-            gen_random_uuid(),
-            ${body.adversario.trim()},
-            ${body.data},
-            ${equipaId},
-            ${casaFora},
-            ${local},
-            'agendado',
-            false,
-            ${user.organization_id}
-        )
-        RETURNING id, adversario, data::text, equipa_id, casa_fora, local, estado, resultado_nos, resultado_adv
-    `;
-
-    return Response.json(rows[0], { status: 201 });
+    try {
+        const rows = await sql<{
+            id: string;
+            adversario: string;
+            data: string;
+            casa_fora: string;
+            local: string | null;
+            estado: string;
+            resultado_nos: number | null;
+            resultado_adv: number | null;
+            equipa_id: string | null;
+        }[]>`
+            INSERT INTO jogos (id, adversario, data, equipa_id, casa_fora, local, estado, visibilidade_publica, organization_id)
+            VALUES (
+                gen_random_uuid(),
+                ${body.adversario.trim()},
+                ${body.data},
+                ${equipaId},
+                ${casaFora},
+                ${local},
+                'agendado',
+                false,
+                ${user.organization_id}
+            )
+            RETURNING id, adversario, data::text, equipa_id, casa_fora, local, estado, resultado_nos, resultado_adv
+        `;
+        return Response.json(rows[0], { status: 201 });
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[POST /api/jogos]", msg);
+        return new Response(msg, { status: 500 });
+    }
 }
