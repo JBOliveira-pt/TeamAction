@@ -63,13 +63,13 @@ const FORMACOES: Record<string, Player[]> = {
 };
 
 const JOGADORES_ATAQUE_INICIAL: Player[] = [
-    { id: "7",  color: "blue", x: 22, y: 45 },
-    { id: "9",  color: "blue", x: 35, y: 30 },
-    { id: "11", color: "blue", x: 35, y: 60 },
-    { id: "5",  color: "blue", x: 50, y: 45 },
-    { id: "3",  color: "blue", x: 65, y: 35 },
-    { id: "14", color: "blue", x: 65, y: 65 },
-    { id: "BR", color: "blue", x: 10, y: 50 },
+    { id: "7",  color: "blue", x: 22, y: 20 },
+    { id: "9",  color: "blue", x: 22, y: 32 },
+    { id: "11", color: "blue", x: 22, y: 44 },
+    { id: "5",  color: "blue", x: 22, y: 56 },
+    { id: "3",  color: "blue", x: 22, y: 68 },
+    { id: "14", color: "blue", x: 22, y: 80 },
+    { id: "GR", color: "blue", x: 10, y: 50 },
 ];
 
 const SISTEMAS = ["6-0", "5-1", "3-2-1", "4-2", "3-3"] as const;
@@ -228,11 +228,13 @@ export default function QuadroTatico() {
 
         const cached = localStorage.getItem(LS_KEY);
         if (cached) {
-            try {
-                const { players: p, sistema: s } = JSON.parse(cached);
-                if (p) setPlayers(p);
-                if (s) setSistema(s);
-            } catch { /* ignorar */ }
+            setTimeout(() => {
+                try {
+                    const { players: p, sistema: s } = JSON.parse(cached);
+                    if (p) setPlayers(p);
+                    if (s) setSistema(s);
+                } catch { /* ignorar */ }
+            }, 0);
         }
     }, []);
 
@@ -491,7 +493,7 @@ export default function QuadroTatico() {
                 <div
                     ref={fieldRef}
                     className="relative mb-4 rounded-2xl border-2 border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30 overflow-hidden w-full shadow-lg select-none"
-                    style={{ height: 380 }}
+                    style={{ aspectRatio: "400 / 220" }}
                     onMouseMove={onMouseMove}
                     onMouseUp={() => setDragged(null)}
                     onMouseLeave={() => setDragged(null)}
@@ -545,8 +547,8 @@ export default function QuadroTatico() {
 
                     {/* Legenda no campo */}
                     <div className="absolute bottom-2 left-3 flex gap-3 text-[10px] font-semibold pointer-events-none">
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-600 inline-block" /> Ataque</span>
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-600 inline-block" /> Defesa</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-600 inline-block" /> Adversário</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-600 inline-block" /> Casa</span>
                     </div>
                 </div>
 
