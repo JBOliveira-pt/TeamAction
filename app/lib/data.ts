@@ -767,40 +767,30 @@ export async function fetchProximosJogos() {
 // ---------- STAFF ----------
 
 export async function fetchStaff() {
-    try {
-        const organizationId = await getOrganizationId();
-
-        const data = await sql<
-            {
-                id: string;
-                nome: string;
-                funcao: string;
-                equipa_id: string | null;
-                equipa_nome: string | null;
-                user_email: string | null;
-                user_telefone: string | null;
-            }[]
-        >`
-            SELECT
-                staff.id,
-                staff.nome,
-                staff.funcao,
-                staff.equipa_id,
-                equipas.nome AS equipa_nome,
-                users.email AS user_email,
-                users.telefone AS user_telefone
-            FROM staff
-            LEFT JOIN equipas ON staff.equipa_id = equipas.id
-            LEFT JOIN users ON staff.user_id = users.id
-            WHERE staff.organization_id = ${organizationId}
-            ORDER BY staff.funcao ASC, staff.nome ASC
-        `;
-
-        return data;
-    } catch (error) {
-        console.error("Database Error:", error);
-        throw new Error("Failed to fetch staff.");
-    }
+  const organizationId = await getOrganizationId()
+  const result = await sql<{
+    id: string
+    nome: string
+    funcao: string
+    equipa_id: string | null
+    equipa_nome: string | null
+    equipa_escalao: string | null
+    user_id: string | null
+    user_email: string | null
+    created_at: string
+  }[]>`
+    SELECT
+      s.id, s.nome, s.funcao,
+      s.equipa_id, e.nome AS equipa_nome, e.escalao AS equipa_escalao,
+      s.user_id, u.email AS user_email,
+      s.created_at
+    FROM staff s
+    LEFT JOIN equipas e ON s.equipa_id = e.id
+    LEFT JOIN users u ON s.user_id = u.id
+    WHERE s.organization_id = ${organizationId}
+    ORDER BY s.created_at DESC
+  `
+  return result
 }
 
 // ---------- ESTATÃSTICAS ----------
@@ -1185,6 +1175,33 @@ export async function fetchConvitesPendentes() {
         console.error("Database Error:", error);
         return [];
     }
+}
+
+export async function fetchEscaloesByUser(userId: string): Promise<string[]> {
+  const result = await sql<{ escalao: string }[]>`
+    SELECT DISTINCT e.nome AS escalao
+    FROM user_cursos uc
+    INNER JOIN cursos c ON uc.curso_id = c.id
+    INNER JOIN escaloes e ON c.level_id = e.id
+    WHERE uc.user_id = ${userId}
+  `
+  return result.map((r: { escalao: string }) => r.escalao)
+}
+
+export async function fetchUsersForStaff() {
+  const organizationId = await getOrganizationId()
+  const result = await sql<{
+    id: string
+    name: string
+    email: string
+    image_url: string | null
+  }[]>`
+    SELECT id, name, email, image_url
+    FROM users
+    WHERE organization_id = ${organizationId}
+    ORDER BY name ASC
+  `
+  return result
 }
 
 

@@ -2283,40 +2283,28 @@ export async function editarMembro(
     return { success: true };
 }
 
-export async function removerMembro(
-    prevState: { error?: string; success?: boolean } | null,
-    formData: FormData,
-): Promise<{ error?: string; success?: boolean } | null> {
-    const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+export async function removerMembro(id: string): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Não autenticado.')
 
-    let organizationId: string | undefined;
-    try {
-        const user = await sql<{ organization_id: string }[]>`
-            SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
-        `;
-        organizationId = user[0]?.organization_id;
-    } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
-    }
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+  let organizationId: string | undefined
+  try {
+    const user = await sql<{ organization_id: string }[]>`
+      SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`
+    organizationId = user[0]?.organization_id
+  } catch {
+    throw new Error('Erro ao obter organização.')
+  }
+  if (!organizationId) throw new Error('Organização não encontrada.')
 
-    const id = formData.get("id")?.toString();
-    if (!id) return { error: "ID do membro em falta." };
+  try {
+    await sql`DELETE FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`
+  } catch (error) {
+    console.error(error)
+    throw new Error('Erro ao remover membro.')
+  }
 
-    try {
-        await sql`
-            DELETE FROM staff
-            WHERE id = ${id}
-            AND organization_id = ${organizationId}
-        `;
-    } catch (error) {
-        console.error(error);
-        return { error: "Erro ao remover membro." };
-    }
-
-    revalidatePath("/dashboard/presidente/staff");
-    return { success: true };
+  revalidatePath('/dashboard/presidente/staff')
 }
 
 export async function marcarNotificacaoComoLida(id: string): Promise<void> {
@@ -2466,6 +2454,21 @@ export async function convidarAtleta(
 
     revalidatePath("/dashboard/presidente/atletas");
     return { success: true };
+}
+
+export async function getEscaloesByUserAction(userId: string): Promise<string[]> {
+  try {
+    const result = await sql<{ escalao: string }[]>`
+      SELECT DISTINCT e.nome AS escalao
+      FROM user_cursos uc
+      INNER JOIN cursos c ON uc.curso_id = c.id
+      INNER JOIN escaloes e ON c.level_id = e.id
+      WHERE uc.user_id = ${userId}
+    `
+    return result.map((r: { escalao: string }) => r.escalao)
+  } catch {
+    return []
+  }
 }
 
 
