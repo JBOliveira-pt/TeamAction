@@ -1,22 +1,21 @@
-﻿"use server";
+﻿'use server';
 
-import { auth } from "@clerk/nextjs/server";
-import { canEditResource } from "./auth-helpers";
+import { auth } from '@clerk/nextjs/server';
 import {
     deleteImageFromR2,
     uploadAtletaPhotoToR2,
     uploadImageToR2,
-} from "./r2-storage";
+} from './r2-storage';
 
-import bcrypt from "bcryptjs";
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import postgres, { type JSONValue } from "postgres";
-import { z } from "zod";
-import type { AtletaState } from "./definitions";
-import { getOrganizationId } from "@/app/lib/data";
+import { getOrganizationId } from '@/app/lib/data';
+import bcrypt from 'bcryptjs';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import postgres, { type JSONValue } from 'postgres';
+import { z } from 'zod';
+import type { AtletaState } from './definitions';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 /**
  * Regista uma aÃ§Ã£o de usuÃ¡rio em user_action_logs.
@@ -43,7 +42,7 @@ async function logAction(
             VALUES (${dbUserId}, ${name}, ${email}, ${interactionType}, ${path}, ${sql.json(serializedMetadata)})
         `;
     } catch (err) {
-        console.error("[logAction] Failed to log action:", err);
+        console.error('[logAction] Failed to log action:', err);
     }
 }
 
@@ -51,25 +50,25 @@ async function logAction(
 async function checkAdminPermission() {
     const { userId } = await auth();
     if (!userId) {
-        throw new Error("Unauthorized: No session");
+        throw new Error('Unauthorized: No session');
     }
 
-    throw new Error("Unauthorized: Elevated access required");
+    throw new Error('Unauthorized: Elevated access required');
 }
 
 // Maximum photo size: 5MB
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
 const SignUpSchema = z.object({
-    orgName: z.string().min(1, "Organization name is required"),
-    adminName: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    orgName: z.string().min(1, 'Organization name is required'),
+    adminName: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email'),
+    password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 async function persistPhotoToR2(
     file: File | null,
-    entityType: "customer" | "user",
+    entityType: 'customer' | 'user',
     entityId: string,
 ): Promise<string | null> {
     if (!file || file.size === 0) {
@@ -82,7 +81,7 @@ async function persistPhotoToR2(
         );
     }
 
-    const tableName = entityType === "customer" ? "customers" : "users";
+    const tableName = entityType === 'customer' ? 'customers' : 'users';
 
     let previousImageUrl: string | null = null;
     try {
@@ -91,7 +90,7 @@ async function persistPhotoToR2(
         `;
         previousImageUrl = previous[0]?.image_url ?? null;
     } catch (error) {
-        console.error("Failed to fetch previous image URL:", error);
+        console.error('Failed to fetch previous image URL:', error);
     }
 
     // Upload to R2
@@ -113,7 +112,7 @@ async function persistPhotoToR2(
         try {
             await deleteImageFromR2(previousImageUrl);
         } catch (error) {
-            console.error("Failed to delete previous image:", error);
+            console.error('Failed to delete previous image:', error);
         }
     }
 
@@ -124,7 +123,7 @@ async function saveUserPhoto(
     file: File | null,
     userId: string,
 ): Promise<string | null> {
-    return persistPhotoToR2(file, "user", userId);
+    return persistPhotoToR2(file, 'user', userId);
 }
 
 // Authentication is now handled by Clerk
@@ -143,36 +142,36 @@ const UserFormSchema = z.object({
     firstName: z
         .string()
         .trim()
-        .min(1, { message: "Please enter a first name." }),
+        .min(1, { message: 'Please enter a first name.' }),
     lastName: z
         .string()
         .trim()
-        .min(1, { message: "Please enter a last name." }),
-    email: z.string().email({ message: "Please enter a valid email." }),
+        .min(1, { message: 'Please enter a last name.' }),
+    email: z.string().email({ message: 'Please enter a valid email.' }),
     iban: z
         .string()
         .trim()
         .regex(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/, {
-            message: "Please enter a valid IBAN.",
+            message: 'Please enter a valid IBAN.',
         })
         .optional()
-        .or(z.literal("")),
+        .or(z.literal('')),
     password: z
         .string()
-        .min(6, { message: "Password must be at least 6 characters." })
+        .min(6, { message: 'Password must be at least 6 characters.' })
         .optional()
-        .or(z.literal("")),
+        .or(z.literal('')),
     role: z
-        .enum(["admin", "user"], {
-            invalid_type_error: "Please select a valid role.",
+        .enum(['admin', 'user'], {
+            invalid_type_error: 'Please select a valid role.',
         })
-        .default("user"),
+        .default('user'),
 });
 
 const CreateUser = UserFormSchema.extend({
     password: z
         .string()
-        .min(6, { message: "Password must be at least 6 characters." }),
+        .min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
 const UpdateUser = UserFormSchema.omit({ role: true });
@@ -199,42 +198,42 @@ export async function createUser(
     } catch (error) {
         return {
             errors: {},
-            message: "Unauthorized: Only privileged users can create users.",
+            message: 'Unauthorized: Only privileged users can create users.',
         };
     }
 
     const validatedFields = CreateUser.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        iban: formData.get("iban"),
-        password: formData.get("password"),
-        role: formData.get("role"),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        iban: formData.get('iban'),
+        password: formData.get('password'),
+        role: formData.get('role'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to create user.",
+            message: 'Missing or invalid fields. Failed to create user.',
         };
     }
 
-    const imageFile = formData.get("imageFile");
+    const imageFile = formData.get('imageFile');
     const { firstName, lastName, email, iban, password } = validatedFields.data;
-    const role = "user";
+    const role = 'user';
 
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
+    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user in Clerk first
     let clerkUserId: string;
     try {
-        const clerkResponse = await fetch("https://api.clerk.com/v1/users", {
-            method: "POST",
+        const clerkResponse = await fetch('https://api.clerk.com/v1/users', {
+            method: 'POST',
             headers: {
                 Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 email_address: [email],
@@ -249,20 +248,20 @@ export async function createUser(
 
         if (!clerkResponse.ok) {
             const errorData = await clerkResponse.json();
-            console.error("Clerk API Error:", errorData);
+            console.error('Clerk API Error:', errorData);
             return {
                 errors: {},
-                message: `Failed to create user in Clerk: ${errorData.errors?.[0]?.message || "Unknown error"}`,
+                message: `Failed to create user in Clerk: ${errorData.errors?.[0]?.message || 'Unknown error'}`,
             };
         }
 
         const clerkUser = await clerkResponse.json();
         clerkUserId = clerkUser.id;
     } catch (error) {
-        console.error("Clerk API Error:", error);
+        console.error('Clerk API Error:', error);
         return {
             errors: {},
-            message: "Failed to create user authentication account.",
+            message: 'Failed to create user authentication account.',
         };
     }
 
@@ -275,10 +274,10 @@ export async function createUser(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${operatorClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch operator organization:", error);
+        console.error('Failed to fetch operator organization:', error);
         return {
             errors: {},
-            message: "Failed to fetch operator organization.",
+            message: 'Failed to fetch operator organization.',
         };
     }
 
@@ -286,14 +285,14 @@ export async function createUser(
         return {
             errors: {},
             message:
-                "Privileged operator not found or no organization assigned.",
+                'Privileged operator not found or no organization assigned.',
         };
     }
 
     // Now create user in database with clerk_user_id
     let userId: string;
     try {
-        const normalizedIban = iban ? iban.replace(/\s+/g, "") : null;
+        const normalizedIban = iban ? iban.replace(/\s+/g, '') : null;
         const result = await sql`
             INSERT INTO users (id, name, email, password, role, clerk_user_id, organization_id, iban)
             VALUES (gen_random_uuid(), ${fullName}, ${email}, ${hashedPassword}, ${role}, ${clerkUserId}, ${organizationId}, ${normalizedIban})
@@ -305,17 +304,17 @@ export async function createUser(
         // Rollback: delete Clerk user if DB insert fails
         try {
             await fetch(`https://api.clerk.com/v1/users/${clerkUserId}`, {
-                method: "DELETE",
+                method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
                 },
             });
         } catch (rollbackError) {
-            console.error("Failed to rollback Clerk user:", rollbackError);
+            console.error('Failed to rollback Clerk user:', rollbackError);
         }
         return {
             errors: {},
-            message: "Database Error: Failed to create user.",
+            message: 'Database Error: Failed to create user.',
         };
     }
 
@@ -326,18 +325,18 @@ export async function createUser(
             console.error(error);
             return {
                 errors: {},
-                message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
+                message: `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
             };
         }
     }
 
-    await logAction(operatorClerkId, "user_create", "/dashboard/users", {
+    await logAction(operatorClerkId, 'user_create', '/dashboard/users', {
         newUserId: userId,
         email,
         role,
     });
-    revalidatePath("/dashboard/users");
-    redirect("/dashboard/users");
+    revalidatePath('/dashboard/users');
+    redirect('/dashboard/users');
 }
 
 export async function updateUser(
@@ -350,7 +349,7 @@ export async function updateUser(
     } catch (error) {
         return {
             errors: {},
-            message: "Unauthorized: Only privileged users can update users.",
+            message: 'Unauthorized: Only privileged users can update users.',
         };
     }
 
@@ -363,10 +362,10 @@ export async function updateUser(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${operatorClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch operator organization:", error);
+        console.error('Failed to fetch operator organization:', error);
         return {
             errors: {},
-            message: "Failed to fetch operator organization.",
+            message: 'Failed to fetch operator organization.',
         };
     }
 
@@ -374,7 +373,7 @@ export async function updateUser(
         return {
             errors: {},
             message:
-                "Privileged operator not found or no organization assigned.",
+                'Privileged operator not found or no organization assigned.',
         };
     }
 
@@ -387,47 +386,47 @@ export async function updateUser(
             return {
                 errors: {},
                 message:
-                    "User not found or does not belong to your organization.",
+                    'User not found or does not belong to your organization.',
             };
         }
 
         // Legacy guard: if role is still admin in DB, keep IBAN validation
         const userRole = userCheck[0].role;
-        const iban = formData.get("iban");
+        const iban = formData.get('iban');
         if (
-            userRole === "admin" &&
-            (!iban || (typeof iban === "string" && iban.trim().length === 0))
+            userRole === 'admin' &&
+            (!iban || (typeof iban === 'string' && iban.trim().length === 0))
         ) {
             return {
-                errors: { iban: ["IBAN is required for privileged users."] },
-                message: "IBAN is required for privileged users.",
+                errors: { iban: ['IBAN is required for privileged users.'] },
+                message: 'IBAN is required for privileged users.',
             };
         }
     } catch (error) {
         return {
             errors: {},
-            message: "Failed to verify user organization.",
+            message: 'Failed to verify user organization.',
         };
     }
 
     const validatedFields = UpdateUser.safeParse({
-        firstName: formData.get("firstName"),
-        lastName: formData.get("lastName"),
-        email: formData.get("email"),
-        iban: formData.get("iban"),
-        password: formData.get("password"),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        iban: formData.get('iban'),
+        password: formData.get('password'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Missing or invalid fields. Failed to update user.",
+            message: 'Missing or invalid fields. Failed to update user.',
         };
     }
 
     const { firstName, lastName, email, iban, password } = validatedFields.data;
-    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, " ");
-    const normalizedIban = iban ? iban.replace(/\s+/g, "") : null;
+    const fullName = `${firstName} ${lastName}`.trim().replace(/\s+/g, ' ');
+    const normalizedIban = iban ? iban.replace(/\s+/g, '') : null;
 
     try {
         if (password && password.length >= 6) {
@@ -448,11 +447,11 @@ export async function updateUser(
         console.error(error);
         return {
             errors: {},
-            message: "Database Error: Failed to update user.",
+            message: 'Database Error: Failed to update user.',
         };
     }
 
-    const imageFile = formData.get("imageFile");
+    const imageFile = formData.get('imageFile');
     if (imageFile instanceof File && imageFile.size > 0) {
         try {
             await saveUserPhoto(imageFile, id);
@@ -460,19 +459,19 @@ export async function updateUser(
             console.error(error);
             return {
                 errors: {},
-                message: `Failed to upload photo: ${error instanceof Error ? error.message : "Unknown error"}`,
+                message: `Failed to upload photo: ${error instanceof Error ? error.message : 'Unknown error'}`,
             };
         }
     }
 
     await logAction(
         operatorClerkId,
-        "user_update",
+        'user_update',
         `/dashboard/users/${id}/edit`,
         { updatedUserId: id },
     );
-    revalidatePath("/dashboard/users");
-    redirect("/dashboard/users");
+    revalidatePath('/dashboard/users');
+    redirect('/dashboard/users');
 }
 
 export async function deleteUser(id: string) {
@@ -480,7 +479,7 @@ export async function deleteUser(id: string) {
         await checkAdminPermission();
     } catch (error) {
         throw new Error(
-            "Unauthorized: Only privileged users can delete users.",
+            'Unauthorized: Only privileged users can delete users.',
         );
     }
 
@@ -493,13 +492,13 @@ export async function deleteUser(id: string) {
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${operatorClerkId}`;
         organizationId = user[0]?.organization_id;
     } catch (error) {
-        console.error("Failed to fetch operator organization:", error);
-        throw new Error("Failed to fetch operator organization.");
+        console.error('Failed to fetch operator organization:', error);
+        throw new Error('Failed to fetch operator organization.');
     }
 
     if (!organizationId) {
         throw new Error(
-            "Privileged operator not found or no organization assigned.",
+            'Privileged operator not found or no organization assigned.',
         );
     }
 
@@ -510,39 +509,39 @@ export async function deleteUser(id: string) {
         >`SELECT id FROM users WHERE id = ${id} AND organization_id = ${organizationId}`;
         if (userCheck.length === 0) {
             throw new Error(
-                "User not found or does not belong to your organization.",
+                'User not found or does not belong to your organization.',
             );
         }
     } catch (error) {
-        throw new Error("Failed to verify user organization.");
+        throw new Error('Failed to verify user organization.');
     }
 
     try {
         await sql`DELETE FROM users WHERE id = ${id}`;
     } catch (error) {
         console.error(error);
-        throw new Error("Database Error: Failed to delete user.");
+        throw new Error('Database Error: Failed to delete user.');
     }
 
-    await logAction(operatorClerkId, "user_delete", "/dashboard/users", {
+    await logAction(operatorClerkId, 'user_delete', '/dashboard/users', {
         deletedUserId: id,
     });
-    revalidatePath("/dashboard/users");
+    revalidatePath('/dashboard/users');
 }
 
 export async function createOrganizationAndAdmin(formData: FormData) {
     const validatedFields = SignUpSchema.safeParse({
-        orgName: formData.get("orgName"),
-        adminName: formData.get("adminName"),
-        email: formData.get("email"),
-        password: formData.get("password"),
+        orgName: formData.get('orgName'),
+        adminName: formData.get('adminName'),
+        email: formData.get('email'),
+        password: formData.get('password'),
     });
 
     if (!validatedFields.success) {
         return {
             success: false,
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Invalid input",
+            message: 'Invalid input',
         };
     }
 
@@ -553,7 +552,7 @@ export async function createOrganizationAndAdmin(formData: FormData) {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // 2. Create organization
-        const orgSlug = orgName.toLowerCase().replace(/\s+/g, "-");
+        const orgSlug = orgName.toLowerCase().replace(/\s+/g, '-');
 
         const orgResult = await sql`
             INSERT INTO organizations (name, slug)
@@ -581,21 +580,21 @@ export async function createOrganizationAndAdmin(formData: FormData) {
 
         return {
             success: true,
-            message: "Organization created successfully!",
+            message: 'Organization created successfully!',
         };
     } catch (error: any) {
-        if (error.code === "23505") {
+        if (error.code === '23505') {
             // Unique violation
             return {
                 success: false,
-                message: "Email or organization name already exists",
+                message: 'Email or organization name already exists',
             };
         }
 
-        console.error("SignUp error:", error);
+        console.error('SignUp error:', error);
         return {
             success: false,
-            message: "Failed to create organization",
+            message: 'Failed to create organization',
         };
     }
 }
@@ -611,26 +610,26 @@ const ATHLETE_WEIGHT_MAX_KG = 300;
 const ATHLETE_WEIGHT_DECIMALS_REGEX = /^\d+(\.\d{1,2})?$/;
 
 const AtletaFormSchema = z.object({
-    nome: z.string().trim().min(1, { message: "Nome Ã© obrigatÃ³rio." }),
+    nome: z.string().trim().min(1, { message: 'Nome Ã© obrigatÃ³rio.' }),
     sobrenome: z
         .string()
         .trim()
-        .min(1, { message: "Sobrenome Ã© obrigatÃ³rio." }),
+        .min(1, { message: 'Sobrenome Ã© obrigatÃ³rio.' }),
     data_nascimento: z
         .string()
-        .min(1, { message: "Data de nascimento Ã© obrigatÃ³ria." }),
-    morada: z.string().trim().min(1, { message: "Morada Ã© obrigatÃ³ria." }),
+        .min(1, { message: 'Data de nascimento Ã© obrigatÃ³ria.' }),
+    morada: z.string().trim().min(1, { message: 'Morada Ã© obrigatÃ³ria.' }),
     telemovel: z
         .string()
         .trim()
-        .min(1, { message: "TelemÃ³vel Ã© obrigatÃ³rio." })
-        .regex(/^[\d\s\+\-\(\)]{9,20}$/, { message: "TelemÃ³vel invÃ¡lido." }),
-    email: z.string().email({ message: "Email invÃ¡lido." }),
+        .min(1, { message: 'TelemÃ³vel Ã© obrigatÃ³rio.' })
+        .regex(/^[\d\s\+\-\(\)]{9,20}$/, { message: 'TelemÃ³vel invÃ¡lido.' }),
+    email: z.string().email({ message: 'Email invÃ¡lido.' }),
     peso_kg: z
         .string()
         .trim()
         .regex(ATHLETE_WEIGHT_DECIMALS_REGEX, {
-            message: "Peso deve ter no mÃ¡ximo 2 casas decimais.",
+            message: 'Peso deve ter no mÃ¡ximo 2 casas decimais.',
         })
         .transform((value) => Number(value))
         .refine(
@@ -643,7 +642,7 @@ const AtletaFormSchema = z.object({
             },
         ),
     altura_cm: z.coerce
-        .number({ invalid_type_error: "Altura invÃ¡lida." })
+        .number({ invalid_type_error: 'Altura invÃ¡lida.' })
         .min(ATHLETE_HEIGHT_MIN_CM, {
             message: `Altura deve estar entre ${ATHLETE_HEIGHT_MIN_CM} e ${ATHLETE_HEIGHT_MAX_CM} cm.`,
         })
@@ -654,7 +653,7 @@ const AtletaFormSchema = z.object({
         .string()
         .trim()
         .regex(/^\d{9}$/, {
-            message: "NIF deve ter exatamente 9 dÃ­gitos numÃ©ricos.",
+            message: 'NIF deve ter exatamente 9 dÃ­gitos numÃ©ricos.',
         }),
 });
 
@@ -664,25 +663,25 @@ export async function createAtletaProfile(
 ): Promise<AtletaState> {
     const { userId } = await auth();
     if (!userId) {
-        return { errors: {}, message: "NÃ£o autenticado." };
+        return { errors: {}, message: 'NÃ£o autenticado.' };
     }
 
     const validatedFields = AtletaFormSchema.safeParse({
-        nome: formData.get("nome"),
-        sobrenome: formData.get("sobrenome"),
-        data_nascimento: formData.get("data_nascimento"),
-        morada: formData.get("morada"),
-        telemovel: formData.get("telemovel"),
-        email: formData.get("email"),
-        peso_kg: formData.get("peso_kg"),
-        altura_cm: formData.get("altura_cm"),
-        nif: formData.get("nif"),
+        nome: formData.get('nome'),
+        sobrenome: formData.get('sobrenome'),
+        data_nascimento: formData.get('data_nascimento'),
+        morada: formData.get('morada'),
+        telemovel: formData.get('telemovel'),
+        email: formData.get('email'),
+        peso_kg: formData.get('peso_kg'),
+        altura_cm: formData.get('altura_cm'),
+        nif: formData.get('nif'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Erro de validaÃ§Ã£o. Verifique os campos.",
+            message: 'Erro de validaÃ§Ã£o. Verifique os campos.',
         };
     }
 
@@ -699,17 +698,17 @@ export async function createAtletaProfile(
     } = validatedFields.data;
 
     // Handle photo upload
-    const fotoFile = formData.get("foto_perfil") as File | null;
+    const fotoFile = formData.get('foto_perfil') as File | null;
     if (!fotoFile || fotoFile.size === 0) {
         return {
-            errors: { foto_perfil: ["Foto de perfil Ã© obrigatÃ³ria."] },
-            message: "Foto de perfil Ã© obrigatÃ³ria.",
+            errors: { foto_perfil: ['Foto de perfil Ã© obrigatÃ³ria.'] },
+            message: 'Foto de perfil Ã© obrigatÃ³ria.',
         };
     }
     if (fotoFile.size > MAX_PHOTO_SIZE) {
         return {
-            errors: { foto_perfil: ["Foto deve ter menos de 5MB."] },
-            message: "Foto muito grande.",
+            errors: { foto_perfil: ['Foto deve ter menos de 5MB.'] },
+            message: 'Foto muito grande.',
         };
     }
 
@@ -722,10 +721,10 @@ export async function createAtletaProfile(
             sobrenome,
         );
     } catch (error) {
-        console.error("R2 upload error:", error);
+        console.error('R2 upload error:', error);
         return {
             errors: {},
-            message: "Erro ao fazer upload da foto. Tente novamente.",
+            message: 'Erro ao fazer upload da foto. Tente novamente.',
         };
     }
 
@@ -742,7 +741,7 @@ export async function createAtletaProfile(
 
         const fullName = `${nome} ${sobrenome}`.trim();
 
-        if (hasUsersColumn("name")) {
+        if (hasUsersColumn('name')) {
             await sql`
                 UPDATE users
                 SET name = ${fullName}, updated_at = NOW()
@@ -750,7 +749,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("email")) {
+        if (hasUsersColumn('email')) {
             await sql`
                 UPDATE users
                 SET email = ${email}, updated_at = NOW()
@@ -758,7 +757,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("data_nascimento")) {
+        if (hasUsersColumn('data_nascimento')) {
             await sql`
                 UPDATE users
                 SET data_nascimento = ${data_nascimento}, updated_at = NOW()
@@ -766,7 +765,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("morada")) {
+        if (hasUsersColumn('morada')) {
             await sql`
                 UPDATE users
                 SET morada = ${morada}, updated_at = NOW()
@@ -774,7 +773,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("telefone")) {
+        if (hasUsersColumn('telefone')) {
             await sql`
                 UPDATE users
                 SET telefone = ${telemovel}, updated_at = NOW()
@@ -782,7 +781,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("peso_kg")) {
+        if (hasUsersColumn('peso_kg')) {
             await sql`
                 UPDATE users
                 SET peso_kg = ${peso_kg}, updated_at = NOW()
@@ -790,7 +789,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("altura_cm")) {
+        if (hasUsersColumn('altura_cm')) {
             await sql`
                 UPDATE users
                 SET altura_cm = ${altura_cm}, updated_at = NOW()
@@ -798,7 +797,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("nif")) {
+        if (hasUsersColumn('nif')) {
             await sql`
                 UPDATE users
                 SET nif = ${nif}, updated_at = NOW()
@@ -806,7 +805,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("status")) {
+        if (hasUsersColumn('status')) {
             await sql`
                 UPDATE users
                 SET status = 'pendente', updated_at = NOW()
@@ -814,7 +813,7 @@ export async function createAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("image_url")) {
+        if (hasUsersColumn('image_url')) {
             await sql`
                 UPDATE users
                 SET image_url = ${foto_perfil_url}, updated_at = NOW()
@@ -822,27 +821,27 @@ export async function createAtletaProfile(
             `;
         }
     } catch (error: any) {
-        if (error.code === "23505") {
+        if (error.code === '23505') {
             return {
                 errors: {},
-                message: "JÃ¡ existe um perfil com este email ou NIF.",
+                message: 'JÃ¡ existe um perfil com este email ou NIF.',
             };
         }
-        console.error("DB insert atleta error:", error);
+        console.error('DB insert atleta error:', error);
         return {
             errors: {},
-            message: "Erro ao guardar perfil. Tente novamente.",
+            message: 'Erro ao guardar perfil. Tente novamente.',
         };
     }
 
     await logAction(
         userId,
-        "atleta_profile_create",
-        "/dashboard/utilizador/perfil",
+        'atleta_profile_create',
+        '/dashboard/utilizador/perfil',
         { nome, email, nif },
     );
-    revalidatePath("/dashboard/utilizador/perfil");
-    redirect("/dashboard/utilizador/perfil");
+    revalidatePath('/dashboard/utilizador/perfil');
+    redirect('/dashboard/utilizador/perfil');
 }
 
 export async function updateAtletaProfile(
@@ -851,25 +850,25 @@ export async function updateAtletaProfile(
 ): Promise<AtletaState> {
     const { userId } = await auth();
     if (!userId) {
-        return { errors: {}, message: "NÃ£o autenticado." };
+        return { errors: {}, message: 'NÃ£o autenticado.' };
     }
 
     const validatedFields = AtletaFormSchema.safeParse({
-        nome: formData.get("nome"),
-        sobrenome: formData.get("sobrenome"),
-        data_nascimento: formData.get("data_nascimento"),
-        morada: formData.get("morada"),
-        telemovel: formData.get("telemovel"),
-        email: formData.get("email"),
-        peso_kg: formData.get("peso_kg"),
-        altura_cm: formData.get("altura_cm"),
-        nif: formData.get("nif"),
+        nome: formData.get('nome'),
+        sobrenome: formData.get('sobrenome'),
+        data_nascimento: formData.get('data_nascimento'),
+        morada: formData.get('morada'),
+        telemovel: formData.get('telemovel'),
+        email: formData.get('email'),
+        peso_kg: formData.get('peso_kg'),
+        altura_cm: formData.get('altura_cm'),
+        nif: formData.get('nif'),
     });
 
     if (!validatedFields.success) {
         return {
             errors: validatedFields.error.flatten().fieldErrors,
-            message: "Erro de validaÃ§Ã£o. Verifique os campos.",
+            message: 'Erro de validaÃ§Ã£o. Verifique os campos.',
         };
     }
 
@@ -895,17 +894,17 @@ export async function updateAtletaProfile(
     `;
 
     if (!existingUser.length) {
-        return { errors: {}, message: "Perfil nÃ£o encontrado." };
+        return { errors: {}, message: 'Perfil nÃ£o encontrado.' };
     }
 
     foto_perfil_url = existingUser[0].image_url;
 
-    const fotoFile = formData.get("foto_perfil") as File | null;
+    const fotoFile = formData.get('foto_perfil') as File | null;
     if (fotoFile && fotoFile.size > 0) {
         if (fotoFile.size > MAX_PHOTO_SIZE) {
             return {
-                errors: { foto_perfil: ["Foto deve ter menos de 5MB."] },
-                message: "Foto muito grande.",
+                errors: { foto_perfil: ['Foto deve ter menos de 5MB.'] },
+                message: 'Foto muito grande.',
             };
         }
         try {
@@ -916,10 +915,10 @@ export async function updateAtletaProfile(
                 sobrenome,
             );
         } catch (error) {
-            console.error("R2 upload error:", error);
+            console.error('R2 upload error:', error);
             return {
                 errors: {},
-                message: "Erro ao fazer upload da foto. Tente novamente.",
+                message: 'Erro ao fazer upload da foto. Tente novamente.',
             };
         }
     }
@@ -936,7 +935,7 @@ export async function updateAtletaProfile(
             usersColumns.some((item) => item.column_name === column);
         const fullName = `${nome} ${sobrenome}`.trim();
 
-        if (hasUsersColumn("name")) {
+        if (hasUsersColumn('name')) {
             await sql`
                 UPDATE users
                 SET name = ${fullName}, updated_at = NOW()
@@ -944,7 +943,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("email")) {
+        if (hasUsersColumn('email')) {
             await sql`
                 UPDATE users
                 SET email = ${email}, updated_at = NOW()
@@ -952,7 +951,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("data_nascimento")) {
+        if (hasUsersColumn('data_nascimento')) {
             await sql`
                 UPDATE users
                 SET data_nascimento = ${data_nascimento}, updated_at = NOW()
@@ -960,7 +959,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("morada")) {
+        if (hasUsersColumn('morada')) {
             await sql`
                 UPDATE users
                 SET morada = ${morada}, updated_at = NOW()
@@ -968,7 +967,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("telefone")) {
+        if (hasUsersColumn('telefone')) {
             await sql`
                 UPDATE users
                 SET telefone = ${telemovel}, updated_at = NOW()
@@ -976,7 +975,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("peso_kg")) {
+        if (hasUsersColumn('peso_kg')) {
             await sql`
                 UPDATE users
                 SET peso_kg = ${peso_kg}, updated_at = NOW()
@@ -984,7 +983,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("altura_cm")) {
+        if (hasUsersColumn('altura_cm')) {
             await sql`
                 UPDATE users
                 SET altura_cm = ${altura_cm}, updated_at = NOW()
@@ -992,7 +991,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("nif")) {
+        if (hasUsersColumn('nif')) {
             await sql`
                 UPDATE users
                 SET nif = ${nif}, updated_at = NOW()
@@ -1000,7 +999,7 @@ export async function updateAtletaProfile(
             `;
         }
 
-        if (hasUsersColumn("image_url")) {
+        if (hasUsersColumn('image_url')) {
             await sql`
                 UPDATE users
                 SET image_url = ${foto_perfil_url}, updated_at = NOW()
@@ -1008,27 +1007,27 @@ export async function updateAtletaProfile(
             `;
         }
     } catch (error: any) {
-        if (error.code === "23505") {
+        if (error.code === '23505') {
             return {
                 errors: {},
-                message: "JÃ¡ existe um perfil com este email ou NIF.",
+                message: 'JÃ¡ existe um perfil com este email ou NIF.',
             };
         }
-        console.error("DB update atleta error:", error);
+        console.error('DB update atleta error:', error);
         return {
             errors: {},
-            message: "Erro ao guardar perfil. Tente novamente.",
+            message: 'Erro ao guardar perfil. Tente novamente.',
         };
     }
 
     await logAction(
         userId,
-        "atleta_profile_update",
-        "/dashboard/utilizador/perfil",
+        'atleta_profile_update',
+        '/dashboard/utilizador/perfil',
         { email, nif },
     );
-    revalidatePath("/dashboard/utilizador/perfil");
-    redirect("/dashboard/utilizador/perfil");
+    revalidatePath('/dashboard/utilizador/perfil');
+    redirect('/dashboard/utilizador/perfil');
 }
 
 type ComunicadoState = { error?: string; success?: boolean } | null;
@@ -1039,12 +1038,12 @@ export async function criarComunicado(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const organizationId = await getOrganizationId();
 
-    const titulo = formData.get("titulo") as string;
-    const conteudo = formData.get("conteudo") as string;
-    const destinatarios = formData.get("destinatarios") as string;
+    const titulo = formData.get('titulo') as string;
+    const conteudo = formData.get('conteudo') as string;
+    const destinatarios = formData.get('destinatarios') as string;
 
     if (!titulo?.trim() || !conteudo?.trim() || !destinatarios?.trim()) {
-        return { error: "Preenche todos os campos obrigatÃ³rios." };
+        return { error: 'Preenche todos os campos obrigatÃ³rios.' };
     }
 
     try {
@@ -1075,16 +1074,16 @@ export async function criarComunicado(
 
         await logAction(
             clerkId,
-            "comunicado_create",
-            "/dashboard/presidente/comunicados",
+            'comunicado_create',
+            '/dashboard/presidente/comunicados',
             { titulo: titulo.trim(), destinatarios: destinatarios.trim() },
         );
-        revalidatePath("/dashboard/presidente/comunicados");
-        revalidatePath("/dashboard/presidente/notificacoes");
+        revalidatePath('/dashboard/presidente/comunicados');
+        revalidatePath('/dashboard/presidente/notificacoes');
         return { success: true };
     } catch (error) {
-        console.error("Database Error:", error);
-        return { error: "Erro ao enviar comunicado. Tenta novamente." };
+        console.error('Database Error:', error);
+        return { error: 'Erro ao enviar comunicado. Tenta novamente.' };
     }
 }
 
@@ -1096,12 +1095,12 @@ export async function registarAutorizacao(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const organizationId = await getOrganizationId();
 
-    const autorizadoA = formData.get("autorizado_a") as string;
-    const tipoAcao = formData.get("tipo_acao") as string;
-    const notas = formData.get("notas") as string | null;
+    const autorizadoA = formData.get('autorizado_a') as string;
+    const tipoAcao = formData.get('tipo_acao') as string;
+    const notas = formData.get('notas') as string | null;
 
     if (!autorizadoA?.trim() || !tipoAcao?.trim()) {
-        return { error: "Preenche todos os campos obrigatÃ³rios." };
+        return { error: 'Preenche todos os campos obrigatÃ³rios.' };
     }
 
     try {
@@ -1120,15 +1119,15 @@ export async function registarAutorizacao(
 
         await logAction(
             clerkId,
-            "autorizacao_create",
-            "/dashboard/presidente/autorizacoes",
+            'autorizacao_create',
+            '/dashboard/presidente/autorizacoes',
             { autorizado_a: autorizadoA.trim(), tipo_acao: tipoAcao.trim() },
         );
-        revalidatePath("/dashboard/presidente/autorizacoes");
+        revalidatePath('/dashboard/presidente/autorizacoes');
         return { success: true };
     } catch (error) {
-        console.error("Database Error:", error);
-        return { error: "Erro ao registar autorizaÃ§Ã£o." };
+        console.error('Database Error:', error);
+        return { error: 'Erro ao registar autorizaÃ§Ã£o.' };
     }
 }
 
@@ -1140,21 +1139,21 @@ export async function uploadDocumento(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const organizationId = await getOrganizationId();
 
-    const file = formData.get("ficheiro") as File | null;
-    const nome = formData.get("nome") as string;
+    const file = formData.get('ficheiro') as File | null;
+    const nome = formData.get('nome') as string;
 
-    if (!file || file.size === 0) return { error: "Seleciona um ficheiro." };
-    if (!nome?.trim()) return { error: "Indica um nome para o documento." };
+    if (!file || file.size === 0) return { error: 'Seleciona um ficheiro.' };
+    if (!nome?.trim()) return { error: 'Indica um nome para o documento.' };
 
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE)
-        return { error: "Ficheiro demasiado grande. MÃ¡ximo 10MB." };
+        return { error: 'Ficheiro demasiado grande. MÃ¡ximo 10MB.' };
 
-    const extensao = file.name.split(".").pop()?.toUpperCase() ?? "PDF";
-    const tiposPermitidos = ["PDF", "XLSX", "DOCX"];
+    const extensao = file.name.split('.').pop()?.toUpperCase() ?? 'PDF';
+    const tiposPermitidos = ['PDF', 'XLSX', 'DOCX'];
     if (!tiposPermitidos.includes(extensao)) {
         return {
-            error: "Tipo de ficheiro nÃ£o permitido. Usa PDF, XLSX ou DOCX.",
+            error: 'Tipo de ficheiro nÃ£o permitido. Usa PDF, XLSX ou DOCX.',
         };
     }
 
@@ -1167,18 +1166,18 @@ export async function uploadDocumento(
         `;
         const dbUserId = userResult[0]?.id ?? null;
 
-        const url = await uploadImageToR2(file, "user", crypto.randomUUID());
+        const url = await uploadImageToR2(file, 'user', crypto.randomUUID());
 
         await sql`
             INSERT INTO documentos (nome, tipo, url_r2, uploaded_by, organization_id, created_at)
             VALUES (${nome.trim()}, ${extensao}, ${url}, ${dbUserId}, ${organizationId}, NOW())
         `;
 
-        revalidatePath("/dashboard/presidente/documentos");
+        revalidatePath('/dashboard/presidente/documentos');
         return { success: true };
     } catch (error) {
-        console.error("Database Error:", error);
-        return { error: "Erro ao carregar documento. Tenta novamente." };
+        console.error('Database Error:', error);
+        return { error: 'Erro ao carregar documento. Tenta novamente.' };
     }
 }
 
@@ -1192,19 +1191,19 @@ export async function criarEquipa(
         organizationId = await getOrganizationId();
     } catch (error) {
         console.error(
-            "Failed to resolve organization for creating team:",
+            'Failed to resolve organization for creating team:',
             error,
         );
         return {
-            error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o. Tenta novamente.",
+            error: 'NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o. Tenta novamente.',
         };
     }
 
-    const nome = formData.get("nome") as string;
+    const nome = formData.get('nome') as string;
     const { userId: clerkId } = await auth();
-    const escalao = formData.get("escalao") as string;
-    const desporto = formData.get("desporto") as string;
-    const estado = formData.get("estado") as string;
+    const escalao = formData.get('escalao') as string;
+    const desporto = formData.get('desporto') as string;
+    const estado = formData.get('estado') as string;
 
     if (
         !nome?.trim() ||
@@ -1212,7 +1211,7 @@ export async function criarEquipa(
         !desporto?.trim() ||
         !estado?.trim()
     ) {
-        return { error: "Preenche todos os campos obrigatÃ³rios." };
+        return { error: 'Preenche todos os campos obrigatÃ³rios.' };
     }
 
     try {
@@ -1245,8 +1244,8 @@ export async function criarEquipa(
 
         await logAction(
             clerkId,
-            "equipa_create",
-            "/dashboard/presidente/equipas",
+            'equipa_create',
+            '/dashboard/presidente/equipas',
             {
                 nome: nome.trim(),
                 escalao: escalao.trim(),
@@ -1254,12 +1253,12 @@ export async function criarEquipa(
                 estado,
             },
         );
-        revalidatePath("/dashboard/presidente/equipas");
-        revalidatePath("/dashboard/presidente/notificacoes");
+        revalidatePath('/dashboard/presidente/equipas');
+        revalidatePath('/dashboard/presidente/notificacoes');
         return { success: true };
     } catch (error) {
-        console.error("Database Error:", error);
-        return { error: "Erro ao criar equipa. Tenta novamente." };
+        console.error('Database Error:', error);
+        return { error: 'Erro ao criar equipa. Tenta novamente.' };
     }
 }
 
@@ -1272,7 +1271,7 @@ export async function adicionarAtleta(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -1281,23 +1280,23 @@ export async function adicionarAtleta(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
 
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const nome = formData.get("nome")?.toString().trim();
-    const posicao = formData.get("posicao")?.toString().trim() || null;
+    const nome = formData.get('nome')?.toString().trim();
+    const posicao = formData.get('posicao')?.toString().trim() || null;
     const numCamisola =
-        formData.get("numero_camisola")?.toString().trim() || null;
-    const equipaId = formData.get("equipa_id")?.toString() || null;
-    const estado = formData.get("estado")?.toString() || "ativo";
-    const federado = formData.get("federado") === "on";
+        formData.get('numero_camisola')?.toString().trim() || null;
+    const equipaId = formData.get('equipa_id')?.toString() || null;
+    const estado = formData.get('estado')?.toString() || 'ativo';
+    const federado = formData.get('federado') === 'on';
     const numFederado =
-        formData.get("numero_federado")?.toString().trim() || null;
-    const maoDominante = formData.get("mao_dominante")?.toString() || null;
+        formData.get('numero_federado')?.toString().trim() || null;
+    const maoDominante = formData.get('mao_dominante')?.toString() || null;
 
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!nome) return { error: 'Nome Ã© obrigatÃ³rio.' };
 
     try {
         await sql`
@@ -1314,12 +1313,12 @@ export async function adicionarAtleta(
         `;
 
         // Buscar nome da equipa para a notificaÃ§Ã£o
-        let equipaNome = "sem equipa";
+        let equipaNome = 'sem equipa';
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
                 SELECT nome FROM equipas WHERE id = ${equipaId}
             `;
-            equipaNome = equipaResult[0]?.nome ?? "sem equipa";
+            equipaNome = equipaResult[0]?.nome ?? 'sem equipa';
         }
 
         // NotificaÃ§Ã£o automÃ¡tica
@@ -1329,22 +1328,22 @@ export async function adicionarAtleta(
                 gen_random_uuid(),
                 ${organizationId},
                 'Novo atleta registado',
-                ${`${nome} foi adicionado${equipaId ? ` Ã  equipa ${equipaNome}` : " sem equipa atribuÃ­da"}.`},
+                ${`${nome} foi adicionado${equipaId ? ` Ã  equipa ${equipaNome}` : ' sem equipa atribuÃ­da'}.`},
                 'Info',
                 NOW()
             )
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao adicionar atleta." };
+        return { error: 'Erro ao adicionar atleta.' };
     }
 
-    await logAction(userId, "atleta_add", "/dashboard/presidente/atletas", {
+    await logAction(userId, 'atleta_add', '/dashboard/presidente/atletas', {
         nome,
         equipaId,
     });
-    revalidatePath("/dashboard/presidente/atletas");
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/atletas');
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1357,7 +1356,7 @@ export async function adicionarMembro(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -1366,17 +1365,17 @@ export async function adicionarMembro(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
 
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const nome = formData.get("nome")?.toString().trim();
-    const funcao = formData.get("funcao")?.toString() || null;
-    const equipaId = formData.get("equipa_id")?.toString() || null;
+    const nome = formData.get('nome')?.toString().trim();
+    const funcao = formData.get('funcao')?.toString() || null;
+    const equipaId = formData.get('equipa_id')?.toString() || null;
 
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!funcao) return { error: "FunÃ§Ã£o Ã© obrigatÃ³ria." };
+    if (!nome) return { error: 'Nome Ã© obrigatÃ³rio.' };
+    if (!funcao) return { error: 'FunÃ§Ã£o Ã© obrigatÃ³ria.' };
 
     try {
         await sql`
@@ -1385,12 +1384,12 @@ export async function adicionarMembro(
         `;
 
         // Buscar nome da equipa para a notificaÃ§Ã£o
-        let equipaNome = "sem equipa";
+        let equipaNome = 'sem equipa';
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
                 SELECT nome FROM equipas WHERE id = ${equipaId}
             `;
-            equipaNome = equipaResult[0]?.nome ?? "sem equipa";
+            equipaNome = equipaResult[0]?.nome ?? 'sem equipa';
         }
 
         // NotificaÃ§Ã£o automÃ¡tica
@@ -1400,23 +1399,23 @@ export async function adicionarMembro(
                 gen_random_uuid(),
                 ${organizationId},
                 'Novo membro de staff adicionado',
-                ${`${nome} foi adicionado como ${funcao}${equipaId ? ` na equipa ${equipaNome}` : ""}.`},
+                ${`${nome} foi adicionado como ${funcao}${equipaId ? ` na equipa ${equipaNome}` : ''}.`},
                 'Info',
                 NOW()
             )
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao adicionar membro de staff." };
+        return { error: 'Erro ao adicionar membro de staff.' };
     }
 
-    await logAction(userId, "staff_add", "/dashboard/presidente/staff", {
+    await logAction(userId, 'staff_add', '/dashboard/presidente/staff', {
         nome,
         funcao,
         equipaId,
     });
-    revalidatePath("/dashboard/presidente/staff");
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/staff');
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1429,7 +1428,7 @@ export async function agendarJogo(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -1438,21 +1437,21 @@ export async function agendarJogo(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
 
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const adversario = formData.get("adversario")?.toString().trim();
-    const data = formData.get("data")?.toString();
-    const equipaId = formData.get("equipa_id")?.toString() || null;
-    const casaFora = formData.get("casa_fora")?.toString() || "casa";
-    const local = formData.get("local")?.toString().trim() || null;
-    const estado = formData.get("estado")?.toString() || "agendado";
-    const visibilidadePublica = formData.get("visibilidade_publica") === "on";
+    const adversario = formData.get('adversario')?.toString().trim();
+    const data = formData.get('data')?.toString();
+    const equipaId = formData.get('equipa_id')?.toString() || null;
+    const casaFora = formData.get('casa_fora')?.toString() || 'casa';
+    const local = formData.get('local')?.toString().trim() || null;
+    const estado = formData.get('estado')?.toString() || 'agendado';
+    const visibilidadePublica = formData.get('visibilidade_publica') === 'on';
 
-    if (!adversario) return { error: "AdversÃ¡rio Ã© obrigatÃ³rio." };
-    if (!data) return { error: "Data Ã© obrigatÃ³ria." };
+    if (!adversario) return { error: 'AdversÃ¡rio Ã© obrigatÃ³rio.' };
+    if (!data) return { error: 'Data Ã© obrigatÃ³ria.' };
 
     try {
         await sql`
@@ -1466,18 +1465,18 @@ export async function agendarJogo(
         `;
 
         // Buscar nome da equipa para a notificaÃ§Ã£o
-        let equipaNome = "";
+        let equipaNome = '';
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
                 SELECT nome FROM equipas WHERE id = ${equipaId}
             `;
-            equipaNome = equipaResult[0]?.nome ?? "";
+            equipaNome = equipaResult[0]?.nome ?? '';
         }
 
-        const dataFormatada = new Date(data).toLocaleDateString("pt-PT", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
+        const dataFormatada = new Date(data).toLocaleDateString('pt-PT', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
         });
 
         await sql`
@@ -1486,23 +1485,23 @@ export async function agendarJogo(
                 gen_random_uuid(),
                 ${organizationId},
                 'Jogo agendado',
-                ${`Jogo vs ${adversario}${equipaNome ? ` (${equipaNome})` : ""} agendado para ${dataFormatada}.`},
+                ${`Jogo vs ${adversario}${equipaNome ? ` (${equipaNome})` : ''} agendado para ${dataFormatada}.`},
                 'Info',
                 NOW()
             )
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao agendar jogo." };
+        return { error: 'Erro ao agendar jogo.' };
     }
 
-    await logAction(userId, "jogo_create", "/dashboard/presidente/jogos", {
+    await logAction(userId, 'jogo_create', '/dashboard/presidente/jogos', {
         adversario,
         data,
         equipaId,
     });
-    revalidatePath("/dashboard/presidente/jogos");
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/jogos');
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1519,20 +1518,20 @@ export async function criarEpoca(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: 'NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o.' };
     }
 
-    const nome = formData.get("nome")?.toString().trim();
-    const dataInicio = formData.get("data_inicio")?.toString();
-    const dataFim = formData.get("data_fim")?.toString();
-    const ativa = formData.get("ativa") === "on";
+    const nome = formData.get('nome')?.toString().trim();
+    const dataInicio = formData.get('data_inicio')?.toString();
+    const dataFim = formData.get('data_fim')?.toString();
+    const ativa = formData.get('ativa') === 'on';
 
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!dataInicio) return { error: "Data de inÃ­cio Ã© obrigatÃ³ria." };
-    if (!dataFim) return { error: "Data de fim Ã© obrigatÃ³ria." };
+    if (!nome) return { error: 'Nome Ã© obrigatÃ³rio.' };
+    if (!dataInicio) return { error: 'Data de inÃ­cio Ã© obrigatÃ³ria.' };
+    if (!dataFim) return { error: 'Data de fim Ã© obrigatÃ³ria.' };
     if (dataFim <= dataInicio)
         return {
-            error: "A data de fim deve ser posterior Ã  data de inÃ­cio.",
+            error: 'A data de fim deve ser posterior Ã  data de inÃ­cio.',
         };
 
     try {
@@ -1554,22 +1553,22 @@ export async function criarEpoca(
                 gen_random_uuid(),
                 ${organizationId},
                 'Nova Ã©poca criada',
-                ${`Ã‰poca ${nome} criada${ativa ? " e definida como ativa" : ""}.`},
+                ${`Ã‰poca ${nome} criada${ativa ? ' e definida como ativa' : ''}.`},
                 'Info',
                 NOW()
             )
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao criar Ã©poca." };
+        return { error: 'Erro ao criar Ã©poca.' };
     }
 
-    await logAction(clerkId, "epoca_create", "/dashboard/presidente/epoca", {
+    await logAction(clerkId, 'epoca_create', '/dashboard/presidente/epoca', {
         nome,
         ativa,
     });
-    revalidatePath("/dashboard/presidente/epoca");
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/epoca');
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1585,24 +1584,24 @@ export async function atualizarOrganizacao(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+        return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
     }
 
-    const name = formData.get("name")?.toString().trim();
-    const desporto = formData.get("desporto")?.toString().trim() || null;
-    const cidade = formData.get("cidade")?.toString().trim() || null;
-    const pais = formData.get("pais")?.toString().trim() || null;
-    const website = formData.get("website")?.toString().trim() || null;
-    const nif = formData.get("nif")?.toString().trim() || null;
-    const telefone = formData.get("telefone")?.toString().trim() || null;
-    const morada = formData.get("morada")?.toString().trim() || null;
+    const name = formData.get('name')?.toString().trim();
+    const desporto = formData.get('desporto')?.toString().trim() || null;
+    const cidade = formData.get('cidade')?.toString().trim() || null;
+    const pais = formData.get('pais')?.toString().trim() || null;
+    const website = formData.get('website')?.toString().trim() || null;
+    const nif = formData.get('nif')?.toString().trim() || null;
+    const telefone = formData.get('telefone')?.toString().trim() || null;
+    const morada = formData.get('morada')?.toString().trim() || null;
     const codigoPostal =
-        formData.get("codigo_postal")?.toString().trim() || null;
+        formData.get('codigo_postal')?.toString().trim() || null;
 
-    if (!name) return { error: "Nome do clube Ã© obrigatÃ³rio." };
+    if (!name) return { error: 'Nome do clube Ã© obrigatÃ³rio.' };
 
     if (nif && !/^\d{9}$/.test(nif)) {
-        return { error: "NIF deve ter exatamente 9 dÃ­gitos numÃ©ricos." };
+        return { error: 'NIF deve ter exatamente 9 dÃ­gitos numÃ©ricos.' };
     }
 
     try {
@@ -1623,10 +1622,10 @@ export async function atualizarOrganizacao(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao atualizar definiÃ§Ãµes." };
+        return { error: 'Erro ao atualizar definiÃ§Ãµes.' };
     }
 
-    revalidatePath("/dashboard/presidente/definicoes");
+    revalidatePath('/dashboard/presidente/definicoes');
     return { success: true };
 }
 
@@ -1642,20 +1641,20 @@ export async function registarPagamento(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: 'NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o.' };
     }
 
-    const atletaId = formData.get("atleta_id")?.toString();
-    const mes = formData.get("mes")?.toString();
-    const ano = formData.get("ano")?.toString();
-    const valor = formData.get("valor")?.toString();
-    const estado = formData.get("estado")?.toString() || "pago";
-    const dataPagamento = formData.get("data_pagamento")?.toString() || null;
+    const atletaId = formData.get('atleta_id')?.toString();
+    const mes = formData.get('mes')?.toString();
+    const ano = formData.get('ano')?.toString();
+    const valor = formData.get('valor')?.toString();
+    const estado = formData.get('estado')?.toString() || 'pago';
+    const dataPagamento = formData.get('data_pagamento')?.toString() || null;
 
-    if (!atletaId) return { error: "Atleta nÃ£o identificado." };
-    if (!mes) return { error: "MÃªs Ã© obrigatÃ³rio." };
-    if (!ano) return { error: "Ano Ã© obrigatÃ³rio." };
-    if (!valor) return { error: "Valor Ã© obrigatÃ³rio." };
+    if (!atletaId) return { error: 'Atleta nÃ£o identificado.' };
+    if (!mes) return { error: 'MÃªs Ã© obrigatÃ³rio.' };
+    if (!ano) return { error: 'Ano Ã© obrigatÃ³rio.' };
+    if (!valor) return { error: 'Valor Ã© obrigatÃ³rio.' };
 
     try {
         const { userId: clerkId } = await auth();
@@ -1668,7 +1667,7 @@ export async function registarPagamento(
         const atletaResult = await sql<{ nome: string }[]>`
             SELECT nome FROM atletas WHERE id = ${atletaId}
         `;
-        const atletaNome = atletaResult[0]?.nome ?? "Atleta desconhecido";
+        const atletaNome = atletaResult[0]?.nome ?? 'Atleta desconhecido';
 
         // Upsert mensalidade
         const mensalidadeResult = await sql<{ id: string }[]>`
@@ -1687,10 +1686,10 @@ export async function registarPagamento(
         const mensalidadeId = mensalidadeResult[0]?.id;
 
         // Criar recibo automaticamente quando mensalidade marcada como paga
-        if (estado === "pago" && mensalidadeId && dbUserId) {
+        if (estado === 'pago' && mensalidadeId && dbUserId) {
             try {
                 const { createReciboForPaidMensalidade } =
-                    await import("./receipt-service");
+                    await import('./receipt-service');
                 await createReciboForPaidMensalidade(
                     mensalidadeId,
                     atletaId,
@@ -1703,7 +1702,7 @@ export async function registarPagamento(
                 );
             } catch (reciboError) {
                 console.error(
-                    "Erro ao criar recibo automaticamente:",
+                    'Erro ao criar recibo automaticamente:',
                     reciboError,
                 );
                 // Nao falhar o pagamento por causa do recibo
@@ -1711,20 +1710,20 @@ export async function registarPagamento(
         }
 
         // NotificaÃ§Ã£o automÃ¡tica se em atraso
-        if (estado === "em_atraso") {
+        if (estado === 'em_atraso') {
             const mesesNomes: Record<string, string> = {
-                "1": "Janeiro",
-                "2": "Fevereiro",
-                "3": "MarÃ§o",
-                "4": "Abril",
-                "5": "Maio",
-                "6": "Junho",
-                "7": "Julho",
-                "8": "Agosto",
-                "9": "Setembro",
-                "10": "Outubro",
-                "11": "Novembro",
-                "12": "Dezembro",
+                '1': 'Janeiro',
+                '2': 'Fevereiro',
+                '3': 'MarÃ§o',
+                '4': 'Abril',
+                '5': 'Maio',
+                '6': 'Junho',
+                '7': 'Julho',
+                '8': 'Agosto',
+                '9': 'Setembro',
+                '10': 'Outubro',
+                '11': 'Novembro',
+                '12': 'Dezembro',
             };
             await sql`
                 INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
@@ -1740,12 +1739,12 @@ export async function registarPagamento(
         }
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao registar pagamento." };
+        return { error: 'Erro ao registar pagamento.' };
     }
 
     revalidatePath(`/dashboard/presidente/atletas/${atletaId}`);
-    revalidatePath("/dashboard/presidente/mensalidades");
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/mensalidades');
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1761,18 +1760,18 @@ export async function suspenderAtleta(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: 'NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o.' };
     }
 
-    const atletaId = formData.get("atleta_id")?.toString();
-    if (!atletaId) return { error: "Atleta nÃ£o identificado." };
+    const atletaId = formData.get('atleta_id')?.toString();
+    if (!atletaId) return { error: 'Atleta nÃ£o identificado.' };
 
     try {
         // Buscar nome do atleta para a notificaÃ§Ã£o
         const atletaResult = await sql<{ nome: string }[]>`
             SELECT nome FROM atletas WHERE id = ${atletaId}
         `;
-        const atletaNome = atletaResult[0]?.nome ?? "Atleta desconhecido";
+        const atletaNome = atletaResult[0]?.nome ?? 'Atleta desconhecido';
 
         await sql`
             UPDATE atletas SET estado = 'suspenso', updated_at = NOW()
@@ -1793,12 +1792,12 @@ export async function suspenderAtleta(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao suspender atleta." };
+        return { error: 'Erro ao suspender atleta.' };
     }
 
-    revalidatePath("/dashboard/presidente/mensalidades");
+    revalidatePath('/dashboard/presidente/mensalidades');
     revalidatePath(`/dashboard/presidente/atletas/${atletaId}`);
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1814,7 +1813,7 @@ export async function marcarTodasComoLidas(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: 'NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o.' };
     }
 
     try {
@@ -1824,10 +1823,10 @@ export async function marcarTodasComoLidas(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao marcar notificaÃ§Ãµes." };
+        return { error: 'Erro ao marcar notificaÃ§Ãµes.' };
     }
 
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath('/dashboard/presidente/notificacoes');
     return { success: true };
 }
 
@@ -1836,18 +1835,18 @@ export async function atualizarMeuPerfil(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) return { error: "NÃ£o autenticado." };
+    if (!clerkUserId) return { error: 'NÃ£o autenticado.' };
 
-    const firstName = formData.get("firstName")?.toString().trim();
-    const lastName = formData.get("lastName")?.toString().trim();
-    const iban = formData.get("iban")?.toString().trim() || null;
+    const firstName = formData.get('firstName')?.toString().trim();
+    const lastName = formData.get('lastName')?.toString().trim();
+    const iban = formData.get('iban')?.toString().trim() || null;
 
-    if (!firstName) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!lastName) return { error: "Apelido Ã© obrigatÃ³rio." };
+    if (!firstName) return { error: 'Nome Ã© obrigatÃ³rio.' };
+    if (!lastName) return { error: 'Apelido Ã© obrigatÃ³rio.' };
 
-    const normalizedIban = iban ? iban.replace(/\s/g, "") : null;
+    const normalizedIban = iban ? iban.replace(/\s/g, '') : null;
     if (normalizedIban && !/^[A-Z]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
-        return { error: "IBAN invÃ¡lido." };
+        return { error: 'IBAN invÃ¡lido.' };
     }
 
     try {
@@ -1855,10 +1854,10 @@ export async function atualizarMeuPerfil(
         const clerkRes = await fetch(
             `https://api.clerk.com/v1/users/${clerkUserId}`,
             {
-                method: "PATCH",
+                method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-                    "Content-Type": "application/json",
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     first_name: firstName,
@@ -1866,7 +1865,7 @@ export async function atualizarMeuPerfil(
                 }),
             },
         );
-        if (!clerkRes.ok) return { error: "Erro ao atualizar nome." };
+        if (!clerkRes.ok) return { error: 'Erro ao atualizar nome.' };
 
         // Atualiza DB
         await sql`
@@ -1876,10 +1875,10 @@ export async function atualizarMeuPerfil(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao atualizar perfil." };
+        return { error: 'Erro ao atualizar perfil.' };
     }
 
-    revalidatePath("/dashboard/presidente/perfil");
+    revalidatePath('/dashboard/presidente/perfil');
     return { success: true };
 }
 
@@ -1888,7 +1887,7 @@ export async function editarAtleta(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -1897,24 +1896,24 @@ export async function editarAtleta(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const id = formData.get("id")?.toString();
-    const nome = formData.get("nome")?.toString().trim();
-    const posicao = formData.get("posicao")?.toString().trim() || null;
+    const id = formData.get('id')?.toString();
+    const nome = formData.get('nome')?.toString().trim();
+    const posicao = formData.get('posicao')?.toString().trim() || null;
     const numCamisola =
-        formData.get("numero_camisola")?.toString().trim() || null;
-    const equipaId = formData.get("equipa_id")?.toString() || null;
-    const estado = formData.get("estado")?.toString() || "ativo";
-    const federado = formData.get("federado") === "on";
+        formData.get('numero_camisola')?.toString().trim() || null;
+    const equipaId = formData.get('equipa_id')?.toString() || null;
+    const estado = formData.get('estado')?.toString() || 'ativo';
+    const federado = formData.get('federado') === 'on';
     const numFederado =
-        formData.get("numero_federado")?.toString().trim() || null;
-    const maoDominante = formData.get("mao_dominante")?.toString() || null;
+        formData.get('numero_federado')?.toString().trim() || null;
+    const maoDominante = formData.get('mao_dominante')?.toString() || null;
 
-    if (!id) return { error: "ID do atleta em falta." };
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!id) return { error: 'ID do atleta em falta.' };
+    if (!nome) return { error: 'Nome Ã© obrigatÃ³rio.' };
 
     try {
         await sql`
@@ -1932,10 +1931,10 @@ export async function editarAtleta(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao editar atleta." };
+        return { error: 'Erro ao editar atleta.' };
     }
 
-    revalidatePath("/dashboard/presidente/atletas");
+    revalidatePath('/dashboard/presidente/atletas');
     return { success: true };
 }
 
@@ -1945,7 +1944,7 @@ export async function editarAtleta(
 
 export async function gerarRelatorioAtletas() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error('NÃ£o autenticado.');
 
     let organizationId: string | undefined;
     try {
@@ -1954,9 +1953,9 @@ export async function gerarRelatorioAtletas() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error('Erro ao obter organizaÃ§Ã£o.');
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error('OrganizaÃ§Ã£o nÃ£o encontrada.');
 
     const atletas = await sql<
         {
@@ -1990,33 +1989,33 @@ export async function gerarRelatorioAtletas() {
 
     // Gerar CSV
     const headers = [
-        "Nome",
-        "PosiÃ§Ã£o",
-        "NÂº",
-        "Equipa",
-        "Estado",
-        "Federado",
-        "NÂº Federado",
-        "Mensalidade",
+        'Nome',
+        'PosiÃ§Ã£o',
+        'NÂº',
+        'Equipa',
+        'Estado',
+        'Federado',
+        'NÂº Federado',
+        'Mensalidade',
     ];
     const rows = atletas.map((a) => [
         a.nome,
-        a.posicao ?? "â€”",
-        a.numero_camisola != null ? `#${a.numero_camisola}` : "â€”",
-        a.equipa_nome ?? "â€”",
+        a.posicao ?? 'â€”',
+        a.numero_camisola != null ? `#${a.numero_camisola}` : 'â€”',
+        a.equipa_nome ?? 'â€”',
         a.estado,
-        a.federado ? "Sim" : "NÃ£o",
-        a.numero_federado ?? "â€”",
-        a.mensalidade_estado ?? "â€”",
+        a.federado ? 'Sim' : 'NÃ£o',
+        a.numero_federado ?? 'â€”',
+        a.mensalidade_estado ?? 'â€”',
     ]);
 
-    const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.join(';')).join('\n');
     return csv;
 }
 
 export async function gerarRelatorioMensalidades() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error('NÃ£o autenticado.');
 
     let organizationId: string | undefined;
     try {
@@ -2025,9 +2024,9 @@ export async function gerarRelatorioMensalidades() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error('Erro ao obter organizaÃ§Ã£o.');
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error('OrganizaÃ§Ã£o nÃ£o encontrada.');
 
     const mensalidades = await sql<
         {
@@ -2058,46 +2057,46 @@ export async function gerarRelatorioMensalidades() {
 `;
 
     const mesesNomes: Record<number, string> = {
-        1: "Jan",
-        2: "Fev",
-        3: "Mar",
-        4: "Abr",
-        5: "Mai",
-        6: "Jun",
-        7: "Jul",
-        8: "Ago",
-        9: "Set",
-        10: "Out",
-        11: "Nov",
-        12: "Dez",
+        1: 'Jan',
+        2: 'Fev',
+        3: 'Mar',
+        4: 'Abr',
+        5: 'Mai',
+        6: 'Jun',
+        7: 'Jul',
+        8: 'Ago',
+        9: 'Set',
+        10: 'Out',
+        11: 'Nov',
+        12: 'Dez',
     };
 
     const headers = [
-        "Atleta",
-        "Equipa",
-        "MÃªs",
-        "Ano",
-        "Valor",
-        "Estado",
-        "Data Pagamento",
+        'Atleta',
+        'Equipa',
+        'MÃªs',
+        'Ano',
+        'Valor',
+        'Estado',
+        'Data Pagamento',
     ];
     const rows = mensalidades.map((m) => [
         m.atleta_nome,
-        m.equipa_nome ?? "â€”",
+        m.equipa_nome ?? 'â€”',
         mesesNomes[m.mes] ?? m.mes,
         m.ano,
-        m.valor != null ? `â‚¬${Number(m.valor).toFixed(2)}` : "â€”",
+        m.valor != null ? `â‚¬${Number(m.valor).toFixed(2)}` : 'â€”',
         m.estado,
-        m.data_pago ? new Date(m.data_pago).toLocaleDateString("pt-PT") : "â€”",
+        m.data_pago ? new Date(m.data_pago).toLocaleDateString('pt-PT') : 'â€”',
     ]);
 
-    const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.join(';')).join('\n');
     return csv;
 }
 
 export async function gerarRelatorioAssiduidade() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error('NÃ£o autenticado.');
 
     let organizationId: string | undefined;
     try {
@@ -2106,9 +2105,9 @@ export async function gerarRelatorioAssiduidade() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error('Erro ao obter organizaÃ§Ã£o.');
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error('OrganizaÃ§Ã£o nÃ£o encontrada.');
 
     const assiduidade = await sql<
         {
@@ -2132,11 +2131,11 @@ export async function gerarRelatorioAssiduidade() {
     `;
 
     const headers = [
-        "Atleta",
-        "Equipa",
-        "Total Treinos",
-        "PresenÃ§as",
-        "Taxa Assiduidade",
+        'Atleta',
+        'Equipa',
+        'Total Treinos',
+        'PresenÃ§as',
+        'Taxa Assiduidade',
     ];
     const rows = assiduidade.map((a) => {
         const total = Number(a.total_treinos);
@@ -2144,20 +2143,20 @@ export async function gerarRelatorioAssiduidade() {
         const taxa = total > 0 ? Math.round((presencas / total) * 100) : 0;
         return [
             a.atleta_nome,
-            a.equipa_nome ?? "â€”",
+            a.equipa_nome ?? 'â€”',
             total,
             presencas,
             `${taxa}%`,
         ];
     });
 
-    const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.join(';')).join('\n');
     return csv;
 }
 
 export async function gerarRelatorioStaff() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error('NÃ£o autenticado.');
 
     let organizationId: string | undefined;
     try {
@@ -2166,9 +2165,9 @@ export async function gerarRelatorioStaff() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error('Erro ao obter organizaÃ§Ã£o.');
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error('OrganizaÃ§Ã£o nÃ£o encontrada.');
 
     const staff = await sql<
         {
@@ -2192,16 +2191,16 @@ export async function gerarRelatorioStaff() {
         ORDER BY staff.funcao, staff.nome ASC
     `;
 
-    const headers = ["Nome", "FunÃ§Ã£o", "Equipa", "Email", "Telefone"];
+    const headers = ['Nome', 'FunÃ§Ã£o', 'Equipa', 'Email', 'Telefone'];
     const rows = staff.map((s) => [
         s.nome,
         s.funcao,
-        s.equipa_nome ?? "â€”",
-        s.email ?? "â€”",
-        s.telefone ?? "â€”",
+        s.equipa_nome ?? 'â€”',
+        s.email ?? 'â€”',
+        s.telefone ?? 'â€”',
     ]);
 
-    const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
+    const csv = [headers, ...rows].map((row) => row.join(';')).join('\n');
     return csv;
 }
 
@@ -2210,7 +2209,7 @@ export async function registarResultado(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -2219,27 +2218,27 @@ export async function registarResultado(
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const id = formData.get("id")?.toString();
-    const resultadoNos = formData.get("resultado_nos")?.toString();
-    const resultadoAdv = formData.get("resultado_adv")?.toString();
+    const id = formData.get('id')?.toString();
+    const resultadoNos = formData.get('resultado_nos')?.toString();
+    const resultadoAdv = formData.get('resultado_adv')?.toString();
 
-    if (!id) return { error: "ID do jogo em falta." };
-    if (resultadoNos === "")
-        return { error: "Resultado da equipa Ã© obrigatÃ³rio." };
-    if (resultadoAdv === "")
-        return { error: "Resultado do adversÃ¡rio Ã© obrigatÃ³rio." };
+    if (!id) return { error: 'ID do jogo em falta.' };
+    if (resultadoNos === '')
+        return { error: 'Resultado da equipa Ã© obrigatÃ³rio.' };
+    if (resultadoAdv === '')
+        return { error: 'Resultado do adversÃ¡rio Ã© obrigatÃ³rio.' };
 
-    const nos = parseInt(resultadoNos ?? "");
-    const adv = parseInt(resultadoAdv ?? "");
+    const nos = parseInt(resultadoNos ?? '');
+    const adv = parseInt(resultadoAdv ?? '');
 
     if (isNaN(nos) || isNaN(adv))
-        return { error: "Resultados tÃªm de ser nÃºmeros." };
+        return { error: 'Resultados tÃªm de ser nÃºmeros.' };
     if (nos < 0 || adv < 0)
-        return { error: "Resultados nÃ£o podem ser negativos." };
+        return { error: 'Resultados nÃ£o podem ser negativos.' };
 
     try {
         await sql`
@@ -2253,11 +2252,11 @@ export async function registarResultado(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao registar resultado." };
+        return { error: 'Erro ao registar resultado.' };
     }
 
-    revalidatePath("/dashboard/presidente/jogos");
-    revalidatePath("/dashboard/presidente");
+    revalidatePath('/dashboard/presidente/jogos');
+    revalidatePath('/dashboard/presidente');
     return { success: true };
 }
 
@@ -2266,7 +2265,7 @@ export async function editarMembro(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -2275,18 +2274,18 @@ export async function editarMembro(
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const id = formData.get("id")?.toString();
-    const nome = formData.get("nome")?.toString().trim();
-    const funcao = formData.get("funcao")?.toString() || null;
-    const equipaId = formData.get("equipa_id")?.toString() || null;
+    const id = formData.get('id')?.toString();
+    const nome = formData.get('nome')?.toString().trim();
+    const funcao = formData.get('funcao')?.toString() || null;
+    const equipaId = formData.get('equipa_id')?.toString() || null;
 
-    if (!id) return { error: "ID do membro em falta." };
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!funcao) return { error: "FunÃ§Ã£o Ã© obrigatÃ³ria." };
+    if (!id) return { error: 'ID do membro em falta.' };
+    if (!nome) return { error: 'Nome Ã© obrigatÃ³rio.' };
+    if (!funcao) return { error: 'FunÃ§Ã£o Ã© obrigatÃ³ria.' };
 
     try {
         await sql`
@@ -2299,10 +2298,10 @@ export async function editarMembro(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao editar membro." };
+        return { error: 'Erro ao editar membro.' };
     }
 
-    revalidatePath("/dashboard/presidente/staff");
+    revalidatePath('/dashboard/presidente/staff');
     return { success: true };
 }
 
@@ -2311,7 +2310,7 @@ export async function removerMembro(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: 'NÃ£o autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -2320,12 +2319,12 @@ export async function removerMembro(
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
-    const id = formData.get("id")?.toString();
-    if (!id) return { error: "ID do membro em falta." };
+    const id = formData.get('id')?.toString();
+    if (!id) return { error: 'ID do membro em falta.' };
 
     try {
         await sql`
@@ -2335,9 +2334,125 @@ export async function removerMembro(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao remover membro." };
+        return { error: 'Erro ao remover membro.' };
     }
 
-    revalidatePath("/dashboard/presidente/staff");
+    revalidatePath('/dashboard/presidente/staff');
+    return { success: true };
+}
+
+// ========================================
+// Registos Médicos (Atleta)
+// ========================================
+
+async function adicionarRegistoMedico(
+    tipo: 'lesao' | 'doenca',
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    const descricao = formData.get('descricao')?.toString().trim();
+    const dataInicio = formData.get('data_inicio')?.toString();
+    const dataPrevistaRetorno =
+        formData.get('data_prevista_retorno')?.toString() || null;
+    const observacoes = formData.get('observacoes')?.toString().trim() || null;
+
+    if (!descricao) return { error: 'Descrição é obrigatória.' };
+    if (!dataInicio) return { error: 'Data de início é obrigatória.' };
+
+    let userIdDb: string;
+    let organizationId: string;
+    try {
+        const user = await sql<{ id: string; organization_id: string }[]>`
+            SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId}
+        `;
+        if (!user[0]) return { error: 'Utilizador não encontrado.' };
+        userIdDb = user[0].id;
+        organizationId = user[0].organization_id;
+    } catch {
+        return { error: 'Erro ao obter dados do utilizador.' };
+    }
+
+    try {
+        await sql`
+            INSERT INTO registos_medicos (
+                id, user_id, organization_id, tipo,
+                descricao, data_inicio, data_prevista_retorno,
+                observacoes, estado, created_at
+            ) VALUES (
+                gen_random_uuid(), ${userIdDb}, ${organizationId}, ${tipo},
+                ${descricao}, ${dataInicio}, ${dataPrevistaRetorno},
+                ${observacoes}, 'ativo', NOW()
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao guardar registo médico.' };
+    }
+
+    revalidatePath('/dashboard/atleta/medico');
+    return { success: true };
+}
+
+export async function adicionarLesaoAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    return adicionarRegistoMedico('lesao', formData);
+}
+
+export async function adicionarDoencaAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    return adicionarRegistoMedico('doenca', formData);
+}
+
+// ========================================
+// Notas (Atleta)
+// ========================================
+
+export async function criarNotaAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: 'Não autenticado.' };
+
+    const titulo = formData.get('titulo')?.toString().trim();
+    const conteudo = formData.get('conteudo')?.toString().trim();
+
+    if (!titulo) return { error: 'Título é obrigatório.' };
+    if (!conteudo) return { error: 'Conteúdo é obrigatório.' };
+
+    let userIdDb: string;
+    let organizationId: string;
+    try {
+        const user = await sql<{ id: string; organization_id: string }[]>`
+            SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId}
+        `;
+        if (!user[0]) return { error: 'Utilizador não encontrado.' };
+        userIdDb = user[0].id;
+        organizationId = user[0].organization_id;
+    } catch {
+        return { error: 'Erro ao obter dados do utilizador.' };
+    }
+
+    try {
+        await sql`
+            INSERT INTO notas_atleta (
+                id, user_id, organization_id, titulo, conteudo, created_at
+            ) VALUES (
+                gen_random_uuid(), ${userIdDb}, ${organizationId},
+                ${titulo}, ${conteudo}, NOW()
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao guardar nota.' };
+    }
+
+    revalidatePath('/dashboard/atleta/notas');
     return { success: true };
 }
