@@ -1205,11 +1205,7 @@ export async function criarEquipa(
     const desporto = formData.get('desporto') as string;
     const estado = formData.get('estado') as string;
 
-    if (
-        !nome?.trim() ||
-        !escalao?.trim() ||
-        !estado?.trim()
-    ) {
+    if (!nome?.trim() || !escalao?.trim() || !estado?.trim()) {
         return { error: 'Preenche todos os campos obrigatÃ³rios.' };
     }
 
@@ -1424,15 +1420,10 @@ export async function adicionarMembro(
 
 export async function agendarJogo(
     prevState: { error?: string; success?: boolean } | null,
-    formData: FormData
+    formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
-
     const { userId } = await auth();
-<<<<<<< HEAD
-    if (!userId) return { error: 'NÃ£o autenticado.' };
-=======
-if (!userId) return { error: "Não autenticado." };
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
+    if (!userId) return { error: 'Não autenticado.' };
 
     let organizationId: string | undefined;
     try {
@@ -1441,18 +1432,13 @@ if (!userId) return { error: "Não autenticado." };
         `;
         organizationId = user[0]?.organizationid;
     } catch {
-<<<<<<< HEAD
-        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
-=======
-        return { error: "Erro ao obter organização." };
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
+        return { error: 'Erro ao obter organização.' };
     }
-    if (!organizationId) return { error: "Organização não encontrada." };
-
-<<<<<<< HEAD
-    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
+    if (!organizationId) return { error: 'Organização não encontrada.' };
 
     const adversario = formData.get('adversario')?.toString().trim();
+    const adversarioClubeId =
+        formData.get('adversario_clube_id')?.toString() || null;
     const data = formData.get('data')?.toString();
     const equipaId = formData.get('equipa_id')?.toString() || null;
     const casaFora = formData.get('casa_fora')?.toString() || 'casa';
@@ -1460,21 +1446,8 @@ if (!userId) return { error: "Não autenticado." };
     const estado = formData.get('estado')?.toString() || 'agendado';
     const visibilidadePublica = formData.get('visibilidade_publica') === 'on';
 
-    if (!adversario) return { error: 'AdversÃ¡rio Ã© obrigatÃ³rio.' };
-    if (!data) return { error: 'Data Ã© obrigatÃ³ria.' };
-=======
-    const adversario        = formData.get("adversario")?.toString().trim();
-    const adversarioClubeId = formData.get("adversario_clube_id")?.toString() || null;
-    const data              = formData.get("data")?.toString();
-    const equipaId          = formData.get("equipa_id")?.toString() || null;
-    const casaFora          = formData.get("casa_fora")?.toString() || "casa";
-    const local             = formData.get("local")?.toString().trim() || null;
-    const estado            = formData.get("estado")?.toString() || "agendado";
-    const visibilidadePublica = formData.get("visibilidade_publica") === "on";
-
-    if (!adversario) return { error: "Adversário obrigatório." };
-    if (!data)       return { error: "Data obrigatória." };
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
+    if (!adversario) return { error: 'Adversário obrigatório.' };
+    if (!data) return { error: 'Data obrigatória.' };
 
     try {
         await sql`
@@ -1483,34 +1456,6 @@ if (!userId) return { error: "Não autenticado." };
                 equipaid, casafora, local, estado,
                 visibilidadepublica, organizationid
             )
-<<<<<<< HEAD
-        `;
-
-        // Buscar nome da equipa para a notificaÃ§Ã£o
-        let equipaNome = '';
-        if (equipaId) {
-            const equipaResult = await sql<{ nome: string }[]>`
-                SELECT nome FROM equipas WHERE id = ${equipaId}
-            `;
-            equipaNome = equipaResult[0]?.nome ?? '';
-        }
-
-        const dataFormatada = new Date(data).toLocaleDateString('pt-PT', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        });
-
-        await sql`
-            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
-            VALUES (
-                gen_random_uuid(),
-                ${organizationId},
-                'Jogo agendado',
-                ${`Jogo vs ${adversario}${equipaNome ? ` (${equipaNome})` : ''} agendado para ${dataFormatada}.`},
-                'Info',
-                NOW()
-=======
             VALUES (
                 gen_random_uuid(),
                 ${adversario},
@@ -1522,7 +1467,6 @@ if (!userId) return { error: "Não autenticado." };
                 ${estado},
                 ${visibilidadePublica},
                 ${organizationId}
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
             )
         `;
     } catch (error) {
@@ -1530,17 +1474,7 @@ if (!userId) return { error: "Não autenticado." };
         return { error: 'Erro ao agendar jogo.' };
     }
 
-<<<<<<< HEAD
-    await logAction(userId, 'jogo_create', '/dashboard/presidente/jogos', {
-        adversario,
-        data,
-        equipaId,
-    });
     revalidatePath('/dashboard/presidente/jogos');
-    revalidatePath('/dashboard/presidente/notificacoes');
-=======
-    revalidatePath("/dashboard/presidente/jogos");
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
     return { success: true };
 }
 
@@ -1866,6 +1800,108 @@ export async function marcarTodasComoLidas(
     }
 
     revalidatePath('/dashboard/presidente/notificacoes');
+    return { success: true };
+}
+
+export async function criarNotaAtleta(
+    prevState: { error?: string } | null,
+    formData: FormData,
+): Promise<{ error?: string } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: 'Não autenticado.' };
+
+    const titulo = formData.get('titulo')?.toString().trim();
+    const conteudo = formData.get('conteudo')?.toString().trim();
+
+    if (!titulo) return { error: 'Título é obrigatório.' };
+    if (!conteudo) return { error: 'Conteúdo é obrigatório.' };
+
+    try {
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId}
+        `;
+        if (!user) return { error: 'Utilizador não encontrado.' };
+
+        await sql`
+            INSERT INTO notas_atleta (user_id, titulo, conteudo)
+            VALUES (${user.id}, ${titulo}, ${conteudo})
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao criar nota.' };
+    }
+
+    revalidatePath('/dashboard/atleta/notas');
+    return null;
+}
+
+export async function adicionarLesaoAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: 'Não autenticado.' };
+
+    const descricao = formData.get('descricao')?.toString().trim();
+    const dataInicio = formData.get('data_inicio')?.toString().trim();
+    const dataPrevistaRetorno =
+        formData.get('data_prevista_retorno')?.toString().trim() || null;
+    const observacoes = formData.get('observacoes')?.toString().trim() || null;
+
+    if (!descricao) return { error: 'Descrição é obrigatória.' };
+    if (!dataInicio) return { error: 'Data de início é obrigatória.' };
+
+    try {
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId}
+        `;
+        if (!user) return { error: 'Utilizador não encontrado.' };
+
+        await sql`
+            INSERT INTO registos_medicos (user_id, tipo, descricao, data_inicio, data_prevista_retorno, observacoes, estado)
+            VALUES (${user.id}, 'lesao', ${descricao}, ${dataInicio}, ${dataPrevistaRetorno}, ${observacoes}, 'ativo')
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao registar lesão.' };
+    }
+
+    revalidatePath('/dashboard/atleta/medico');
+    return { success: true };
+}
+
+export async function adicionarDoencaAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: 'Não autenticado.' };
+
+    const descricao = formData.get('descricao')?.toString().trim();
+    const dataInicio = formData.get('data_inicio')?.toString().trim();
+    const dataPrevistaRetorno =
+        formData.get('data_prevista_retorno')?.toString().trim() || null;
+    const observacoes = formData.get('observacoes')?.toString().trim() || null;
+
+    if (!descricao) return { error: 'Descrição é obrigatória.' };
+    if (!dataInicio) return { error: 'Data de início é obrigatória.' };
+
+    try {
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId}
+        `;
+        if (!user) return { error: 'Utilizador não encontrado.' };
+
+        await sql`
+            INSERT INTO registos_medicos (user_id, tipo, descricao, data_inicio, data_prevista_retorno, observacoes, estado)
+            VALUES (${user.id}, 'doenca', ${descricao}, ${dataInicio}, ${dataPrevistaRetorno}, ${observacoes}, 'ativo')
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao registar doença.' };
+    }
+
+    revalidatePath('/dashboard/atleta/medico');
     return { success: true };
 }
 
@@ -2344,37 +2380,28 @@ export async function editarMembro(
     return { success: true };
 }
 
-<<<<<<< HEAD
-export async function removerMembro(
-    prevState: { error?: string; success?: boolean } | null,
-    formData: FormData,
-): Promise<{ error?: string; success?: boolean } | null> {
-    const { userId } = await auth();
-    if (!userId) return { error: 'NÃ£o autenticado.' };
-=======
 export async function removerMembro(id: string): Promise<void> {
-  const { userId } = await auth()
-  if (!userId) throw new Error('Não autenticado.')
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
+    const { userId } = await auth();
+    if (!userId) throw new Error('Não autenticado.');
 
-  let organizationId: string | undefined
-  try {
-    const user = await sql<{ organization_id: string }[]>`
-      SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`
-    organizationId = user[0]?.organization_id
-  } catch {
-    throw new Error('Erro ao obter organização.')
-  }
-  if (!organizationId) throw new Error('Organização não encontrada.')
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<{ organization_id: string }[]>`
+      SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        throw new Error('Erro ao obter organização.');
+    }
+    if (!organizationId) throw new Error('Organização não encontrada.');
 
-  try {
-    await sql`DELETE FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`
-  } catch (error) {
-    console.error(error)
-    throw new Error('Erro ao remover membro.')
-  }
+    try {
+        await sql`DELETE FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`;
+    } catch (error) {
+        console.error(error);
+        throw new Error('Erro ao remover membro.');
+    }
 
-  revalidatePath('/dashboard/presidente/staff')
+    revalidatePath('/dashboard/presidente/staff');
 }
 
 export async function marcarNotificacaoComoLida(id: string): Promise<void> {
@@ -2382,17 +2409,8 @@ export async function marcarNotificacaoComoLida(id: string): Promise<void> {
     try {
         organizationId = await getOrganizationId();
     } catch {
-<<<<<<< HEAD
-        return { error: 'Erro ao obter organizaÃ§Ã£o.' };
-    }
-    if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
-
-    const id = formData.get('id')?.toString();
-    if (!id) return { error: 'ID do membro em falta.' };
-=======
         return;
     }
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
 
     try {
         await sql`
@@ -2401,75 +2419,25 @@ export async function marcarNotificacaoComoLida(id: string): Promise<void> {
         `;
     } catch (error) {
         console.error(error);
-<<<<<<< HEAD
-        return { error: 'Erro ao remover membro.' };
     }
 
-    revalidatePath('/dashboard/presidente/staff');
-    return { success: true };
+    revalidatePath('/dashboard/presidente/notificacoes');
 }
 
-// ========================================
-// Registos Médicos (Atleta)
-// ========================================
-
-async function adicionarRegistoMedico(
-    tipo: 'lesao' | 'doenca',
-    formData: FormData,
-): Promise<{ error?: string; success?: boolean } | null> {
-    const { userId } = await auth();
-    if (!userId) return { error: 'Não autenticado.' };
-
-    const descricao = formData.get('descricao')?.toString().trim();
-    const dataInicio = formData.get('data_inicio')?.toString();
-    const dataPrevistaRetorno =
-        formData.get('data_prevista_retorno')?.toString() || null;
-    const observacoes = formData.get('observacoes')?.toString().trim() || null;
-
-    if (!descricao) return { error: 'Descrição é obrigatória.' };
-    if (!dataInicio) return { error: 'Data de início é obrigatória.' };
-
-    let userIdDb: string;
-    let organizationId: string;
-    try {
-        const user = await sql<{ id: string; organization_id: string }[]>`
-            SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId}
-        `;
-        if (!user[0]) return { error: 'Utilizador não encontrado.' };
-        userIdDb = user[0].id;
-        organizationId = user[0].organization_id;
-    } catch {
-        return { error: 'Erro ao obter dados do utilizador.' };
-    }
-
-    try {
-        await sql`
-            INSERT INTO registos_medicos (
-                id, user_id, organization_id, tipo,
-                descricao, data_inicio, data_prevista_retorno,
-                observacoes, estado, created_at
-            ) VALUES (
-                gen_random_uuid(), ${userIdDb}, ${organizationId}, ${tipo},
-                ${descricao}, ${dataInicio}, ${dataPrevistaRetorno},
-                ${observacoes}, 'ativo', NOW()
-=======
-    }
-
-    revalidatePath("/dashboard/presidente/notificacoes");
-}
-
-export async function searchClubes(query: string): Promise<{ id: string; nome: string }[]> {
+export async function searchClubes(
+    query: string,
+): Promise<{ id: string; nome: string }[]> {
     if (!query || query.trim().length < 2) return [];
     try {
         const results = await sql<{ id: string; nome: string }[]>`
             SELECT id, nome
             FROM organizations
-            WHERE nome ILIKE ${"%" + query.trim() + "%"}
+            WHERE nome ILIKE ${'%' + query.trim() + '%'}
             LIMIT 6
         `;
         return results;
     } catch (error) {
-        console.error("Erro ao pesquisar clubes", error);
+        console.error('Erro ao pesquisar clubes', error);
         return [];
     }
 }
@@ -2477,17 +2445,26 @@ export async function searchClubes(query: string): Promise<{ id: string; nome: s
 // ── ATLETAS ────────────────────────────────────────────
 
 export async function searchUsuarios(
-    query: string
-): Promise<{ id: string; name: string; email: string; image_url: string | null }[]> {
+    query: string,
+): Promise<
+    { id: string; name: string; email: string; image_url: string | null }[]
+> {
     if (!query || query.trim().length < 2) return [];
     try {
         const organizationId = await getOrganizationId();
-        return await sql<{ id: string; name: string; email: string; image_url: string | null }[]>`
+        return await sql<
+            {
+                id: string;
+                name: string;
+                email: string;
+                image_url: string | null;
+            }[]
+        >`
             SELECT u.id, u.name, u.email, u.image_url
             FROM users u
             WHERE (
-                u.name  ILIKE ${"%" + query.trim() + "%"} OR
-                u.email ILIKE ${"%" + query.trim() + "%"}
+                u.name  ILIKE ${'%' + query.trim() + '%'} OR
+                u.email ILIKE ${'%' + query.trim() + '%'}
             )
             AND u.organization_id != ${organizationId}
             AND u.id NOT IN (
@@ -2499,29 +2476,29 @@ export async function searchUsuarios(
             LIMIT 6
         `;
     } catch (error) {
-        console.error("Erro ao pesquisar utilizadores", error);
+        console.error('Erro ao pesquisar utilizadores', error);
         return [];
     }
 }
 
 export async function convidarAtleta(
     prevState: { error?: string; success?: boolean } | null,
-    formData: FormData
+    formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkId } = await auth();
-    if (!clerkId) return { error: "Não autenticado." };
+    if (!clerkId) return { error: 'Não autenticado.' };
 
     let organizationId: string;
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "Organização não encontrada." };
+        return { error: 'Organização não encontrada.' };
     }
 
-    const atletaUserId = formData.get("atleta_user_id")?.toString();
-    const equipaId     = formData.get("equipa_id")?.toString() || null;
+    const atletaUserId = formData.get('atleta_user_id')?.toString();
+    const equipaId = formData.get('equipa_id')?.toString() || null;
 
-    if (!atletaUserId) return { error: "Seleciona um atleta." };
+    if (!atletaUserId) return { error: 'Seleciona um atleta.' };
 
     // Verificar se já existe convite pendente
     const existing = await sql<{ id: string }[]>`
@@ -2531,14 +2508,14 @@ export async function convidarAtleta(
         AND status           = 'pendente'
     `;
     if (existing.length > 0)
-        return { error: "Já existe um convite pendente para este atleta." };
+        return { error: 'Já existe um convite pendente para este atleta.' };
 
     // Buscar info do clube
     const org = await sql<{ name: string; email: string }[]>`
         SELECT name, email FROM organizations WHERE id = ${organizationId}
     `;
-    const orgName  = org[0]?.name  ?? "Clube";
-    const orgEmail = org[0]?.email ?? "";
+    const orgName = org[0]?.name ?? 'Clube';
+    const orgEmail = org[0]?.email ?? '';
 
     // Criar convite
     try {
@@ -2551,80 +2528,11 @@ export async function convidarAtleta(
                 gen_random_uuid(), ${atletaUserId}, ${organizationId}, ${equipaId},
                 'clube', 'pendente', ${orgName}, ${orgEmail},
                 NOW(), NOW()
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
             )
         `;
     } catch (error) {
         console.error(error);
-<<<<<<< HEAD
-        return { error: 'Erro ao guardar registo médico.' };
-    }
-
-    revalidatePath('/dashboard/atleta/medico');
-    return { success: true };
-}
-
-export async function adicionarLesaoAtleta(
-    prevState: { error?: string; success?: boolean } | null,
-    formData: FormData,
-): Promise<{ error?: string; success?: boolean } | null> {
-    return adicionarRegistoMedico('lesao', formData);
-}
-
-export async function adicionarDoencaAtleta(
-    prevState: { error?: string; success?: boolean } | null,
-    formData: FormData,
-): Promise<{ error?: string; success?: boolean } | null> {
-    return adicionarRegistoMedico('doenca', formData);
-}
-
-// ========================================
-// Notas (Atleta)
-// ========================================
-
-export async function criarNotaAtleta(
-    prevState: { error?: string; success?: boolean } | null,
-    formData: FormData,
-): Promise<{ error?: string; success?: boolean } | null> {
-    const { userId } = await auth();
-    if (!userId) return { error: 'Não autenticado.' };
-
-    const titulo = formData.get('titulo')?.toString().trim();
-    const conteudo = formData.get('conteudo')?.toString().trim();
-
-    if (!titulo) return { error: 'Título é obrigatório.' };
-    if (!conteudo) return { error: 'Conteúdo é obrigatório.' };
-
-    let userIdDb: string;
-    let organizationId: string;
-    try {
-        const user = await sql<{ id: string; organization_id: string }[]>`
-            SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId}
-        `;
-        if (!user[0]) return { error: 'Utilizador não encontrado.' };
-        userIdDb = user[0].id;
-        organizationId = user[0].organization_id;
-    } catch {
-        return { error: 'Erro ao obter dados do utilizador.' };
-    }
-
-    try {
-        await sql`
-            INSERT INTO notas_atleta (
-                id, user_id, organization_id, titulo, conteudo, created_at
-            ) VALUES (
-                gen_random_uuid(), ${userIdDb}, ${organizationId},
-                ${titulo}, ${conteudo}, NOW()
-            )
-        `;
-    } catch (error) {
-        console.error(error);
-        return { error: 'Erro ao guardar nota.' };
-    }
-
-    revalidatePath('/dashboard/atleta/notas');
-=======
-        return { error: "Erro ao enviar convite." };
+        return { error: 'Erro ao enviar convite.' };
     }
 
     // Notificação para o atleta (na organização dele)
@@ -2648,28 +2556,27 @@ export async function criarNotaAtleta(
             `;
         }
     } catch (error) {
-        console.error("Erro ao criar notificação:", error);
+        console.error('Erro ao criar notificação:', error);
         // Não bloqueamos o convite por causa da notificação
     }
 
-    revalidatePath("/dashboard/presidente/atletas");
->>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
+    revalidatePath('/dashboard/presidente/atletas');
     return { success: true };
 }
 
-export async function getEscaloesByUserAction(userId: string): Promise<string[]> {
-  try {
-    const result = await sql<{ escalao: string }[]>`
+export async function getEscaloesByUserAction(
+    userId: string,
+): Promise<string[]> {
+    try {
+        const result = await sql<{ escalao: string }[]>`
       SELECT DISTINCT e.nome AS escalao
       FROM user_cursos uc
       INNER JOIN cursos c ON uc.curso_id = c.id
       INNER JOIN escaloes e ON c.level_id = e.id
       WHERE uc.user_id = ${userId}
-    `
-    return result.map((r: { escalao: string }) => r.escalao)
-  } catch {
-    return []
-  }
+    `;
+        return result.map((r: { escalao: string }) => r.escalao);
+    } catch {
+        return [];
+    }
 }
-
-
