@@ -231,7 +231,7 @@ export default function QuadroTatico() {
             setTimeout(() => {
                 try {
                     const { players: p, sistema: s } = JSON.parse(cached);
-                    if (p) setPlayers(p);
+                    if (Array.isArray(p)) setPlayers(p);
                     if (s) setSistema(s);
                 } catch { /* ignorar */ }
             }, 0);
@@ -352,7 +352,7 @@ export default function QuadroTatico() {
     function carregarJogada(id: string) {
         setJogadaSelecionada(id);
         const j = jogadas.find((jj) => jj.id === id);
-        if (j?.posicoes?.length) {
+        if (Array.isArray(j?.posicoes) && j.posicoes.length) {
             setPlayers(j.posicoes);
             setSistema(j.sistema);
         }
