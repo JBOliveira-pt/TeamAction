@@ -1,883 +1,487 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
-type PresStatus = "P" | "F" | "J";
-type Athlete = {
-    name: string;
-    number: number;
-    pos: string;
-    pres: PresStatus[];
-    percent: number;
+/* ── Tipos ─────────────────────────────────────────────────────────────── */
+type Estado = "P" | "F" | "J";
+
+type Sessao = {
+    id: string;
+    data: string;
+    tipo: string;
+    duracao_min: number;
 };
 
-const summary = {
-    percent: 91,
-    presentes: "16/18",
-    faltasSemJust: 3,
-    atletaAssiduo: { name: "Bruno D.", percent: 100 },
+type Atleta = {
+    id: string;
+    nome: string;
+    posicao: string | null;
+    numero_camisola: number | null;
 };
 
-const sessions = ["25 FEV", "27 FEV", "1 MAR", "3 MAR", "SEG", "QUA", "PROX"];
-
-const athletes: Athlete[] = [
-    {
-        name: "João Silva",
-        number: 8,
-        pos: "Pivot",
-        pres: ["P", "P", "P", "P", "P", "P", "P"],
-        percent: 93,
-    },
-    {
-        name: "Miguel Costa",
-        number: 7,
-        pos: "Ala Esq.",
-        pres: ["P", "P", "P", "P", "P", "P", "P"],
-        percent: 93,
-    },
-    {
-        name: "Rui Santos",
-        number: 3,
-        pos: "Central",
-        pres: ["P", "P", "P", "F", "P", "P", "P"],
-        percent: 93,
-    },
-    {
-        name: "André Ferreira",
-        number: 11,
-        pos: "Pivot",
-        pres: ["P", "J", "P", "P", "P", "P", "P"],
-        percent: 80,
-    },
-    {
-        name: "Pedro Alves",
-        number: 14,
-        pos: "Ala Dir.",
-        pres: ["F", "P", "P", "P", "P", "P", "P"],
-        percent: 93,
-    },
-    {
-        name: "Tiago Mendes",
-        number: 5,
-        pos: "Central",
-        pres: ["P", "P", "P", "P", "P", "P", "P"],
-        percent: 93,
-    },
-    {
-        name: "Carlos Lima",
-        number: 1,
-        pos: "GR",
-        pres: ["P", "P", "F", "F", "P", "P", "P"],
-        percent: 79,
-    },
-    {
-        name: "Bruno Dias",
-        number: 17,
-        pos: "Ala Esq.",
-        pres: ["P", "P", "P", "P", "P", "P", "P"],
-        percent: 100,
-    },
-];
-
-const statusColor: Record<PresStatus, string> = {
-    P: "text-green-600",
-    F: "text-red-600",
-    J: "text-yellow-600",
-};
-const statusBg: Record<PresStatus, string> = {
-    P: "bg-green-100",
-    F: "bg-red-100",
-    J: "bg-yellow-100",
+type Registo = {
+    atleta_id: string;
+    sessao_id: string;
+    estado: Estado;
+    comentario: string | null;
 };
 
-export default function Assiduidade() {
-    const [athletesState, setAthletesState] = useState<Athlete[]>(athletes);
-    const [editModal, setEditModal] = useState(false);
-    const [editIndex, setEditIndex] = useState<number | null>(null);
-    const [editAthlete, setEditAthlete] = useState<Athlete | null>(null);
-    const [showExport, setShowExport] = useState(false);
-    const [showExportAll, setShowExportAll] = useState(false);
-    const handleExportPDF = () => {
-        setShowExport(true);
-        setTimeout(() => {
-            window.print();
-            setShowExport(false);
-        }, 100);
-    };
-    const handleExportAllPDF = () => {
-        setShowExportAll(true);
-        setTimeout(() => {
-            window.print();
-            setShowExportAll(false);
-        }, 100);
-    };
+type DadosAssiduidade = {
+    sessoes: Sessao[];
+    atletas: Atleta[];
+    registos: Registo[];
+};
+
+/* ── Helpers visuais ───────────────────────────────────────────────────── */
+const ESTADO_LABEL: Record<Estado, string> = { P: "Presente", F: "Falta", J: "Justificado" };
+const ESTADO_BG: Record<Estado, string> = {
+    P: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+    F: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+    J: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+};
+
+function formatData(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "short" });
+}
+
+/* ── Componente principal ──────────────────────────────────────────────── */
+export default function Assiduidade({
+    sessoes: sessoesProp,
+    atletas: atletasProp,
+}: {
+    sessoes: Sessao[];
+    atletas: Atleta[];
+}) {
+    const [dados, setDados] = useState<DadosAssiduidade>({ sessoes: [], atletas: atletasProp, registos: [] });
+    const [loadingDados, setLoadingDados] = useState(true);
+
+    // Modal Registar Sessão
     const [showModal, setShowModal] = useState(false);
-    const [exported, setExported] = useState(false);
-    const [newSession, setNewSession] = useState({
-        date: "",
-        type: "Tático",
-        notes: "",
-    });
-    const handleExport = () => {
-        setExported(true);
-        setTimeout(() => setExported(false), 1500);
-    };
+    const [sessaoSelecionada, setSessaoSelecionada] = useState<string>("");
+    const [linhas, setLinhas] = useState<{ atleta_id: string; estado: Estado; comentario: string }[]>([]);
+    const [saving, setSaving] = useState(false);
+    const [erroModal, setErroModal] = useState("");
+
+    // Fetch tabela de assiduidade
+    useEffect(() => {
+        fetch("/api/assiduidade")
+            .then((r) => r.json())
+            .then((d: DadosAssiduidade) => { setDados(d); setLoadingDados(false); })
+            .catch(() => setLoadingDados(false));
+    }, []);
+
+    // Abrir modal → pré-preencher linhas com todos os atletas
+    function abrirModal() {
+        setSessaoSelecionada(sessoesProp[0]?.id ?? "");
+        setLinhas(
+            atletasProp.map((a) => ({ atleta_id: a.id, estado: "P" as Estado, comentario: "" })),
+        );
+        setErroModal("");
+        setShowModal(true);
+    }
+
+    // Quando muda a sessão seleccionada, carregar registos existentes (se houver)
+    function onChangeSessao(id: string) {
+        setSessaoSelecionada(id);
+        const existentes = dados.registos.filter((r) => r.sessao_id === id);
+        setLinhas(
+            atletasProp.map((a) => {
+                const ex = existentes.find((r) => r.atleta_id === a.id);
+                return {
+                    atleta_id: a.id,
+                    estado: (ex?.estado as Estado) ?? "P",
+                    comentario: ex?.comentario ?? "",
+                };
+            }),
+        );
+    }
+
+    async function submeterAssiduidade(e: React.FormEvent) {
+        e.preventDefault();
+        if (!sessaoSelecionada) { setErroModal("Selecione uma sessão."); return; }
+        if (atletasProp.length === 0) { setErroModal("Sem atletas activos na organização."); return; }
+        setSaving(true);
+        setErroModal("");
+        try {
+            const res = await fetch("/api/assiduidade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sessao_id: sessaoSelecionada, registos: linhas }),
+            });
+            if (res.ok) {
+                // Actualizar dados locais
+                const novosRegistos = linhas.map((l) => ({
+                    atleta_id: l.atleta_id,
+                    sessao_id: sessaoSelecionada,
+                    estado: l.estado,
+                    comentario: l.comentario || null,
+                }));
+                setDados((prev) => {
+                    const semSessao = prev.registos.filter((r) => r.sessao_id !== sessaoSelecionada);
+                    const sessaoInfo = sessoesProp.find((s) => s.id === sessaoSelecionada);
+                    const sessoesExistentes = prev.sessoes.some((s) => s.id === sessaoSelecionada);
+                    return {
+                        ...prev,
+                        sessoes: sessoesExistentes
+                            ? prev.sessoes
+                            : sessaoInfo
+                            ? [sessaoInfo, ...prev.sessoes].slice(0, 10)
+                            : prev.sessoes,
+                        registos: [...semSessao, ...novosRegistos],
+                    };
+                });
+                setShowModal(false);
+            } else {
+                setErroModal(await res.text());
+            }
+        } finally {
+            setSaving(false);
+        }
+    }
+
+    // ── Tabela de assiduidade ──────────────────────────────────────────────
+    const sessoesTabela = dados.sessoes; // já ordenadas DESC, máx 10
+    const atletasTabela = dados.atletas.length > 0 ? dados.atletas : atletasProp;
+
+    const registoMap = useMemo(() => {
+        const m: Record<string, Record<string, Registo>> = {};
+        for (const r of dados.registos) {
+            if (!m[r.atleta_id]) m[r.atleta_id] = {};
+            m[r.atleta_id][r.sessao_id] = r;
+        }
+        return m;
+    }, [dados.registos]);
+
+    // Estatísticas
+    const stats = useMemo(() => {
+        if (sessoesTabela.length === 0 || atletasTabela.length === 0) return null;
+        const total = sessoesTabela.length * atletasTabela.length;
+        const presencas = dados.registos.filter((r) => r.estado === "P").length;
+        const faltas = dados.registos.filter((r) => r.estado === "F").length;
+        const percentGeral = total > 0 ? Math.round((presencas / total) * 100) : 0;
+
+        // Atleta mais assíduo
+        let maisAssiduo: { nome: string; pct: number } | null = null;
+        for (const a of atletasTabela) {
+            const registosAtleta = sessoesTabela.map((s) => registoMap[a.id]?.[s.id]?.estado ?? null).filter(Boolean);
+            if (registosAtleta.length === 0) continue;
+            const pct = Math.round((registosAtleta.filter((e) => e === "P").length / registosAtleta.length) * 100);
+            if (!maisAssiduo || pct > maisAssiduo.pct) maisAssiduo = { nome: a.nome, pct };
+        }
+
+        return { percentGeral, presencas, faltas, maisAssiduo };
+    }, [dados, sessoesTabela, atletasTabela, registoMap]);
+
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6">
-            {/* Modal Registar Sessão */}
+
+            {/* ── MODAL REGISTAR SESSÃO ─────────────────────────────────── */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
-                        <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
-                            onClick={() => setShowModal(false)}
-                            aria-label="Fechar"
-                        >
-                            ×
-                        </button>
-                        <div className="flex flex-col items-center mb-6">
-                            <span className="text-blue-600 text-4xl mb-2">
-                                📝
-                            </span>
-                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                                Registar Nova Sessão
-                            </h3>
-                        </div>
-                        <form
-                            className="flex flex-col gap-4 text-base"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                setShowModal(false);
-                                setNewSession({
-                                    date: "",
-                                    type: "Tático",
-                                    notes: "",
-                                });
-                            }}
-                        >
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Data:
-                                </label>
-                                <input
-                                    type="date"
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={newSession.date}
-                                    onChange={(e) =>
-                                        setNewSession((ev) => ({
-                                            ...ev,
-                                            date: e.target.value,
-                                        }))
-                                    }
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Tipo:
-                                </label>
-                                <select
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={newSession.type}
-                                    onChange={(e) =>
-                                        setNewSession((ev) => ({
-                                            ...ev,
-                                            type: e.target.value,
-                                        }))
-                                    }
-                                >
-                                    <option value="Tático">Tático</option>
-                                    <option value="Físico">Físico</option>
-                                    <option value="Técnico">Técnico</option>
-                                    <option value="Misto">Misto</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                    Observações:
-                                </label>
-                                <input
-                                    type="text"
-                                    className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                    value={newSession.notes}
-                                    onChange={(e) =>
-                                        setNewSession((ev) => ({
-                                            ...ev,
-                                            notes: e.target.value,
-                                        }))
-                                    }
-                                />
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] flex flex-col">
+                        {/* Cabeçalho */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">✅</span>
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Registar Assiduidade</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Selecione a sessão e marque as presenças</p>
+                                </div>
                             </div>
                             <button
-                                type="submit"
-                                className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all mt-4"
+                                onClick={() => setShowModal(false)}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 text-xl font-bold transition-all"
+                                aria-label="Fechar"
                             >
-                                <span className="flex items-center justify-center gap-2">
-                                    <span>＋</span>
-                                    Guardar Sessão
-                                </span>
+                                ×
                             </button>
+                        </div>
+
+                        <form onSubmit={submeterAssiduidade} className="flex flex-col flex-1 overflow-hidden">
+                            <div className="p-6 flex flex-col gap-4 overflow-y-auto flex-1">
+                                {erroModal && (
+                                    <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2">
+                                        {erroModal}
+                                    </p>
+                                )}
+
+                                {/* Selecionar sessão */}
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                        Sessão de Treino <span className="text-red-500">*</span>
+                                    </label>
+                                    {sessoesProp.length === 0 ? (
+                                        <p className="text-sm text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-4 py-2">
+                                            Não há sessões registadas. Crie uma sessão primeiro em <strong>Sessões</strong>.
+                                        </p>
+                                    ) : (
+                                        <select
+                                            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-green-400 focus:outline-none transition-all"
+                                            value={sessaoSelecionada}
+                                            onChange={(e) => onChangeSessao(e.target.value)}
+                                        >
+                                            {sessoesProp.map((s) => (
+                                                <option key={s.id} value={s.id}>
+                                                    {formatData(s.data)} — {s.tipo} ({s.duracao_min} min)
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+
+                                {/* Lista de atletas */}
+                                {atletasProp.length === 0 ? (
+                                    <p className="text-sm text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl px-4 py-2">
+                                        Não há atletas activos na organização.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                                Presenças ({atletasProp.length} atletas)
+                                            </label>
+                                            <div className="flex gap-2">
+                                                {(["P", "F", "J"] as Estado[]).map((e) => (
+                                                    <button
+                                                        key={e}
+                                                        type="button"
+                                                        onClick={() => setLinhas((prev) => prev.map((l) => ({ ...l, estado: e })))}
+                                                        className={`text-xs font-bold px-2 py-1 rounded-lg border transition-all ${ESTADO_BG[e]} border-transparent`}
+                                                    >
+                                                        Todos {e}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-gray-50 dark:bg-gray-800">
+                                                    <tr>
+                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Atleta</th>
+                                                        <th className="py-2 px-3 text-center text-xs font-semibold text-gray-500 uppercase">Estado</th>
+                                                        <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Comentário</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {linhas.map((linha, i) => {
+                                                        const atleta = atletasProp.find((a) => a.id === linha.atleta_id);
+                                                        return (
+                                                            <tr key={linha.atleta_id} className={`border-t border-gray-100 dark:border-gray-700 ${i % 2 === 0 ? "" : "bg-gray-50/50 dark:bg-gray-800/30"}`}>
+                                                                <td className="py-2 px-3 font-medium text-gray-800 dark:text-gray-100">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        {atleta?.numero_camisola && (
+                                                                            <span className="text-xs text-gray-400 font-mono w-5 text-center">
+                                                                                {atleta.numero_camisola}
+                                                                            </span>
+                                                                        )}
+                                                                        <span>{atleta?.nome}</span>
+                                                                        {atleta?.posicao && (
+                                                                            <span className="text-xs text-gray-400">· {atleta.posicao}</span>
+                                                                        )}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-3 text-center">
+                                                                    <div className="flex justify-center gap-1">
+                                                                        {(["P", "F", "J"] as Estado[]).map((e) => (
+                                                                            <button
+                                                                                key={e}
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    setLinhas((prev) =>
+                                                                                        prev.map((l, idx) =>
+                                                                                            idx === i ? { ...l, estado: e } : l,
+                                                                                        ),
+                                                                                    )
+                                                                                }
+                                                                                className={`w-8 h-8 rounded-full text-xs font-bold transition-all border-2 ${
+                                                                                    linha.estado === e
+                                                                                        ? `${ESTADO_BG[e]} border-current scale-110`
+                                                                                        : "bg-gray-100 dark:bg-gray-700 text-gray-400 border-transparent hover:border-gray-300"
+                                                                                }`}
+                                                                                title={ESTADO_LABEL[e]}
+                                                                            >
+                                                                                {e}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-3">
+                                                                    <input
+                                                                        type="text"
+                                                                        maxLength={200}
+                                                                        placeholder="Comentário opcional..."
+                                                                        className="w-full text-xs rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-1 focus:ring-green-400 focus:outline-none"
+                                                                        value={linha.comentario}
+                                                                        onChange={(e) =>
+                                                                            setLinhas((prev) =>
+                                                                                prev.map((l, idx) =>
+                                                                                    idx === i ? { ...l, comentario: e.target.value } : l,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer do modal */}
+                            <div className="p-6 pt-0 shrink-0 flex gap-2">
+                                <button
+                                    type="submit"
+                                    disabled={saving || sessoesProp.length === 0 || atletasProp.length === 0}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all"
+                                >
+                                    {saving ? "A guardar..." : "Guardar Assiduidade"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowModal(false)}
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            {/* ── CABEÇALHO ─────────────────────────────────────────────── */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-green-700 dark:text-green-400 flex items-center gap-3">
                         <span>✅</span> Assiduidade
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Seniores Masculinos · Março 2025
+                        Registo de presenças por sessão de treino
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        className="px-5 py-2.5 rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                        onClick={handleExportAllPDF}
-                    >
-                        <span className="text-xl">⬇️</span> Exportar
-                    </button>
-                    <button
-                        className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow font-bold text-base flex items-center gap-2 transition-all"
-                        onClick={() => setShowModal(true)}
-                    >
-                        <span className="text-xl">＋</span> Registar Sessão
-                    </button>
-                </div>
-                {/* Exportação geral: layout só para print/export */}
-                {showExportAll && (
-                    <div
-                        className="fixed inset-0 z-[9999] print:z-[9999] bg-white print:bg-white text-gray-900 print:text-gray-900 print:block screen:hidden overflow-auto"
-                        style={{ padding: 0, margin: 0 }}
-                    >
-                        <div className="w-full max-w-5xl mx-auto p-0 print:p-0 bg-white print:bg-white rounded-2xl shadow-none border-none">
-                            {/* Cabeçalho premium */}
-                            <div className="bg-green-900 text-white py-6 px-0 rounded-t-2xl flex flex-col items-center border-b-8 border-green-700">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-3xl text-green-700 border-2 border-green-300 shadow-lg">
-                                        <span>🏆</span>
-                                    </div>
-                                    <div className="text-xl font-extrabold tracking-tight">
-                                        TeamAction
-                                    </div>
-                                </div>
-                                <div className="text-base font-semibold tracking-wide">
-                                    Relatório de Assiduidade &middot; Seniores
-                                    Masculinos
-                                </div>
-                                <div className="text-xs text-green-100 mt-1">
-                                    Época 2025 &middot;{" "}
-                                    {new Date().toLocaleDateString()}
-                                </div>
-                            </div>
-                            {/* Estatísticas premium reduzidas */}
-                            <div className="flex flex-row flex-wrap items-stretch justify-center gap-2 px-4 pt-4 pb-2">
-                                <div className="flex-1 min-w-[120px] max-w-[160px] flex flex-col items-center bg-green-50 border-l-2 border-green-700 rounded-lg py-2 shadow-sm">
-                                    <div className="text-xl mb-1">📈</div>
-                                    <div className="text-[10px] text-gray-500 mb-0.5">
-                                        ASSIDUIDADE GERAL
-                                    </div>
-                                    <div className="text-lg font-extrabold text-green-700">
-                                        {summary.percent}%
-                                    </div>
-                                    <div className="text-[10px] text-gray-500">
-                                        Esta semana
-                                    </div>
-                                </div>
-                                <div className="flex-1 min-w-[120px] max-w-[160px] flex flex-col items-center bg-blue-50 border-l-2 border-blue-700 rounded-lg py-2 shadow-sm">
-                                    <div className="text-xl mb-1">👥</div>
-                                    <div className="text-[10px] text-gray-500 mb-0.5">
-                                        PRESENTES HOJE
-                                    </div>
-                                    <div className="text-lg font-extrabold text-blue-700">
-                                        {summary.presentes}
-                                    </div>
-                                    <div className="text-[10px] text-gray-500">
-                                        Último treino
-                                    </div>
-                                </div>
-                                <div className="flex-1 min-w-[120px] max-w-[160px] flex flex-col items-center bg-yellow-50 border-l-2 border-yellow-400 rounded-lg py-2 shadow-sm">
-                                    <div className="text-xl mb-1">⚠️</div>
-                                    <div className="text-[10px] text-gray-500 mb-0.5">
-                                        FALTAS SEM JUSTIF.
-                                    </div>
-                                    <div className="text-lg font-extrabold text-yellow-600">
-                                        {summary.faltasSemJust}
-                                    </div>
-                                    <div className="text-[10px] text-gray-500">
-                                        Último mês
-                                    </div>
-                                </div>
-                                <div className="flex-1 min-w-[120px] max-w-[160px] flex flex-col items-center bg-gray-50 border-l-2 border-gray-400 rounded-lg py-2 shadow-sm">
-                                    <div className="text-xl mb-1">⭐</div>
-                                    <div className="text-[10px] text-gray-500 mb-0.5">
-                                        ATLETA + ASSÍDUO
-                                    </div>
-                                    <div className="font-extrabold text-gray-900 flex items-center gap-1 text-sm">
-                                        {summary.atletaAssiduo.name}
-                                        <span className="text-yellow-400 text-base">
-                                            🥇
-                                        </span>
-                                    </div>
-                                    <div className="text-[10px] text-gray-500">
-                                        {summary.atletaAssiduo.percent}%
-                                        presença
-                                    </div>
-                                </div>
-                            </div>
-                            {/* Tabela de atletas premium */}
-                            <div className="overflow-x-auto rounded-xl border border-green-200 bg-white shadow-none px-2 pb-4">
-                                <table className="min-w-full text-xs">
-                                    <thead className="bg-green-900 text-white">
-                                        <tr>
-                                            <th className="py-2 px-2 text-left font-bold tracking-wide">
-                                                ATLETA
-                                            </th>
-                                            <th className="py-2 px-2 text-left font-bold tracking-wide">
-                                                Nº
-                                            </th>
-                                            <th className="py-2 px-2 text-left font-bold tracking-wide">
-                                                POSIÇÃO
-                                            </th>
-                                            {sessions.map((s) => (
-                                                <th
-                                                    key={s}
-                                                    className="py-2 px-2 text-center font-bold tracking-wide"
-                                                >
-                                                    {s}
-                                                </th>
-                                            ))}
-                                            <th className="py-2 px-2 text-center font-bold tracking-wide">
-                                                % ASSID.
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {athletesState.map((a, idx) => (
-                                            <tr
-                                                key={idx}
-                                                className={
-                                                    idx % 2 === 0
-                                                        ? "bg-white"
-                                                        : "bg-green-50"
-                                                }
-                                            >
-                                                <td className="py-2 px-2 font-semibold text-gray-900 flex items-center gap-1">
-                                                    {a.name}
-                                                    {a.name ===
-                                                        summary.atletaAssiduo
-                                                            .name && (
-                                                        <span
-                                                            className="text-yellow-400 text-base"
-                                                            title="Atleta mais assíduo"
-                                                        >
-                                                            🥇
-                                                        </span>
-                                                    )}
-                                                </td>
-                                                <td className="py-2 px-2 text-gray-700">
-                                                    {a.number}
-                                                </td>
-                                                <td className="py-2 px-2 text-gray-700">
-                                                    {a.pos}
-                                                </td>
-                                                {a.pres.map((p, i) => (
-                                                    <td
-                                                        key={i}
-                                                        className="py-2 px-2 text-center"
-                                                    >
-                                                        <span
-                                                            className={`inline-block w-6 h-6 rounded-full font-bold align-middle text-xs shadow-sm border ${p === "P" ? "bg-green-200 text-green-800 border-green-400" : p === "F" ? "bg-red-200 text-red-800 border-red-400" : "bg-yellow-200 text-yellow-800 border-yellow-400"}`}
-                                                        >
-                                                            {p}
-                                                        </span>
-                                                    </td>
-                                                ))}
-                                                <td className="py-2 px-2 text-center">
-                                                    <div className="flex items-center gap-1">
-                                                        <span
-                                                            className={`font-bold ${a.percent === 100 ? "text-green-600" : a.percent < 80 ? "text-red-600" : "text-gray-900"}`}
-                                                        >
-                                                            {a.percent}%
-                                                        </span>
-                                                        <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
-                                                            <div
-                                                                className={`h-1 rounded-full ${a.percent === 100 ? "bg-green-500" : a.percent < 80 ? "bg-red-400" : "bg-green-300"}`}
-                                                                style={{
-                                                                    width: `${a.percent}%`,
-                                                                }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {/* Rodapé institucional e assinatura */}
-                            <div className="px-4 pb-4 pt-2 border-t border-green-100 text-[10px] text-gray-400 text-center flex flex-col items-center gap-1">
-                                <div>
-                                    Relatório gerado por{" "}
-                                    <span className="font-bold text-green-700">
-                                        TeamAction
-                                    </span>{" "}
-                                    &middot; {new Date().toLocaleDateString()}
-                                </div>
-                                <div className="mt-2 w-full flex justify-end pr-4">
-                                    <div className="border-t border-gray-300 w-40 text-gray-400 pt-1 text-[10px]">
-                                        Assinatura do responsável
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <button
+                    className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow font-bold flex items-center gap-2 transition-all"
+                    onClick={abrirModal}
+                >
+                    <span className="text-xl">＋</span> Registar Assiduidade
+                </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="border rounded-xl p-6 flex flex-col justify-between border-green-400 bg-white dark:bg-gray-800 shadow">
-                    <div className="text-xs text-gray-500 mb-1">
-                        ASSIDUIDADE GERAL
-                    </div>
-                    <div className="text-3xl font-bold text-green-600">
-                        {summary.percent}%
-                    </div>
-                    <div className="text-xs text-gray-500">Esta semana</div>
+
+            {/* ── ESTATÍSTICAS ──────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-green-300 dark:border-green-800 shadow-sm flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 uppercase font-semibold">Assiduidade Geral</span>
+                    <span className="text-3xl font-bold text-green-600">{stats?.percentGeral ?? "—"}%</span>
+                    <span className="text-xs text-gray-400">Últimas sessões</span>
                 </div>
-                <div className="border rounded-xl p-6 flex flex-col justify-between border-gray-400 bg-white dark:bg-gray-800 shadow">
-                    <div className="text-xs text-gray-500 mb-1">
-                        PRESENTES HOJE
-                    </div>
-                    <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                        {summary.presentes}
-                    </div>
-                    <div className="text-xs text-gray-500">Último treino</div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 uppercase font-semibold">Presenças</span>
+                    <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats?.presencas ?? "—"}</span>
+                    <span className="text-xs text-gray-400">Total registadas</span>
                 </div>
-                <div className="border rounded-xl p-6 flex flex-col justify-between border-yellow-400 bg-white dark:bg-gray-800 shadow">
-                    <div className="text-xs text-gray-500 mb-1">
-                        FALTAS SEM JUSTIF.
-                    </div>
-                    <div className="text-3xl font-bold text-yellow-600">
-                        {summary.faltasSemJust}
-                    </div>
-                    <div className="text-xs text-gray-500">Último mês</div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-yellow-300 dark:border-yellow-800 shadow-sm flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 uppercase font-semibold">Faltas</span>
+                    <span className="text-3xl font-bold text-yellow-600">{stats?.faltas ?? "—"}</span>
+                    <span className="text-xs text-gray-400">Total registadas</span>
                 </div>
-                <div className="border rounded-xl p-6 flex flex-col justify-between border-gray-400 bg-white dark:bg-gray-800 shadow">
-                    <div className="text-xs text-gray-500 mb-1">
-                        ATLETA + ASSÍDUO
-                    </div>
-                    <div className="font-bold text-gray-900 dark:text-gray-100">
-                        {summary.atletaAssiduo.name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                        {summary.atletaAssiduo.percent}% presença
-                    </div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 uppercase font-semibold">Atleta + Assíduo</span>
+                    <span className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
+                        {stats?.maisAssiduo?.nome ?? "—"}
+                    </span>
+                    <span className="text-xs text-gray-400">{stats?.maisAssiduo?.pct ?? "—"}% presença</span>
                 </div>
             </div>
-            <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow">
-                <table className="min-w-full text-sm">
-                    <thead className="bg-gray-100 dark:bg-gray-900">
-                        <tr>
-                            <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">ATLETA</th>
-                            <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Nº</th>
-                            <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">POSIÇÃO</th>
-                            {sessions.map((s) => (
-                                <th key={s} className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                    {s}
-                                </th>
-                            ))}
-                            <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">%</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {athletesState.map((a, idx) => (
-                            <tr
-                                key={idx}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                                onClick={() => {
-                                    setEditIndex(idx);
-                                    setEditAthlete({ ...a });
-                                    setEditModal(true);
-                                }}
-                            >
-                                <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">
-                                    {a.name}
-                                </td>
-                                <td className="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                    {a.number}
-                                </td>
-                                <td className="py-3 px-4 text-gray-700 dark:text-gray-300">
-                                    {a.pos}
-                                </td>
-                                {a.pres.map((p, i) => (
-                                    <td
-                                        key={i}
-                                        className="py-3 px-4 text-center"
-                                    >
-                                        <span
-                                            className={`inline-block w-6 h-6 rounded-full font-bold align-middle ${statusBg[p]} ${statusColor[p]}`}
-                                        >
-                                            {p}
-                                        </span>
-                                    </td>
+
+            {/* ── TABELA ────────────────────────────────────────────────── */}
+            {loadingDados ? (
+                <div className="text-center py-16 text-gray-400">A carregar assiduidade...</div>
+            ) : sessoesTabela.length === 0 ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center text-gray-400">
+                    Ainda não há assiduidade registada. Clique em <strong className="text-green-600">Registar Assiduidade</strong> para começar.
+                </div>
+            ) : (
+                <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                    <table className="min-w-full text-sm">
+                        <thead className="bg-gray-100 dark:bg-gray-900">
+                            <tr>
+                                <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase sticky left-0 bg-gray-100 dark:bg-gray-900">Atleta</th>
+                                <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 uppercase">Pos.</th>
+                                {sessoesTabela.map((s) => (
+                                    <th key={s.id} className="py-3 px-3 text-center text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">
+                                        <div>{formatData(s.data)}</div>
+                                        <div className="font-normal text-gray-400 normal-case">{s.tipo}</div>
+                                    </th>
                                 ))}
-                                <td
-                                    className={`py-3 px-4 text-center font-bold ${a.percent === 100 ? "text-green-600" : a.percent < 80 ? "text-red-600" : "text-gray-900 dark:text-gray-100"}`}
-                                >
-                                    {a.percent}%
-                                </td>
+                                <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 uppercase">%</th>
                             </tr>
-                        ))}
-                        {/* Modal Editar Atleta */}
-                        {editModal && editAthlete && (
-                            <>
-                                {/* Modal de edição */}
-                                {!showExport && (
-                                    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                                        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-green-100 dark:border-green-900">
-                                            <button
-                                                className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
-                                                onClick={() =>
-                                                    setEditModal(false)
-                                                }
-                                                aria-label="Fechar"
-                                            >
-                                                ×
-                                            </button>
-                                            <div className="flex flex-col items-center mb-6">
-                                                <span className="text-blue-600 text-4xl mb-2">
-                                                    👤
-                                                </span>
-                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                                                    Editar Atleta
-                                                </h3>
-                                            </div>
-                                            <form
-                                                className="flex flex-col gap-4 text-base"
-                                                onSubmit={(e) => {
-                                                    e.preventDefault();
-                                                    if (
-                                                        editIndex !== null &&
-                                                        editAthlete
-                                                    ) {
-                                                        setAthletesState(
-                                                            (prev) =>
-                                                                prev.map(
-                                                                    (at, i) =>
-                                                                        i ===
-                                                                        editIndex
-                                                                            ? editAthlete
-                                                                            : at,
-                                                                ),
-                                                        );
-                                                    }
-                                                    setEditModal(false);
-                                                }}
-                                            >
-                                                <div>
-                                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                                        Nome:
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                                        value={editAthlete.name}
-                                                        onChange={(e) =>
-                                                            setEditAthlete(
-                                                                (ev) =>
-                                                                    ev
-                                                                        ? {
-                                                                              ...ev,
-                                                                              name: e
-                                                                                  .target
-                                                                                  .value,
-                                                                          }
-                                                                        : ev,
-                                                            )
-                                                        }
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <div className="flex-1">
-                                                        <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                                            Nº:
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                                            value={
-                                                                editAthlete.number
-                                                            }
-                                                            onChange={(e) =>
-                                                                setEditAthlete(
-                                                                    (ev) =>
-                                                                        ev
-                                                                            ? {
-                                                                                  ...ev,
-                                                                                  number: Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                                  ),
-                                                                              }
-                                                                            : ev,
-                                                                )
-                                                            }
-                                                            required
+                        </thead>
+                        <tbody>
+                            {atletasTabela.map((a, idx) => {
+                                const registosAtleta = sessoesTabela.map((s) => registoMap[a.id]?.[s.id] ?? null);
+                                const comRegisto = registosAtleta.filter(Boolean);
+                                const pct = comRegisto.length > 0
+                                    ? Math.round((comRegisto.filter((r) => r!.estado === "P").length / comRegisto.length) * 100)
+                                    : null;
+
+                                return (
+                                    <tr key={a.id} className={`border-t border-gray-100 dark:border-gray-700 ${idx % 2 === 0 ? "" : "bg-gray-50/50 dark:bg-gray-800/30"}`}>
+                                        <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap sticky left-0 bg-white dark:bg-gray-800">
+                                            {a.nome}
+                                        </td>
+                                        <td className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                                            {a.posicao ?? "—"}
+                                        </td>
+                                        {registosAtleta.map((r, i) => (
+                                            <td key={i} className="py-3 px-3 text-center" title={r?.comentario ?? ""}>
+                                                {r ? (
+                                                    <span className={`inline-flex w-7 h-7 items-center justify-center rounded-full text-xs font-bold ${ESTADO_BG[r.estado as Estado]}`}>
+                                                        {r.estado}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex w-7 h-7 items-center justify-center rounded-full text-xs text-gray-300 dark:text-gray-600 bg-gray-100 dark:bg-gray-700">
+                                                        —
+                                                    </span>
+                                                )}
+                                            </td>
+                                        ))}
+                                        <td className="py-3 px-4 text-center">
+                                            {pct !== null ? (
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <div className="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-1.5 rounded-full ${pct >= 80 ? "bg-green-500" : pct >= 60 ? "bg-yellow-500" : "bg-red-400"}`}
+                                                            style={{ width: `${pct}%` }}
                                                         />
                                                     </div>
-                                                    <div className="flex-1">
-                                                        <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                                            Posição:
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                                            value={
-                                                                editAthlete.pos
-                                                            }
-                                                            onChange={(e) =>
-                                                                setEditAthlete(
-                                                                    (ev) =>
-                                                                        ev
-                                                                            ? {
-                                                                                  ...ev,
-                                                                                  pos: e
-                                                                                      .target
-                                                                                      .value,
-                                                                              }
-                                                                            : ev,
-                                                                )
-                                                            }
-                                                            required
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                                        Presenças (P/F/J):
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                                        value={editAthlete.pres.join(
-                                                            ",",
-                                                        )}
-                                                        onChange={(e) => {
-                                                            const val =
-                                                                e.target.value
-                                                                    .toUpperCase()
-                                                                    .replace(
-                                                                        /[^PFJ,]/g,
-                                                                        "",
-                                                                    );
-                                                            setEditAthlete(
-                                                                (ev) =>
-                                                                    ev
-                                                                        ? {
-                                                                              ...ev,
-                                                                              pres: val
-                                                                                  .split(
-                                                                                      ",",
-                                                                                  )
-                                                                                  .filter(
-                                                                                      Boolean,
-                                                                                  ) as PresStatus[],
-                                                                          }
-                                                                        : ev,
-                                                            );
-                                                        }}
-                                                        required
-                                                    />
-                                                    <span className="text-xs text-gray-400 ml-2">
-                                                        Ex: P,P,F,J,P,P,P
+                                                    <span className={`text-xs font-bold ${pct >= 80 ? "text-green-600" : pct >= 60 ? "text-yellow-600" : "text-red-600"}`}>
+                                                        {pct}%
                                                     </span>
                                                 </div>
-                                                <div>
-                                                    <label className="font-semibold text-gray-700 dark:text-gray-200">
-                                                        % Assiduidade:
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        className="ml-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800"
-                                                        value={
-                                                            editAthlete.percent
-                                                        }
-                                                        onChange={(e) =>
-                                                            setEditAthlete(
-                                                                (ev) =>
-                                                                    ev
-                                                                        ? {
-                                                                              ...ev,
-                                                                              percent:
-                                                                                  Number(
-                                                                                      e
-                                                                                          .target
-                                                                                          .value,
-                                                                                  ),
-                                                                          }
-                                                                        : ev,
-                                                            )
-                                                        }
-                                                        min={0}
-                                                        max={100}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="flex gap-2 mt-4">
-                                                    <button
-                                                        type="submit"
-                                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-lg transition-all"
-                                                    >
-                                                        Guardar
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-lg transition-all"
-                                                        onClick={
-                                                            handleExportPDF
-                                                        }
-                                                    >
-                                                        Exportar PDF
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Layout de exportação PDF, só visível na impressão */}
-                                {showExport && (
-                                    <div
-                                        className="fixed inset-0 flex items-center justify-center z-[9999] print:z-[9999] bg-white print:bg-white text-gray-900 print:text-gray-900"
-                                        style={{ padding: 0, margin: 0 }}
-                                    >
-                                        <div className="w-full max-w-xl mx-auto p-0 print:p-0 bg-white print:bg-white rounded-2xl shadow-none border-none">
-                                            {/* Header Profissional */}
-                                            <div className="flex items-center gap-4 border-b-4 border-green-700 px-10 pt-10 pb-6">
-                                                <div className="flex-shrink-0">
-                                                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-5xl text-green-700 border-4 border-green-300">
-                                                        👤
-                                                    </div>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 tracking-tight">
-                                                        Ficha Individual de
-                                                        Atleta
-                                                    </h1>
-                                                    <div className="text-base text-gray-500 font-medium">
-                                                        Documento de assiduidade
-                                                        e identificação
-                                                    </div>
-                                                </div>
-                                                <div className="text-right text-xs text-gray-400 font-semibold">
-                                                    {new Date().toLocaleDateString()}
-                                                </div>
-                                            </div>
-                                            {/* Dados do Atleta */}
-                                            <div className="px-10 pt-8 pb-2">
-                                                <div className="grid grid-cols-2 gap-6 mb-6">
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 font-semibold uppercase mb-1">
-                                                            Nome
-                                                        </div>
-                                                        <div className="text-lg font-bold text-gray-900">
-                                                            {editAthlete?.name}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 font-semibold uppercase mb-1">
-                                                            Número
-                                                        </div>
-                                                        <div className="text-lg font-bold text-gray-900">
-                                                            #
-                                                            {
-                                                                editAthlete?.number
-                                                            }
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 font-semibold uppercase mb-1">
-                                                            Posição
-                                                        </div>
-                                                        <div className="text-lg font-bold text-gray-900">
-                                                            {editAthlete?.pos}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-xs text-gray-500 font-semibold uppercase mb-1">
-                                                            % Assiduidade
-                                                        </div>
-                                                        <div className="text-lg font-bold text-green-700">
-                                                            {
-                                                                editAthlete?.percent
-                                                            }
-                                                            %
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                {/* Presenças */}
-                                                <div className="mb-2">
-                                                    <div className="text-base font-bold text-green-700 mb-2">
-                                                        Registo de Presenças
-                                                    </div>
-                                                    <table className="w-full border border-green-200 rounded-lg overflow-hidden text-sm">
-                                                        <thead>
-                                                            <tr className="bg-green-50">
-                                                                {sessions.map(
-                                                                    (s, i) => (
-                                                                        <th
-                                                                            key={
-                                                                                i
-                                                                            }
-                                                                            className="py-2 px-3 text-center font-bold text-green-800 border-b border-green-100"
-                                                                        >
-                                                                            {s}
-                                                                        </th>
-                                                                    ),
-                                                                )}
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <tr>
-                                                                {editAthlete?.pres?.map(
-                                                                    (p, i) => (
-                                                                        <td
-                                                                            key={
-                                                                                i
-                                                                            }
-                                                                            className="py-2 px-3 text-center"
-                                                                        >
-                                                                            <span
-                                                                                className={`inline-block w-8 h-8 rounded-full font-bold align-middle text-lg shadow-sm border ${p === "P" ? "bg-green-200 text-green-800 border-green-400" : p === "F" ? "bg-red-200 text-red-800 border-red-400" : "bg-yellow-200 text-yellow-800 border-yellow-400"}`}
-                                                                            >
-                                                                                {
-                                                                                    p
-                                                                                }
-                                                                            </span>
-                                                                        </td>
-                                                                    ),
-                                                                )}
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                            {/* Rodapé */}
-                                            <div className="px-10 pb-8 pt-4 border-t border-green-100 text-xs text-gray-400 text-center">
-                                                Documento gerado por{" "}
-                                                <span className="font-bold text-green-700">
-                                                    TeamAction
-                                                </span>{" "}
-                                                &middot;{" "}
-                                                {new Date().toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </tbody>
-                </table>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">—</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Legenda */}
+            <div className="flex flex-wrap gap-3 mt-4 justify-center">
+                {(["P", "F", "J"] as Estado[]).map((e) => (
+                    <div key={e} className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl ${ESTADO_BG[e]}`}>
+                        <span className="font-bold">{e}</span> — {ESTADO_LABEL[e]}
+                    </div>
+                ))}
             </div>
         </div>
     );

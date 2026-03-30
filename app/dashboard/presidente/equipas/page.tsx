@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchEquipas } from "@/app/lib/data";
+import { fetchEquipas, fetchEscaloes, fetchDesportoOrg } from "@/app/lib/data";
 import NovaEquipaModal from "./_components/NovaEquipaModal.client";
 
 export const dynamic = 'force-dynamic';
@@ -10,21 +10,33 @@ const estadoStyle: Record<string, string> = {
     "inativa":      "bg-red-500/10 text-red-400",
 };
 
-export default async function EquipasPage() {
-    const equipas = await fetchEquipas();
+const estadoLabel: Record<string, string> = {
+    "ativa":        "Ativa",
+    "periodo_off":  "Período Off",
+    "inativa":      "Inativa",
+};
 
-    const totalAtletas = equipas.reduce((acc, e) => acc + Number(e.total_atletas), 0);
+export default async function EquipasPage() {
+    const [equipas, escaloes, desporto] = await Promise.all([
+        fetchEquipas(),
+        fetchEscaloes(),
+        fetchDesportoOrg(),
+    ]);
+
+    const totalAtletas  = equipas.reduce((acc, e) => acc + Number(e.total_atletas), 0);
     const equipasAtivas = equipas.filter(e => e.estado === "ativa").length;
 
     return (
         <div className="p-6 space-y-6">
-            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Equipas</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Época 2024/2025 · {equipas.length} escalões</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {desporto && <span className="font-medium text-violet-400">{desporto} · </span>}
+                        {equipas.length} equipas registadas
+                    </p>
                 </div>
-                <NovaEquipaModal />
+                <NovaEquipaModal escaloes={escaloes} desporto={desporto} />
             </div>
 
             {/* Cards resumo */}
@@ -46,7 +58,9 @@ export default async function EquipasPage() {
             {/* Tabela */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 {equipas.length === 0 ? (
-                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">Nenhuma equipa registada ainda.</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
+                        Nenhuma equipa registada ainda.
+                    </p>
                 ) : (
                     <table className="w-full text-sm">
                         <thead>
@@ -68,7 +82,7 @@ export default async function EquipasPage() {
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{Number(e.total_atletas)}</td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
-                                            {e.estado}
+                                            {estadoLabel[e.estado] ?? e.estado}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
@@ -85,5 +99,6 @@ export default async function EquipasPage() {
         </div>
     );
 }
+
 
 

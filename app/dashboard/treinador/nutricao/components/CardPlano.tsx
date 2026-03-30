@@ -1,7 +1,16 @@
 // CardPlano.tsx
 // Card para visualização de um plano nutricional no histórico
 import React from "react";
-import { NutritionPlan } from "../nutricao";
+
+type NutritionPlan = {
+    id: number;
+    name: string;
+    description: string;
+    createdAt: string;
+    macros: { proteina: string; hidratos: string; gordura: string };
+    objetivo?: string;
+    observacoes?: string;
+};
 
 type CardPlanoProps = {
     plan: NutritionPlan;

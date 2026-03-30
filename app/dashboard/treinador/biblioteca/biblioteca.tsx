@@ -1,422 +1,230 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
-interface TacticDoc {
-    title: string;
-    category: string;
-    views: number;
-    added: string;
-    mine: boolean;
-}
+type Player = { id: string; color: "blue" | "red"; x: number; y: number };
+type Arrow  = { id: string; x1: number; y1: number; x2: number; y2: number };
 
-const initialBibliotecaData: TacticDoc[] = [
-    {
-        title: "Ataque Posicional A1",
-        category: "Ataque",
-        views: 34,
-        added: "3 Mar",
-        mine: true,
-    },
-    {
-        title: "Defesa 5-1 Agressiva",
-        category: "Defesa",
-        views: 28,
-        added: "1 Mar",
-        mine: true,
-    },
-    {
-        title: "Contraataque 3x2",
-        category: "Transição",
-        views: 19,
-        added: "25 Fev",
-        mine: false,
-    },
-    {
-        title: "Jogo de Pivot",
-        category: "Ataque",
-        views: 41,
-        added: "20 Fev",
-        mine: true,
-    },
-    {
-        title: "Bloco Baixo 6-0",
-        category: "Defesa",
-        views: 15,
-        added: "20 Fev",
-        mine: false,
-    },
-    {
-        title: "Falta 7m Variante B",
-        category: "Bola Parada",
-        views: 22,
-        added: "10 Fev",
-        mine: true,
-    },
-    {
-        title: "Press Defesa 4-2",
-        category: "Defesa",
-        views: 30,
-        added: "5 Fev",
-        mine: false,
-    },
-    {
-        title: "Pivot + Ala Combinação",
-        category: "Ataque",
-        views: 27,
-        added: "5 Fev",
-        mine: true,
-    },
-    {
-        title: "Saída Guarda-Redes",
-        category: "Transição",
-        views: 11,
-        added: "28 Jan",
-        mine: false,
-    },
-];
+type Jogada = {
+    id: string;
+    nome: string;
+    tipo: string;
+    sistema: string;
+    posicoes: Player[];
+    setas: Arrow[];
+    created_at: string;
+};
 
-const categories = [
-    "Todas",
-    "Ataque",
-    "Defesa",
-    "Transição",
-    "Bola Parada",
-    "As Minhas",
-];
+const CATEGORIAS = ["Todas", "Ataque", "Defesa", "Transição", "Bola Parada", "Personalizada"];
 
 const catColors: Record<string, string> = {
     Ataque: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
     Defesa: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-    Transição:
-        "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-    "Bola Parada":
-        "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    Transição: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+    "Bola Parada": "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    Personalizada: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
 };
 
-/* ────────────────────────────────────────────────────────────────
-   SVG Diagrams por categoria
-──────────────────────────────────────────────────────────────── */
-
-function PlayerDot({ x, y, c, r }: { x: number; y: number; c: string; r: number }) {
-    return <circle cx={x} cy={y} r={r} fill={c} stroke="white" strokeWidth={1.4} />;
+/* ── SVG Diagrama tático ──────────────────────────────────────────────── */
+// Converte coordenadas % (0-100) do quadro para o viewBox SVG (120×70)
+function toSvg(x: number, y: number) {
+    return { cx: (x / 100) * 116 + 2, cy: (y / 100) * 66 + 2 };
 }
 
-function TacticalDiagram({
-    category,
-    large = false,
-}: {
-    category: string;
-    large?: boolean;
-}) {
-    const r = large ? 5.5 : 4.5;
+function TacticalDiagram({ posicoes, setas = [], large = false }: { posicoes: Player[]; setas?: Arrow[]; large?: boolean }) {
+    const r = large ? 5 : 4;
 
     return (
         <svg viewBox="0 0 120 70" className="w-full h-full">
-            {/* ── Campo ── */}
-            <rect
-                x="2"
-                y="2"
-                width="116"
-                height="66"
-                rx="2"
-                fill="#f0fdf4"
-                stroke="#22c55e"
-                strokeWidth="1.5"
-            />
-            <line
-                x1="60"
-                y1="2"
-                x2="60"
-                y2="68"
-                stroke="#22c55e"
-                strokeWidth="0.7"
-                opacity="0.4"
-            />
-            <circle
-                cx="60"
-                cy="35"
-                r="10"
-                fill="none"
-                stroke="#22c55e"
-                strokeWidth="0.7"
-                opacity="0.4"
-            />
-            <rect
-                x="2"
-                y="25"
-                width="11"
-                height="20"
-                fill="none"
-                stroke="#22c55e"
-                strokeWidth="1"
-            />
-            <rect
-                x="107"
-                y="25"
-                width="11"
-                height="20"
-                fill="none"
-                stroke="#22c55e"
-                strokeWidth="1"
-            />
+            <defs>
+                <marker id="arr" markerWidth="6" markerHeight="5" refX="5.5" refY="2.5" orient="auto">
+                    <polygon points="0 0, 6 2.5, 0 5" fill="#f59e0b" />
+                </marker>
+            </defs>
 
-            {category === "Ataque" && (
-                <>
-                    {/* GK */}
-                    <PlayerDot x={9} y={35} c="#1d4ed8" r={r} />
-                    {/* Backs */}
-                    <PlayerDot x={50} y={22} c="#3b82f6" r={r} />
-                    <PlayerDot x={46} y={35} c="#3b82f6" r={r} />
-                    <PlayerDot x={50} y={48} c="#3b82f6" r={r} />
-                    {/* Wings */}
-                    <PlayerDot x={70} y={11} c="#3b82f6" r={r} />
-                    <PlayerDot x={70} y={59} c="#3b82f6" r={r} />
-                    {/* Pivot */}
-                    <PlayerDot x={81} y={35} c="#3b82f6" r={r} />
-                    {/* Attack lines */}
-                    <line
-                        x1="54"
-                        y1="24"
-                        x2="73"
-                        y2="29"
-                        stroke="#f59e0b"
-                        strokeWidth="1.8"
-                        opacity="0.85"
-                    />
-                    <line
-                        x1="50"
-                        y1="35"
-                        x2="74"
-                        y2="35"
-                        stroke="#f59e0b"
-                        strokeWidth="1.8"
-                        opacity="0.85"
-                    />
-                    <line
-                        x1="54"
-                        y1="46"
-                        x2="73"
-                        y2="41"
-                        stroke="#f59e0b"
-                        strokeWidth="1.8"
-                        opacity="0.85"
-                    />
-                </>
-            )}
+            {/* Campo */}
+            <rect x="2" y="2" width="116" height="66" rx="2" fill="#f0fdf4" stroke="#22c55e" strokeWidth="1.5" />
+            <line x1="60" y1="2" x2="60" y2="68" stroke="#22c55e" strokeWidth="0.7" opacity="0.4" />
+            <circle cx="60" cy="35" r="10" fill="none" stroke="#22c55e" strokeWidth="0.7" opacity="0.4" />
+            <rect x="2" y="25" width="11" height="20" fill="none" stroke="#22c55e" strokeWidth="1" />
+            <rect x="107" y="25" width="11" height="20" fill="none" stroke="#22c55e" strokeWidth="1" />
 
-            {category === "Defesa" && (
-                <>
-                    {/* GK */}
-                    <PlayerDot x={9} y={35} c="#1d4ed8" r={r} />
-                    {/* 6-0 defensive line */}
-                    <PlayerDot x={22} y={24} c="#3b82f6" r={r} />
-                    <PlayerDot x={30} y={19} c="#3b82f6" r={r} />
-                    <PlayerDot x={40} y={17} c="#3b82f6" r={r} />
-                    <PlayerDot x={50} y={19} c="#3b82f6" r={r} />
-                    <PlayerDot x={58} y={24} c="#3b82f6" r={r} />
-                    <PlayerDot x={40} y={32} c="#3b82f6" r={r} />
-                    {/* Opponent attackers */}
-                    <PlayerDot x={72} y={20} c="#ef4444" r={r} />
-                    <PlayerDot x={76} y={35} c="#ef4444" r={r} />
-                    <PlayerDot x={72} y={50} c="#ef4444" r={r} />
-                </>
-            )}
-
-            {category === "Transição" && (
-                <>
-                    {/* GK */}
-                    <PlayerDot x={9} y={35} c="#1d4ed8" r={r} />
-                    {/* Ball carrier */}
-                    <PlayerDot x={30} y={35} c="#3b82f6" r={r} />
-                    {/* Runners ahead */}
-                    <PlayerDot x={65} y={18} c="#3b82f6" r={r} />
-                    <PlayerDot x={68} y={35} c="#3b82f6" r={r} />
-                    <PlayerDot x={65} y={52} c="#3b82f6" r={r} />
-                    {/* Opponents trailing */}
-                    <PlayerDot x={48} y={27} c="#ef4444" r={r} />
-                    <PlayerDot x={48} y={43} c="#ef4444" r={r} />
-                    {/* Counter-attack main arrow */}
+            {/* Setas */}
+            {setas.map((a) => {
+                const p1 = toSvg(a.x1, a.y1);
+                const p2 = toSvg(a.x2, a.y2);
+                return (
                     <line
-                        x1="34"
-                        y1="35"
-                        x2="62"
-                        y2="35"
-                        stroke="#3b82f6"
-                        strokeWidth="2"
-                        opacity="0.85"
+                        key={a.id}
+                        x1={p1.cx} y1={p1.cy}
+                        x2={p2.cx} y2={p2.cy}
+                        stroke="#f59e0b" strokeWidth="1.5"
+                        markerEnd="url(#arr)"
                     />
-                    {/* Pass lines */}
-                    <line
-                        x1="34"
-                        y1="33"
-                        x2="62"
-                        y2="21"
-                        stroke="#93c5fd"
-                        strokeWidth="1.2"
-                        strokeDasharray="3,2"
-                        opacity="0.8"
-                    />
-                    <line
-                        x1="34"
-                        y1="37"
-                        x2="62"
-                        y2="49"
-                        stroke="#93c5fd"
-                        strokeWidth="1.2"
-                        strokeDasharray="3,2"
-                        opacity="0.8"
-                    />
-                </>
-            )}
+                );
+            })}
 
-            {category === "Bola Parada" && (
-                <>
-                    {/* Opponent GK */}
-                    <PlayerDot x={111} y={35} c="#ef4444" r={r} />
-                    {/* Opponent wall */}
-                    <PlayerDot x={98} y={26} c="#ef4444" r={r} />
-                    <PlayerDot x={98} y={34} c="#ef4444" r={r} />
-                    <PlayerDot x={98} y={42} c="#ef4444" r={r} />
-                    {/* Our players */}
-                    <PlayerDot x={87} y={52} c="#3b82f6" r={r} />
-                    <PlayerDot x={75} y={22} c="#3b82f6" r={r} />
-                    <PlayerDot x={76} y={35} c="#3b82f6" r={r} />
-                    {/* Shot trajectory */}
-                    <path
-                        d="M87,49 Q96,38 109,33"
-                        fill="none"
-                        stroke="#f59e0b"
-                        strokeWidth="1.8"
-                        strokeDasharray="3,2"
-                        opacity="0.9"
-                    />
-                </>
-            )}
-
-            {!["Ataque", "Defesa", "Transição", "Bola Parada"].includes(
-                category,
-            ) && (
-                <>
-                    {[22, 38, 60, 82, 98].map((cx, i) => (
-                        <circle
-                            key={i}
-                            cx={cx}
-                            cy={35}
-                            r={r}
-                            fill="#6366f1"
-                            stroke="white"
-                            strokeWidth={1.4}
-                        />
-                    ))}
-                </>
-            )}
+            {/* Jogadores nas posições reais */}
+            {posicoes.map((p) => {
+                const { cx, cy } = toSvg(p.x, p.y);
+                const fill = p.color === "blue" ? "#2563eb" : "#dc2626";
+                return (
+                    <g key={`${p.id}-${p.color}`}>
+                        <circle cx={cx} cy={cy} r={r} fill={fill} stroke="white" strokeWidth={1.4} />
+                        <text
+                            x={cx}
+                            y={cy + 0.5}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={r * 0.9}
+                            fill="white"
+                            fontWeight="bold"
+                        >
+                            {p.id.replace(/^A(\d+)$/, "$1")}
+                        </text>
+                    </g>
+                );
+            })}
         </svg>
     );
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Componente principal
-──────────────────────────────────────────────────────────────── */
-
-export default function Biblioteca() {
-    const [biblioteca, setBiblioteca] = useState<TacticDoc[]>(
-        initialBibliotecaData,
+/* ── Modal confirmação ────────────────────────────────────────────────── */
+function ModalConfirm({ titulo, descricao, onConfirm, onCancel }: {
+    titulo: string;
+    descricao?: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}) {
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200] p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-4">
+                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">{titulo}</h3>
+                {descricao && <p className="text-sm text-gray-500 dark:text-gray-400">{descricao}</p>}
+                <div className="flex gap-2">
+                    <button onClick={onConfirm} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-all">
+                        Remover
+                    </button>
+                    <button onClick={onCancel} className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
     );
+}
+
+/* ── Toast ────────────────────────────────────────────────────────────── */
+function Toast({ msg, tipo }: { msg: string; tipo: "ok" | "erro" }) {
+    return (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] px-5 py-3 rounded-2xl shadow-xl font-semibold text-sm flex items-center gap-2 ${tipo === "ok" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}>
+            {tipo === "ok" ? "✓" : "✕"} {msg}
+        </div>
+    );
+}
+
+function formatData(iso: string) {
+    const d = new Date(iso);
+    return d.toLocaleDateString("pt-PT", { day: "numeric", month: "short" });
+}
+
+/* ── Componente principal ─────────────────────────────────────────────── */
+export default function Biblioteca() {
+    const router = useRouter();
+    const [jogadas, setJogadas] = useState<Jogada[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState("Todas");
 
-    // Modal: null | { type: "view" | "edit", idx: number (index in biblioteca) }
-    const [modal, setModal] = useState<{
-        type: "view" | "edit";
-        idx: number;
-    } | null>(null);
-    const [editForm, setEditForm] = useState({ title: "", category: "Ataque" });
+    const [modal, setModal] = useState<{ type: "view" | "edit"; jogada: Jogada } | null>(null);
+    const [editForm, setEditForm] = useState({ nome: "", tipo: "Ataque" });
+    const [saving, setSaving] = useState(false);
 
-    // Nova jogada modal
-    const [showNewModal, setShowNewModal] = useState(false);
-    const [newTitle, setNewTitle] = useState("");
-    const [newCategory, setNewCategory] = useState("Ataque");
+    const [confirmRemover, setConfirmRemover] = useState<Jogada | null>(null);
+
+    const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
+    const showToast = useCallback((msg: string, tipo: "ok" | "erro" = "ok") => {
+        setToast({ msg, tipo });
+        setTimeout(() => setToast(null), 2500);
+    }, []);
+
+    /* ── Carregar ── */
+    useEffect(() => {
+        fetch("/api/jogadas-taticas")
+            .then((r) => r.ok ? r.json() : [])
+            .then((data: Jogada[]) => setJogadas(data))
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, []);
 
     /* ── Filtro ── */
-    const filteredWithIdx = biblioteca
-        .map((doc, idx) => ({ ...doc, _idx: idx }))
-        .filter((doc) => {
-            const matchesSearch = doc.title
-                .toLowerCase()
-                .includes(search.toLowerCase());
-            const matchesCategory =
-                filter === "Todas" ||
-                (filter === "As Minhas" ? doc.mine : doc.category === filter);
-            return matchesSearch && matchesCategory;
-        });
+    const filtradas = jogadas.filter((j) => {
+        const matchSearch = j.nome.toLowerCase().includes(search.toLowerCase());
+        const matchCat = filter === "Todas" || j.tipo === filter;
+        return matchSearch && matchCat;
+    });
 
-    /* ── Handlers ── */
-    const openView = (idx: number) => setModal({ type: "view", idx });
-
-    const openEdit = (idx: number) => {
-        setEditForm({
-            title: biblioteca[idx].title,
-            category: biblioteca[idx].category,
-        });
-        setModal({ type: "edit", idx });
+    /* ── Editar ── */
+    const abrirEditar = (j: Jogada) => {
+        setEditForm({ nome: j.nome, tipo: j.tipo });
+        setModal({ type: "edit", jogada: j });
     };
 
-    const saveEdit = (e: React.FormEvent) => {
+    const guardarEdicao = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!modal) return;
-        setBiblioteca((prev) =>
-            prev.map((doc, i) =>
-                i === modal.idx
-                    ? {
-                          ...doc,
-                          title: editForm.title,
-                          category: editForm.category,
-                      }
-                    : doc,
-            ),
-        );
-        setModal(null);
-    };
-
-    const handleRemove = (idx: number) => {
-        if (window.confirm("Remover jogada?")) {
-            setBiblioteca((prev) => prev.filter((_, i) => i !== idx));
+        setSaving(true);
+        const res = await fetch(`/api/jogadas-taticas/${modal.jogada.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nome: editForm.nome.trim(), tipo: editForm.tipo, sistema: modal.jogada.sistema, posicoes: modal.jogada.posicoes }),
+        });
+        setSaving(false);
+        if (res.ok) {
+            setJogadas((prev) => prev.map((j) => j.id === modal.jogada.id ? { ...j, nome: editForm.nome.trim(), tipo: editForm.tipo } : j));
             setModal(null);
+            showToast("Jogada actualizada!");
+        } else {
+            showToast(await res.text(), "erro");
         }
     };
 
-    const handleCreateDoc = () => {
-        if (!newTitle.trim()) return;
-        setBiblioteca((prev) => [
-            ...prev,
-            {
-                title: newTitle.trim(),
-                category: newCategory,
-                views: 0,
-                added: "Hoje",
-                mine: true,
-            },
-        ]);
-        setShowNewModal(false);
-        setNewTitle("");
-        setNewCategory("Ataque");
+    /* ── Remover ── */
+    const remover = async (id: string) => {
+        const res = await fetch(`/api/jogadas-taticas/${id}`, { method: "DELETE" });
+        if (res.ok) {
+            setJogadas((prev) => prev.filter((j) => j.id !== id));
+            setModal(null);
+            setConfirmRemover(null);
+            showToast("Jogada removida.");
+        } else {
+            showToast("Erro ao remover.", "erro");
+        }
     };
 
-    const modalDoc = modal !== null ? biblioteca[modal.idx] : null;
-
-    /* ────────────────────────────────────────────────────────────
-       Render
-    ──────────────────────────────────────────────────────────── */
+    /* ── Render ── */
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col">
+
+            {toast && <Toast msg={toast.msg} tipo={toast.tipo} />}
+
+            {/* ── MODAL CONFIRMAÇÃO REMOVER ── */}
+            {confirmRemover && (
+                <ModalConfirm
+                    titulo="Remover jogada?"
+                    descricao={`"${confirmRemover.nome}" será eliminada permanentemente.`}
+                    onConfirm={() => remover(confirmRemover.id)}
+                    onCancel={() => setConfirmRemover(null)}
+                />
+            )}
+
             {/* ── MODAL VER / EDITAR ── */}
-            {modal && modalDoc && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900 max-h-[90vh] overflow-y-auto">
+            {modal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
                         <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
+                            className="absolute top-3 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold"
                             onClick={() => setModal(null)}
-                            aria-label="Fechar"
                         >
                             ×
                         </button>
@@ -424,42 +232,23 @@ export default function Biblioteca() {
                         {modal.type === "view" ? (
                             <>
                                 <div className="flex flex-col items-center mb-6">
-                                    <span className="text-purple-600 text-4xl mb-2">
-                                        📋
-                                    </span>
-                                    <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white text-center">
-                                        {modalDoc.title}
-                                    </h3>
+                                    <span className="text-purple-600 text-4xl mb-2">📋</span>
+                                    <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white text-center">{modal.jogada.nome}</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        {modalDoc.views} visualizações ·
-                                        Adicionado {modalDoc.added}
+                                        Adicionado {formatData(modal.jogada.created_at)} · Sistema {modal.jogada.sistema}
                                     </p>
                                 </div>
-
                                 <div className="flex justify-center mb-5">
-                                    <span
-                                        className={`font-bold px-3 py-1 rounded-lg text-sm ${catColors[modalDoc.category] ?? "bg-gray-100 text-gray-700"}`}
-                                    >
-                                        {modalDoc.category}
+                                    <span className={`font-bold px-3 py-1 rounded-lg text-sm ${catColors[modal.jogada.tipo] ?? "bg-gray-100 text-gray-700"}`}>
+                                        {modal.jogada.tipo}
                                     </span>
-                                    {modalDoc.mine && (
-                                        <span className="ml-2 font-bold px-3 py-1 rounded-lg text-sm bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400">
-                                            ★ Minha
-                                        </span>
-                                    )}
                                 </div>
-
-                                {/* Diagrama grande */}
                                 <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3 mb-6 aspect-video flex items-center justify-center">
-                                    <TacticalDiagram
-                                        category={modalDoc.category}
-                                        large
-                                    />
+                                    <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                 </div>
-
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => openEdit(modal.idx)}
+                                        onClick={() => abrirEditar(modal.jogada)}
                                         className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-2.5 font-bold shadow transition-all flex items-center justify-center gap-2"
                                     >
                                         <span>✏️</span> Editar
@@ -475,89 +264,59 @@ export default function Biblioteca() {
                         ) : (
                             <>
                                 <div className="flex flex-col items-center mb-6">
-                                    <span className="text-purple-600 text-4xl mb-2">
-                                        ✏️
-                                    </span>
-                                    <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                                        Editar Jogada
-                                    </h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                        Altera o nome ou categoria da jogada
-                                    </p>
+                                    <span className="text-purple-600 text-4xl mb-2">✏️</span>
+                                    <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">Editar Jogada</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Altera o nome ou categoria da jogada</p>
                                 </div>
-
-                                <form
-                                    onSubmit={saveEdit}
-                                    className="flex flex-col gap-6"
-                                >
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                            Título
-                                        </label>
+                                <form onSubmit={guardarEdicao} className="flex flex-col gap-5">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Nome <span className="text-red-500">*</span></label>
                                         <input
                                             type="text"
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 transition-all"
-                                            value={editForm.title}
-                                            onChange={(e) =>
-                                                setEditForm((f) => ({
-                                                    ...f,
-                                                    title: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="Nome da jogada"
+                                            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 focus:outline-none"
+                                            value={editForm.nome}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, nome: e.target.value }))}
+                                            maxLength={80}
                                             required
                                         />
+                                        <p className="text-xs text-gray-400 text-right">{editForm.nome.length}/80</p>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                            Categoria
-                                        </label>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Categoria</label>
                                         <select
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 transition-all"
-                                            value={editForm.category}
-                                            onChange={(e) =>
-                                                setEditForm((f) => ({
-                                                    ...f,
-                                                    category: e.target.value,
-                                                }))
-                                            }
+                                            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 focus:outline-none"
+                                            value={editForm.tipo}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value }))}
                                         >
-                                            <option value="Ataque">
-                                                Ataque
-                                            </option>
-                                            <option value="Defesa">
-                                                Defesa
-                                            </option>
-                                            <option value="Transição">
-                                                Transição
-                                            </option>
-                                            <option value="Bola Parada">
-                                                Bola Parada
-                                            </option>
+                                            <option value="Ataque">Ataque</option>
+                                            <option value="Defesa">Defesa</option>
+                                            <option value="Transição">Transição</option>
+                                            <option value="Bola Parada">Bola Parada</option>
+                                            <option value="Personalizada">Personalizada</option>
                                         </select>
                                     </div>
-
-                                    {/* Pré-visualização da nova categoria */}
                                     <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3 aspect-video flex items-center justify-center">
-                                        <TacticalDiagram
-                                            category={editForm.category}
-                                            large
-                                        />
+                                        <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                     </div>
-
                                     <div className="flex gap-2">
                                         <button
                                             type="submit"
-                                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-3 font-bold text-base shadow transition-all"
+                                            disabled={saving || editForm.nome.trim().length < 2}
+                                            className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl py-2.5 font-bold shadow transition-all"
                                         >
-                                            <span className="flex items-center justify-center gap-2">
-                                                <span>💾</span> Guardar
-                                            </span>
+                                            {saving ? "A guardar..." : "💾 Guardar"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setConfirmRemover(modal.jogada); setModal(null); }}
+                                            className="px-4 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-xl py-2.5 font-bold transition-all"
+                                        >
+                                            🗑️
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setModal(null)}
-                                            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl py-3 font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+                                            className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl py-2.5 font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
                                         >
                                             Cancelar
                                         </button>
@@ -569,77 +328,6 @@ export default function Biblioteca() {
                 </div>
             )}
 
-            {/* ── MODAL NOVA JOGADA ── */}
-            {showNewModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border border-blue-100 dark:border-blue-900">
-                        <button
-                            className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-2xl font-bold transition-all"
-                            onClick={() => setShowNewModal(false)}
-                            aria-label="Fechar"
-                        >
-                            ×
-                        </button>
-                        <div className="flex flex-col items-center mb-6">
-                            <span className="text-purple-600 text-4xl mb-2">
-                                ✨
-                            </span>
-                            <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                                Nova Jogada
-                            </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                Adiciona uma nova jogada à biblioteca
-                            </p>
-                        </div>
-                        <div className="flex flex-col gap-6">
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                    Título
-                                </label>
-                                <input
-                                    type="text"
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 transition-all"
-                                    placeholder="Nome da jogada"
-                                    value={newTitle}
-                                    onChange={(e) =>
-                                        setNewTitle(e.target.value)
-                                    }
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                    Categoria
-                                </label>
-                                <select
-                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 transition-all"
-                                    value={newCategory}
-                                    onChange={(e) =>
-                                        setNewCategory(e.target.value)
-                                    }
-                                >
-                                    <option value="Ataque">Ataque</option>
-                                    <option value="Defesa">Defesa</option>
-                                    <option value="Transição">Transição</option>
-                                    <option value="Bola Parada">
-                                        Bola Parada
-                                    </option>
-                                </select>
-                            </div>
-                            <button
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-3 font-bold text-lg shadow transition-all disabled:opacity-50"
-                                onClick={handleCreateDoc}
-                                disabled={!newTitle.trim()}
-                            >
-                                <span className="flex items-center justify-center gap-2">
-                                    <span>＋</span> Criar Jogada
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {/* ── CABEÇALHO ── */}
             <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
@@ -647,17 +335,12 @@ export default function Biblioteca() {
                         <span>📚</span> Biblioteca Tática
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {biblioteca.length} jogadas ·{" "}
-                        {biblioteca.filter((d) => d.mine).length} criadas por ti
+                        {jogadas.length} jogadas guardadas
                     </p>
                 </div>
                 <button
                     className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-bold text-sm shadow hover:bg-purple-700 transition-all flex items-center gap-2"
-                    onClick={() => {
-                        setShowNewModal(true);
-                        setNewTitle("");
-                        setNewCategory("Ataque");
-                    }}
+                    onClick={() => router.push("/dashboard/treinador/quadro-tatico")}
                 >
                     <span className="text-base">＋</span> Nova Jogada
                 </button>
@@ -672,85 +355,84 @@ export default function Biblioteca() {
                     onChange={(e) => setSearch(e.target.value)}
                     className="flex-1 min-w-[180px] px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 shadow"
                 />
-                {categories.map((cat) => (
+                {CATEGORIAS.map((cat) => (
                     <button
                         key={cat}
                         className={`px-4 py-2 rounded-lg font-bold text-sm border transition-all shadow-sm ${filter === cat ? "bg-purple-600 text-white border-purple-600" : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"}`}
                         onClick={() => setFilter(cat)}
                     >
-                        {cat === "As Minhas" ? "★ Minhas" : cat}
+                        {cat}
                     </button>
                 ))}
             </div>
 
-            {/* ── GRELHA DE CARDS ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredWithIdx.map((doc) => (
-                    <div
-                        key={doc._idx}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 relative shadow-sm hover:shadow-md transition-all"
-                    >
-                        {doc.mine && (
-                            <span className="absolute top-3 right-3 text-yellow-400 text-lg">
-                                ★
-                            </span>
-                        )}
-
-                        {/* Diagrama tático */}
-                        <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 overflow-hidden w-full h-44">
-                            <TacticalDiagram category={doc.category} />
-                        </div>
-
-                        {/* Info */}
-                        <div>
-                            <p className="font-bold text-base text-gray-900 dark:text-white leading-tight">
-                                {doc.title}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <span
-                                    className={`text-xs font-bold px-2 py-0.5 rounded ${catColors[doc.category] ?? "bg-gray-100 text-gray-700"}`}
+            {/* ── GRELHA ── */}
+            {loading ? (
+                <div className="flex justify-center py-20 text-gray-400 text-sm">A carregar...</div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filtradas.map((j) => (
+                        <div
+                            key={j.id}
+                            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all"
+                        >
+                            <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 overflow-hidden w-full h-44">
+                                <TacticalDiagram posicoes={j.posicoes} setas={j.setas} />
+                            </div>
+                            <div>
+                                <p className="font-bold text-base text-gray-900 dark:text-white leading-tight">{j.nome}</p>
+                                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded ${catColors[j.tipo] ?? "bg-gray-100 text-gray-700"}`}>
+                                        {j.tipo}
+                                    </span>
+                                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                                        Sistema {j.sistema} · {formatData(j.created_at)}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                                <button
+                                    className="flex-1 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 rounded-lg py-2 font-bold border border-gray-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-sm flex items-center justify-center gap-1"
+                                    onClick={() => setModal({ type: "view", jogada: j })}
                                 >
-                                    {doc.category}
-                                </span>
-                                <span className="text-xs text-gray-400 dark:text-gray-500">
-                                    {doc.views} visualizações · {doc.added}
-                                </span>
+                                    <span>👁️</span> Ver
+                                </button>
+                                <button
+                                    className="flex-1 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 rounded-lg py-2 font-bold border border-blue-200 dark:border-blue-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-sm flex items-center justify-center gap-1"
+                                    onClick={() => abrirEditar(j)}
+                                >
+                                    <span>✏️</span> Editar
+                                </button>
+                                <button
+                                    className="flex-1 bg-white dark:bg-gray-700 text-red-700 dark:text-red-400 rounded-lg py-2 font-bold border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all text-sm flex items-center justify-center gap-1"
+                                    onClick={() => setConfirmRemover(j)}
+                                >
+                                    <span>🗑️</span> Remover
+                                </button>
                             </div>
                         </div>
+                    ))}
 
-                        {/* Ações */}
-                        <div className="flex gap-2 mt-1">
-                            <button
-                                className="flex-1 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 rounded-lg py-2 font-bold border border-gray-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-sm flex items-center justify-center gap-1"
-                                onClick={() => openView(doc._idx)}
-                            >
-                                <span>👁️</span> Ver
-                            </button>
-                            <button
-                                className="flex-1 bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 rounded-lg py-2 font-bold border border-blue-200 dark:border-blue-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-sm flex items-center justify-center gap-1"
-                                onClick={() => openEdit(doc._idx)}
-                            >
-                                <span>✏️</span> Editar
-                            </button>
-                            <button
-                                className="flex-1 bg-white dark:bg-gray-700 text-red-700 dark:text-red-400 rounded-lg py-2 font-bold border border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all text-sm flex items-center justify-center gap-1"
-                                onClick={() => handleRemove(doc._idx)}
-                            >
-                                <span>🗑️</span> Remover
-                            </button>
+                    {filtradas.length === 0 && (
+                        <div className="col-span-3 flex flex-col items-center py-16 text-gray-400 gap-2">
+                            <span className="text-5xl">📭</span>
+                            <p className="text-base font-medium">
+                                {jogadas.length === 0
+                                    ? "Nenhuma jogada guardada. Cria uma no Quadro Tático."
+                                    : "Nenhuma jogada encontrada"}
+                            </p>
+                            {jogadas.length === 0 && (
+                                <button
+                                    onClick={() => router.push("/dashboard/treinador/quadro-tatico")}
+                                    className="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-sm transition-all"
+                                >
+                                    Ir para o Quadro Tático
+                                </button>
+                            )}
                         </div>
-                    </div>
-                ))}
-
-                {filteredWithIdx.length === 0 && (
-                    <div className="col-span-3 flex flex-col items-center py-16 text-gray-400 gap-2">
-                        <span className="text-5xl">📭</span>
-                        <p className="text-base font-medium">
-                            Nenhuma jogada encontrada
-                        </p>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

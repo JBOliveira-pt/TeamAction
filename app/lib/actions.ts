@@ -1208,7 +1208,6 @@ export async function criarEquipa(
     if (
         !nome?.trim() ||
         !escalao?.trim() ||
-        !desporto?.trim() ||
         !estado?.trim()
     ) {
         return { error: 'Preenche todos os campos obrigatÃ³rios.' };
@@ -1425,21 +1424,32 @@ export async function adicionarMembro(
 
 export async function agendarJogo(
     prevState: { error?: string; success?: boolean } | null,
-    formData: FormData,
+    formData: FormData
 ): Promise<{ error?: string; success?: boolean } | null> {
+
     const { userId } = await auth();
+<<<<<<< HEAD
     if (!userId) return { error: 'NÃ£o autenticado.' };
+=======
+if (!userId) return { error: "Não autenticado." };
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
 
     let organizationId: string | undefined;
     try {
-        const user = await sql<
-            { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
-        organizationId = user[0]?.organization_id;
+        const user = await sql<{ organizationid: string }[]>`
+            SELECT organizationid FROM users WHERE clerkuserid = ${userId}
+        `;
+        organizationId = user[0]?.organizationid;
     } catch {
+<<<<<<< HEAD
         return { error: 'Erro ao obter organizaÃ§Ã£o.' };
+=======
+        return { error: "Erro ao obter organização." };
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
     }
+    if (!organizationId) return { error: "Organização não encontrada." };
 
+<<<<<<< HEAD
     if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
     const adversario = formData.get('adversario')?.toString().trim();
@@ -1452,16 +1462,28 @@ export async function agendarJogo(
 
     if (!adversario) return { error: 'AdversÃ¡rio Ã© obrigatÃ³rio.' };
     if (!data) return { error: 'Data Ã© obrigatÃ³ria.' };
+=======
+    const adversario        = formData.get("adversario")?.toString().trim();
+    const adversarioClubeId = formData.get("adversario_clube_id")?.toString() || null;
+    const data              = formData.get("data")?.toString();
+    const equipaId          = formData.get("equipa_id")?.toString() || null;
+    const casaFora          = formData.get("casa_fora")?.toString() || "casa";
+    const local             = formData.get("local")?.toString().trim() || null;
+    const estado            = formData.get("estado")?.toString() || "agendado";
+    const visibilidadePublica = formData.get("visibilidade_publica") === "on";
+
+    if (!adversario) return { error: "Adversário obrigatório." };
+    if (!data)       return { error: "Data obrigatória." };
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
 
     try {
         await sql`
             INSERT INTO jogos (
-                id, adversario, data, equipa_id, casa_fora,
-                local, estado, visibilidade_publica, organization_id
-            ) VALUES (
-                gen_random_uuid(), ${adversario}, ${data}, ${equipaId},
-                ${casaFora}, ${local}, ${estado}, ${visibilidadePublica}, ${organizationId}
+                id, adversario, adversarioclubeid, data,
+                equipaid, casafora, local, estado,
+                visibilidadepublica, organizationid
             )
+<<<<<<< HEAD
         `;
 
         // Buscar nome da equipa para a notificaÃ§Ã£o
@@ -1488,6 +1510,19 @@ export async function agendarJogo(
                 ${`Jogo vs ${adversario}${equipaNome ? ` (${equipaNome})` : ''} agendado para ${dataFormatada}.`},
                 'Info',
                 NOW()
+=======
+            VALUES (
+                gen_random_uuid(),
+                ${adversario},
+                ${adversarioClubeId},
+                ${data},
+                ${equipaId},
+                ${casaFora},
+                ${local},
+                ${estado},
+                ${visibilidadePublica},
+                ${organizationId}
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
             )
         `;
     } catch (error) {
@@ -1495,6 +1530,7 @@ export async function agendarJogo(
         return { error: 'Erro ao agendar jogo.' };
     }
 
+<<<<<<< HEAD
     await logAction(userId, 'jogo_create', '/dashboard/presidente/jogos', {
         adversario,
         data,
@@ -1502,6 +1538,9 @@ export async function agendarJogo(
     });
     revalidatePath('/dashboard/presidente/jogos');
     revalidatePath('/dashboard/presidente/notificacoes');
+=======
+    revalidatePath("/dashboard/presidente/jogos");
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
     return { success: true };
 }
 
@@ -2305,35 +2344,64 @@ export async function editarMembro(
     return { success: true };
 }
 
+<<<<<<< HEAD
 export async function removerMembro(
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
     if (!userId) return { error: 'NÃ£o autenticado.' };
+=======
+export async function removerMembro(id: string): Promise<void> {
+  const { userId } = await auth()
+  if (!userId) throw new Error('Não autenticado.')
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
 
-    let organizationId: string | undefined;
+  let organizationId: string | undefined
+  try {
+    const user = await sql<{ organization_id: string }[]>`
+      SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`
+    organizationId = user[0]?.organization_id
+  } catch {
+    throw new Error('Erro ao obter organização.')
+  }
+  if (!organizationId) throw new Error('Organização não encontrada.')
+
+  try {
+    await sql`DELETE FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`
+  } catch (error) {
+    console.error(error)
+    throw new Error('Erro ao remover membro.')
+  }
+
+  revalidatePath('/dashboard/presidente/staff')
+}
+
+export async function marcarNotificacaoComoLida(id: string): Promise<void> {
+    let organizationId: string;
     try {
-        const user = await sql<{ organization_id: string }[]>`
-            SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
-        `;
-        organizationId = user[0]?.organization_id;
+        organizationId = await getOrganizationId();
     } catch {
+<<<<<<< HEAD
         return { error: 'Erro ao obter organizaÃ§Ã£o.' };
     }
     if (!organizationId) return { error: 'OrganizaÃ§Ã£o nÃ£o encontrada.' };
 
     const id = formData.get('id')?.toString();
     if (!id) return { error: 'ID do membro em falta.' };
+=======
+        return;
+    }
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
 
     try {
         await sql`
-            DELETE FROM staff
-            WHERE id = ${id}
-            AND organization_id = ${organizationId}
+            UPDATE notificacoes SET lida = true
+            WHERE id = ${id} AND organization_id = ${organizationId}
         `;
     } catch (error) {
         console.error(error);
+<<<<<<< HEAD
         return { error: 'Erro ao remover membro.' };
     }
 
@@ -2384,10 +2452,111 @@ async function adicionarRegistoMedico(
                 gen_random_uuid(), ${userIdDb}, ${organizationId}, ${tipo},
                 ${descricao}, ${dataInicio}, ${dataPrevistaRetorno},
                 ${observacoes}, 'ativo', NOW()
+=======
+    }
+
+    revalidatePath("/dashboard/presidente/notificacoes");
+}
+
+export async function searchClubes(query: string): Promise<{ id: string; nome: string }[]> {
+    if (!query || query.trim().length < 2) return [];
+    try {
+        const results = await sql<{ id: string; nome: string }[]>`
+            SELECT id, nome
+            FROM organizations
+            WHERE nome ILIKE ${"%" + query.trim() + "%"}
+            LIMIT 6
+        `;
+        return results;
+    } catch (error) {
+        console.error("Erro ao pesquisar clubes", error);
+        return [];
+    }
+}
+
+// ── ATLETAS ────────────────────────────────────────────
+
+export async function searchUsuarios(
+    query: string
+): Promise<{ id: string; name: string; email: string; image_url: string | null }[]> {
+    if (!query || query.trim().length < 2) return [];
+    try {
+        const organizationId = await getOrganizationId();
+        return await sql<{ id: string; name: string; email: string; image_url: string | null }[]>`
+            SELECT u.id, u.name, u.email, u.image_url
+            FROM users u
+            WHERE (
+                u.name  ILIKE ${"%" + query.trim() + "%"} OR
+                u.email ILIKE ${"%" + query.trim() + "%"}
+            )
+            AND u.organization_id != ${organizationId}
+            AND u.id NOT IN (
+                SELECT arp.atleta_user_id
+                FROM atleta_relacoes_pendentes arp
+                WHERE arp.alvo_clube_id = ${organizationId}
+                AND arp.status = 'pendente'
+            )
+            LIMIT 6
+        `;
+    } catch (error) {
+        console.error("Erro ao pesquisar utilizadores", error);
+        return [];
+    }
+}
+
+export async function convidarAtleta(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return { error: "Não autenticado." };
+
+    let organizationId: string;
+    try {
+        organizationId = await getOrganizationId();
+    } catch {
+        return { error: "Organização não encontrada." };
+    }
+
+    const atletaUserId = formData.get("atleta_user_id")?.toString();
+    const equipaId     = formData.get("equipa_id")?.toString() || null;
+
+    if (!atletaUserId) return { error: "Seleciona um atleta." };
+
+    // Verificar se já existe convite pendente
+    const existing = await sql<{ id: string }[]>`
+        SELECT id FROM atleta_relacoes_pendentes
+        WHERE atleta_user_id = ${atletaUserId}
+        AND alvo_clube_id    = ${organizationId}
+        AND status           = 'pendente'
+    `;
+    if (existing.length > 0)
+        return { error: "Já existe um convite pendente para este atleta." };
+
+    // Buscar info do clube
+    const org = await sql<{ name: string; email: string }[]>`
+        SELECT name, email FROM organizations WHERE id = ${organizationId}
+    `;
+    const orgName  = org[0]?.name  ?? "Clube";
+    const orgEmail = org[0]?.email ?? "";
+
+    // Criar convite
+    try {
+        await sql`
+            INSERT INTO atleta_relacoes_pendentes (
+                id, atleta_user_id, alvo_clube_id, alvo_equipa_id,
+                relation_kind, status, alvo_nome, alvo_email,
+                created_at, updated_at
+            ) VALUES (
+                gen_random_uuid(), ${atletaUserId}, ${organizationId}, ${equipaId},
+                'clube', 'pendente', ${orgName}, ${orgEmail},
+                NOW(), NOW()
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
             )
         `;
     } catch (error) {
         console.error(error);
+<<<<<<< HEAD
         return { error: 'Erro ao guardar registo médico.' };
     }
 
@@ -2454,5 +2623,53 @@ export async function criarNotaAtleta(
     }
 
     revalidatePath('/dashboard/atleta/notas');
+=======
+        return { error: "Erro ao enviar convite." };
+    }
+
+    // Notificação para o atleta (na organização dele)
+    try {
+        const atletaUser = await sql<{ organization_id: string | null }[]>`
+            SELECT organization_id FROM users WHERE id = ${atletaUserId}
+        `;
+        const atletaOrgId = atletaUser[0]?.organization_id;
+
+        if (atletaOrgId) {
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${atletaOrgId},
+                    'Convite de federação',
+                    ${`Parabéns! O clube '${orgName}' quer que se junte aos seus quadros como atleta federado! Se concordar, entre em contacto com o responsável do clube '${orgName}' para tratar dos documentos necessários.`},
+                    'Info',
+                    NOW()
+                )
+            `;
+        }
+    } catch (error) {
+        console.error("Erro ao criar notificação:", error);
+        // Não bloqueamos o convite por causa da notificação
+    }
+
+    revalidatePath("/dashboard/presidente/atletas");
+>>>>>>> 7a9423d4d473c7bd3421f089e8b6bdef5dd46bb9
     return { success: true };
 }
+
+export async function getEscaloesByUserAction(userId: string): Promise<string[]> {
+  try {
+    const result = await sql<{ escalao: string }[]>`
+      SELECT DISTINCT e.nome AS escalao
+      FROM user_cursos uc
+      INNER JOIN cursos c ON uc.curso_id = c.id
+      INNER JOIN escaloes e ON c.level_id = e.id
+      WHERE uc.user_id = ${userId}
+    `
+    return result.map((r: { escalao: string }) => r.escalao)
+  } catch {
+    return []
+  }
+}
+
+

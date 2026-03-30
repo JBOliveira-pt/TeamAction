@@ -767,40 +767,30 @@ export async function fetchProximosJogos() {
 // ---------- STAFF ----------
 
 export async function fetchStaff() {
-    try {
-        const organizationId = await getOrganizationId();
-
-        const data = await sql<
-            {
-                id: string;
-                nome: string;
-                funcao: string;
-                equipa_id: string | null;
-                equipa_nome: string | null;
-                user_email: string | null;
-                user_telefone: string | null;
-            }[]
-        >`
-            SELECT
-                staff.id,
-                staff.nome,
-                staff.funcao,
-                staff.equipa_id,
-                equipas.nome AS equipa_nome,
-                users.email AS user_email,
-                users.telefone AS user_telefone
-            FROM staff
-            LEFT JOIN equipas ON staff.equipa_id = equipas.id
-            LEFT JOIN users ON staff.user_id = users.id
-            WHERE staff.organization_id = ${organizationId}
-            ORDER BY staff.funcao ASC, staff.nome ASC
-        `;
-
-        return data;
-    } catch (error) {
-        console.error("Database Error:", error);
-        throw new Error("Failed to fetch staff.");
-    }
+  const organizationId = await getOrganizationId()
+  const result = await sql<{
+    id: string
+    nome: string
+    funcao: string
+    equipa_id: string | null
+    equipa_nome: string | null
+    equipa_escalao: string | null
+    user_id: string | null
+    user_email: string | null
+    created_at: string
+  }[]>`
+    SELECT
+      s.id, s.nome, s.funcao,
+      s.equipa_id, e.nome AS equipa_nome, e.escalao AS equipa_escalao,
+      s.user_id, u.email AS user_email,
+      s.created_at
+    FROM staff s
+    LEFT JOIN equipas e ON s.equipa_id = e.id
+    LEFT JOIN users u ON s.user_id = u.id
+    WHERE s.organization_id = ${organizationId}
+    ORDER BY s.created_at DESC
+  `
+  return result
 }
 
 // ---------- ESTATÃSTICAS ----------
@@ -1130,3 +1120,89 @@ export async function fetchNotificacoes() {
         throw new Error("Failed to fetch notificacoes.");
     }
 }
+
+export async function fetchEscaloes(): Promise<{ id: number; nome: string }[]> {
+    try {
+        return await sql<{ id: number; nome: string }[]>`
+            SELECT id, nome FROM escaloes ORDER BY id ASC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch escaloes.");
+    }
+}
+
+export async function fetchDesportoOrg(): Promise<string> {
+    try {
+        const organizationId = await getOrganizationId();
+        const result = await sql<{ desporto: string }[]>`
+            SELECT desporto FROM organizations WHERE id = ${organizationId}
+        `;
+        return result[0]?.desporto ?? "";
+    } catch (error) {
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch desporto.");
+    }
+}
+
+export async function fetchConvitesPendentes() {
+    try {
+        const organizationId = await getOrganizationId();
+        return await sql<{
+            id: string;
+            atleta_user_id: string;
+            user_name: string;
+            user_email: string;
+            user_image: string | null;
+            status: string;
+            created_at: string;
+        }[]>`
+            SELECT
+                arp.id,
+                arp.atleta_user_id,
+                u.name  AS user_name,
+                u.email AS user_email,
+                u.image_url AS user_image,
+                arp.status,
+                arp.created_at::text
+            FROM atleta_relacoes_pendentes arp
+            JOIN users u ON u.id = arp.atleta_user_id
+            WHERE arp.alvo_clube_id = ${organizationId}
+            AND arp.relation_kind = 'clube'
+            ORDER BY arp.created_at DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+export async function fetchEscaloesByUser(userId: string): Promise<string[]> {
+  const result = await sql<{ escalao: string }[]>`
+    SELECT DISTINCT e.nome AS escalao
+    FROM user_cursos uc
+    INNER JOIN cursos c ON uc.curso_id = c.id
+    INNER JOIN escaloes e ON c.level_id = e.id
+    WHERE uc.user_id = ${userId}
+  `
+  return result.map((r: { escalao: string }) => r.escalao)
+}
+
+export async function fetchUsersForStaff() {
+  const organizationId = await getOrganizationId()
+  const result = await sql<{
+    id: string
+    name: string
+    email: string
+    image_url: string | null
+  }[]>`
+    SELECT id, name, email, image_url
+    FROM users
+    WHERE organization_id = ${organizationId}
+    ORDER BY name ASC
+  `
+  return result
+}
+
+
+

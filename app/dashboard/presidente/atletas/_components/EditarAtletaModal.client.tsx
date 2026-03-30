@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { editarAtleta } from '@/app/lib/actions';
-import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { X } from 'lucide-react';
 
 type State = { error?: string; success?: boolean } | null;
 type Equipa = { id: string; nome: string };
@@ -26,15 +26,9 @@ const POSICOES = [
 ];
 
 const ESTADOS = [
-    { value: "ativo",    label: "Ativo" },
-    { value: "suspenso", label: "Suspenso" },
-    { value: "inativo",  label: "Inativo" },
-];
-
-const MAOS = [
-    { value: "direita",    label: "Direita" },
-    { value: "esquerda",   label: "Esquerda" },
-    { value: "ambidestro", label: "Ambidestro" },
+    { value: "ativo",    label: "Ativo"     },
+    { value: "suspenso", label: "Suspenso"  },
+    { value: "inativo",  label: "Inativo"   },
 ];
 
 export default function EditarAtletaModal({
@@ -63,20 +57,20 @@ export default function EditarAtletaModal({
 
             {open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setOpen(false)}
-                    />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
-                    <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+                    <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
                         {/* Header */}
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Editar Atleta</h2>
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Editar Atleta</h2>
+                                <p className="text-xs text-gray-400 mt-0.5">{atleta.nome}</p>
+                            </div>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
-                                <XMarkIcon className="w-5 h-5" />
+                                <X size={18} />
                             </button>
                         </div>
 
@@ -87,22 +81,7 @@ export default function EditarAtletaModal({
                         )}
 
                         <form ref={formRef} action={action} className="space-y-4">
-                            {/* ID oculto */}
                             <input type="hidden" name="id" value={atleta.id} />
-
-                            {/* Nome */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Nome Completo <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                    name="nome"
-                                    type="text"
-                                    defaultValue={atleta.nome}
-                                    required
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                />
-                            </div>
 
                             {/* Equipa + Estado */}
                             <div className="grid grid-cols-2 gap-3">
@@ -163,45 +142,30 @@ export default function EditarAtletaModal({
                                 </div>
                             </div>
 
-                            {/* Mão Dominante */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Mão Dominante</label>
-                                <select
-                                    name="mao_dominante"
-                                    defaultValue={atleta.mao_dominante ?? ''}
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                >
-                                    <option value="">Seleciona</option>
-                                    {MAOS.map((m) => (
-                                        <option key={m.value} value={m.value}>{m.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Federado */}
-                            <div className="flex items-center gap-3 py-1">
-                                <input
-                                    id={`federado-${atleta.id}`}
-                                    name="federado"
-                                    type="checkbox"
-                                    defaultChecked={atleta.federado}
-                                    className="w-4 h-4 rounded accent-blue-600"
-                                />
-                                <label htmlFor={`federado-${atleta.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Atleta Federado
-                                </label>
-                            </div>
-
-                            {/* Nº Federado */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Nº Federado</label>
-                                <input
-                                    name="numero_federado"
-                                    type="text"
-                                    defaultValue={atleta.numero_federado ?? ''}
-                                    placeholder="Ex: FPF-12345"
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                />
+                            {/* Federado + Nº Federado */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3 py-1">
+                                    <input
+                                        id={`federado-${atleta.id}`}
+                                        name="federado"
+                                        type="checkbox"
+                                        defaultChecked={atleta.federado}
+                                        className="w-4 h-4 rounded accent-blue-600"
+                                    />
+                                    <label htmlFor={`federado-${atleta.id}`} className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Atleta Federado
+                                    </label>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Nº Federado</label>
+                                    <input
+                                        name="numero_federado"
+                                        type="text"
+                                        defaultValue={atleta.numero_federado ?? ''}
+                                        placeholder="Ex: FPF-12345"
+                                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                </div>
                             </div>
 
                             {/* Botões */}
@@ -228,3 +192,4 @@ export default function EditarAtletaModal({
         </>
     );
 }
+

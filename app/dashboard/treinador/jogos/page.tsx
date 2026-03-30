@@ -1,5 +1,27 @@
 import Jogos from "./jogos";
+import postgres from "postgres";
+import { auth } from "@clerk/nextjs/server";
 
-export default function JogosPage() {
-    return <Jogos />;
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+
+async function fetchEquipas() {
+    const { userId } = await auth();
+    if (!userId) return [];
+
+    const user = await sql<{ organization_id: string }[]>`
+        SELECT organization_id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+    `;
+    const orgId = user[0]?.organization_id;
+    if (!orgId) return [];
+
+    return sql<{ id: string; nome: string }[]>`
+        SELECT id, nome FROM equipas
+        WHERE organization_id = ${orgId}
+        ORDER BY nome ASC
+    `;
+}
+
+export default async function JogosPage() {
+    const equipas = await fetchEquipas().catch(() => []);
+    return <Jogos equipas={equipas} />;
 }
