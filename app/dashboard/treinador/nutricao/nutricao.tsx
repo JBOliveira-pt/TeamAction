@@ -23,6 +23,8 @@ const OBJETIVO_BADGE: Record<string, string> = {
 export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] }) {
     const [planos, setPlanos] = useState<Plano[]>(initialPlanos);
     const [showModal, setShowModal] = useState(false);
+    const [viewingPlano, setViewingPlano] = useState<Plano | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
@@ -40,6 +42,18 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
 
     function resetForm() {
         setForm({ nome: "", descricao: "", objetivo: "", observacoes: "" });
+        setEditingId(null);
+    }
+
+    function openEdit(p: Plano) {
+        setForm({
+            nome: p.nome,
+            descricao: p.descricao ?? "",
+            objetivo: p.objetivo ?? "",
+            observacoes: p.observacoes ?? "",
+        });
+        setEditingId(p.id);
+        setShowModal(true);
     }
 
     async function handleSubmit(e: React.FormEvent) {
@@ -47,33 +61,65 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
         if (!form.nome.trim()) return;
         setSaving(true);
         try {
-            const res = await fetch("/api/planos-nutricao", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    nome: form.nome,
-                    descricao: form.descricao || undefined,
-                    objetivo: form.objetivo || undefined,
-                    observacoes: form.observacoes || undefined,
-                }),
-            });
-            if (!res.ok) throw new Error(await res.text());
-            const { id } = await res.json();
-            const novo: Plano = {
-                id,
-                nome: form.nome.trim(),
-                descricao: form.descricao || null,
-                objetivo: form.objetivo || null,
-                observacoes: form.observacoes || null,
-                created_at: new Date().toISOString(),
-            };
-            setPlanos((prev) => [novo, ...prev]);
-            setShowModal(false);
-            resetForm();
-            showToast("Plano criado com sucesso.");
+            if (editingId) {
+                // Editar plano existente
+                const res = await fetch(`/api/planos-nutricao/${editingId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        nome: form.nome,
+                        descricao: form.descricao || undefined,
+                        objetivo: form.objetivo || undefined,
+                        observacoes: form.observacoes || undefined,
+                    }),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                setPlanos((prev) =>
+                    prev.map((p) =>
+                        p.id === editingId
+                            ? {
+                                  ...p,
+                                  nome: form.nome.trim(),
+                                  descricao: form.descricao || null,
+                                  objetivo: form.objetivo || null,
+                                  observacoes: form.observacoes || null,
+                              }
+                            : p,
+                    ),
+                );
+                setShowModal(false);
+                resetForm();
+                showToast("Plano actualizado com sucesso.");
+            } else {
+                // Criar novo plano
+                const res = await fetch("/api/planos-nutricao", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        nome: form.nome,
+                        descricao: form.descricao || undefined,
+                        objetivo: form.objetivo || undefined,
+                        observacoes: form.observacoes || undefined,
+                    }),
+                });
+                if (!res.ok) throw new Error(await res.text());
+                const { id } = await res.json();
+                const novo: Plano = {
+                    id,
+                    nome: form.nome.trim(),
+                    descricao: form.descricao || null,
+                    objetivo: form.objetivo || null,
+                    observacoes: form.observacoes || null,
+                    created_at: new Date().toISOString(),
+                };
+                setPlanos((prev) => [novo, ...prev]);
+                setShowModal(false);
+                resetForm();
+                showToast("Plano criado com sucesso.");
+            }
         } catch (err: unknown) {
             showToast(
-                err instanceof Error ? err.message : "Erro ao criar plano.",
+                err instanceof Error ? err.message : "Erro ao guardar plano.",
                 false,
             );
         } finally {
@@ -94,7 +140,7 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
                         <Leaf size={24} className="text-green-500" />
                         Nutrição
                     </h2>
@@ -103,7 +149,7 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                     </p>
                 </div>
                 <button
-                    onClick={() => setShowModal(true)}
+                    onClick={() => { resetForm(); setShowModal(true); }}
                     className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
                 >
                     <Plus size={18} /> Novo Plano
@@ -142,7 +188,8 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                     {planos.map((p) => (
                         <div
                             key={p.id}
-                            className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-3"
+                            onClick={() => setViewingPlano(p)}
+                            className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-3 cursor-pointer hover:shadow-md hover:border-green-400 dark:hover:border-green-600 transition-all"
                         >
                             <div className="flex items-start justify-between gap-2">
                                 <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight">
@@ -157,33 +204,93 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                                 )}
                             </div>
                             {p.descricao && (
-                                <p className="text-sm text-gray-600 dark:text-gray-300">
+                                <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
                                     {p.descricao}
                                 </p>
                             )}
                             {p.observacoes && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 italic line-clamp-1">
                                     {p.observacoes}
                                 </p>
                             )}
-                            <div className="text-xs text-gray-400 mt-auto pt-1 border-t border-gray-100 dark:border-gray-700">
-                                {new Date(p.created_at).toLocaleDateString("pt-PT")}
+                            <div className="mt-auto pt-1 border-t border-gray-100 dark:border-gray-700">
+                                <span className="text-xs text-gray-400">
+                                    {new Date(p.created_at).toLocaleDateString("pt-PT")}
+                                </span>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* Modal Novo Plano */}
+            {/* Modal Ver Plano */}
+            {viewingPlano && !showModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate pr-4">
+                                {viewingPlano.nome}
+                            </h3>
+                            <button
+                                onClick={() => setViewingPlano(null)}
+                                className="text-gray-400 hover:text-gray-600 shrink-0"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-5 flex flex-col gap-4">
+                            {viewingPlano.objetivo && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Objetivo:</span>
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${OBJETIVO_BADGE[viewingPlano.objetivo] ?? "bg-gray-100 text-gray-600"}`}>
+                                        {viewingPlano.objetivo}
+                                    </span>
+                                </div>
+                            )}
+                            {viewingPlano.descricao && (
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Descrição</p>
+                                    <p className="text-sm text-gray-700 dark:text-gray-200">{viewingPlano.descricao}</p>
+                                </div>
+                            )}
+                            {viewingPlano.observacoes && (
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Observações</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 italic">{viewingPlano.observacoes}</p>
+                                </div>
+                            )}
+                            <p className="text-xs text-gray-400">
+                                Criado em {new Date(viewingPlano.created_at).toLocaleDateString("pt-PT")}
+                            </p>
+                            <div className="flex gap-3 pt-1 border-t border-gray-100 dark:border-gray-700">
+                                <button
+                                    onClick={() => { openEdit(viewingPlano); setViewingPlano(null); }}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg text-sm transition-all flex items-center justify-center gap-2"
+                                >
+                                    ✏️ Editar
+                                </button>
+                                <button
+                                    onClick={() => setViewingPlano(null)}
+                                    className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-lg text-sm"
+                                >
+                                    Fechar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Novo / Editar Plano */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                                Novo Plano Nutricional
+                                {editingId ? "Editar Plano" : "Novo Plano Nutricional"}
                             </h3>
                             <button
-                                onClick={() => setShowModal(false)}
+                                onClick={() => { setShowModal(false); resetForm(); }}
                                 className="text-gray-400 hover:text-gray-600"
                             >
                                 <X size={20} />
@@ -256,11 +363,11 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                                     disabled={saving}
                                     className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold py-2 rounded-lg text-sm transition-all"
                                 >
-                                    {saving ? "A guardar..." : "Criar Plano"}
+                                    {saving ? "A guardar..." : editingId ? "Guardar Alterações" : "Criar Plano"}
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => { setShowModal(false); resetForm(); }}
                                     className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-lg text-sm"
                                 >
                                     Cancelar

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     // Get atleta info
     const atletaRows = await sql<{ id: string; nome: string; user_id: string | null }[]>`
         SELECT id, nome, user_id FROM atletas
-        WHERE id = ${body.atleta_id} AND organization_id = ${me.organization_id} LIMIT 1
+        WHERE id = ${body.atleta_id} LIMIT 1
     `;
     const atleta = atletaRows[0];
     if (!atleta) return new Response("Atleta não encontrado.", { status: 404 });
