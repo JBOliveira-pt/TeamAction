@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 
 /* ── Tipos ─────────────────────────────────────────────────────────────── */
 type Player = { id: string; color: "blue" | "red"; x: number; y: number };
+type Arrow  = { id: string; x1: number; y1: number; x2: number; y2: number };
 
 type Jogada = {
     id: string;
@@ -10,54 +11,55 @@ type Jogada = {
     tipo: string;
     sistema: string;
     posicoes: Player[];
+    setas: Arrow[];
     created_at: string;
 };
 
 /* ── Formações defensivas (equipa vermelha) ────────────────────────────── */
 const FORMACOES: Record<string, Player[]> = {
     "6-0": [
-        { id: "A1", color: "red", x: 78, y: 20 },
-        { id: "A2", color: "red", x: 78, y: 32 },
-        { id: "A3", color: "red", x: 78, y: 44 },
-        { id: "A4", color: "red", x: 78, y: 56 },
-        { id: "A5", color: "red", x: 78, y: 68 },
-        { id: "A6", color: "red", x: 78, y: 80 },
+        { id: "1", color: "red", x: 78, y: 20 },
+        { id: "2", color: "red", x: 78, y: 32 },
+        { id: "3", color: "red", x: 78, y: 44 },
+        { id: "4", color: "red", x: 78, y: 56 },
+        { id: "5", color: "red", x: 78, y: 68 },
+        { id: "6", color: "red", x: 78, y: 80 },
         { id: "GR", color: "red", x: 90, y: 50 },
     ],
     "5-1": [
-        { id: "A1", color: "red", x: 78, y: 20 },
-        { id: "A2", color: "red", x: 78, y: 35 },
-        { id: "A3", color: "red", x: 78, y: 50 },
-        { id: "A4", color: "red", x: 78, y: 65 },
-        { id: "A5", color: "red", x: 78, y: 80 },
-        { id: "A6", color: "red", x: 65, y: 50 },
+        { id: "1", color: "red", x: 78, y: 20 },
+        { id: "2", color: "red", x: 78, y: 35 },
+        { id: "3", color: "red", x: 78, y: 50 },
+        { id: "4", color: "red", x: 78, y: 65 },
+        { id: "5", color: "red", x: 78, y: 80 },
+        { id: "6", color: "red", x: 65, y: 50 },
         { id: "GR", color: "red", x: 90, y: 50 },
     ],
     "3-2-1": [
-        { id: "A1", color: "red", x: 78, y: 28 },
-        { id: "A2", color: "red", x: 78, y: 50 },
-        { id: "A3", color: "red", x: 78, y: 72 },
-        { id: "A4", color: "red", x: 67, y: 38 },
-        { id: "A5", color: "red", x: 67, y: 62 },
-        { id: "A6", color: "red", x: 57, y: 50 },
+        { id: "1", color: "red", x: 78, y: 28 },
+        { id: "2", color: "red", x: 78, y: 50 },
+        { id: "3", color: "red", x: 78, y: 72 },
+        { id: "4", color: "red", x: 67, y: 38 },
+        { id: "5", color: "red", x: 67, y: 62 },
+        { id: "6", color: "red", x: 57, y: 50 },
         { id: "GR", color: "red", x: 90, y: 50 },
     ],
     "4-2": [
-        { id: "A1", color: "red", x: 78, y: 26 },
-        { id: "A2", color: "red", x: 78, y: 42 },
-        { id: "A3", color: "red", x: 78, y: 58 },
-        { id: "A4", color: "red", x: 78, y: 74 },
-        { id: "A5", color: "red", x: 67, y: 38 },
-        { id: "A6", color: "red", x: 67, y: 62 },
+        { id: "1", color: "red", x: 78, y: 26 },
+        { id: "2", color: "red", x: 78, y: 42 },
+        { id: "3", color: "red", x: 78, y: 58 },
+        { id: "4", color: "red", x: 78, y: 74 },
+        { id: "5", color: "red", x: 67, y: 38 },
+        { id: "6", color: "red", x: 67, y: 62 },
         { id: "GR", color: "red", x: 90, y: 50 },
     ],
     "3-3": [
-        { id: "A1", color: "red", x: 78, y: 28 },
-        { id: "A2", color: "red", x: 78, y: 50 },
-        { id: "A3", color: "red", x: 78, y: 72 },
-        { id: "A4", color: "red", x: 65, y: 22 },
-        { id: "A5", color: "red", x: 65, y: 50 },
-        { id: "A6", color: "red", x: 65, y: 78 },
+        { id: "1", color: "red", x: 78, y: 28 },
+        { id: "2", color: "red", x: 78, y: 50 },
+        { id: "3", color: "red", x: 78, y: 72 },
+        { id: "4", color: "red", x: 65, y: 22 },
+        { id: "5", color: "red", x: 65, y: 50 },
+        { id: "6", color: "red", x: 65, y: 78 },
         { id: "GR", color: "red", x: 90, y: 50 },
     ],
 };
@@ -197,6 +199,10 @@ export default function QuadroTatico() {
         ...FORMACOES["6-0"],
     ]);
     const [dragged, setDragged] = useState<number | null>(null);
+    const [mode, setMode] = useState<"move" | "arrow">("move");
+    const [arrows, setArrows] = useState<Arrow[]>([]);
+    const [drawingArrow, setDrawingArrow] = useState<{ x1: number; y1: number } | null>(null);
+    const [arrowPreview, setArrowPreview] = useState<{ x: number; y: number } | null>(null);
     const fieldRef = useRef<HTMLDivElement>(null);
 
     // Toast
@@ -230,9 +236,10 @@ export default function QuadroTatico() {
         if (cached) {
             setTimeout(() => {
                 try {
-                    const { players: p, sistema: s } = JSON.parse(cached);
+                    const { players: p, sistema: s, arrows: a } = JSON.parse(cached);
                     if (Array.isArray(p)) setPlayers(p);
                     if (s) setSistema(s);
+                    if (Array.isArray(a)) setArrows(a);
                 } catch { /* ignorar */ }
             }, 0);
         }
@@ -240,8 +247,8 @@ export default function QuadroTatico() {
 
     // Guardar board no localStorage quando muda
     useEffect(() => {
-        localStorage.setItem(LS_KEY, JSON.stringify({ players, sistema }));
-    }, [players, sistema]);
+        localStorage.setItem(LS_KEY, JSON.stringify({ players, sistema, arrows }));
+    }, [players, sistema, arrows]);
 
     // Mudar sistema → reposicionar equipa vermelha
     function mudarSistema(s: string) {
@@ -254,22 +261,99 @@ export default function QuadroTatico() {
         });
     }
 
-    // Drag & drop no campo
-    function onMouseMove(e: React.MouseEvent) {
-        if (dragged === null || !fieldRef.current) return;
+    // Converte clientX/Y para % relativa ao campo
+    function toFieldPct(clientX: number, clientY: number) {
+        if (!fieldRef.current) return { x: 0, y: 0 };
         const rect = fieldRef.current.getBoundingClientRect();
-        const x = Math.max(2, Math.min(98, ((e.clientX - rect.left) / rect.width) * 100));
-        const y = Math.max(2, Math.min(98, ((e.clientY - rect.top) / rect.height) * 100));
-        setPlayers((prev) => prev.map((p, idx) => idx === dragged ? { ...p, x, y } : p));
+        return {
+            x: Math.max(2, Math.min(98, ((clientX - rect.left) / rect.width) * 100)),
+            y: Math.max(2, Math.min(98, ((clientY - rect.top) / rect.height) * 100)),
+        };
     }
 
+    // Mouse: mover jogador ou actualizar preview de seta
+    function onMouseMove(e: React.MouseEvent) {
+        if (!fieldRef.current) return;
+        if (mode === "move" && dragged !== null) {
+            const { x, y } = toFieldPct(e.clientX, e.clientY);
+            setPlayers((prev) => prev.map((p, idx) => idx === dragged ? { ...p, x, y } : p));
+        } else if (mode === "arrow" && drawingArrow) {
+            const { x, y } = toFieldPct(e.clientX, e.clientY);
+            setArrowPreview({ x, y });
+        }
+    }
+
+    // Mouse: iniciar seta no campo vazio
+    function onFieldMouseDown(e: React.MouseEvent) {
+        if (mode !== "arrow") return;
+        const { x, y } = toFieldPct(e.clientX, e.clientY);
+        setDrawingArrow({ x1: x, y1: y });
+        setArrowPreview({ x, y });
+    }
+
+    // Mouse: finalizar seta
+    function onMouseUp(e: React.MouseEvent) {
+        if (mode === "move") {
+            setDragged(null);
+            return;
+        }
+        if (mode === "arrow" && drawingArrow) {
+            const { x, y } = toFieldPct(e.clientX, e.clientY);
+            const dx = x - drawingArrow.x1;
+            const dy = y - drawingArrow.y1;
+            if (Math.sqrt(dx * dx + dy * dy) > 3) {
+                setArrows((prev) => [
+                    ...prev,
+                    { id: Date.now().toString(), x1: drawingArrow.x1, y1: drawingArrow.y1, x2: x, y2: y },
+                ]);
+            }
+            setDrawingArrow(null);
+            setArrowPreview(null);
+        }
+    }
+
+    // Touch: mover jogador ou actualizar preview de seta
     function onTouchMove(e: React.TouchEvent) {
-        if (dragged === null || !fieldRef.current) return;
+        if (!fieldRef.current) return;
         const touch = e.touches[0];
-        const rect = fieldRef.current.getBoundingClientRect();
-        const x = Math.max(2, Math.min(98, ((touch.clientX - rect.left) / rect.width) * 100));
-        const y = Math.max(2, Math.min(98, ((touch.clientY - rect.top) / rect.height) * 100));
-        setPlayers((prev) => prev.map((p, idx) => idx === dragged ? { ...p, x, y } : p));
+        if (mode === "move" && dragged !== null) {
+            const { x, y } = toFieldPct(touch.clientX, touch.clientY);
+            setPlayers((prev) => prev.map((p, idx) => idx === dragged ? { ...p, x, y } : p));
+        } else if (mode === "arrow" && drawingArrow) {
+            const { x, y } = toFieldPct(touch.clientX, touch.clientY);
+            setArrowPreview({ x, y });
+        }
+    }
+
+    // Touch: finalizar seta
+    function onTouchEnd(e: React.TouchEvent) {
+        if (mode === "move") {
+            setDragged(null);
+            return;
+        }
+        if (mode === "arrow" && drawingArrow) {
+            const touch = e.changedTouches[0];
+            const { x, y } = toFieldPct(touch.clientX, touch.clientY);
+            const dx = x - drawingArrow.x1;
+            const dy = y - drawingArrow.y1;
+            if (Math.sqrt(dx * dx + dy * dy) > 3) {
+                setArrows((prev) => [
+                    ...prev,
+                    { id: Date.now().toString(), x1: drawingArrow.x1, y1: drawingArrow.y1, x2: x, y2: y },
+                ]);
+            }
+            setDrawingArrow(null);
+            setArrowPreview(null);
+        }
+    }
+
+    // Touch: iniciar seta no campo vazio
+    function onFieldTouchStart(e: React.TouchEvent) {
+        if (mode !== "arrow") return;
+        const touch = e.touches[0];
+        const { x, y } = toFieldPct(touch.clientX, touch.clientY);
+        setDrawingArrow({ x1: x, y1: y });
+        setArrowPreview({ x, y });
     }
 
     // Guardar jogada seleccionada
@@ -284,10 +368,10 @@ export default function QuadroTatico() {
         const res = await fetch(`/api/jogadas-taticas/${jogadaSelecionada}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: jogada.nome, tipo: jogada.tipo, sistema, posicoes: players }),
+            body: JSON.stringify({ nome: jogada.nome, tipo: jogada.tipo, sistema, posicoes: players, setas: arrows }),
         });
         if (res.ok) {
-            setJogadas((prev) => prev.map((j) => j.id === jogadaSelecionada ? { ...j, sistema, posicoes: players } : j));
+            setJogadas((prev) => prev.map((j) => j.id === jogadaSelecionada ? { ...j, sistema, posicoes: players, setas: arrows } : j));
             showToast("Jogada guardada com sucesso!");
         } else {
             showToast("Erro ao guardar jogada.", "erro");
@@ -301,7 +385,7 @@ export default function QuadroTatico() {
         const res = await fetch("/api/jogadas-taticas", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: novoNome.trim(), tipo: novoTipo, sistema, posicoes: players }),
+            body: JSON.stringify({ nome: novoNome.trim(), tipo: novoTipo, sistema, posicoes: players, setas: arrows }),
         });
         setSavingNova(false);
         if (res.ok) {
@@ -352,10 +436,22 @@ export default function QuadroTatico() {
     function carregarJogada(id: string) {
         setJogadaSelecionada(id);
         const j = jogadas.find((jj) => jj.id === id);
-        if (Array.isArray(j?.posicoes) && j.posicoes.length) {
-            setPlayers(j.posicoes);
+        if (!j) return;
+        const posicoes: Player[] = Array.isArray(j.posicoes)
+            ? j.posicoes
+            : typeof j.posicoes === "string"
+                ? JSON.parse(j.posicoes)
+                : [];
+        if (posicoes.length) {
+            setPlayers(posicoes);
             setSistema(j.sistema);
         }
+        const setas: Arrow[] = Array.isArray(j.setas)
+            ? j.setas
+            : typeof j.setas === "string"
+                ? JSON.parse(j.setas)
+                : [];
+        setArrows(setas);
     }
 
     // Desfazer → repor posições iniciais do sistema actual
@@ -363,6 +459,7 @@ export default function QuadroTatico() {
         const azuis = JOGADORES_ATAQUE_INICIAL;
         const vermelhos = FORMACOES[sistema] ?? FORMACOES["6-0"];
         setPlayers([...azuis, ...vermelhos]);
+        setArrows([]);
         showToast("Posições repostas.");
     }
 
@@ -472,7 +569,7 @@ export default function QuadroTatico() {
                 </div>
 
                 {/* Botões de sistema */}
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-3">
                     {SISTEMAS.map((s) => (
                         <button
                             key={s}
@@ -489,18 +586,64 @@ export default function QuadroTatico() {
                     ))}
                 </div>
 
+                {/* Barra de ferramentas do campo */}
+                <div className="flex items-center gap-2 mb-3">
+                    <button
+                        onClick={() => setMode("move")}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
+                            mode === "move"
+                                ? "bg-indigo-600 text-white border-indigo-600"
+                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-indigo-50"
+                        }`}
+                        title="Mover jogadores"
+                    >
+                        🖐 Mover
+                    </button>
+                    <button
+                        onClick={() => setMode("arrow")}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
+                            mode === "arrow"
+                                ? "bg-amber-500 text-white border-amber-500"
+                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-amber-50"
+                        }`}
+                        title="Desenhar seta de movimento"
+                    >
+                        ➡️ Seta
+                    </button>
+                    {arrows.length > 0 && (
+                        <button
+                            onClick={() => setArrows([])}
+                            className="px-3 py-1.5 rounded-lg font-bold text-sm border-2 border-red-200 bg-white dark:bg-gray-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center gap-1.5"
+                            title="Apagar todas as setas"
+                        >
+                            🗑 Setas
+                        </button>
+                    )}
+                    {mode === "arrow" && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold ml-1">
+                            Clica e arrasta no campo para desenhar setas
+                        </span>
+                    )}
+                </div>
+
                 {/* Campo de andebol */}
                 <div
                     ref={fieldRef}
-                    className="relative mb-4 rounded-2xl border-2 border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30 overflow-hidden w-full shadow-lg select-none"
+                    className={`relative mb-4 rounded-2xl border-2 overflow-hidden w-full shadow-lg select-none ${
+                        mode === "arrow"
+                            ? "border-amber-400 dark:border-amber-600 bg-green-50 dark:bg-green-950/30 cursor-crosshair"
+                            : "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30"
+                    }`}
                     style={{ aspectRatio: "400 / 220" }}
+                    onMouseDown={onFieldMouseDown}
                     onMouseMove={onMouseMove}
-                    onMouseUp={() => setDragged(null)}
-                    onMouseLeave={() => setDragged(null)}
+                    onMouseUp={onMouseUp}
+                    onMouseLeave={() => { setDragged(null); setDrawingArrow(null); setArrowPreview(null); }}
+                    onTouchStart={onFieldTouchStart}
                     onTouchMove={onTouchMove}
-                    onTouchEnd={() => setDragged(null)}
+                    onTouchEnd={onTouchEnd}
                 >
-                    {/* Linhas do campo */}
+                    {/* Linhas do campo + Setas SVG */}
                     <svg viewBox="0 0 400 220" className="absolute inset-0 w-full h-full pointer-events-none">
                         {/* Exterior */}
                         <rect x="10" y="10" width="380" height="200" fill="none" stroke="#22c55e" strokeWidth="2" />
@@ -526,22 +669,68 @@ export default function QuadroTatico() {
                         <circle cx="62" cy="110" r="2.5" fill="#22c55e" />
                         {/* Marca 7m direita */}
                         <circle cx="338" cy="110" r="2.5" fill="#22c55e" />
+
+                        {/* ── Setas ── */}
+                        <defs>
+                            <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" />
+                            </marker>
+                            <marker id="arrowhead-preview" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                                <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" opacity="0.6" />
+                            </marker>
+                        </defs>
+
+                        {arrows.map((a) => (
+                            <line
+                                key={a.id}
+                                x1={(a.x1 / 100) * 400} y1={(a.y1 / 100) * 220}
+                                x2={(a.x2 / 100) * 400} y2={(a.y2 / 100) * 220}
+                                stroke="#f59e0b" strokeWidth="2.5"
+                                markerEnd="url(#arrowhead)"
+                            />
+                        ))}
+
+                        {/* Preview da seta a ser desenhada */}
+                        {drawingArrow && arrowPreview && (
+                            <line
+                                x1={(drawingArrow.x1 / 100) * 400} y1={(drawingArrow.y1 / 100) * 220}
+                                x2={(arrowPreview.x / 100) * 400} y2={(arrowPreview.y / 100) * 220}
+                                stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="8,4" opacity="0.7"
+                                markerEnd="url(#arrowhead-preview)"
+                            />
+                        )}
                     </svg>
 
                     {/* Jogadores */}
                     {players.map((p, idx) => (
                         <div
                             key={`${p.id}-${p.color}`}
-                            className={`absolute w-9 h-9 flex items-center justify-center rounded-full border-2 border-white font-bold shadow-lg cursor-move text-xs transition-transform active:scale-110 ${
+                            className={`absolute w-9 h-9 flex items-center justify-center rounded-full border-2 border-white font-bold shadow-lg text-xs transition-transform active:scale-110 ${
                                 p.color === "blue"
                                     ? "bg-blue-600 text-white"
                                     : "bg-red-600 text-white"
-                            }`}
+                            } ${mode === "move" ? "cursor-move" : "cursor-crosshair"}`}
                             style={{ left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%, -50%)" }}
-                            onMouseDown={() => setDragged(idx)}
-                            onTouchStart={() => setDragged(idx)}
+                            onMouseDown={(e) => {
+                                if (mode === "move") {
+                                    setDragged(idx);
+                                } else {
+                                    e.stopPropagation();
+                                    setDrawingArrow({ x1: p.x, y1: p.y });
+                                    setArrowPreview({ x: p.x, y: p.y });
+                                }
+                            }}
+                            onTouchStart={(e) => {
+                                if (mode === "move") {
+                                    setDragged(idx);
+                                } else {
+                                    e.stopPropagation();
+                                    setDrawingArrow({ x1: p.x, y1: p.y });
+                                    setArrowPreview({ x: p.x, y: p.y });
+                                }
+                            }}
                         >
-                            {p.id}
+                            {p.id.replace(/^A(\d+)$/, "$1")}
                         </div>
                     ))}
 

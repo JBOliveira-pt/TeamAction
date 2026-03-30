@@ -22,6 +22,10 @@ async function ensureTable() {
         CREATE INDEX IF NOT EXISTS idx_jogadas_taticas_org
             ON jogadas_taticas (organization_id, created_at DESC)
     `;
+    await sql`
+        ALTER TABLE jogadas_taticas
+            ADD COLUMN IF NOT EXISTS setas JSONB NOT NULL DEFAULT '[]'
+    `;
 }
 
 async function getUser(clerkUserId: string) {
@@ -29,6 +33,12 @@ async function getUser(clerkUserId: string) {
         SELECT id, organization_id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
     `;
     return rows[0] ?? null;
+}
+
+function parseJsonb(v: unknown): unknown[] {
+    if (Array.isArray(v)) return v;
+    if (typeof v === "string") return JSON.parse(v);
+    return [];
 }
 
 export async function GET() {
@@ -46,15 +56,20 @@ export async function GET() {
         tipo: string;
         sistema: string;
         posicoes: unknown;
+        setas: unknown;
         created_at: string;
     }[]>`
-        SELECT id, nome, tipo, sistema, posicoes, created_at
+        SELECT id, nome, tipo, sistema, posicoes, setas, created_at
         FROM jogadas_taticas
         WHERE organization_id = ${user.organization_id}
         ORDER BY created_at DESC
     `;
 
-    return Response.json(rows);
+    return Response.json(rows.map(r => ({
+        ...r,
+        posicoes: parseJsonb(r.posicoes),
+        setas: parseJsonb(r.setas),
+    })));
 }
 
 export async function POST(req: NextRequest) {
@@ -68,7 +83,8 @@ export async function POST(req: NextRequest) {
         nome?: string;
         tipo?: string;
         sistema?: string;
-        posicoes?: unknown[];
+        posicoes?: object[];
+        setas?: object[];
     };
 
     if (!body.nome?.trim() || body.nome.trim().length < 2)
@@ -82,18 +98,24 @@ export async function POST(req: NextRequest) {
 
     await ensureTable();
 
-    const rows = await sql<{ id: string; nome: string; tipo: string; sistema: string; posicoes: unknown; created_at: string }[]>`
-        INSERT INTO jogadas_taticas (organization_id, treinador_id, nome, tipo, sistema, posicoes)
+    const rows = await sql<{ id: string; nome: string; tipo: string; sistema: string; posicoes: unknown; setas: unknown; created_at: string }[]>`
+        INSERT INTO jogadas_taticas (organization_id, treinador_id, nome, tipo, sistema, posicoes, setas)
         VALUES (
             ${user.organization_id},
             ${user.id},
             ${body.nome.trim()},
             ${body.tipo},
             ${body.sistema ?? "6-0"},
-            ${JSON.stringify(body.posicoes ?? [])}
+            ${sql.json((body.posicoes ?? []) as never)},
+            ${sql.json((body.setas ?? []) as never)}
         )
-        RETURNING id, nome, tipo, sistema, posicoes, created_at
+        RETURNING id, nome, tipo, sistema, posicoes, setas, created_at
     `;
 
-    return Response.json(rows[0], { status: 201 });
+    const row = rows[0];
+    return Response.json({
+        ...row,
+        posicoes: parseJsonb(row.posicoes),
+        setas: parseJsonb(row.setas),
+    }, { status: 201 });
 }

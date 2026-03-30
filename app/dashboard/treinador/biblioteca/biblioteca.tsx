@@ -2,12 +2,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
+type Player = { id: string; color: "blue" | "red"; x: number; y: number };
+type Arrow  = { id: string; x1: number; y1: number; x2: number; y2: number };
+
 type Jogada = {
     id: string;
     nome: string;
     tipo: string;
     sistema: string;
-    posicoes: unknown[];
+    posicoes: Player[];
+    setas: Arrow[];
     created_at: string;
 };
 
@@ -22,86 +26,65 @@ const catColors: Record<string, string> = {
 };
 
 /* ── SVG Diagrama tático ──────────────────────────────────────────────── */
-function PlayerDot({ x, y, c, r }: { x: number; y: number; c: string; r: number }) {
-    return <circle cx={x} cy={y} r={r} fill={c} stroke="white" strokeWidth={1.4} />;
+// Converte coordenadas % (0-100) do quadro para o viewBox SVG (120×70)
+function toSvg(x: number, y: number) {
+    return { cx: (x / 100) * 116 + 2, cy: (y / 100) * 66 + 2 };
 }
 
-function TacticalDiagram({ tipo, large = false }: { tipo: string; large?: boolean }) {
-    const r = large ? 5.5 : 4.5;
+function TacticalDiagram({ posicoes, setas = [], large = false }: { posicoes: Player[]; setas?: Arrow[]; large?: boolean }) {
+    const r = large ? 5 : 4;
 
     return (
         <svg viewBox="0 0 120 70" className="w-full h-full">
+            <defs>
+                <marker id="arr" markerWidth="6" markerHeight="5" refX="5.5" refY="2.5" orient="auto">
+                    <polygon points="0 0, 6 2.5, 0 5" fill="#f59e0b" />
+                </marker>
+            </defs>
+
+            {/* Campo */}
             <rect x="2" y="2" width="116" height="66" rx="2" fill="#f0fdf4" stroke="#22c55e" strokeWidth="1.5" />
             <line x1="60" y1="2" x2="60" y2="68" stroke="#22c55e" strokeWidth="0.7" opacity="0.4" />
             <circle cx="60" cy="35" r="10" fill="none" stroke="#22c55e" strokeWidth="0.7" opacity="0.4" />
             <rect x="2" y="25" width="11" height="20" fill="none" stroke="#22c55e" strokeWidth="1" />
             <rect x="107" y="25" width="11" height="20" fill="none" stroke="#22c55e" strokeWidth="1" />
 
-            {tipo === "Ataque" && (
-                <>
-                    <PlayerDot x={9} y={35} c="#1d4ed8" r={r} />
-                    <PlayerDot x={50} y={22} c="#3b82f6" r={r} />
-                    <PlayerDot x={46} y={35} c="#3b82f6" r={r} />
-                    <PlayerDot x={50} y={48} c="#3b82f6" r={r} />
-                    <PlayerDot x={70} y={11} c="#3b82f6" r={r} />
-                    <PlayerDot x={70} y={59} c="#3b82f6" r={r} />
-                    <PlayerDot x={81} y={35} c="#3b82f6" r={r} />
-                    <line x1="54" y1="24" x2="73" y2="29" stroke="#f59e0b" strokeWidth="1.8" opacity="0.85" />
-                    <line x1="50" y1="35" x2="74" y2="35" stroke="#f59e0b" strokeWidth="1.8" opacity="0.85" />
-                    <line x1="54" y1="46" x2="73" y2="41" stroke="#f59e0b" strokeWidth="1.8" opacity="0.85" />
-                </>
-            )}
+            {/* Setas */}
+            {setas.map((a) => {
+                const p1 = toSvg(a.x1, a.y1);
+                const p2 = toSvg(a.x2, a.y2);
+                return (
+                    <line
+                        key={a.id}
+                        x1={p1.cx} y1={p1.cy}
+                        x2={p2.cx} y2={p2.cy}
+                        stroke="#f59e0b" strokeWidth="1.5"
+                        markerEnd="url(#arr)"
+                    />
+                );
+            })}
 
-            {tipo === "Defesa" && (
-                <>
-                    <PlayerDot x={9} y={35} c="#1d4ed8" r={r} />
-                    <PlayerDot x={22} y={24} c="#3b82f6" r={r} />
-                    <PlayerDot x={30} y={19} c="#3b82f6" r={r} />
-                    <PlayerDot x={40} y={17} c="#3b82f6" r={r} />
-                    <PlayerDot x={50} y={19} c="#3b82f6" r={r} />
-                    <PlayerDot x={58} y={24} c="#3b82f6" r={r} />
-                    <PlayerDot x={40} y={32} c="#3b82f6" r={r} />
-                    <PlayerDot x={72} y={20} c="#ef4444" r={r} />
-                    <PlayerDot x={76} y={35} c="#ef4444" r={r} />
-                    <PlayerDot x={72} y={50} c="#ef4444" r={r} />
-                </>
-            )}
-
-            {tipo === "Transição" && (
-                <>
-                    <PlayerDot x={9} y={35} c="#1d4ed8" r={r} />
-                    <PlayerDot x={30} y={35} c="#3b82f6" r={r} />
-                    <PlayerDot x={65} y={18} c="#3b82f6" r={r} />
-                    <PlayerDot x={68} y={35} c="#3b82f6" r={r} />
-                    <PlayerDot x={65} y={52} c="#3b82f6" r={r} />
-                    <PlayerDot x={48} y={27} c="#ef4444" r={r} />
-                    <PlayerDot x={48} y={43} c="#ef4444" r={r} />
-                    <line x1="34" y1="35" x2="62" y2="35" stroke="#3b82f6" strokeWidth="2" opacity="0.85" />
-                    <line x1="34" y1="33" x2="62" y2="21" stroke="#93c5fd" strokeWidth="1.2" strokeDasharray="3,2" opacity="0.8" />
-                    <line x1="34" y1="37" x2="62" y2="49" stroke="#93c5fd" strokeWidth="1.2" strokeDasharray="3,2" opacity="0.8" />
-                </>
-            )}
-
-            {tipo === "Bola Parada" && (
-                <>
-                    <PlayerDot x={111} y={35} c="#ef4444" r={r} />
-                    <PlayerDot x={98} y={26} c="#ef4444" r={r} />
-                    <PlayerDot x={98} y={34} c="#ef4444" r={r} />
-                    <PlayerDot x={98} y={42} c="#ef4444" r={r} />
-                    <PlayerDot x={87} y={52} c="#3b82f6" r={r} />
-                    <PlayerDot x={75} y={22} c="#3b82f6" r={r} />
-                    <PlayerDot x={76} y={35} c="#3b82f6" r={r} />
-                    <path d="M87,49 Q96,38 109,33" fill="none" stroke="#f59e0b" strokeWidth="1.8" strokeDasharray="3,2" opacity="0.9" />
-                </>
-            )}
-
-            {!["Ataque", "Defesa", "Transição", "Bola Parada"].includes(tipo) && (
-                <>
-                    {[22, 38, 60, 82, 98].map((cx, i) => (
-                        <circle key={i} cx={cx} cy={35} r={r} fill="#6366f1" stroke="white" strokeWidth={1.4} />
-                    ))}
-                </>
-            )}
+            {/* Jogadores nas posições reais */}
+            {posicoes.map((p) => {
+                const { cx, cy } = toSvg(p.x, p.y);
+                const fill = p.color === "blue" ? "#2563eb" : "#dc2626";
+                return (
+                    <g key={`${p.id}-${p.color}`}>
+                        <circle cx={cx} cy={cy} r={r} fill={fill} stroke="white" strokeWidth={1.4} />
+                        <text
+                            x={cx}
+                            y={cy + 0.5}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize={r * 0.9}
+                            fill="white"
+                            fontWeight="bold"
+                        >
+                            {p.id.replace(/^A(\d+)$/, "$1")}
+                        </text>
+                    </g>
+                );
+            })}
         </svg>
     );
 }
@@ -261,7 +244,7 @@ export default function Biblioteca() {
                                     </span>
                                 </div>
                                 <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3 mb-6 aspect-video flex items-center justify-center">
-                                    <TacticalDiagram tipo={modal.jogada.tipo} large />
+                                    <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                 </div>
                                 <div className="flex gap-2">
                                     <button
@@ -313,7 +296,7 @@ export default function Biblioteca() {
                                         </select>
                                     </div>
                                     <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3 aspect-video flex items-center justify-center">
-                                        <TacticalDiagram tipo={editForm.tipo} large />
+                                        <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                     </div>
                                     <div className="flex gap-2">
                                         <button
@@ -394,7 +377,7 @@ export default function Biblioteca() {
                             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all"
                         >
                             <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 overflow-hidden w-full h-44">
-                                <TacticalDiagram tipo={j.tipo} />
+                                <TacticalDiagram posicoes={j.posicoes} setas={j.setas} />
                             </div>
                             <div>
                                 <p className="font-bold text-base text-gray-900 dark:text-white leading-tight">{j.nome}</p>
