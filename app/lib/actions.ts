@@ -1905,6 +1905,100 @@ export async function adicionarDoencaAtleta(
     return { success: true };
 }
 
+export async function atualizarPerfilAtleta(
+    prevState: { error?: string } | null,
+    formData: FormData,
+): Promise<{ error?: string } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: 'Não autenticado.' };
+
+    const telefone = formData.get('telefone')?.toString().trim() || null;
+    const morada = formData.get('morada')?.toString().trim() || null;
+    const cidade = formData.get('cidade')?.toString().trim() || null;
+    const codigoPostal =
+        formData.get('codigo_postal')?.toString().trim() || null;
+    const pais = formData.get('pais')?.toString().trim() || null;
+    const dataNascimento =
+        formData.get('data_nascimento')?.toString().trim() || null;
+    const maoDominante =
+        formData.get('mao_dominante')?.toString().trim() || null;
+    const encarregadoEmail =
+        formData.get('encarregado_email')?.toString().trim() || null;
+
+    try {
+        const [user] = await sql<{ id: string; menor_idade: boolean | null }[]>`
+            SELECT id, "Menor_idade" AS menor_idade FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!user) return { error: 'Utilizador não encontrado.' };
+
+        if (user.menor_idade) {
+            await sql`
+                UPDATE users
+                SET telefone = ${telefone}, morada = ${morada}, cidade = ${cidade},
+                    codigo_postal = ${codigoPostal}, pais = ${pais},
+                    data_nascimento = ${dataNascimento},
+                    "Encarregado_Edu" = ${encarregadoEmail},
+                    status = 'false'
+                WHERE clerk_user_id = ${clerkUserId}
+            `;
+        } else {
+            await sql`
+                UPDATE users
+                SET telefone = ${telefone}, morada = ${morada}, cidade = ${cidade},
+                    codigo_postal = ${codigoPostal}, pais = ${pais},
+                    data_nascimento = ${dataNascimento}
+                WHERE clerk_user_id = ${clerkUserId}
+            `;
+        }
+
+        // Update atletas table for fields stored there
+        await sql`
+            UPDATE atletas
+            SET mao_dominante = ${maoDominante}
+            WHERE user_id = ${user.id}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao atualizar perfil.' };
+    }
+
+    revalidatePath('/dashboard/atleta/geral');
+    return null;
+}
+
+export async function aprovarPerfilAtleta(
+    minorUserId: string,
+): Promise<{ error?: string } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: 'Não autenticado.' };
+
+    try {
+        const [guardian] = await sql<{ email: string }[]>`
+            SELECT email FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!guardian) return { error: 'Utilizador não encontrado.' };
+
+        // Ensure the minor is actually linked to this guardian
+        const [minor] = await sql<{ id: string }[]>`
+            SELECT id FROM users
+            WHERE id = ${minorUserId}
+            AND "Encarregado_Edu" = ${guardian.email}
+            AND "Menor_idade" = true
+            LIMIT 1
+        `;
+        if (!minor) return { error: 'Não autorizado.' };
+
+        await sql`UPDATE users SET status = 'true' WHERE id = ${minorUserId}`;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao aprovar perfil.' };
+    }
+
+    revalidatePath('/dashboard/atleta/geral');
+    revalidatePath('/dashboard/pai/perfil');
+    return null;
+}
+
 export async function atualizarMeuPerfil(
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData,

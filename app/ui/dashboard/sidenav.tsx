@@ -1,9 +1,9 @@
 // app/ui/dashboard/sidenav.tsx
-"use client";
+'use client';
 
-import { DashboardHeader } from "@/app/components/header";
-import { AccountType } from "@/app/lib/account-type";
-import { useUser } from "@clerk/nextjs";
+import { DashboardHeader } from '@/app/components/header';
+import { AccountType } from '@/app/lib/account-type';
+import { useUser } from '@clerk/nextjs';
 import {
     Activity,
     BarChart2,
@@ -29,11 +29,11 @@ import {
     User,
     Users,
     X,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+} from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 type SideNavProps = {
     accountType: AccountType;
@@ -42,7 +42,7 @@ type SideNavProps = {
 export default function SideNav({ accountType }: SideNavProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeProfile, setActiveProfile] = useState<
-        "atleta" | "treinador" | "pai" | "presidente" | null
+        'atleta' | 'treinador' | 'pai' | 'presidente' | null
     >(null);
     const { isLoaded, user: clerkUser } = useUser();
     const pathname = usePathname();
@@ -52,24 +52,24 @@ export default function SideNav({ accountType }: SideNavProps) {
         foto?: string;
     } | null>(null);
 
-    const forcedProfile: "presidente" | "treinador" | "atleta" | "pai" | null =
-        accountType === "responsavel"
-            ? "pai"
-            : accountType === "presidente" ||
-                accountType === "treinador" ||
-                accountType === "atleta"
+    const forcedProfile: 'presidente' | 'treinador' | 'atleta' | 'pai' | null =
+        accountType === 'responsavel'
+            ? 'pai'
+            : accountType === 'presidente' ||
+                accountType === 'treinador' ||
+                accountType === 'atleta'
               ? accountType
               : null;
 
     const accountTypeLabel =
-        accountType === "presidente"
-            ? "Presidente"
-            : accountType === "treinador"
-              ? "Treinador"
-              : accountType === "atleta"
-                ? "Atleta"
-                : accountType === "responsavel"
-                  ? "Responsável"
+        accountType === 'presidente'
+            ? 'Presidente'
+            : accountType === 'treinador'
+              ? 'Treinador'
+              : accountType === 'atleta'
+                ? 'Atleta'
+                : accountType === 'responsavel'
+                  ? 'Responsável'
                   : null;
 
     const selectedProfile = forcedProfile || activeProfile;
@@ -79,8 +79,8 @@ export default function SideNav({ accountType }: SideNavProps) {
             if (!isLoaded || !clerkUser) return;
 
             try {
-                const response = await fetch("/api/debug/user", {
-                    cache: "no-store",
+                const response = await fetch('/api/debug/user', {
+                    cache: 'no-store',
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -93,7 +93,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                     }
                 }
             } catch (error) {
-                console.error("Erro ao buscar dados do usuário:", error);
+                console.error('Erro ao buscar dados do usuário:', error);
             }
         }
 
@@ -101,7 +101,7 @@ export default function SideNav({ accountType }: SideNavProps) {
     }, [isLoaded, clerkUser, pathname]);
 
     const isCreatingProfile = pathname.startsWith(
-        "/dashboard/utilizador/perfil/criar",
+        '/dashboard/utilizador/perfil/criar',
     );
 
     const mobileMenuTrigger = (
@@ -119,13 +119,13 @@ export default function SideNav({ accountType }: SideNavProps) {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "presidente" ? null : "presidente",
+                        activeProfile === 'presidente' ? null : 'presidente',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "presidente"
-                        ? "bg-violet-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'presidente'
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🏛️ Presidente
@@ -133,13 +133,13 @@ export default function SideNav({ accountType }: SideNavProps) {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "treinador" ? null : "treinador",
+                        activeProfile === 'treinador' ? null : 'treinador',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "treinador"
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'treinador'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🧑‍🏫 Treinador
@@ -147,25 +147,25 @@ export default function SideNav({ accountType }: SideNavProps) {
             <button
                 onClick={() =>
                     setActiveProfile(
-                        activeProfile === "atleta" ? null : "atleta",
+                        activeProfile === 'atleta' ? null : 'atleta',
                     )
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "atleta"
-                        ? "bg-emerald-600 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'atleta'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 🏃 Atleta
             </button>
             <button
                 onClick={() =>
-                    setActiveProfile(activeProfile === "pai" ? null : "pai")
+                    setActiveProfile(activeProfile === 'pai' ? null : 'pai')
                 }
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeProfile === "pai"
-                        ? "bg-amber-500 text-white shadow-sm"
-                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    activeProfile === 'pai'
+                        ? 'bg-amber-500 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
                 👨‍👦 Pai/Enc.
@@ -181,24 +181,24 @@ export default function SideNav({ accountType }: SideNavProps) {
         : {
               name:
                   isLoaded && clerkUser
-                      ? clerkUser.fullName || clerkUser.firstName || "Usuario"
-                      : "Usuario",
-              role: accountTypeLabel || "Conta",
+                      ? clerkUser.fullName || clerkUser.firstName || 'Usuario'
+                      : 'Usuario',
+              role: accountTypeLabel || 'Conta',
               foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
           };
 
     const profileHref =
-        selectedProfile === "presidente"
-            ? "/dashboard/presidente/perfil"
-            : selectedProfile === "atleta"
-              ? "/dashboard/utilizador/perfil"
-              : selectedProfile === "treinador"
-                ? "/dashboard/treinador"
-                : "/dashboard";
+        selectedProfile === 'presidente'
+            ? '/dashboard/presidente/perfil'
+            : selectedProfile === 'atleta'
+              ? '/dashboard/utilizador/perfil'
+              : selectedProfile === 'treinador'
+                ? '/dashboard/treinador'
+                : '/dashboard';
 
     const settingsHref =
-        selectedProfile === "presidente"
-            ? "/dashboard/presidente/definicoes"
+        selectedProfile === 'presidente'
+            ? '/dashboard/presidente/definicoes'
             : undefined;
 
     return (
@@ -224,7 +224,7 @@ export default function SideNav({ accountType }: SideNavProps) {
           fixed top-0 left-0 z-40
           w-64 bg-white dark:bg-gray-950 text-gray-900 dark:text-white p-6 flex flex-col border-r border-gray-200 dark:border-gray-800 h-screen
           transition-transform duration-300 ease-in-out
-          ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
@@ -258,7 +258,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                             </p>
                         </div>
                     )}
-                    {!isCreatingProfile && selectedProfile === "presidente" && (
+                    {!isCreatingProfile && selectedProfile === 'presidente' && (
                         <>
                             <NavSectionLabel>Principal</NavSectionLabel>
                             <NavItem
@@ -365,7 +365,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                         </>
                     )}
 
-                    {!isCreatingProfile && selectedProfile === "treinador" && (
+                    {!isCreatingProfile && selectedProfile === 'treinador' && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -447,12 +447,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                             />
                         </>
                     )}
-                    {!isCreatingProfile && selectedProfile === "atleta" && (
+                    {!isCreatingProfile && selectedProfile === 'atleta' && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
                                 icon={<LayoutDashboard size={20} />}
-                                label="Painel do jogador"
+                                label="Início"
                                 href="/dashboard/atleta"
                                 onClick={() => setIsOpen(false)}
                             />
@@ -510,6 +510,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                             <NavSectionLabel>Clube</NavSectionLabel>
                             <NavItem
                                 icon={<Bell size={20} />}
+                                label="Notificações"
+                                href="/dashboard/atleta/notificacoes"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<Clipboard size={20} />}
                                 label="Comunicados"
                                 href="/dashboard/pai/comunicados"
                                 onClick={() => setIsOpen(false)}
@@ -522,7 +528,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                             />
                         </>
                     )}
-                    {!isCreatingProfile && selectedProfile === "pai" && (
+                    {!isCreatingProfile && selectedProfile === 'pai' && (
                         <>
                             <NavSectionLabel>O Meu Espaço</NavSectionLabel>
                             <NavItem
@@ -669,9 +675,9 @@ function NavItem({
     const pathname = usePathname();
 
     const exactMatchPaths = [
-        "/dashboard",
-        "/dashboard/presidente",
-        "/dashboard/treinador",
+        '/dashboard',
+        '/dashboard/presidente',
+        '/dashboard/treinador',
     ];
 
     const active = exactMatchPaths.includes(href)
@@ -684,15 +690,15 @@ function NavItem({
             onClick={onClick}
             className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-200 group ${
                 active
-                    ? "bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100"
+                    ? 'bg-blue-600/10 text-blue-500 dark:text-blue-400 border-r-2 border-blue-500'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
         >
             <span
                 className={
                     active
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
+                        ? 'text-blue-500 dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-white transition-colors'
                 }
             >
                 {icon}
