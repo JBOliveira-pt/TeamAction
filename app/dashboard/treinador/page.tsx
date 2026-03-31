@@ -1,6 +1,13 @@
+<<<<<<< HEAD
 import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import postgres from 'postgres';
+=======
+import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
+import postgres from "postgres";
+import StaffPanel from "./components/StaffPanel";
+>>>>>>> 30d50be053e57713c7f395ccdce107b3f14dcd00
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -68,6 +75,13 @@ async function fetchDashboardData() {
         `,
     ]).catch(() => [null, null, null, null, null]);
 
+    // Staff do clube
+    const staffResult = await sql<{ id: string; nome: string; funcao: string }[]>`
+        SELECT id, nome, funcao FROM staff
+        WHERE organization_id = ${orgId}
+        ORDER BY nome ASC
+    `.catch(() => []);
+
     // Atleta mais assíduo
     const atletaDestaqueResult = await sql<{ nome: string; pct: number }[]>`
         SELECT a.nome,
@@ -102,6 +116,7 @@ async function fetchDashboardData() {
         ultimasSessoes,
         pctAssiduidade,
         atletaDestaque,
+        staff: staffResult,
     };
 }
 
@@ -119,6 +134,7 @@ export default async function TreinadorDashboard() {
     const primeiroNome = nome.split(' ')[0];
 
     return (
+<<<<<<< HEAD
         <div className="w-full min-h-screen bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-8">
             {/* ── Cabeçalho ── */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -149,6 +165,11 @@ export default async function TreinadorDashboard() {
                     </Link>
                 </div>
             </div>
+=======
+        <div className="flex w-full min-h-screen">
+            <StaffPanel staff={data?.staff ?? []} />
+        <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-8">
+>>>>>>> 30d50be053e57713c7f395ccdce107b3f14dcd00
 
             {/* ── Cards de destaque ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
@@ -332,6 +353,7 @@ export default async function TreinadorDashboard() {
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     );
 }

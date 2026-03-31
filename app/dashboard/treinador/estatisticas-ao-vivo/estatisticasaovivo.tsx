@@ -141,7 +141,7 @@ export default function EstatisticasAoVivo({
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
                         <BarChart2 size={24} className="text-red-500" />
                         Live Stats
                     </h2>

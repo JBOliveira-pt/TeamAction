@@ -50,6 +50,143 @@ function Toast({ msg, tipo }: { msg: string; tipo: "ok" | "erro" }) {
     );
 }
 
+/* ── Modal Todos os Atletas ── */
+function ModalTodosAtletas({
+    equipas,
+    onClose,
+    onConviteEnviado,
+}: {
+    equipas: Equipa[];
+    onClose: () => void;
+    onConviteEnviado: (atletaNome: string) => void;
+}) {
+    const [todos, setTodos] = useState<AtletaResultado[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filtro, setFiltro] = useState("");
+    const [atletaSelecionado, setAtletaSelecionado] = useState<AtletaResultado | null>(null);
+    const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
+    const [enviando, setEnviando] = useState(false);
+    const [erro, setErro] = useState("");
+
+    useEffect(() => {
+        fetch("/api/atletas/todos")
+            .then((r) => r.ok ? r.json() : [])
+            .then((data) => { setTodos(data); setLoading(false); })
+            .catch(() => setLoading(false));
+    }, []);
+
+    const visiveis = todos.filter((a) =>
+        a.nome.toLowerCase().includes(filtro.toLowerCase())
+    );
+
+    const enviarConvite = async () => {
+        if (!atletaSelecionado) return;
+        setErro("");
+        setEnviando(true);
+        const equipa = equipas.find((e) => e.id === equipaId);
+        const res = await fetch("/api/convites-equipa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                atleta_id: atletaSelecionado.id,
+                equipa_id: equipaId || undefined,
+                equipa_nome: equipa?.nome,
+            }),
+        });
+        setEnviando(false);
+        if (res.ok) {
+            onConviteEnviado(atletaSelecionado.nome);
+            onClose();
+        } else {
+            setErro(await res.text());
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh]">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Todos os Atletas</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Seleciona um atleta para convidar</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700">
+                    <input
+                        autoFocus
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        placeholder="Filtrar por nome..."
+                        value={filtro}
+                        onChange={(e) => setFiltro(e.target.value)}
+                    />
+                </div>
+                <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-1.5">
+                    {loading && <p className="text-xs text-gray-400 text-center py-4">A carregar...</p>}
+                    {!loading && visiveis.length === 0 && (
+                        <p className="text-sm text-gray-400 text-center py-4">Nenhum atleta encontrado.</p>
+                    )}
+                    {visiveis.map((a) => (
+                        <button
+                            key={a.id}
+                            onClick={() => { setAtletaSelecionado(a); setErro(""); }}
+                            className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${atletaSelecionado?.id === a.id ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-blue-50 dark:hover:bg-blue-900/20"}`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{a.nome}</p>
+                                    <p className="text-xs text-gray-400">
+                                        {a.posicao ?? "—"}
+                                        {a.numero_camisola ? ` · #${a.numero_camisola}` : ""}
+                                        {a.equipa_nome ? ` · ${a.equipa_nome}` : ""}
+                                    </p>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${estadoCor[a.estado] ?? estadoCor.Inativo}`}>
+                                    {a.estado}
+                                </span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+                {atletaSelecionado && (
+                    <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-3">
+                        <div className="px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-sm font-semibold text-blue-800 dark:text-blue-300">
+                            ✓ {atletaSelecionado.nome} selecionado
+                        </div>
+                        {equipas.length > 0 && (
+                            <select
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                value={equipaId}
+                                onChange={(e) => setEquipaId(e.target.value)}
+                            >
+                                <option value="">Sem equipa definida</option>
+                                {equipas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                            </select>
+                        )}
+                        {erro && <p className="text-xs text-red-500">{erro}</p>}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={enviarConvite}
+                                disabled={enviando}
+                                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 transition-all"
+                            >
+                                {enviando ? "A enviar..." : "Enviar Convite"}
+                            </button>
+                            <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 /* ── Modal Adicionar Atleta (pesquisa + convite) ── */
 function ModalAdicionarAtleta({
     equipas,
@@ -293,6 +430,7 @@ export default function EquipaAtletas({
     const [search, setSearch] = useState("");
     const [posicaoFiltro, setPosicaoFiltro] = useState("Todas");
     const [showAdicionar, setShowAdicionar] = useState(false);
+    const [showTodos, setShowTodos] = useState(false);
     const [atletaModal, setAtletaModal] = useState<Atleta | null>(null);
     const [convitesPendentes, setConvitesPendentes] = useState<
         ConvitePendente[]
@@ -450,6 +588,21 @@ export default function EquipaAtletas({
                 />
             )}
 
+            {/* Modal Todos os Atletas */}
+            {showTodos && (
+                <ModalTodosAtletas
+                    equipas={equipas}
+                    onClose={() => setShowTodos(false)}
+                    onConviteEnviado={(nome) => {
+                        showToast(`Convite enviado para ${nome}!`);
+                        fetch("/api/convites-equipa")
+                            .then((r) => (r.ok ? r.json() : []))
+                            .then(setConvitesPendentes)
+                            .catch(() => {});
+                    }}
+                />
+            )}
+
             {/* Cabeçalho */}
             <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
@@ -459,6 +612,20 @@ export default function EquipaAtletas({
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {atletasIniciais.length} atletas registados
                     </p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowAdicionar(true)}
+                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                    >
+                        🔍 Pesquisar Atleta
+                    </button>
+                    <button
+                        onClick={() => setShowTodos(true)}
+                        className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                    >
+                        👥 Todos
+                    </button>
                 </div>
             </div>
 
@@ -528,28 +695,6 @@ export default function EquipaAtletas({
                         </span>
                     </div>
                 ))}
-            </div>
-
-            {/* Filtros */}
-            <div className="flex flex-wrap items-center gap-2 mb-6">
-                <input
-                    type="text"
-                    placeholder="Pesquisar atleta..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1 min-w-[180px] px-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <div className="flex flex-wrap gap-1.5">
-                    {posicoes.map((p) => (
-                        <button
-                            key={p}
-                            onClick={() => setPosicaoFiltro(p)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${posicaoFiltro === p ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"}`}
-                        >
-                            {p}
-                        </button>
-                    ))}
-                </div>
             </div>
 
             {/* Grelha */}

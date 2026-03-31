@@ -137,7 +137,7 @@ export default function CondicaoFisica({
             {/* Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-orange-600 dark:text-orange-400 flex items-center gap-2">
                         <Activity size={24} className="text-orange-500" />
                         Condição Física
                     </h2>

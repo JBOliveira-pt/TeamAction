@@ -27,6 +27,7 @@ import {
     TrendingUp,
     Trophy,
     User,
+    UserCog,
     Users,
     X,
 } from 'lucide-react';
@@ -385,6 +386,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 icon={<Users size={20} />}
                                 label="Equipa"
                                 href="/dashboard/treinador/equipa-atletas"
+                                onClick={() => setIsOpen(false)}
+                            />
+                            <NavItem
+                                icon={<UserCog size={20} />}
+                                label="Staff"
+                                href="/dashboard/treinador/staff"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavSectionLabel>Treino</NavSectionLabel>
