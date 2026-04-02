@@ -1,24 +1,24 @@
-﻿import { auth, clerkClient } from '@clerk/nextjs/server';
-import crypto from 'node:crypto';
-import postgres, { type Sql } from 'postgres';
-import { User } from './definitions';
-import { ensureRecipientUserIdColumn } from './notification-schema';
+﻿import { auth, clerkClient } from "@clerk/nextjs/server";
+import crypto from "node:crypto";
+import postgres, { type Sql } from "postgres";
+import { User } from "./definitions";
+import { ensureRecipientUserIdColumn } from "./notification-schema";
 
-const isDev = process.env.NODE_ENV !== 'production';
-type AccountType = 'presidente' | 'treinador' | 'atleta' | 'responsavel';
+const isDev = process.env.NODE_ENV !== "production";
+type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 const MIN_ADULT_SIGNUP_AGE = 18;
-const MINOR_ATHLETE_TEMP_PROFILE_TYPE = 'Aviso';
-const MINOR_ATHLETE_TEMP_PROFILE_TITLE = 'Mensagem do Administrador';
+const MINOR_ATHLETE_TEMP_PROFILE_TYPE = "Aviso";
+const MINOR_ATHLETE_TEMP_PROFILE_TITLE = "Mensagem do Administrador";
 
 function normalizeAccountType(value: unknown): AccountType | null {
-    if (typeof value !== 'string') return null;
+    if (typeof value !== "string") return null;
 
     const normalized = value.toLowerCase();
     if (
-        normalized === 'presidente' ||
-        normalized === 'treinador' ||
-        normalized === 'atleta' ||
-        normalized === 'responsavel'
+        normalized === "presidente" ||
+        normalized === "treinador" ||
+        normalized === "atleta" ||
+        normalized === "responsavel"
     ) {
         return normalized;
     }
@@ -31,7 +31,7 @@ function isValidEmailFormat(value: string): boolean {
 }
 
 function createDeterministicUuid(seed: string): string {
-    const hex = crypto.createHash('sha256').update(seed).digest('hex');
+    const hex = crypto.createHash("sha256").update(seed).digest("hex");
     const normalized = hex.slice(0, 32);
 
     return `${normalized.slice(0, 8)}-${normalized.slice(8, 12)}-${normalized.slice(12, 16)}-${normalized.slice(16, 20)}-${normalized.slice(20, 32)}`;
@@ -51,13 +51,13 @@ async function maybeCreateMinorAthleteTemporaryProfileNotice(params: {
             clerkUser.publicMetadata?.accountType,
     );
 
-    if (accountType !== 'atleta') {
+    if (accountType !== "atleta") {
         return;
     }
 
     const ageRaw =
         clerkUser.unsafeMetadata?.age ?? clerkUser.publicMetadata?.age;
-    const age = typeof ageRaw === 'number' ? ageRaw : Number(ageRaw);
+    const age = typeof ageRaw === "number" ? ageRaw : Number(ageRaw);
 
     if (!Number.isFinite(age) || age >= MIN_ADULT_SIGNUP_AGE) {
         return;
@@ -68,9 +68,9 @@ async function maybeCreateMinorAthleteTemporaryProfileNotice(params: {
         | undefined;
     const responsibleEmailRaw = athleteProfileMetadata?.responsibleEmail;
     const responsibleEmail =
-        typeof responsibleEmailRaw === 'string'
+        typeof responsibleEmailRaw === "string"
             ? responsibleEmailRaw.trim()
-            : '';
+            : "";
 
     if (!responsibleEmail || !isValidEmailFormat(responsibleEmail)) {
         return;
@@ -115,8 +115,8 @@ export async function fetchUsers() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch users.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch users.");
     }
 }
 
@@ -144,8 +144,8 @@ export async function fetchFilteredUsers(query: string) {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch users.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch users.");
     }
 }
 
@@ -157,7 +157,7 @@ export async function getOrganizationId(options?: {
     const { userId } = await auth();
 
     if (!userId) {
-        throw new Error('User not authenticated');
+        throw new Error("User not authenticated");
     }
 
     // Fetch organization_id from database using clerk_user_id.
@@ -174,14 +174,14 @@ export async function getOrganizationId(options?: {
             const clerkUser = await client.users.getUser(userId);
             const email = clerkUser.emailAddresses[0]?.emailAddress;
             const fullName =
-                `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() ||
+                `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
                 email ||
                 `user_${userId}`;
             const accountType = normalizeAccountType(
                 clerkUser.unsafeMetadata?.accountType ??
                     clerkUser.publicMetadata?.accountType,
             );
-            const role = 'user';
+            const role = "user";
 
             if (email) {
                 const fallbackUser = await sql<
@@ -240,7 +240,7 @@ export async function getOrganizationId(options?: {
 
                         const orgSlug = `${fullName
                             .toLowerCase()
-                            .replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
+                            .replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
                         const orgName = `${fullName}'s Organization`;
 
                         const newOrg = await txSql<{ id: string }[]>`
@@ -290,32 +290,32 @@ export async function getOrganizationId(options?: {
                     user[0],
                 );
             }
-            throw new Error('No organization found for user');
+            throw new Error("No organization found for user");
         }
 
         return orgId;
     } catch (error) {
-        console.error('Failed to fetch organization:', error);
-        throw new Error('Failed to fetch user organization');
+        console.error("Failed to fetch organization:", error);
+        throw new Error("Failed to fetch user organization");
     }
 }
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 export async function fetchUserById(id: string) {
     try {
         const organizationId = await getOrganizationId();
 
         const data = await sql<User[]>`
-            SELECT id, name, email, password, role, image_url, iban
+            SELECT id, name, email, password, role, image_url, iban, account_type
       FROM users
       WHERE id = ${id} AND organization_id = ${organizationId}
     `;
 
         return data[0] || undefined;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch user.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch user.");
     }
 }
 
@@ -358,8 +358,8 @@ export async function fetchEquipas() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch equipas.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch equipas.");
     }
 }
 
@@ -429,8 +429,8 @@ export async function fetchEquipaById(id: string) {
 
         return { equipa: equipa[0], atletas, staff, jogos };
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch equipa.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch equipa.");
     }
 }
 
@@ -478,8 +478,8 @@ export async function fetchAtletas() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch atletas.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch atletas.");
     }
 }
 
@@ -584,8 +584,8 @@ export async function fetchAtletaById(id: string) {
             assiduidade: assiduidade[0],
         };
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch atleta.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch atleta.");
     }
 }
 
@@ -626,8 +626,8 @@ export async function fetchJogos() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch jogos.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch jogos.");
     }
 }
 
@@ -669,8 +669,8 @@ export async function fetchMensalidades() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch mensalidades.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch mensalidades.");
     }
 }
 
@@ -701,8 +701,8 @@ export async function fetchPresidenteDashboard() {
             epocaNome: epoca[0]?.nome ?? null,
         };
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch presidente dashboard.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch presidente dashboard.");
     }
 }
 
@@ -730,8 +730,8 @@ export async function fetchUltimosJogos() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch Ãºltimos jogos.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch Ãºltimos jogos.");
     }
 }
 
@@ -759,8 +759,8 @@ export async function fetchProximosJogos() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch prÃ³ximos jogos.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch prÃ³ximos jogos.");
     }
 }
 
@@ -833,8 +833,8 @@ export async function fetchEstatisticasPorEquipa() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch estatisticas por equipa.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch estatisticas por equipa.");
     }
 }
 
@@ -873,8 +873,8 @@ export async function fetchTopAtletas() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch top atletas.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch top atletas.");
     }
 }
 
@@ -902,8 +902,8 @@ export async function fetchEpocaAtiva() {
 
         return data[0] ?? null;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch epoca ativa.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch epoca ativa.");
     }
 }
 
@@ -935,8 +935,8 @@ export async function fetchPerfilPresidente() {
 
         return data[0] ?? null;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch perfil presidente.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch perfil presidente.");
     }
 }
 
@@ -964,8 +964,8 @@ export async function fetchComunicados() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch comunicados.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch comunicados.");
     }
 }
 
@@ -993,8 +993,8 @@ export async function fetchAutorizacoes() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch autorizacoes.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch autorizacoes.");
     }
 }
 
@@ -1021,8 +1021,8 @@ export async function fetchDocumentos() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch documentos.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch documentos.");
     }
 }
 
@@ -1054,8 +1054,8 @@ export async function fetchOrganizacao() {
         `;
         return data[0] ?? null;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch organization.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch organization.");
     }
 }
 
@@ -1092,7 +1092,7 @@ export async function fetchNotificacoes() {
                 });
             } catch (error) {
                 console.error(
-                    'Failed to create temporary-profile notice for minor athlete:',
+                    "Failed to create temporary-profile notice for minor athlete:",
                     error,
                 );
             }
@@ -1118,8 +1118,8 @@ export async function fetchNotificacoes() {
 
         return data;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch notificacoes.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch notificacoes.");
     }
 }
 
@@ -1206,7 +1206,7 @@ export async function fetchAtletaAtual() {
             assiduidade: assiduidade ?? null,
         };
     } catch (error) {
-        console.error('Database Error:', error);
+        console.error("Database Error:", error);
         return null;
     }
 }
@@ -1242,7 +1242,7 @@ export async function fetchNotasAtleta(): Promise<
             ORDER BY created_at DESC
         `;
     } catch (error) {
-        console.error('Database Error:', error);
+        console.error("Database Error:", error);
         return [];
     }
 }
@@ -1286,7 +1286,7 @@ export async function fetchRegistosMedicos(): Promise<
             ORDER BY created_at DESC
         `;
     } catch (error) {
-        console.error('Database Error:', error);
+        console.error("Database Error:", error);
         return [];
     }
 }
@@ -1353,7 +1353,7 @@ export async function fetchPerfilAtletaGeral() {
 
         return { user, atleta: atleta ?? null, guardian };
     } catch (error) {
-        console.error('Database Error:', error);
+        console.error("Database Error:", error);
         return null;
     }
 }
@@ -1471,7 +1471,7 @@ export async function fetchAtletaDoResponsavel() {
             assiduidade,
         };
     } catch (error) {
-        console.error('Database Error:', error);
+        console.error("Database Error:", error);
         return null;
     }
 }
@@ -1482,8 +1482,8 @@ export async function fetchEscaloes(): Promise<{ id: number; nome: string }[]> {
             SELECT id, nome FROM escaloes ORDER BY id ASC
         `;
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch escaloes.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch escaloes.");
     }
 }
 
@@ -1493,10 +1493,10 @@ export async function fetchDesportoOrg(): Promise<string> {
         const result = await sql<{ desporto: string }[]>`
             SELECT desporto FROM organizations WHERE id = ${organizationId}
         `;
-        return result[0]?.desporto ?? '';
+        return result[0]?.desporto ?? "";
     } catch (error) {
-        console.error('Database Error:', error);
-        throw new Error('Failed to fetch desporto.');
+        console.error("Database Error:", error);
+        throw new Error("Failed to fetch desporto.");
     }
 }
 
@@ -1529,7 +1529,7 @@ export async function fetchConvitesPendentes() {
             ORDER BY arp.created_at DESC
         `;
     } catch (error) {
-        console.error('Database Error:', error);
+        console.error("Database Error:", error);
         return [];
     }
 }

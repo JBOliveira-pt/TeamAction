@@ -3,6 +3,8 @@ import {
     fetchUserActionLogs,
     fetchAdminUsersForSelect,
 } from "@/app/lib/admin-data";
+import Link from "next/link";
+import { ArrowUpDown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +74,8 @@ export default async function AdminLogsPage({
         userId?: string;
         interactionType?: string;
         date?: string;
+        sort?: string;
+        dir?: string;
     }>;
 }) {
     const resolved = await searchParams;
@@ -83,6 +87,61 @@ export default async function AdminLogsPage({
         date: resolved.date,
     });
 
+    const sort = resolved.sort || "";
+    const dir = resolved.dir === "desc" ? "desc" : "asc";
+
+    const sortedLogs = [...logs];
+
+    if (sort === "date") {
+        sortedLogs.sort((a, b) => {
+            const diff =
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime();
+            return dir === "desc" ? -diff : diff;
+        });
+    } else if (sort === "user") {
+        sortedLogs.sort((a, b) => {
+            const cmp = a.user_name.localeCompare(b.user_name, "pt");
+            return dir === "desc" ? -cmp : cmp;
+        });
+    } else if (sort === "type") {
+        sortedLogs.sort((a, b) => {
+            const cmp = a.interaction_type.localeCompare(
+                b.interaction_type,
+                "pt",
+            );
+            return dir === "desc" ? -cmp : cmp;
+        });
+    } else if (sort === "path") {
+        sortedLogs.sort((a, b) => {
+            const cmp = a.path.localeCompare(b.path, "pt");
+            return dir === "desc" ? -cmp : cmp;
+        });
+    }
+
+    const buildSortHref = (field: string) => {
+        const params = new URLSearchParams();
+        if (resolved.userId) params.set("userId", resolved.userId);
+        if (resolved.interactionType)
+            params.set("interactionType", resolved.interactionType);
+        if (resolved.date) params.set("date", resolved.date);
+        if (sort === field) {
+            // Toggle direction, or remove sort if already desc
+            if (dir === "asc") {
+                params.set("sort", field);
+                params.set("dir", "desc");
+            }
+            // if desc, don't add sort → removes it
+        } else {
+            params.set("sort", field);
+        }
+        const qs = params.toString();
+        return `/admin/logs${qs ? `?${qs}` : ""}`;
+    };
+
+    const sortLinkClass = (field: string) =>
+        `inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${sort === field ? "text-blue-600 dark:text-blue-400" : ""}`;
+
     return (
         <div className="space-y-4">
             <header>
@@ -90,14 +149,14 @@ export default async function AdminLogsPage({
                     Logs de Ações
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Filtro por user, data e tipo de interação.
+                    Filtro por utilizadores, datas e tipos de interações.
                 </p>
             </header>
 
             <form className="grid items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-4 dark:border-gray-800 dark:bg-gray-900">
                 <div>
                     <label className="text-xs text-gray-500 dark:text-gray-400">
-                        User
+                        Utilizador
                     </label>
                     <select
                         name="userId"
@@ -158,14 +217,46 @@ export default async function AdminLogsPage({
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-950/70">
                         <tr>
-                            <th className="text-left px-4 py-3">Quando</th>
-                            <th className="text-left px-4 py-3">User</th>
-                            <th className="text-left px-4 py-3">Tipo</th>
-                            <th className="text-left px-4 py-3">Página</th>
+                            <th className="text-left px-4 py-3">
+                                <Link
+                                    href={buildSortHref("date")}
+                                    className={sortLinkClass("date")}
+                                >
+                                    Data
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
+                            <th className="text-left px-4 py-3">
+                                <Link
+                                    href={buildSortHref("user")}
+                                    className={sortLinkClass("user")}
+                                >
+                                    Utilizador
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
+                            <th className="text-left px-4 py-3">
+                                <Link
+                                    href={buildSortHref("type")}
+                                    className={sortLinkClass("type")}
+                                >
+                                    Tipo
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
+                            <th className="text-left px-4 py-3">
+                                <Link
+                                    href={buildSortHref("path")}
+                                    className={sortLinkClass("path")}
+                                >
+                                    Página
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
-                        {logs.map((log) => (
+                        {sortedLogs.map((log) => (
                             <tr
                                 key={log.id}
                                 className="border-t border-gray-100 dark:border-gray-800"
@@ -200,7 +291,7 @@ export default async function AdminLogsPage({
                                 </td>
                             </tr>
                         ))}
-                        {logs.length === 0 && (
+                        {sortedLogs.length === 0 && (
                             <tr>
                                 <td
                                     className="px-4 py-6 text-gray-500 dark:text-gray-400"

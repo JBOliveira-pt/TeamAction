@@ -22,6 +22,7 @@ export type User = {
     role?: "admin" | "user";
     organization_id?: string;
     iban?: string | null;
+    account_type?: "presidente" | "treinador" | "atleta" | "responsavel" | null;
 };
 
 // ========================================
