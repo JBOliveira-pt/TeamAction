@@ -1966,6 +1966,45 @@ export async function atualizarPerfilAtleta(
     return null;
 }
 
+export async function atualizarPerfilTreinador(
+    prevState: { error?: string } | null,
+    formData: FormData,
+): Promise<{ error?: string } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: 'Não autenticado.' };
+
+    const nome = formData.get('nome')?.toString().trim() || null;
+    const sobrenome = formData.get('sobrenome')?.toString().trim() || null;
+    const telefone = formData.get('telefone')?.toString().trim() || null;
+    const morada = formData.get('morada')?.toString().trim() || null;
+    const dataNascimento =
+        formData.get('data_nascimento')?.toString().trim() || null;
+
+    const fullName =
+        nome && sobrenome
+            ? `${nome} ${sobrenome}`.trim()
+            : nome || sobrenome || null;
+
+    try {
+        await sql`
+            UPDATE users
+            SET
+                name             = COALESCE(${fullName}, name),
+                telefone         = ${telefone},
+                morada           = ${morada},
+                data_nascimento  = ${dataNascimento},
+                updated_at       = NOW()
+            WHERE clerk_user_id = ${clerkUserId}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao atualizar perfil.' };
+    }
+
+    revalidatePath('/dashboard/treinador/perfil');
+    return null;
+}
+
 export async function aprovarPerfilAtleta(
     minorUserId: string,
 ): Promise<{ error?: string } | null> {
