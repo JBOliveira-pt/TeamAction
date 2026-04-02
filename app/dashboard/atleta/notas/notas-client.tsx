@@ -1,7 +1,11 @@
 'use client';
 
-import { criarNotaAtleta } from '@/app/lib/actions';
-import { ClipboardList, LayoutGrid } from 'lucide-react';
+import {
+    apagarNotaAtleta,
+    criarNotaAtleta,
+    editarNotaAtleta,
+} from '@/app/lib/actions';
+import { ClipboardList, LayoutGrid, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 
@@ -18,10 +22,13 @@ export default function NotasClientWrapper({
     notas: Nota[];
 }) {
     const [showModal, setShowModal] = useState(false);
+    const [editando, setEditando] = useState<Nota | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [editError, setEditError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
     const formRef = useRef<HTMLFormElement>(null);
+    const editFormRef = useRef<HTMLFormElement>(null);
 
     function handleSave(formData: FormData) {
         setError(null);
@@ -35,6 +42,25 @@ export default function NotasClientWrapper({
                 router.refresh();
             }
         });
+    }
+
+    function handleEditSave(formData: FormData) {
+        setEditError(null);
+        startTransition(async () => {
+            const result = await editarNotaAtleta(null, formData);
+            if (result?.error) {
+                setEditError(result.error);
+            } else {
+                setEditando(null);
+                router.refresh();
+            }
+        });
+    }
+
+    async function handleDelete(id: string) {
+        if (!confirm('Tens a certeza que queres apagar esta nota?')) return;
+        await apagarNotaAtleta(id);
+        router.refresh();
     }
 
     return (
@@ -83,9 +109,32 @@ export default function NotasClientWrapper({
                                 key={nota.id}
                                 className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-left flex flex-col gap-2"
                             >
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    {nota.titulo}
-                                </p>
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        {nota.titulo}
+                                    </p>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        <button
+                                            onClick={() => {
+                                                setEditando(nota);
+                                                setEditError(null);
+                                            }}
+                                            title="Editar"
+                                            className="p-1 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+                                        >
+                                            <Pencil size={13} />
+                                        </button>
+                                        <button
+                                            onClick={() =>
+                                                handleDelete(nota.id)
+                                            }
+                                            title="Apagar"
+                                            className="p-1 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                                        >
+                                            <Trash2 size={13} />
+                                        </button>
+                                    </div>
+                                </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-3">
                                     {nota.conteudo}
                                 </p>
@@ -100,7 +149,74 @@ export default function NotasClientWrapper({
                 )}
             </div>
 
-            {/* Modal */}
+            {/* Modal Editar */}
+            {editando && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                            Editar nota
+                        </h2>
+                        <form
+                            ref={editFormRef}
+                            action={handleEditSave}
+                            className="space-y-3"
+                        >
+                            <input
+                                type="hidden"
+                                name="id"
+                                value={editando.id}
+                            />
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    T&iacute;tulo
+                                </label>
+                                <input
+                                    name="titulo"
+                                    type="text"
+                                    defaultValue={editando.titulo}
+                                    required
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Conte&uacute;do
+                                </label>
+                                <textarea
+                                    name="conteudo"
+                                    rows={5}
+                                    defaultValue={editando.conteudo}
+                                    required
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                />
+                            </div>
+                            {editError && (
+                                <p className="text-xs text-red-500">
+                                    {editError}
+                                </p>
+                            )}
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditando(null)}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isPending}
+                                    className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                                >
+                                    {isPending ? 'A guardar…' : 'Guardar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Nova Nota */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">

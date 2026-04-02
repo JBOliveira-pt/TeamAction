@@ -491,7 +491,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                             <NavItem
                                 icon={<Activity size={20} />}
                                 label="Condição Física"
-                                href="/dashboard/pai/condicao-fisica"
+                                href="/dashboard/atleta/condicao-fisica"
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavSectionLabel>Desempenho</NavSectionLabel>
@@ -685,6 +685,8 @@ function NavItem({
         '/dashboard',
         '/dashboard/presidente',
         '/dashboard/treinador',
+        '/dashboard/atleta',
+        '/dashboard/pai',
     ];
 
     const active = exactMatchPaths.includes(href)
