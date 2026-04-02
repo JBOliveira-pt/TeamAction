@@ -51,6 +51,103 @@ function Toast({ msg, tipo }: { msg: string; tipo: "ok" | "erro" }) {
     );
 }
 
+/* ── Modal Convidar por Email ── */
+function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
+    const [email, setEmail] = useState("");
+    const [verificando, setVerificando] = useState(false);
+    const [resultado, setResultado] = useState<{ existe: boolean; nome?: string } | null>(null);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        setResultado(null);
+        if (timer.current) clearTimeout(timer.current);
+        const emailTrimmed = email.trim().toLowerCase();
+        if (!emailTrimmed.includes("@") || emailTrimmed.length < 5) return;
+        timer.current = setTimeout(async () => {
+            setVerificando(true);
+            try {
+                const res = await fetch(`/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`);
+                if (res.ok) setResultado(await res.json());
+            } finally {
+                setVerificando(false);
+            }
+        }, 400);
+        return () => { if (timer.current) clearTimeout(timer.current); };
+    }, [email]);
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Convidar por Email</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Verifica se o atleta já está registado na plataforma</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="px-5 py-5 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Email do atleta
+                        </label>
+                        <input
+                            autoFocus
+                            type="email"
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            placeholder="exemplo@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+
+                    {verificando && (
+                        <p className="text-xs text-gray-400 text-center">A verificar...</p>
+                    )}
+
+                    {!verificando && resultado?.existe && (
+                        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 p-4 flex flex-col gap-2">
+                            <p className="text-sm font-bold text-yellow-800 dark:text-yellow-300">
+                                ⚠️ Atleta já registado na plataforma
+                            </p>
+                            {resultado.nome && (
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                    Encontrado: <span className="font-semibold">{resultado.nome}</span>
+                                </p>
+                            )}
+                            <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                Este atleta já tem conta na plataforma. Para o adicionar à equipa, utiliza a opção <strong>"Pesquisar Atleta"</strong> e envia um convite de equipa.
+                            </p>
+                        </div>
+                    )}
+
+                    {!verificando && resultado && !resultado.existe && (
+                        <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 flex flex-col gap-2">
+                            <p className="text-sm font-bold text-blue-800 dark:text-blue-300">
+                                ℹ️ Atleta não encontrado na plataforma
+                            </p>
+                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                                Não existe nenhum utilizador com este e-mail registado. Para adicionar um atleta externo, contacta o Presidente do clube para criar o perfil ou aguarda que o atleta se registe na plataforma.
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+                    <button
+                        onClick={onClose}
+                        className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                    >
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ── Modal Todos os Atletas ── */
 function ModalTodosAtletas({
     equipas,
@@ -445,6 +542,7 @@ export default function EquipaAtletas({
     const [posicaoFiltro, setPosicaoFiltro] = useState("Todas");
     const [showAdicionar, setShowAdicionar] = useState(false);
     const [showTodos, setShowTodos] = useState(false);
+    const [showConvidarEmail, setShowConvidarEmail] = useState(false);
     const [atletaModal, setAtletaModal] = useState<Atleta | null>(null);
     const [convitesPendentes, setConvitesPendentes] = useState<
         ConvitePendente[]
@@ -617,6 +715,11 @@ export default function EquipaAtletas({
                 />
             )}
 
+            {/* Modal Convidar por Email */}
+            {showConvidarEmail && (
+                <ModalConvidarEmail onClose={() => setShowConvidarEmail(false)} />
+            )}
+
             {/* Cabeçalho */}
             <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
@@ -627,7 +730,7 @@ export default function EquipaAtletas({
                         {atletasIniciais.length} atletas registados
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     <button
                         onClick={() => setShowAdicionar(true)}
                         className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
@@ -639,6 +742,12 @@ export default function EquipaAtletas({
                         className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
                     >
                         👥 Todos
+                    </button>
+                    <button
+                        onClick={() => setShowConvidarEmail(true)}
+                        className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                    >
+                        ✉️ Verificar Email
                     </button>
                 </div>
             </div>
