@@ -20,6 +20,7 @@ type AtletaResultado = {
     equipa_id: string | null;
     equipa_nome: string | null;
     user_id: string | null;
+    image_url: string | null;
 };
 
 type Equipa = { id: string; nome: string };
@@ -136,8 +137,21 @@ function ModalTodosAtletas({
                             onClick={() => { setAtletaSelecionado(a); setErro(""); }}
                             className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${atletaSelecionado?.id === a.id ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-blue-50 dark:hover:bg-blue-900/20"}`}
                         >
-                            <div className="flex items-center justify-between">
-                                <div>
+                            <div className="flex items-center gap-3">
+                                {a.image_url ? (
+                                    <img
+                                        src={a.image_url}
+                                        alt={a.nome}
+                                        className="w-9 h-9 rounded-full object-cover shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-300">
+                                            {a.nome.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex-1 min-w-0">
                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{a.nome}</p>
                                     <p className="text-xs text-gray-400">
                                         {a.posicao ?? "—"}
@@ -145,7 +159,7 @@ function ModalTodosAtletas({
                                         {a.equipa_nome ? ` · ${a.equipa_nome}` : ""}
                                     </p>
                                 </div>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${estadoCor[a.estado] ?? estadoCor.Inativo}`}>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${estadoCor[a.estado] ?? estadoCor.Inativo}`}>
                                     {a.estado}
                                 </span>
                             </div>
