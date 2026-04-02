@@ -20,6 +20,7 @@ export async function GET() {
         estado: string;
         equipa_nome: string | null;
         user_id: string | null;
+        image_url: string | null;
     }[]>`
         SELECT
             a.id,
@@ -28,9 +29,11 @@ export async function GET() {
             a.numero_camisola,
             a.estado,
             e.nome AS equipa_nome,
-            a.user_id
+            a.user_id,
+            u.image_url
         FROM atletas a
         LEFT JOIN equipas e ON e.id = a.equipa_id
+        LEFT JOIN users u ON u.id = a.user_id
         ORDER BY a.nome ASC
     `;
 
