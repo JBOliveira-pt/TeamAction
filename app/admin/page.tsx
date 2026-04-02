@@ -4,6 +4,7 @@ import {
     fetchAdminLogsMonthlySeries,
     fetchAdminOverviewStats,
     fetchAdminUsersMonthlySeries,
+    fetchAdminUsersAccountTypeMonthlySeries,
     fetchAdminViewLogsMonthlySeries,
 } from "@/app/lib/admin-data";
 import { MonthlyCountChart } from "@/app/ui/admin/monthly-count-chart";
@@ -14,6 +15,7 @@ export default async function AdminOverviewPage() {
     const [
         stats,
         usersMonthlySeries,
+        usersAccountTypeSeries,
         actionLogsMonthlySeries,
         viewLogsMonthlySeries,
         actionTypeSeries,
@@ -21,11 +23,31 @@ export default async function AdminOverviewPage() {
     ] = await Promise.all([
         fetchAdminOverviewStats(),
         fetchAdminUsersMonthlySeries(),
+        fetchAdminUsersAccountTypeMonthlySeries(),
         fetchAdminActionLogsMonthlySeries(),
         fetchAdminViewLogsMonthlySeries(),
         fetchAdminActionTypeMonthlySeries(),
         fetchAdminLogsMonthlySeries(),
     ]);
+
+    const userTypeTabs = [
+        {
+            id: "all-users",
+            label: `Todos (${stats.users})`,
+            data: usersMonthlySeries,
+        },
+        ...usersAccountTypeSeries.map((entry) => {
+            const total = entry.data.reduce(
+                (sum, point) => sum + point.count,
+                0,
+            );
+            return {
+                id: entry.accountType,
+                label: `${entry.label} (${total})`,
+                data: entry.data,
+            };
+        }),
+    ];
 
     const actionTypeTabs = [
         {
@@ -66,7 +88,7 @@ export default async function AdminOverviewPage() {
                     Painel de Controlo - Administrador
                 </h1>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Gestão central de usuários, auditoria de interações e
+                    Gestão central de utilizadores, auditoria de interações e
                     comunicação por avisos.
                 </p>
             </header>
@@ -93,6 +115,7 @@ export default async function AdminOverviewPage() {
                     subtitle="Inscrições mensais na plataforma (todos os perfis)"
                     data={usersMonthlySeries}
                     accent="blue"
+                    tabs={userTypeTabs}
                 />
 
                 <MonthlyCountChart

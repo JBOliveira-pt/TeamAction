@@ -27,6 +27,7 @@ export type AdminUserRow = {
     codigo_postal: string | null;
     cidade: string | null;
     pais: string | null;
+    account_type: string | null;
 };
 
 export type AdminAtletaRow = {
@@ -167,7 +168,8 @@ export async function fetchAdminUsers(query: string) {
                 o.name AS organization_name,
                 u.clerk_user_id,
                 u.created_at,
-                u.updated_at
+                u.updated_at,
+                u.account_type
             FROM users u
             LEFT JOIN organizations o ON o.id = u.organization_id
             ORDER BY u.created_at DESC NULLS LAST, u.name ASC
@@ -246,7 +248,8 @@ export async function fetchAdminUserById(id: string) {
             ${has("nif") ? sql`u.nif` : sql`NULL`} AS nif,
             ${has("codigo_postal") ? sql`u.codigo_postal` : sql`NULL`} AS codigo_postal,
             ${has("cidade") ? sql`u.cidade` : sql`NULL`} AS cidade,
-            ${has("pais") ? sql`u.pais` : sql`NULL`} AS pais
+            ${has("pais") ? sql`u.pais` : sql`NULL`} AS pais,
+            u.account_type
         FROM users u
         LEFT JOIN organizations o ON o.id = u.organization_id
         WHERE u.id = ${id}
@@ -349,6 +352,66 @@ export async function fetchAdminUsersMonthlySeries() {
     `;
 
     return buildLast12MonthsSeries(rows);
+}
+
+export type AccountTypeMonthlySeries = {
+    accountType: string;
+    label: string;
+    data: MonthlyCountPoint[];
+};
+
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+    presidente: "Presidente",
+    treinador: "Treinador",
+    atleta: "Atleta",
+    responsavel: "Responsável",
+};
+
+export async function fetchAdminUsersAccountTypeMonthlySeries(): Promise<
+    AccountTypeMonthlySeries[]
+> {
+    const rows = await sql<
+        { account_type: string; month_start: string; count: number }[]
+    >`
+        SELECT
+            account_type,
+            DATE_TRUNC('month', created_at)::date::text AS month_start,
+            COUNT(*)::int AS count
+        FROM users
+        WHERE
+            created_at >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+            AND account_type IS NOT NULL
+        GROUP BY 1, 2
+        ORDER BY 1 ASC, 2 ASC
+    `;
+
+    const grouped = new Map<
+        string,
+        Array<{ month_start: string; count: number }>
+    >();
+
+    for (const row of rows) {
+        const key = row.account_type;
+        const current = grouped.get(key) ?? [];
+        current.push({ month_start: row.month_start, count: row.count });
+        grouped.set(key, current);
+    }
+
+    const order = ["presidente", "treinador", "atleta", "responsavel"];
+    const series: AccountTypeMonthlySeries[] = [];
+
+    for (const accountType of order) {
+        const dataRows = grouped.get(accountType);
+        if (dataRows) {
+            series.push({
+                accountType,
+                label: ACCOUNT_TYPE_LABELS[accountType] ?? accountType,
+                data: buildLast12MonthsSeries(dataRows),
+            });
+        }
+    }
+
+    return series;
 }
 
 export async function fetchAdminLogsMonthlySeries() {

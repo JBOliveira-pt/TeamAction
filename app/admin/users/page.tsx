@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { fetchAdminUsers } from "@/app/lib/admin-data";
-import { clerkClient } from "@clerk/nextjs/server";
-import { User } from "lucide-react";
+import { User, ArrowUpDown } from "lucide-react";
 import Image from "next/image";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
@@ -66,48 +65,56 @@ function getProfileBadge(accountType: AccountType | null) {
 
 export const dynamic = "force-dynamic";
 
+const ACCOUNT_TYPE_ORDER: Record<string, number> = {
+    presidente: 0,
+    treinador: 1,
+    atleta: 2,
+    responsavel: 3,
+};
+
 export default async function AdminUsersPage({
     searchParams,
 }: {
-    searchParams: Promise<{ query?: string }>;
+    searchParams: Promise<{ query?: string; sort?: string }>;
 }) {
     const resolvedSearchParams = await searchParams;
     const query = resolvedSearchParams.query || "";
-    const users = await fetchAdminUsers(query);
+    const sort = resolvedSearchParams.sort || "";
+    let users = await fetchAdminUsers(query);
 
-    const accountTypeByClerkId = new Map<string, AccountType>();
-    const client = await clerkClient();
+    const sortedUsers: typeof users extends (infer U)[] ? U[] : never[] = [
+        ...users,
+    ];
 
-    await Promise.all(
-        users.map(async (user) => {
-            if (!user.clerk_user_id) {
-                return;
-            }
+    if (sort === "account_type") {
+        sortedUsers.sort((a, b) => {
+            const orderA = ACCOUNT_TYPE_ORDER[a.account_type ?? ""] ?? 99;
+            const orderB = ACCOUNT_TYPE_ORDER[b.account_type ?? ""] ?? 99;
+            return orderA - orderB;
+        });
+    } else if (sort === "organization") {
+        sortedUsers.sort((a, b) => {
+            const nameA = (a.organization_name ?? "").toLowerCase();
+            const nameB = (b.organization_name ?? "").toLowerCase();
+            return nameA.localeCompare(nameB, "pt");
+        });
+    }
 
-            try {
-                const clerkUser = await client.users.getUser(
-                    user.clerk_user_id,
-                );
-                const accountType = normalizeAccountType(
-                    clerkUser.unsafeMetadata?.accountType ??
-                        clerkUser.publicMetadata?.accountType,
-                );
-
-                if (accountType) {
-                    accountTypeByClerkId.set(user.clerk_user_id, accountType);
-                }
-            } catch {
-                // Keep fallback badge when Clerk metadata is unavailable.
-            }
-        }),
-    );
+    // Build sort link preserving existing query param
+    const buildSortHref = (field: string) => {
+        const params = new URLSearchParams();
+        if (query) params.set("query", query);
+        params.set("sort", sort === field ? "" : field);
+        const qs = params.toString();
+        return `/admin/users${qs ? `?${qs}` : ""}`;
+    };
 
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        Usuários
+                        Utilizadores
                     </h1>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                         Pesquisa global e acesso ao perfil para edição.
@@ -129,13 +136,29 @@ export default async function AdminUsersPage({
                         <tr>
                             <th className="text-left px-4 py-3">Nome</th>
                             <th className="text-left px-4 py-3">Email</th>
-                            <th className="text-left px-4 py-3">Função</th>
-                            <th className="text-left px-4 py-3">Organização</th>
+                            <th className="text-left px-4 py-3">
+                                <Link
+                                    href={buildSortHref("account_type")}
+                                    className={`inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${sort === "account_type" ? "text-blue-600 dark:text-blue-400" : ""}`}
+                                >
+                                    Função
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
+                            <th className="text-left px-4 py-3">
+                                <Link
+                                    href={buildSortHref("organization")}
+                                    className={`inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${sort === "organization" ? "text-blue-600 dark:text-blue-400" : ""}`}
+                                >
+                                    Organização
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
                             <th className="text-left px-4 py-3">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {users.map((user) => (
+                        {sortedUsers.map((user) => (
                             <tr
                                 key={user.id}
                                 className="border-t border-gray-100 dark:border-gray-800"
@@ -165,21 +188,17 @@ export default async function AdminUsersPage({
                                     <span
                                         className={`rounded-full px-2 py-1 text-xs font-medium ${
                                             getProfileBadge(
-                                                user.clerk_user_id
-                                                    ? (accountTypeByClerkId.get(
-                                                          user.clerk_user_id,
-                                                      ) ?? null)
-                                                    : null,
+                                                normalizeAccountType(
+                                                    user.account_type,
+                                                ),
                                             ).className
                                         }`}
                                     >
                                         {
                                             getProfileBadge(
-                                                user.clerk_user_id
-                                                    ? (accountTypeByClerkId.get(
-                                                          user.clerk_user_id,
-                                                      ) ?? null)
-                                                    : null,
+                                                normalizeAccountType(
+                                                    user.account_type,
+                                                ),
                                             ).label
                                         }
                                     </span>
@@ -197,7 +216,7 @@ export default async function AdminUsersPage({
                                 </td>
                             </tr>
                         ))}
-                        {users.length === 0 && (
+                        {sortedUsers.length === 0 && (
                             <tr>
                                 <td
                                     className="px-4 py-6 text-gray-500 dark:text-gray-400"

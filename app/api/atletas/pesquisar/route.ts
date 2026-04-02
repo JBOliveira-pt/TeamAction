@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
             a.user_id
         FROM atletas a
         LEFT JOIN equipas e ON e.id = a.equipa_id
-        WHERE a.nome ILIKE ${"%" + q + "%"}
+        WHERE a.organization_id = ${me.organization_id}
+          AND a.nome ILIKE ${"%" + q + "%"}
         ORDER BY a.nome ASC
         LIMIT 20
     `;

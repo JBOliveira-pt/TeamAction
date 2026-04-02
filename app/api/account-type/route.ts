@@ -782,36 +782,11 @@ export async function POST(req: Request) {
             hashedPassword,
         );
 
-        const usersAccountTypeColumns = await sql<{ column_name: string }[]>`
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_schema = 'public'
-              AND table_name = 'users'
-              AND column_name IN ('account_type', 'tipo_conta')
+        await sql`
+            UPDATE users
+            SET account_type = ${accountType}, updated_at = NOW()
+            WHERE clerk_user_id = ${userId}
         `;
-
-        const hasUsersAccountTypeColumn = usersAccountTypeColumns.some(
-            (column) => column.column_name === "account_type",
-        );
-        const hasUsersTipoContaColumn = usersAccountTypeColumns.some(
-            (column) => column.column_name === "tipo_conta",
-        );
-
-        if (hasUsersAccountTypeColumn) {
-            await sql`
-                UPDATE users
-                SET account_type = ${accountType}, updated_at = NOW()
-                WHERE clerk_user_id = ${userId}
-            `;
-        }
-
-        if (hasUsersTipoContaColumn) {
-            await sql`
-                UPDATE users
-                SET tipo_conta = ${accountType}, updated_at = NOW()
-                WHERE clerk_user_id = ${userId}
-            `;
-        }
 
         if (accountType === "presidente" && presidentProfile) {
             const userOrg = await sql<
@@ -1178,19 +1153,48 @@ export async function POST(req: Request) {
         }
 
         if (accountType === "atleta" && athleteProfile) {
+            // Ensure the athlete has a record in the `atletas` table
+            const athleteUser = await sql<
+                { id: string; organization_id: string | null }[]
+            >`
+                SELECT id, organization_id
+                FROM users
+                WHERE clerk_user_id = ${userId}
+                LIMIT 1
+            `;
+
+            const athleteDbId = athleteUser[0]?.id;
+            const athleteOrgId = athleteUser[0]?.organization_id;
+
+            if (athleteDbId && athleteOrgId) {
+                const existingAtleta = await sql<{ id: string }[]>`
+                    SELECT id FROM atletas WHERE user_id = ${athleteDbId} LIMIT 1
+                `;
+
+                if (existingAtleta.length === 0) {
+                    await sql`
+                        INSERT INTO atletas (
+                            id, nome, organization_id, user_id, estado,
+                            created_at, updated_at
+                        ) VALUES (
+                            gen_random_uuid(),
+                            ${fullName},
+                            ${athleteOrgId},
+                            ${athleteDbId},
+                            'ativo',
+                            NOW(),
+                            NOW()
+                        )
+                    `;
+                }
+            }
+
             const hasPendingRelationsTable = await hasTable(
                 "atleta_relacoes_pendentes",
             );
 
             if (hasPendingRelationsTable) {
-                const athleteUserRows = await sql<{ id: string }[]>`
-                    SELECT id
-                    FROM users
-                    WHERE clerk_user_id = ${userId}
-                    LIMIT 1
-                `;
-
-                const athleteUserId = athleteUserRows[0]?.id;
+                const athleteUserId = athleteDbId;
                 if (athleteUserId) {
                     await sql`
                         DELETE FROM atleta_relacoes_pendentes
