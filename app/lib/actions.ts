@@ -1872,6 +1872,43 @@ export async function editarNotaAtleta(
     return null;
 }
 
+export async function atribuirTreinadorEquipa(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const equipaId = formData.get('equipa_id')?.toString().trim();
+    const treinadorId = formData.get('treinador_id')?.toString().trim() || null;
+
+    if (!equipaId) return { error: 'Equipa inválida.' };
+
+    try {
+        const organizationId = await getOrganizationId();
+
+        if (treinadorId) {
+            const [treinador] = await sql<{ id: string }[]>`
+                SELECT id FROM users
+                WHERE id = ${treinadorId}
+                  AND organization_id = ${organizationId}
+                  AND account_type = 'treinador'
+                LIMIT 1
+            `;
+            if (!treinador) return { error: 'Treinador não encontrado.' };
+        }
+
+        await sql`
+            UPDATE equipas
+            SET treinador_id = ${treinadorId}, updated_at = NOW()
+            WHERE id = ${equipaId} AND organization_id = ${organizationId}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao atribuir treinador.' };
+    }
+
+    revalidatePath('/dashboard/presidente/equipas');
+    return { success: true };
+}
+
 export async function registarMedidaCondicaoFisica(
     prevState: { error?: string } | null,
     formData: FormData,

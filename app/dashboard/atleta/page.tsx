@@ -55,6 +55,8 @@ export default async function AtletaDashboard() {
     const equipa = dados?.equipa_nome ?? null;
     const mao = dados?.mao_dominante ?? null;
     const estado = dados?.estado ?? null;
+    const treinador = dados?.treinador_nome ?? null;
+    const encarregado = dados?.encarregado ?? null;
 
     const totalJogos = Number(dados?.estatisticas?.total_jogos ?? 0);
     const totalGolos = Number(dados?.estatisticas?.total_golos ?? 0);
@@ -78,17 +80,17 @@ export default async function AtletaDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                        Olá, {primeiroNome}!
+                        Ol&aacute;, {primeiroNome}!
                     </h2>
                     {(posicao || numero != null || equipa) && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                             {[
                                 posicao,
-                                numero != null ? `Nº ${numero}` : null,
+                                numero != null ? `N\u00ba ${numero}` : null,
                                 equipa,
                             ]
                                 .filter(Boolean)
-                                .join(' · ')}
+                                .join(' \u00b7 ')}
                         </p>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -99,6 +101,32 @@ export default async function AtletaDashboard() {
                                 color={estado === 'Ativo' ? 'green' : 'orange'}
                             />
                         )}
+                    </div>
+                </div>
+                <div className="hidden sm:flex flex-col gap-2 text-right shrink-0">
+                    <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                            Equipa
+                        </span>
+                        <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {equipa ?? '\u2014'}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                            Treinador
+                        </span>
+                        <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {treinador ?? '\u2014'}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                            Encarregado
+                        </span>
+                        <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                            {encarregado ?? '\u2014'}
+                        </span>
                     </div>
                 </div>
             </div>
