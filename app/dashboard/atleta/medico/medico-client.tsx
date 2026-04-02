@@ -1,7 +1,12 @@
-'use client';
+﻿'use client';
 
-import { adicionarDoencaAtleta, adicionarLesaoAtleta } from '@/app/lib/actions';
-import { ShieldCheck } from 'lucide-react';
+import {
+    adicionarDoencaAtleta,
+    adicionarLesaoAtleta,
+    apagarRegistoMedico,
+    editarRegistoMedico,
+} from '@/app/lib/actions';
+import { Pencil, ShieldCheck, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 
@@ -158,6 +163,201 @@ function ModalForm({
     );
 }
 
+function EditModal({
+    registo,
+    onClose,
+}: {
+    registo: RegistoMedico;
+    onClose: () => void;
+}) {
+    const [error, setError] = useState<string | null>(null);
+    const [isPending, startTransition] = useTransition();
+    const router = useRouter();
+
+    function handleSave(formData: FormData) {
+        setError(null);
+        startTransition(async () => {
+            const result = await editarRegistoMedico(null, formData);
+            if (result?.error) {
+                setError(result.error);
+            } else {
+                onClose();
+                router.refresh();
+            }
+        });
+    }
+
+    const toInputDate = (val: string | null) => (val ? val.slice(0, 10) : '');
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Editar {registo.tipo === 'lesao' ? 'lesão' : 'doença'}
+                </h2>
+                <form action={handleSave} className="space-y-3">
+                    <input type="hidden" name="id" value={registo.id} />
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Descrição
+                        </label>
+                        <input
+                            name="descricao"
+                            type="text"
+                            defaultValue={registo.descricao}
+                            required
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                Data início
+                            </label>
+                            <input
+                                name="data_inicio"
+                                type="date"
+                                defaultValue={toInputDate(registo.data_inicio)}
+                                required
+                                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                Data prevista retorno
+                            </label>
+                            <input
+                                name="data_prevista_retorno"
+                                type="date"
+                                defaultValue={toInputDate(
+                                    registo.data_prevista_retorno,
+                                )}
+                                className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Estado
+                        </label>
+                        <select
+                            name="estado"
+                            defaultValue={registo.estado}
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="ativo">Ativo</option>
+                            <option value="resolvido">Resolvido</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Observações
+                        </label>
+                        <textarea
+                            name="observacoes"
+                            rows={3}
+                            defaultValue={registo.observacoes ?? ''}
+                            placeholder="Observações adicionais..."
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        />
+                    </div>
+                    {error && <p className="text-xs text-red-500">{error}</p>}
+                    <div className="flex justify-end gap-2 pt-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onClose();
+                                setError(null);
+                            }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isPending}
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                        >
+                            {isPending ? 'A guardar…' : 'Guardar'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function RegistoCard({
+    r,
+    onEdit,
+    onDelete,
+}: {
+    r: RegistoMedico;
+    onEdit: (r: RegistoMedico) => void;
+    onDelete: (id: string) => void;
+}) {
+    const fmtDate = (val: string | null) =>
+        val ? new Date(val).toLocaleDateString('pt-PT') : '—';
+
+    return (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+                <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        r.tipo === 'lesao'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                    }`}
+                >
+                    {r.tipo === 'lesao' ? 'Lesão' : 'Doença'}
+                </span>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => onEdit(r)}
+                        className="p-1 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        title="Editar"
+                    >
+                        <Pencil size={14} />
+                    </button>
+                    <button
+                        onClick={() => onDelete(r.id)}
+                        className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        title="Apagar"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+            </div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                {r.descricao}
+            </p>
+            {r.observacoes && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                    {r.observacoes}
+                </p>
+            )}
+            <div className="mt-auto pt-2 border-t border-gray-100 dark:border-gray-800 grid grid-cols-2 gap-1">
+                <div>
+                    <span className="block text-[10px] uppercase tracking-wide text-gray-400">
+                        Início
+                    </span>
+                    <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">
+                        {fmtDate(r.data_inicio)}
+                    </span>
+                </div>
+                <div>
+                    <span className="block text-[10px] uppercase tracking-wide text-gray-400">
+                        Retorno previsto
+                    </span>
+                    <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">
+                        {fmtDate(r.data_prevista_retorno)}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function MedicoClientWrapper({
     registos,
 }: {
@@ -165,6 +365,14 @@ export default function MedicoClientWrapper({
 }) {
     const [showLesaoModal, setShowLesaoModal] = useState(false);
     const [showDoencaModal, setShowDoencaModal] = useState(false);
+    const [editando, setEditando] = useState<RegistoMedico | null>(null);
+    const router = useRouter();
+
+    async function handleDelete(id: string) {
+        if (!confirm('Tens a certeza que queres apagar este registo?')) return;
+        await apagarRegistoMedico(id);
+        router.refresh();
+    }
 
     const ativos = registos.filter((r) => r.estado === 'ativo');
     const statusMedico = ativos.length === 0 ? 'Disponível' : 'Indisponível';
@@ -207,11 +415,6 @@ export default function MedicoClientWrapper({
                     title="Lesões e doenças"
                     value={String(registos.length)}
                     sub={`${ativos.length} ativas, ${registos.length - ativos.length} resolvidas`}
-                />
-                <StatCard
-                    title="Dias inativo"
-                    value="0"
-                    sub="Na temporada ativa"
                 />
                 <StatCard
                     title="Lesão mais comum"
@@ -268,34 +471,12 @@ export default function MedicoClientWrapper({
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {ativos.map((r) => (
-                            <div
+                            <RegistoCard
                                 key={r.id}
-                                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.tipo === 'lesao' ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'}`}
-                                    >
-                                        {r.tipo === 'lesao'
-                                            ? 'Lesão'
-                                            : 'Doença'}
-                                    </span>
-                                </div>
-                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    {r.descricao}
-                                </p>
-                                {r.observacoes && (
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                                        {r.observacoes}
-                                    </p>
-                                )}
-                                <p className="text-xs text-gray-400 mt-auto">
-                                    Início:{' '}
-                                    {new Date(r.data_inicio).toLocaleDateString(
-                                        'pt-PT',
-                                    )}
-                                </p>
-                            </div>
+                                r={r}
+                                onEdit={setEditando}
+                                onDelete={handleDelete}
+                            />
                         ))}
                     </div>
                 )}
@@ -316,6 +497,13 @@ export default function MedicoClientWrapper({
                     descricaoPlaceholder="Ex: Gripe"
                     onClose={() => setShowDoencaModal(false)}
                     action={adicionarDoencaAtleta}
+                />
+            )}
+
+            {editando && (
+                <EditModal
+                    registo={editando}
+                    onClose={() => setEditando(null)}
                 />
             )}
         </main>
