@@ -6,13 +6,19 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 async function fetchData() {
     const { userId } = await auth();
-    if (!userId) return { atletas: [], equipas: [] };
+    if (!userId) return { atletas: [], equipas: [], temClube: false };
 
-    const user = await sql<{ organization_id: string }[]>`
-        SELECT organization_id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+    const user = await sql<{ id: string; organization_id: string }[]>`
+        SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
     `;
     const orgId = user[0]?.organization_id;
-    if (!orgId) return { atletas: [], equipas: [] };
+    if (!orgId) return { atletas: [], equipas: [], temClube: false };
+
+    // Verifica se a organização do treinador tem um clube associado
+    const clubeRows = await sql<{ id: string }[]>`
+        SELECT id FROM clubes WHERE organization_id = ${orgId} LIMIT 1
+    `;
+    const temClube = clubeRows.length > 0;
 
     const [atletas, equipas] = await Promise.all([
         sql<{
@@ -36,10 +42,10 @@ async function fetchData() {
         `,
     ]);
 
-    return { atletas, equipas };
+    return { atletas, equipas, temClube };
 }
 
 export default async function Page() {
-    const { atletas, equipas } = await fetchData().catch(() => ({ atletas: [], equipas: [] }));
-    return <EquipaAtletas atletas={atletas} equipas={equipas} />;
+    const { atletas, equipas, temClube } = await fetchData().catch(() => ({ atletas: [], equipas: [], temClube: false }));
+    return <EquipaAtletas atletas={atletas} equipas={equipas} temClube={temClube} />;
 }
