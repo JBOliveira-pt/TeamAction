@@ -665,10 +665,10 @@ export default function QuadroTatico() {
                     ref={fieldRef}
                     className={`relative mb-4 rounded-2xl border-2 overflow-hidden w-full shadow-lg select-none ${
                         mode === "arrow"
-                            ? "border-amber-400 dark:border-amber-600 bg-green-50 dark:bg-green-950/30 cursor-crosshair"
-                            : "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30"
+                            ? "border-amber-400 dark:border-amber-500 cursor-crosshair"
+                            : "border-green-700 dark:border-green-800"
                     }`}
-                    style={{ aspectRatio: "400 / 220" }}
+                    style={{ aspectRatio: "400 / 220", background: "#1a4731" }}
                     onMouseDown={onFieldMouseDown}
                     onMouseMove={onMouseMove}
                     onMouseUp={onMouseUp}
@@ -677,34 +677,8 @@ export default function QuadroTatico() {
                     onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
                 >
-                    {/* Linhas do campo + Setas SVG */}
+                    {/* Campo de andebol + Setas SVG */}
                     <svg viewBox="0 0 400 220" className="absolute inset-0 w-full h-full pointer-events-none">
-                        {/* Exterior */}
-                        <rect x="10" y="10" width="380" height="200" fill="none" stroke="#22c55e" strokeWidth="2" />
-                        {/* Linha central */}
-                        <line x1="200" y1="10" x2="200" y2="210" stroke="#22c55e" strokeWidth="1.5" strokeDasharray="6,4" />
-                        {/* Área de baliza esquerda */}
-                        <rect x="10" y="70" width="55" height="80" fill="none" stroke="#22c55e" strokeWidth="1.5" />
-                        {/* Área de baliza direita */}
-                        <rect x="335" y="70" width="55" height="80" fill="none" stroke="#22c55e" strokeWidth="1.5" />
-                        {/* Linha 6m esquerda */}
-                        <path d="M 10 70 Q 80 110 10 150" fill="none" stroke="#22c55e" strokeWidth="1.5" />
-                        {/* Linha 6m direita */}
-                        <path d="M 390 70 Q 320 110 390 150" fill="none" stroke="#22c55e" strokeWidth="1.5" />
-                        {/* Linha 9m esquerda */}
-                        <path d="M 10 55 Q 110 110 10 165" fill="none" stroke="#22c55e" strokeWidth="1" strokeDasharray="5,4" />
-                        {/* Linha 9m direita */}
-                        <path d="M 390 55 Q 280 110 390 165" fill="none" stroke="#22c55e" strokeWidth="1" strokeDasharray="5,4" />
-                        {/* Círculo central */}
-                        <circle cx="200" cy="110" r="28" fill="none" stroke="#22c55e" strokeWidth="1.5" />
-                        {/* Ponto central */}
-                        <circle cx="200" cy="110" r="2.5" fill="#22c55e" />
-                        {/* Marca 7m esquerda */}
-                        <circle cx="62" cy="110" r="2.5" fill="#22c55e" />
-                        {/* Marca 7m direita */}
-                        <circle cx="338" cy="110" r="2.5" fill="#22c55e" />
-
-                        {/* ── Setas ── */}
                         <defs>
                             <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
                                 <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" />
@@ -713,6 +687,52 @@ export default function QuadroTatico() {
                                 <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" opacity="0.6" />
                             </marker>
                         </defs>
+
+                        {/* ── Fundo do campo ── */}
+                        <rect x="0" y="0" width="400" height="220" fill="#1a4731" />
+                        <rect x="10" y="10" width="380" height="200" fill="#2d6a4f" />
+
+                        {/* ── Balizas (fora da linha de fundo) ── */}
+                        {/* Baliza esquerda: 3m = 30u, profundidade 2m = 19u */}
+                        <rect x="0" y="95" width="10" height="30" fill="none" stroke="white" strokeWidth="2.5" />
+                        {/* Baliza direita */}
+                        <rect x="390" y="95" width="10" height="30" fill="none" stroke="white" strokeWidth="2.5" />
+
+                        {/* ── Limite exterior ── */}
+                        <rect x="10" y="10" width="380" height="200" fill="none" stroke="white" strokeWidth="2.5" />
+
+                        {/* ── Área de baliza — linha 6m (arco real, raio=57u) ── */}
+                        {/* Esquerda: semicírculo centrado em (10,110) */}
+                        <path d="M 10 53 A 57 57 0 0 1 10 167" fill="none" stroke="white" strokeWidth="2" />
+                        {/* Direita: semicírculo centrado em (390,110) */}
+                        <path d="M 390 53 A 57 57 0 0 0 390 167" fill="none" stroke="white" strokeWidth="2" />
+
+                        {/* Linhas retas da zona de 6m (a partir dos postes) */}
+                        <line x1="10" y1="53" x2="10" y2="53" stroke="white" strokeWidth="2" />
+
+                        {/* ── Linha 9m (tracejada, raio=85.5u) ── */}
+                        {/* Esquerda */}
+                        <path d="M 10 24.5 A 85.5 85.5 0 0 1 10 195.5" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="7,5" opacity="0.85" />
+                        {/* Direita */}
+                        <path d="M 390 24.5 A 85.5 85.5 0 0 0 390 195.5" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="7,5" opacity="0.85" />
+
+                        {/* ── Linha central (sólida) ── */}
+                        <line x1="200" y1="10" x2="200" y2="210" stroke="white" strokeWidth="2" />
+
+                        {/* ── Círculo central — raio 3m = 28.5u ── */}
+                        <circle cx="200" cy="110" r="28.5" fill="none" stroke="white" strokeWidth="1.5" />
+                        {/* Ponto central */}
+                        <circle cx="200" cy="110" r="2.5" fill="white" />
+
+                        {/* ── Marca 7m (traço curto) ── */}
+                        {/* Esquerda: 7m = 66.5u de x=10 → x=76.5 */}
+                        <line x1="76.5" y1="106" x2="76.5" y2="114" stroke="white" strokeWidth="2.5" />
+                        {/* Direita: x=390-66.5=323.5 */}
+                        <line x1="323.5" y1="106" x2="323.5" y2="114" stroke="white" strokeWidth="2.5" />
+
+                        {/* ── Marcas de substituição (linha central, 4.5m = 42.75u de cada lado) ── */}
+                        <line x1="195" y1="10" x2="205" y2="10" stroke="white" strokeWidth="2.5" />
+                        <line x1="195" y1="210" x2="205" y2="210" stroke="white" strokeWidth="2.5" />
 
                         {arrows.map((a) => (
                             <line
@@ -769,9 +789,9 @@ export default function QuadroTatico() {
                     ))}
 
                     {/* Legenda no campo */}
-                    <div className="absolute bottom-2 left-3 flex gap-3 text-[10px] font-semibold pointer-events-none">
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-600 inline-block" /> Adversário</span>
-                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-600 inline-block" /> Casa</span>
+                    <div className="absolute bottom-2 left-3 flex gap-3 text-[10px] font-semibold pointer-events-none text-white/80">
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block border border-white/30" /> Adversário</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block border border-white/30" /> Casa</span>
                     </div>
                 </div>
 
