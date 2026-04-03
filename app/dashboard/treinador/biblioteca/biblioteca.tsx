@@ -12,6 +12,7 @@ type Jogada = {
     sistema: string;
     posicoes: Player[];
     setas: Arrow[];
+    descricao: string;
     created_at: string;
 };
 
@@ -137,7 +138,7 @@ export default function Biblioteca() {
     const [filter, setFilter] = useState("Todas");
 
     const [modal, setModal] = useState<{ type: "view" | "edit"; jogada: Jogada } | null>(null);
-    const [editForm, setEditForm] = useState({ nome: "", tipo: "Ataque" });
+    const [editForm, setEditForm] = useState({ nome: "", tipo: "Ataque", descricao: "" });
     const [saving, setSaving] = useState(false);
 
     const [confirmRemover, setConfirmRemover] = useState<Jogada | null>(null);
@@ -166,7 +167,7 @@ export default function Biblioteca() {
 
     /* ── Editar ── */
     const abrirEditar = (j: Jogada) => {
-        setEditForm({ nome: j.nome, tipo: j.tipo });
+        setEditForm({ nome: j.nome, tipo: j.tipo, descricao: j.descricao ?? "" });
         setModal({ type: "edit", jogada: j });
     };
 
@@ -177,11 +178,11 @@ export default function Biblioteca() {
         const res = await fetch(`/api/jogadas-taticas/${modal.jogada.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: editForm.nome.trim(), tipo: editForm.tipo, sistema: modal.jogada.sistema, posicoes: modal.jogada.posicoes }),
+            body: JSON.stringify({ nome: editForm.nome.trim(), tipo: editForm.tipo, sistema: modal.jogada.sistema, posicoes: modal.jogada.posicoes, setas: modal.jogada.setas, descricao: editForm.descricao.trim() }),
         });
         setSaving(false);
         if (res.ok) {
-            setJogadas((prev) => prev.map((j) => j.id === modal.jogada.id ? { ...j, nome: editForm.nome.trim(), tipo: editForm.tipo } : j));
+            setJogadas((prev) => prev.map((j) => j.id === modal.jogada.id ? { ...j, nome: editForm.nome.trim(), tipo: editForm.tipo, descricao: editForm.descricao.trim() } : j));
             setModal(null);
             showToast("Jogada actualizada!");
         } else {
@@ -243,9 +244,15 @@ export default function Biblioteca() {
                                         {modal.jogada.tipo}
                                     </span>
                                 </div>
-                                <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3 mb-6 aspect-video flex items-center justify-center">
+                                <div className="w-full rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 overflow-hidden aspect-video mb-4">
                                     <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                 </div>
+                                {modal.jogada.descricao && (
+                                    <div className="mb-6 px-1">
+                                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Descrição</p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{modal.jogada.descricao}</p>
+                                    </div>
+                                )}
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => abrirEditar(modal.jogada)}
@@ -295,7 +302,19 @@ export default function Biblioteca() {
                                             <option value="Personalizada">Personalizada</option>
                                         </select>
                                     </div>
-                                    <div className="rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 p-3 aspect-video flex items-center justify-center">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Descrição</label>
+                                        <textarea
+                                            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-purple-400 focus:outline-none resize-none text-sm"
+                                            value={editForm.descricao}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, descricao: e.target.value }))}
+                                            rows={3}
+                                            maxLength={300}
+                                            placeholder="Descreve a jogada, objetivos, movimentos chave..."
+                                        />
+                                        <p className="text-xs text-gray-400 text-right">{editForm.descricao.length}/300</p>
+                                    </div>
+                                    <div className="w-full rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 overflow-hidden aspect-video">
                                         <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                     </div>
                                     <div className="flex gap-2">
@@ -389,6 +408,9 @@ export default function Biblioteca() {
                                         Sistema {j.sistema} · {formatData(j.created_at)}
                                     </span>
                                 </div>
+                                {j.descricao && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2">{j.descricao}</p>
+                                )}
                             </div>
                             <div className="flex gap-2 mt-1">
                                 <button

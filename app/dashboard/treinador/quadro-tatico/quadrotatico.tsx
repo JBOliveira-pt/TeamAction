@@ -12,6 +12,7 @@ type Jogada = {
     sistema: string;
     posicoes: Player[];
     setas: Arrow[];
+    descricao: string;
     created_at: string;
 };
 
@@ -120,45 +121,6 @@ function ModalConfirm({ titulo, descricao, onConfirm, onCancel, labelConfirm = "
     );
 }
 
-/* ── Modal de texto (substitui prompt) ────────────────────────────────── */
-function ModalTexto({ titulo, valorInicial, onConfirm, onCancel }: {
-    titulo: string;
-    valorInicial: string;
-    onConfirm: (v: string) => void;
-    onCancel: () => void;
-}) {
-    const [valor, setValor] = useState(valorInicial);
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
-            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-4">
-                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">{titulo}</h3>
-                <input
-                    autoFocus
-                    className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                    value={valor}
-                    onChange={(e) => setValor(e.target.value)}
-                    maxLength={80}
-                    onKeyDown={(e) => e.key === "Enter" && valor.trim().length >= 2 && onConfirm(valor.trim())}
-                />
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => valor.trim().length >= 2 && onConfirm(valor.trim())}
-                        disabled={valor.trim().length < 2}
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-all"
-                    >
-                        Guardar
-                    </button>
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
 
 /* ── Modal ver todas as jogadas ────────────────────────────────────────── */
 function ModalVerTodas({ jogadas, onClose }: { jogadas: Jogada[]; onClose: () => void }) {
@@ -173,16 +135,73 @@ function ModalVerTodas({ jogadas, onClose }: { jogadas: Jogada[]; onClose: () =>
                     {jogadas.length === 0 ? (
                         <p className="text-sm text-gray-400 text-center py-6">Nenhuma jogada guardada.</p>
                     ) : jogadas.map((j) => (
-                        <div key={j.id} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                            <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 truncate">{j.nome}</p>
-                                <p className="text-xs text-gray-400">{j.tipo} · Sistema {j.sistema}</p>
-                            </div>
+                        <div key={j.id} className="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100 truncate">{j.nome}</p>
+                            <p className="text-xs text-gray-400">{j.tipo} · Sistema {j.sistema}</p>
+                            {j.descricao && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{j.descricao}</p>
+                            )}
                         </div>
                     ))}
                 </div>
                 <div className="p-5 border-t border-gray-100 dark:border-gray-800">
                     <button onClick={onClose} className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all">Fechar</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Modal editar jogada (nome + descrição) ────────────────────────────── */
+function ModalEditarJogada({ id, nomeAtual, descricaoAtual, onConfirm, onCancel }: {
+    id: string;
+    nomeAtual: string;
+    descricaoAtual: string;
+    onConfirm: (id: string, nome: string, descricao: string) => void;
+    onCancel: () => void;
+}) {
+    const [nome, setNome] = useState(nomeAtual);
+    const [descricao, setDescricao] = useState(descricaoAtual);
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-4">
+                <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Editar Jogada</h3>
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Nome <span className="text-red-500">*</span></label>
+                    <input
+                        autoFocus
+                        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                        value={nome}
+                        onChange={(e) => setNome(e.target.value)}
+                        maxLength={80}
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Descrição</label>
+                    <textarea
+                        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-400 focus:outline-none resize-none text-sm"
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        rows={3}
+                        maxLength={300}
+                        placeholder="Descreve a jogada, objetivos, movimentos chave..."
+                    />
+                    <p className="text-xs text-gray-400 text-right">{descricao.length}/300</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => nome.trim().length >= 2 && onConfirm(id, nome.trim(), descricao.trim())}
+                        disabled={nome.trim().length < 2}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-all"
+                    >
+                        Guardar
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
+                    >
+                        Cancelar
+                    </button>
                 </div>
             </div>
         </div>
@@ -216,10 +235,11 @@ export default function QuadroTatico() {
     const [modalNovaJogada, setModalNovaJogada] = useState(false);
     const [novoNome, setNovoNome] = useState("");
     const [novoTipo, setNovoTipo] = useState<string>("Personalizada");
+    const [novaDescricao, setNovaDescricao] = useState("");
     const [savingNova, setSavingNova] = useState(false);
 
     const [modalConfirm, setModalConfirm] = useState<{ titulo: string; descricao?: string; onConfirm: () => void; perigo?: boolean; label?: string } | null>(null);
-    const [modalEditar, setModalEditar] = useState<{ id: string; nomeAtual: string } | null>(null);
+    const [modalEditar, setModalEditar] = useState<{ id: string; nomeAtual: string; descricaoAtual: string } | null>(null);
     const [modalVerTodas, setModalVerTodas] = useState(false);
 
     // Carregar jogadas do Neon e board do localStorage
@@ -368,7 +388,7 @@ export default function QuadroTatico() {
         const res = await fetch(`/api/jogadas-taticas/${jogadaSelecionada}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: jogada.nome, tipo: jogada.tipo, sistema, posicoes: players, setas: arrows }),
+            body: JSON.stringify({ nome: jogada.nome, tipo: jogada.tipo, sistema, posicoes: players, setas: arrows, descricao: jogada.descricao }),
         });
         if (res.ok) {
             setJogadas((prev) => prev.map((j) => j.id === jogadaSelecionada ? { ...j, sistema, posicoes: players, setas: arrows } : j));
@@ -385,7 +405,7 @@ export default function QuadroTatico() {
         const res = await fetch("/api/jogadas-taticas", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: novoNome.trim(), tipo: novoTipo, sistema, posicoes: players, setas: arrows }),
+            body: JSON.stringify({ nome: novoNome.trim(), tipo: novoTipo, sistema, posicoes: players, setas: arrows, descricao: novaDescricao.trim() }),
         });
         setSavingNova(false);
         if (res.ok) {
@@ -395,24 +415,25 @@ export default function QuadroTatico() {
             setModalNovaJogada(false);
             setNovoNome("");
             setNovoTipo("Personalizada");
+            setNovaDescricao("");
             showToast("Jogada criada!");
         } else {
             showToast(await res.text(), "erro");
         }
     }
 
-    // Editar nome da jogada
-    async function editarNome(id: string, novoNomeValor: string) {
+    // Editar nome e descrição da jogada
+    async function editarJogada(id: string, novoNomeValor: string, novaDescricaoValor: string) {
         const jogada = jogadas.find((j) => j.id === id);
         if (!jogada) return;
         const res = await fetch(`/api/jogadas-taticas/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ nome: novoNomeValor, tipo: jogada.tipo, sistema: jogada.sistema, posicoes: jogada.posicoes }),
+            body: JSON.stringify({ nome: novoNomeValor, tipo: jogada.tipo, sistema: jogada.sistema, posicoes: jogada.posicoes, setas: jogada.setas, descricao: novaDescricaoValor }),
         });
         if (res.ok) {
-            setJogadas((prev) => prev.map((j) => j.id === id ? { ...j, nome: novoNomeValor } : j));
-            showToast("Nome actualizado!");
+            setJogadas((prev) => prev.map((j) => j.id === id ? { ...j, nome: novoNomeValor, descricao: novaDescricaoValor } : j));
+            showToast("Jogada actualizada!");
         } else {
             showToast("Erro ao actualizar.", "erro");
         }
@@ -516,6 +537,18 @@ export default function QuadroTatico() {
                                 {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Descrição</label>
+                            <textarea
+                                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-400 focus:outline-none resize-none text-sm"
+                                placeholder="Descreve a jogada, objetivos, movimentos chave..."
+                                value={novaDescricao}
+                                onChange={(e) => setNovaDescricao(e.target.value)}
+                                rows={3}
+                                maxLength={300}
+                            />
+                            <p className="text-xs text-gray-400 text-right">{novaDescricao.length}/300</p>
+                        </div>
                         <div className="flex gap-2">
                             <button
                                 onClick={criarJogada}
@@ -542,12 +575,13 @@ export default function QuadroTatico() {
                 />
             )}
 
-            {/* ── MODAL EDITAR NOME ─────────────────────────────────────── */}
+            {/* ── MODAL EDITAR JOGADA ───────────────────────────────────── */}
             {modalEditar && (
-                <ModalTexto
-                    titulo="Editar nome da jogada"
-                    valorInicial={modalEditar.nomeAtual}
-                    onConfirm={(v) => editarNome(modalEditar.id, v)}
+                <ModalEditarJogada
+                    id={modalEditar.id}
+                    nomeAtual={modalEditar.nomeAtual}
+                    descricaoAtual={modalEditar.descricaoAtual}
+                    onConfirm={editarJogada}
                     onCancel={() => setModalEditar(null)}
                 />
             )}
@@ -796,11 +830,14 @@ export default function QuadroTatico() {
                                     >
                                         <div className="font-semibold leading-tight truncate">{j.nome}</div>
                                         <div className="text-xs text-gray-400 mt-0.5">{j.tipo} · {j.sistema}</div>
+                                        {j.descricao && (
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{j.descricao}</div>
+                                        )}
                                     </button>
                                     <button
-                                        onClick={() => setModalEditar({ id: j.id, nomeAtual: j.nome })}
+                                        onClick={() => setModalEditar({ id: j.id, nomeAtual: j.nome, descricaoAtual: j.descricao ?? "" })}
                                         className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
-                                        title="Editar nome"
+                                        title="Editar jogada"
                                     >
                                         ✏️
                                     </button>

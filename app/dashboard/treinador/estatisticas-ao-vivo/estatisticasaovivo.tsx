@@ -129,7 +129,7 @@ export default function EstatisticasAoVivo({
     }, {});
 
     return (
-        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-6">
+        <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-6">
             {toast && (
                 <div
                     className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-xl shadow-lg text-sm text-white ${toast.ok ? "bg-blue-600" : "bg-red-600"}`}
