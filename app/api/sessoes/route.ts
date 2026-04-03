@@ -9,20 +9,29 @@ async function ensureTable() {
         CREATE TABLE IF NOT EXISTS sessoes (
             id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
             organization_id UUID        NOT NULL,
-            treinador_id    UUID        NOT NULL,
+            treinador_id    UUID,
+            criado_por      UUID,
             equipa_id       UUID,
             data            DATE        NOT NULL,
-            tipo            TEXT        NOT NULL,
-            duracao_min     INTEGER     NOT NULL,
-            observacoes     TEXT,
-            created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            hora            TIME        NOT NULL DEFAULT '00:00:00',
+            tipo            TEXT,
+            duracao_min     INTEGER,
+            local           TEXT,
+            notas           TEXT,
+            created_at      TIMESTAMPTZ DEFAULT NOW(),
+            updated_at      TIMESTAMPTZ DEFAULT NOW()
         )
     `;
     await sql`
         CREATE INDEX IF NOT EXISTS idx_sessoes_org_data
             ON sessoes (organization_id, data DESC)
     `;
+    // Migrate existing tables — add missing columns
+    await sql`ALTER TABLE sessoes ALTER COLUMN hora SET DEFAULT '00:00:00'`.catch(() => {});
+    await sql`ALTER TABLE sessoes ADD COLUMN IF NOT EXISTS duracao_min INTEGER`.catch(() => {});
+    await sql`ALTER TABLE sessoes ADD COLUMN IF NOT EXISTS local TEXT`.catch(() => {});
+    await sql`ALTER TABLE sessoes ADD COLUMN IF NOT EXISTS notas TEXT`.catch(() => {});
+    await sql`ALTER TABLE sessoes ADD COLUMN IF NOT EXISTS criado_por UUID`.catch(() => {});
 }
 
 async function getUser(clerkUserId: string) {
@@ -44,24 +53,33 @@ export async function GET() {
     const rows = await sql<{
         id: string;
         data: string;
+        hora: string;
         tipo: string;
         duracao_min: number;
-        observacoes: string | null;
+        local: string | null;
+        notas: string | null;
+        equipa_id: string | null;
         equipa_nome: string | null;
+        criado_por_nome: string | null;
         created_at: string;
     }[]>`
         SELECT
-            sessoes.id,
-            sessoes.data,
-            sessoes.tipo,
-            sessoes.duracao_min,
-            sessoes.observacoes,
-            equipas.nome AS equipa_nome,
-            sessoes.created_at
-        FROM sessoes
-        LEFT JOIN equipas ON equipas.id = sessoes.equipa_id
-        WHERE sessoes.organization_id = ${user.organization_id}
-        ORDER BY sessoes.data DESC
+            s.id,
+            s.data,
+            s.hora,
+            s.tipo,
+            s.duracao_min,
+            s.local,
+            s.notas,
+            s.equipa_id,
+            e.nome AS equipa_nome,
+            u.name AS criado_por_nome,
+            s.created_at
+        FROM sessoes s
+        LEFT JOIN equipas e ON e.id = s.equipa_id
+        LEFT JOIN users u ON u.id = s.criado_por
+        WHERE s.organization_id = ${user.organization_id}
+        ORDER BY s.data DESC, s.hora DESC
     `;
 
     return Response.json(rows);
@@ -73,19 +91,23 @@ export async function POST(req: NextRequest) {
 
     const user = await getUser(userId);
     if (!user) return new Response("User not found", { status: 404 });
+    if (!user.organization_id) return new Response("Organização não encontrada", { status: 400 });
 
     const body = await req.json();
-    const { data, tipo, duracao_min, observacoes, equipa_id } = body as {
+    const { data, hora, tipo, duracao_min, local, notas, equipa_id } = body as {
         data?: string;
+        hora?: string;
         tipo?: string;
         duracao_min?: number;
-        observacoes?: string;
+        local?: string;
+        notas?: string;
         equipa_id?: string;
     };
 
     const tiposValidos = ["Tático", "Físico", "Técnico", "Misto"];
 
     if (!data) return new Response("Data obrigatória", { status: 400 });
+    if (!hora) return new Response("Hora obrigatória", { status: 400 });
     if (!tipo || !tiposValidos.includes(tipo)) return new Response("Tipo inválido", { status: 400 });
     if (!duracao_min || duracao_min < 15 || duracao_min > 300)
         return new Response("Duração deve estar entre 15 e 300 minutos", { status: 400 });
@@ -95,22 +117,27 @@ export async function POST(req: NextRequest) {
     const rows = await sql<{
         id: string;
         data: string;
+        hora: string;
         tipo: string;
         duracao_min: number;
-        observacoes: string | null;
+        local: string | null;
+        notas: string | null;
         created_at: string;
     }[]>`
-        INSERT INTO sessoes (organization_id, treinador_id, equipa_id, data, tipo, duracao_min, observacoes)
+        INSERT INTO sessoes (organization_id, treinador_id, criado_por, equipa_id, data, hora, tipo, duracao_min, local, notas)
         VALUES (
             ${user.organization_id},
             ${user.id},
+            ${user.id},
             ${equipa_id ?? null},
             ${data},
+            ${hora},
             ${tipo},
             ${duracao_min},
-            ${observacoes?.trim() || null}
+            ${local?.trim() || null},
+            ${notas?.trim() || null}
         )
-        RETURNING id, data, tipo, duracao_min, observacoes, created_at
+        RETURNING id, data, hora, tipo, duracao_min, local, notas, created_at
     `;
 
     return Response.json(rows[0], { status: 201 });

@@ -407,12 +407,6 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 href="/dashboard/treinador/exercicios"
                                 onClick={() => setIsOpen(false)}
                             />
-                            <NavItem
-                                icon={<CheckSquare size={20} />}
-                                label="Assiduidade"
-                                href="/dashboard/treinador/assiduidade"
-                                onClick={() => setIsOpen(false)}
-                            />
                             <NavSectionLabel>Tático</NavSectionLabel>
                             <NavItem
                                 icon={<MapPinned size={20} />}

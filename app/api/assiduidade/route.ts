@@ -17,8 +17,8 @@ async function getUser(clerkUserId: string) {
 }
 
 // GET → lista todos os registos de assiduidade da organização
-// Devolve: atletas × sessões com estado P/F/J
-export async function GET() {
+// Se ?sessao_id=xxx → devolve atletas + registos só dessa sessão
+export async function GET(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
 
@@ -29,7 +29,43 @@ export async function GET() {
         await ensureColunas();
     } catch { /* colunas já existem */ }
 
-    // Sessões com registos (últimas 10)
+    const sessaoId = new URL(req.url).searchParams.get("sessao_id");
+
+    // Atletas da organização (sempre necessários)
+    const atletas = await sql<{
+        id: string;
+        nome: string;
+        posicao: string | null;
+        numero_camisola: number | null;
+    }[]>`
+        SELECT id, nome, posicao, numero_camisola
+        FROM atletas
+        WHERE organization_id = ${user.organization_id}
+            AND estado = 'Ativo'
+        ORDER BY nome ASC
+    `;
+
+    // Modo: por sessão específica
+    if (sessaoId) {
+        let registos: { atleta_id: string; sessao_id: string; estado: string; comentario: string | null }[] = [];
+        try {
+            registos = await sql<{
+                atleta_id: string;
+                sessao_id: string;
+                estado: string;
+                comentario: string | null;
+            }[]>`
+                SELECT a.atleta_id, a.sessao_id, a.estado, a.comentario
+                FROM assiduidade a
+                INNER JOIN sessoes s ON s.id = a.sessao_id
+                WHERE a.sessao_id = ${sessaoId}
+                  AND s.organization_id = ${user.organization_id}
+            `;
+        } catch { /* tabela pode não ter registos ainda */ }
+        return Response.json({ atletas, registos });
+    }
+
+    // Modo: todas as sessões com registos (últimas 10)
     const sessoes = await sql<{
         id: string;
         data: string;
@@ -44,21 +80,6 @@ export async function GET() {
         LIMIT 10
     `;
 
-    // Atletas da organização
-    const atletas = await sql<{
-        id: string;
-        nome: string;
-        posicao: string | null;
-        numero_camisola: number | null;
-    }[]>`
-        SELECT id, nome, posicao, numero_camisola
-        FROM atletas
-        WHERE organization_id = ${user.organization_id}
-            AND estado = 'Ativo'
-        ORDER BY nome ASC
-    `;
-
-    // Todos os registos de assiduidade para as sessões encontradas
     const registos = await sql<{
         atleta_id: string;
         sessao_id: string;
