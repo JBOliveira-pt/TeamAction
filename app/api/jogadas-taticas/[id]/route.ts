@@ -28,6 +28,7 @@ export async function PUT(
         sistema?: string;
         posicoes?: object[];
         setas?: object[];
+        descricao?: string;
     };
 
     if (!body.nome?.trim() || body.nome.trim().length < 2)
@@ -40,6 +41,7 @@ export async function PUT(
             sistema    = ${body.sistema ?? "6-0"},
             posicoes   = ${sql.json((body.posicoes ?? []) as never)},
             setas      = ${sql.json((body.setas ?? []) as never)},
+            descricao  = ${body.descricao?.trim() ?? ""},
             updated_at = NOW()
         WHERE id = ${id}
           AND organization_id = ${user.organization_id}

@@ -51,6 +51,103 @@ function Toast({ msg, tipo }: { msg: string; tipo: "ok" | "erro" }) {
     );
 }
 
+/* ── Modal Convidar por Email ── */
+function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
+    const [email, setEmail] = useState("");
+    const [verificando, setVerificando] = useState(false);
+    const [resultado, setResultado] = useState<{ existe: boolean; nome?: string } | null>(null);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        setResultado(null);
+        if (timer.current) clearTimeout(timer.current);
+        const emailTrimmed = email.trim().toLowerCase();
+        if (!emailTrimmed.includes("@") || emailTrimmed.length < 5) return;
+        timer.current = setTimeout(async () => {
+            setVerificando(true);
+            try {
+                const res = await fetch(`/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`);
+                if (res.ok) setResultado(await res.json());
+            } finally {
+                setVerificando(false);
+            }
+        }, 400);
+        return () => { if (timer.current) clearTimeout(timer.current); };
+    }, [email]);
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Convidar por Email</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Verifica se o atleta já está registado na plataforma</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="px-5 py-5 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Email do atleta
+                        </label>
+                        <input
+                            autoFocus
+                            type="email"
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            placeholder="exemplo@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+
+                    {verificando && (
+                        <p className="text-xs text-gray-400 text-center">A verificar...</p>
+                    )}
+
+                    {!verificando && resultado?.existe && (
+                        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 p-4 flex flex-col gap-2">
+                            <p className="text-sm font-bold text-yellow-800 dark:text-yellow-300">
+                                ⚠️ Atleta já registado na plataforma
+                            </p>
+                            {resultado.nome && (
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                    Encontrado: <span className="font-semibold">{resultado.nome}</span>
+                                </p>
+                            )}
+                            <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                Este atleta já tem conta na plataforma. Para o adicionar à equipa, utiliza a opção <strong>"Pesquisar Atleta"</strong> e envia um convite de equipa.
+                            </p>
+                        </div>
+                    )}
+
+                    {!verificando && resultado && !resultado.existe && (
+                        <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 flex flex-col gap-2">
+                            <p className="text-sm font-bold text-blue-800 dark:text-blue-300">
+                                ℹ️ Atleta não encontrado na plataforma
+                            </p>
+                            <p className="text-xs text-blue-700 dark:text-blue-400">
+                                Não existe nenhum utilizador com este e-mail registado. Para adicionar um atleta externo, contacta o Presidente do clube para criar o perfil ou aguarda que o atleta se registe na plataforma.
+                            </p>
+                        </div>
+                    )}
+                </div>
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+                    <button
+                        onClick={onClose}
+                        className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                    >
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ── Modal Todos os Atletas ── */
 function ModalTodosAtletas({
     equipas,
@@ -433,18 +530,196 @@ function ModalAdicionarAtleta({
     );
 }
 
+/* ── Modal Criar Atleta (treinador independente) ── */
+function ModalCriarAtleta({
+    equipas,
+    onClose,
+    onCriado,
+}: {
+    equipas: Equipa[];
+    onClose: () => void;
+    onCriado: (nome: string, suspenso: boolean) => void;
+}) {
+    const [nome, setNome] = useState("");
+    const [posicao, setPosicao] = useState("");
+    const [numeroCamisola, setNumeroCamisola] = useState("");
+    const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
+    const [email, setEmail] = useState("");
+    const [avisoEmail, setAvisoEmail] = useState<{ existe: boolean; nome?: string; temClube?: boolean } | null>(null);
+    const [verificandoEmail, setVerificandoEmail] = useState(false);
+    const [enviando, setEnviando] = useState(false);
+    const [erro, setErro] = useState("");
+    const timerEmail = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        setAvisoEmail(null);
+        if (timerEmail.current) clearTimeout(timerEmail.current);
+        const emailTrimmed = email.trim().toLowerCase();
+        if (!emailTrimmed.includes("@") || emailTrimmed.length < 5) return;
+        timerEmail.current = setTimeout(async () => {
+            setVerificandoEmail(true);
+            try {
+                const res = await fetch(`/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`);
+                if (res.ok) setAvisoEmail(await res.json());
+            } finally {
+                setVerificandoEmail(false);
+            }
+        }, 400);
+        return () => { if (timerEmail.current) clearTimeout(timerEmail.current); };
+    }, [email]);
+
+    const criar = async () => {
+        if (!nome.trim()) { setErro("O nome é obrigatório."); return; }
+        setErro("");
+        setEnviando(true);
+        const equipa = equipas.find((e) => e.id === equipaId);
+        const res = await fetch("/api/treinador/criar-atleta", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                nome: nome.trim(),
+                posicao: posicao.trim() || null,
+                numero_camisola: numeroCamisola ? parseInt(numeroCamisola) : null,
+                equipa_id: equipaId || null,
+                equipa_nome: equipa?.nome ?? null,
+                email: email.trim() || null,
+            }),
+        });
+        setEnviando(false);
+        if (res.ok) {
+            const data = await res.json();
+            onCriado(nome.trim(), data.suspenso === true);
+            onClose();
+        } else {
+            setErro(await res.text());
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Criar Atleta</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">Adicionar novo atleta à tua equipa</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nome *</label>
+                        <input
+                            autoFocus
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            placeholder="Nome completo"
+                            value={nome}
+                            onChange={(e) => setNome(e.target.value)}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Posição</label>
+                            <input
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                placeholder="Ex: Avançado"
+                                value={posicao}
+                                onChange={(e) => setPosicao(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nº Camisola</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="99"
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                placeholder="—"
+                                value={numeroCamisola}
+                                onChange={(e) => setNumeroCamisola(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    {equipas.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Equipa</label>
+                            <select
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                value={equipaId}
+                                onChange={(e) => setEquipaId(e.target.value)}
+                            >
+                                <option value="">Sem equipa</option>
+                                {equipas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                            </select>
+                        </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Email (opcional)</label>
+                        <input
+                            type="email"
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            placeholder="Para vincular a conta existente"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); setErro(""); }}
+                        />
+                        {verificandoEmail && <p className="text-xs text-gray-400">A verificar...</p>}
+                    </div>
+
+                    {/* Aviso: email já existe na plataforma e tem clube */}
+                    {avisoEmail?.existe && (
+                        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 p-3 flex flex-col gap-1">
+                            <p className="text-xs font-bold text-yellow-800 dark:text-yellow-300">
+                                ⚠️ Atleta já registado na plataforma
+                            </p>
+                            {avisoEmail.nome && (
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                    Conta encontrada: <span className="font-semibold">{avisoEmail.nome}</span>
+                                </p>
+                            )}
+                            <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                Se este atleta já estiver vinculado a um clube, o perfil ficará <strong>suspenso</strong> até o administrador resolver a situação.
+                            </p>
+                        </div>
+                    )}
+
+                    {erro && <p className="text-xs text-red-500">{erro}</p>}
+                </div>
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                    <button
+                        onClick={criar}
+                        disabled={!nome.trim() || enviando}
+                        className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow transition-all"
+                    >
+                        {enviando ? "A criar..." : "Criar Atleta"}
+                    </button>
+                    <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ── Componente principal ── */
 export default function EquipaAtletas({
     atletas: atletasIniciais,
     equipas,
+    temClube,
 }: {
     atletas: Atleta[];
     equipas: Equipa[];
+    temClube: boolean;
 }) {
     const [search, setSearch] = useState("");
     const [posicaoFiltro, setPosicaoFiltro] = useState("Todas");
     const [showAdicionar, setShowAdicionar] = useState(false);
     const [showTodos, setShowTodos] = useState(false);
+    const [showConvidarEmail, setShowConvidarEmail] = useState(false);
+    const [showCriarAtleta, setShowCriarAtleta] = useState(false);
     const [atletaModal, setAtletaModal] = useState<Atleta | null>(null);
     const [convitesPendentes, setConvitesPendentes] = useState<
         ConvitePendente[]
@@ -617,6 +892,28 @@ export default function EquipaAtletas({
                 />
             )}
 
+            {/* Modal Convidar por Email */}
+            {showConvidarEmail && (
+                <ModalConvidarEmail onClose={() => setShowConvidarEmail(false)} />
+            )}
+
+            {/* Modal Criar Atleta (apenas treinadores sem clube) */}
+            {showCriarAtleta && (
+                <ModalCriarAtleta
+                    equipas={equipas}
+                    onClose={() => setShowCriarAtleta(false)}
+                    onCriado={(nome, suspenso) => {
+                        if (suspenso) {
+                            showToast(`${nome} criado — suspenso por conflito de clube. Admin irá resolver.`, "erro");
+                        } else {
+                            showToast(`${nome} adicionado à equipa!`);
+                        }
+                        // Recarregar a página para mostrar o novo atleta
+                        window.location.reload();
+                    }}
+                />
+            )}
+
             {/* Cabeçalho */}
             <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
@@ -627,18 +924,38 @@ export default function EquipaAtletas({
                         {atletasIniciais.length} atletas registados
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                    {/* Treinador sem clube: pode criar atletas diretamente */}
+                    {!temClube && (
+                        <button
+                            onClick={() => setShowCriarAtleta(true)}
+                            className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                        >
+                            ➕ Criar Atleta
+                        </button>
+                    )}
+                    {/* Treinador com clube: só pode convidar atletas do clube */}
+                    {temClube && (
+                        <>
+                            <button
+                                onClick={() => setShowAdicionar(true)}
+                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                            >
+                                🔍 Pesquisar Atleta
+                            </button>
+                            <button
+                                onClick={() => setShowTodos(true)}
+                                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                            >
+                                👥 Todos
+                            </button>
+                        </>
+                    )}
                     <button
-                        onClick={() => setShowAdicionar(true)}
-                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                        onClick={() => setShowConvidarEmail(true)}
+                        className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
                     >
-                        🔍 Pesquisar Atleta
-                    </button>
-                    <button
-                        onClick={() => setShowTodos(true)}
-                        className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
-                    >
-                        👥 Todos
+                        ✉️ Verificar Email
                     </button>
                 </div>
             </div>

@@ -73,12 +73,23 @@ export async function POST(req: NextRequest) {
     if (!body.atleta_id) return new Response("atleta_id obrigatório.", { status: 400 });
 
     // Get atleta info
-    const atletaRows = await sql<{ id: string; nome: string; user_id: string | null }[]>`
-        SELECT id, nome, user_id FROM atletas
+    const atletaRows = await sql<{ id: string; nome: string; user_id: string | null; organization_id: string }[]>`
+        SELECT id, nome, user_id, organization_id FROM atletas
         WHERE id = ${body.atleta_id} LIMIT 1
     `;
     const atleta = atletaRows[0];
     if (!atleta) return new Response("Atleta não encontrado.", { status: 404 });
+
+    // Req 3: treinador vinculado a clube só pode convidar atletas do mesmo clube
+    const treinadorTemClube = await sql<{ id: string }[]>`
+        SELECT id FROM clubes WHERE organization_id = ${me.organization_id} LIMIT 1
+    `;
+    if (treinadorTemClube.length > 0 && atleta.organization_id !== me.organization_id) {
+        return new Response(
+            "Não é possível convidar atletas de outro clube. Só tens acesso aos atletas da tua organização.",
+            { status: 403 }
+        );
+    }
 
     await ensureTable();
 

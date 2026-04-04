@@ -1872,6 +1872,43 @@ export async function editarNotaAtleta(
     return null;
 }
 
+export async function atribuirTreinadorEquipa(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const equipaId = formData.get('equipa_id')?.toString().trim();
+    const treinadorId = formData.get('treinador_id')?.toString().trim() || null;
+
+    if (!equipaId) return { error: 'Equipa inválida.' };
+
+    try {
+        const organizationId = await getOrganizationId();
+
+        if (treinadorId) {
+            const [treinador] = await sql<{ id: string }[]>`
+                SELECT id FROM users
+                WHERE id = ${treinadorId}
+                  AND organization_id = ${organizationId}
+                  AND account_type = 'treinador'
+                LIMIT 1
+            `;
+            if (!treinador) return { error: 'Treinador não encontrado.' };
+        }
+
+        await sql`
+            UPDATE equipas
+            SET treinador_id = ${treinadorId}, updated_at = NOW()
+            WHERE id = ${equipaId} AND organization_id = ${organizationId}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: 'Erro ao atribuir treinador.' };
+    }
+
+    revalidatePath('/dashboard/presidente/equipas');
+    return { success: true };
+}
+
 export async function registarMedidaCondicaoFisica(
     prevState: { error?: string } | null,
     formData: FormData,
@@ -2817,6 +2854,23 @@ export async function convidarAtleta(
     if (existing.length > 0)
         return { error: 'Já existe um convite pendente para este atleta.' };
 
+    // Req 4: verificar se atleta já está vinculado a um treinador independente
+    // (org sem clube) — se sim, avisar que ao aceitar ficará suspenso
+    const atletaOrgInfo = await sql<{ organization_id: string | null }[]>`
+        SELECT organization_id FROM users WHERE id = ${atletaUserId} LIMIT 1
+    `;
+    const atletaOrgAtual = atletaOrgInfo[0]?.organization_id;
+    let avisoConflito = false;
+    if (atletaOrgAtual && atletaOrgAtual !== organizationId) {
+        const clubeNaOrgAtleta = await sql<{ id: string }[]>`
+            SELECT id FROM clubes WHERE organization_id = ${atletaOrgAtual} LIMIT 1
+        `;
+        if (clubeNaOrgAtleta.length === 0) {
+            // Atleta está numa org sem clube (treinador independente)
+            avisoConflito = true;
+        }
+    }
+
     // Buscar info do clube
     const org = await sql<{ name: string; email: string }[]>`
         SELECT name, email FROM organizations WHERE id = ${organizationId}
@@ -2850,14 +2904,21 @@ export async function convidarAtleta(
         const atletaOrgId = atletaUser[0]?.organization_id;
 
         if (atletaOrgId) {
+            const tituloNotif = avisoConflito
+                ? 'Convite de clube — atenção: conflito de vinculação'
+                : 'Convite de federação';
+            const descricaoNotif = avisoConflito
+                ? `O clube '${orgName}' convidou-te para integrar os seus quadros. Atenção: já estás vinculado a um treinador independente. Se aceitares, o teu perfil ficará suspenso até o administrador resolver a situação.`
+                : `Parabéns! O clube '${orgName}' quer que se junte aos seus quadros como atleta federado! Se concordar, entre em contacto com o responsável do clube '${orgName}' para tratar dos documentos necessários.`;
+            const tipoNotif = avisoConflito ? 'Aviso' : 'Info';
             await sql`
                 INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
                 VALUES (
                     gen_random_uuid(),
                     ${atletaOrgId},
-                    'Convite de federação',
-                    ${`Parabéns! O clube '${orgName}' quer que se junte aos seus quadros como atleta federado! Se concordar, entre em contacto com o responsável do clube '${orgName}' para tratar dos documentos necessários.`},
-                    'Info',
+                    ${tituloNotif},
+                    ${descricaoNotif},
+                    ${tipoNotif},
                     NOW()
                 )
             `;

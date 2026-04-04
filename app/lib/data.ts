@@ -374,11 +374,15 @@ export async function fetchEquipaById(id: string) {
                 escalao: string;
                 estado: string;
                 desporto: string;
+                treinador_id: string | null;
+                treinador_nome: string | null;
             }[]
         >`
-            SELECT id, nome, escalao, estado, desporto
-            FROM equipas
-            WHERE id = ${id} AND organization_id = ${organizationId}
+            SELECT e.id, e.nome, e.escalao, e.estado, e.desporto,
+                   e.treinador_id, u.name AS treinador_nome
+            FROM equipas e
+            LEFT JOIN users u ON u.id = e.treinador_id
+            WHERE e.id = ${id} AND e.organization_id = ${organizationId}
         `;
 
         const atletas = await sql<
@@ -628,6 +632,100 @@ export async function fetchJogos() {
     } catch (error) {
         console.error("Database Error:", error);
         throw new Error("Failed to fetch jogos.");
+    }
+}
+
+// ---------- CALENDÁRIO ATLETA ----------
+
+export async function fetchJogosAtleta() {
+    try {
+        const { userId: clerkUserId } = await auth();
+        if (!clerkUserId) return [];
+
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!user) return [];
+
+        const [atleta] = await sql<{ equipa_id: string | null }[]>`
+            SELECT equipa_id FROM atletas WHERE user_id = ${user.id} LIMIT 1
+        `;
+        if (!atleta?.equipa_id) return [];
+
+        return sql<
+            {
+                id: string;
+                adversario: string;
+                data: string;
+                casa_fora: string;
+                resultado_nos: number | null;
+                resultado_adv: number | null;
+                estado: string;
+                equipa_id: string;
+                equipa_nome: string;
+            }[]
+        >`
+            SELECT
+                jogos.id,
+                jogos.adversario,
+                jogos.data,
+                jogos.casa_fora,
+                jogos.resultado_nos,
+                jogos.resultado_adv,
+                jogos.estado,
+                jogos.equipa_id,
+                equipas.nome AS equipa_nome
+            FROM jogos
+            LEFT JOIN equipas ON jogos.equipa_id = equipas.id
+            WHERE jogos.equipa_id = ${atleta.equipa_id}
+            ORDER BY jogos.data DESC
+        `;
+    } catch (error) {
+        console.error('Database Error:', error);
+        return [];
+    }
+}
+
+export async function fetchSessoesAtleta() {
+    try {
+        const { userId: clerkUserId } = await auth();
+        if (!clerkUserId) return [];
+
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!user) return [];
+
+        const [atleta] = await sql<{ equipa_id: string | null }[]>`
+            SELECT equipa_id FROM atletas WHERE user_id = ${user.id} LIMIT 1
+        `;
+        if (!atleta?.equipa_id) return [];
+
+        return sql<
+            {
+                id: string;
+                data: string;
+                tipo: string;
+                duracao_min: number;
+                observacoes: string | null;
+                equipa_nome: string | null;
+            }[]
+        >`
+            SELECT
+                sessoes.id,
+                sessoes.data,
+                sessoes.tipo,
+                sessoes.duracao_min,
+                sessoes.observacoes,
+                equipas.nome AS equipa_nome
+            FROM sessoes
+            LEFT JOIN equipas ON equipas.id = sessoes.equipa_id
+            WHERE sessoes.equipa_id = ${atleta.equipa_id}
+            ORDER BY sessoes.data DESC
+        `;
+    } catch (error) {
+        console.error('Database Error:', error);
+        return [];
     }
 }
 
@@ -1142,6 +1240,8 @@ export async function fetchAtletaAtual() {
                 estado: string;
                 mao_dominante: string | null;
                 equipa_nome: string | null;
+                treinador_nome: string | null;
+                encarregado: string | null;
             }[]
         >`
             SELECT
@@ -1151,9 +1251,13 @@ export async function fetchAtletaAtual() {
                 atletas.numero_camisola,
                 atletas.estado,
                 atletas.mao_dominante,
-                equipas.nome AS equipa_nome
+                equipas.nome AS equipa_nome,
+                treinador.name AS treinador_nome,
+                u."Encarregado_Edu" AS encarregado
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
+            LEFT JOIN users u ON u.id = atletas.user_id
             WHERE atletas.user_id = ${user.id}
             LIMIT 1
         `;
@@ -1166,6 +1270,8 @@ export async function fetchAtletaAtual() {
                 estado: null,
                 mao_dominante: null,
                 equipa_nome: null,
+                treinador_nome: null,
+                encarregado: null,
                 estatisticas: null,
                 assiduidade: null,
             };
@@ -1287,6 +1393,24 @@ export async function fetchRegistosMedicos(): Promise<
         `;
     } catch (error) {
         console.error("Database Error:", error);
+        return [];
+    }
+}
+
+export async function fetchTreinadoresOrg(): Promise<
+    { id: string; name: string; email: string }[]
+> {
+    try {
+        const organizationId = await getOrganizationId();
+        return await sql<{ id: string; name: string; email: string }[]>`
+            SELECT id, name, email
+            FROM users
+            WHERE organization_id = ${organizationId}
+              AND account_type = 'treinador'
+            ORDER BY name ASC
+        `;
+    } catch (error) {
+        console.error('Database Error:', error);
         return [];
     }
 }

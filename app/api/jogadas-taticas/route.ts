@@ -26,6 +26,10 @@ async function ensureTable() {
         ALTER TABLE jogadas_taticas
             ADD COLUMN IF NOT EXISTS setas JSONB NOT NULL DEFAULT '[]'
     `;
+    await sql`
+        ALTER TABLE jogadas_taticas
+            ADD COLUMN IF NOT EXISTS descricao TEXT NOT NULL DEFAULT ''
+    `;
 }
 
 async function getUser(clerkUserId: string) {
@@ -57,9 +61,10 @@ export async function GET() {
         sistema: string;
         posicoes: unknown;
         setas: unknown;
+        descricao: string;
         created_at: string;
     }[]>`
-        SELECT id, nome, tipo, sistema, posicoes, setas, created_at
+        SELECT id, nome, tipo, sistema, posicoes, setas, descricao, created_at
         FROM jogadas_taticas
         WHERE organization_id = ${user.organization_id}
         ORDER BY created_at DESC
@@ -85,6 +90,7 @@ export async function POST(req: NextRequest) {
         sistema?: string;
         posicoes?: object[];
         setas?: object[];
+        descricao?: string;
     };
 
     if (!body.nome?.trim() || body.nome.trim().length < 2)
@@ -98,8 +104,8 @@ export async function POST(req: NextRequest) {
 
     await ensureTable();
 
-    const rows = await sql<{ id: string; nome: string; tipo: string; sistema: string; posicoes: unknown; setas: unknown; created_at: string }[]>`
-        INSERT INTO jogadas_taticas (organization_id, treinador_id, nome, tipo, sistema, posicoes, setas)
+    const rows = await sql<{ id: string; nome: string; tipo: string; sistema: string; posicoes: unknown; setas: unknown; descricao: string; created_at: string }[]>`
+        INSERT INTO jogadas_taticas (organization_id, treinador_id, nome, tipo, sistema, posicoes, setas, descricao)
         VALUES (
             ${user.organization_id},
             ${user.id},
@@ -107,9 +113,10 @@ export async function POST(req: NextRequest) {
             ${body.tipo},
             ${body.sistema ?? "6-0"},
             ${sql.json((body.posicoes ?? []) as never)},
-            ${sql.json((body.setas ?? []) as never)}
+            ${sql.json((body.setas ?? []) as never)},
+            ${body.descricao?.trim() ?? ""}
         )
-        RETURNING id, nome, tipo, sistema, posicoes, setas, created_at
+        RETURNING id, nome, tipo, sistema, posicoes, setas, descricao, created_at
     `;
 
     const row = rows[0];
