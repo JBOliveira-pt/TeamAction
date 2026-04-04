@@ -23,7 +23,7 @@ function defaultDashboardPath(accountType: AccountType): string {
     if (accountType === "presidente") return "/dashboard/presidente";
     if (accountType === "treinador") return "/dashboard/treinador";
     if (accountType === "atleta") return "/dashboard/atleta";
-    return "/dashboard/pai";
+    return "/dashboard/responsavel";
 }
 
 function isPathAllowedForAccountType(
@@ -46,7 +46,7 @@ function isPathAllowedForAccountType(
     }
 
     if (accountType === "responsavel") {
-        return path.startsWith("/dashboard/pai");
+        return path.startsWith("/dashboard/responsavel");
     }
 
     return true;
@@ -62,8 +62,8 @@ const isPublicRoute = createRouteMatcher([
     "/api/webhooks(.*)",
     "/api/password-breach-check(.*)",
     "/api/email-address-check(.*)",
-    "/api/trainer-profile/options(.*)",
-    "/api/athlete-profile/options(.*)",
+    "/api/perfil-treinador/options(.*)",
+    "/api/perfil-atleta/options(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
@@ -83,23 +83,25 @@ export default clerkMiddleware(async (auth, request) => {
         };
         const accountType = normalizeAccountType(metadata.accountType);
 
-        if (accountType) {
-            const targetPath = defaultDashboardPath(accountType);
+        // Se não tem accountType no JWT, deixar passar — o dashboard layout
+        // verifica a BD como fallback e redireciona se necessário.
+        if (!accountType) {
+            return NextResponse.next({ request: { headers: requestHeaders } });
+        }
 
-            if (path === "/dashboard") {
-                if (targetPath !== "/dashboard") {
-                    return NextResponse.redirect(
-                        new URL(targetPath, request.url),
-                    );
-                }
-                return NextResponse.next({
-                    request: { headers: requestHeaders },
-                });
-            }
+        const targetPath = defaultDashboardPath(accountType);
 
-            if (!isPathAllowedForAccountType(path, accountType)) {
+        if (path === "/dashboard") {
+            if (targetPath !== "/dashboard") {
                 return NextResponse.redirect(new URL(targetPath, request.url));
             }
+            return NextResponse.next({
+                request: { headers: requestHeaders },
+            });
+        }
+
+        if (!isPathAllowedForAccountType(path, accountType)) {
+            return NextResponse.redirect(new URL(targetPath, request.url));
         }
     }
 

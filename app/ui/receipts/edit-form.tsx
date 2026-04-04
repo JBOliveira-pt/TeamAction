@@ -4,9 +4,18 @@ import { useState } from "react";
 import { formatCurrencyPTBR, formatDateToLocal } from "@/app/lib/utils";
 
 const MESES_NOMES: Record<number, string> = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
-    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+    1: "Janeiro",
+    2: "Fevereiro",
+    3: "Marco",
+    4: "Abril",
+    5: "Maio",
+    6: "Junho",
+    7: "Julho",
+    8: "Agosto",
+    9: "Setembro",
+    10: "Outubro",
+    11: "Novembro",
+    12: "Dezembro",
 };
 
 export default function ReciboDetailForm({
@@ -70,7 +79,7 @@ export default function ReciboDetailForm({
 
         try {
             const response = await fetch(
-                `/api/receipts/${recibo.recibo_id}/mark-sent`,
+                `/api/recibos/${recibo.recibo_id}/mark-sent`,
                 {
                     method: "POST",
                 },
@@ -154,7 +163,9 @@ export default function ReciboDetailForm({
                                     Periodo da Mensalidade
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
-                                    {MESES_NOMES[recibo.mensalidade_mes] ?? recibo.mensalidade_mes}/{recibo.mensalidade_ano}
+                                    {MESES_NOMES[recibo.mensalidade_mes] ??
+                                        recibo.mensalidade_mes}
+                                    /{recibo.mensalidade_ano}
                                 </p>
                             </div>
                             <div>
@@ -163,7 +174,9 @@ export default function ReciboDetailForm({
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
                                     {recibo.data_pagamento
-                                        ? formatDateToLocal(recibo.data_pagamento)
+                                        ? formatDateToLocal(
+                                              recibo.data_pagamento,
+                                          )
                                         : "-"}
                                 </p>
                             </div>
@@ -213,8 +226,9 @@ export default function ReciboDetailForm({
                                         </p>
                                         {!canSend && (
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                Apenas o utilizador que criou este
-                                                recibo pode marcar como enviado.
+                                                Apenas o utilizador que criou
+                                                este recibo pode marcar como
+                                                enviado.
                                             </p>
                                         )}
                                     </>

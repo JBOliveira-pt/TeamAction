@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useSession } from "@clerk/nextjs";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
     MIN_PASSWORD_LENGTH,
@@ -370,6 +370,7 @@ export default function CompleteAccountTypeForm({
 }: CompleteAccountTypeFormProps) {
     const router = useRouter();
     const { signOut } = useClerk();
+    const { session } = useSession();
     const [firstName, setFirstName] = useState(initialFirstName);
     const [lastName, setLastName] = useState(initialLastName);
     const [emailAddress] = useState(initialEmail);
@@ -569,7 +570,7 @@ export default function CompleteAccountTypeForm({
 
         const loadTrainerOptions = async () => {
             try {
-                const response = await fetch("/api/trainer-profile/options");
+                const response = await fetch("/api/perfil-treinador/options");
                 if (!response.ok) {
                     if (!isCancelled) {
                         setTrainerCourseModalityOptions([]);
@@ -656,7 +657,7 @@ export default function CompleteAccountTypeForm({
 
             try {
                 const response = await fetch(
-                    `/api/athlete-profile/options?query=${encodeURIComponent(query)}`,
+                    `/api/perfil-atleta/options?query=${encodeURIComponent(query)}`,
                 );
 
                 if (!response.ok) {
@@ -1387,10 +1388,13 @@ export default function CompleteAccountTypeForm({
             setSuccessMessage(
                 "Perfil concluído com sucesso. A redirecionar...",
             );
+            // Forçar refresh do JWT para incluir o accountType atualizado
+            try {
+                await session?.touch();
+            } catch {}
             setTimeout(() => {
-                router.push("/dashboard");
-                router.refresh();
-            }, 1000);
+                window.location.href = "/dashboard";
+            }, 1200);
         } catch (err) {
             setError(
                 err instanceof Error
@@ -1747,9 +1751,12 @@ export default function CompleteAccountTypeForm({
                                 </p>
                                 <div className="flex justify-center">
                                     {photoPreviewUrl ? (
-                                        <img
+                                        <Image
                                             src={photoPreviewUrl}
                                             alt="Preview da foto"
+                                            width={64}
+                                            height={64}
+                                            unoptimized
                                             className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                                         />
                                     ) : (

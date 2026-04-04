@@ -4,17 +4,17 @@ import { adminLogoutAction } from "@/app/lib/admin-actions";
 import { useTheme } from "@/app/components/theme-provider";
 import { ChevronDown, LogOut, Moon, Sun } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 export function AdminHeader() {
     const { theme, toggleTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     useEffect(() => {
         if (!menuOpen) return;

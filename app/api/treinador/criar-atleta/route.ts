@@ -11,12 +11,16 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
 
-    const treinadorUser = await sql<{ id: string; organization_id: string; name: string }[]>`
+    const treinadorUser = await sql<
+        { id: string; organization_id: string; name: string }[]
+    >`
         SELECT id, organization_id, name FROM users WHERE clerk_user_id = ${userId} LIMIT 1
     `;
     const treinador = treinadorUser[0];
-    if (!treinador) return new Response("Utilizador não encontrado.", { status: 404 });
-    if (!treinador.organization_id) return new Response("Sem organização associada.", { status: 403 });
+    if (!treinador)
+        return new Response("Utilizador não encontrado.", { status: 404 });
+    if (!treinador.organization_id)
+        return new Response("Sem organização associada.", { status: 403 });
 
     // Verificar que o treinador NÃO tem clube (apenas treinadores independentes podem criar atletas)
     const clubeRows = await sql<{ id: string }[]>`
@@ -25,11 +29,11 @@ export async function POST(req: NextRequest) {
     if (clubeRows.length > 0) {
         return new Response(
             "Treinadores vinculados a um clube não podem criar atletas diretamente. Os atletas são geridos pelo Presidente do clube.",
-            { status: 403 }
+            { status: 403 },
         );
     }
 
-    const body = await req.json() as {
+    const body = (await req.json()) as {
         nome: string;
         posicao?: string | null;
         numero_camisola?: number | null;
@@ -38,7 +42,25 @@ export async function POST(req: NextRequest) {
         email?: string | null;
     };
 
-    if (!body.nome?.trim()) return new Response("Nome é obrigatório.", { status: 400 });
+    if (!body.nome?.trim())
+        return new Response("Nome é obrigatório.", { status: 400 });
+
+    // Validar que a equipa pertence ao treinador
+    if (body.equipa_id) {
+        const equipaRows = await sql<{ id: string }[]>`
+            SELECT id FROM equipas
+            WHERE id = ${body.equipa_id}
+              AND organization_id = ${treinador.organization_id}
+              AND treinador_id = ${treinador.id}
+            LIMIT 1
+        `;
+        if (equipaRows.length === 0) {
+            return new Response(
+                "Só pode adicionar atletas à sua própria equipa.",
+                { status: 403 },
+            );
+        }
+    }
 
     let linkedUserId: string | null = null;
     let suspenso = false;
@@ -46,7 +68,9 @@ export async function POST(req: NextRequest) {
     // Se foi fornecido um email, verificar se existe na plataforma
     if (body.email?.trim()) {
         const emailNorm = body.email.trim().toLowerCase();
-        const userRows = await sql<{ id: string; organization_id: string | null }[]>`
+        const userRows = await sql<
+            { id: string; organization_id: string | null }[]
+        >`
             SELECT id, organization_id FROM users WHERE LOWER(email) = ${emailNorm} LIMIT 1
         `;
 
@@ -55,7 +79,10 @@ export async function POST(req: NextRequest) {
             linkedUserId = atletaUser.id;
 
             // Verificar se esse utilizador está vinculado a um clube diferente
-            if (atletaUser.organization_id && atletaUser.organization_id !== treinador.organization_id) {
+            if (
+                atletaUser.organization_id &&
+                atletaUser.organization_id !== treinador.organization_id
+            ) {
                 const atletaTemClube = await sql<{ id: string }[]>`
                     SELECT c.id FROM clubes c
                     WHERE c.organization_id = ${atletaUser.organization_id}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useSession } from "@clerk/nextjs";
 import { getDashboardPathForAccountType } from "@/app/lib/account-type";
 import {
     MIN_PASSWORD_LENGTH,
@@ -379,6 +379,7 @@ export default function CustomSignUpForm({
 }) {
     const router = useRouter();
     const { isLoaded, signUp, setActive } = useSignUp();
+    const { session } = useSession();
 
     const [stage, setStage] = useState<SignUpStage>("form");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -734,7 +735,7 @@ export default function CustomSignUpForm({
 
         const loadTrainerOptions = async () => {
             try {
-                const response = await fetch("/api/trainer-profile/options");
+                const response = await fetch("/api/perfil-treinador/options");
                 if (!response.ok) {
                     if (!isCancelled) {
                         setTrainerCourseModalityOptions([]);
@@ -821,7 +822,7 @@ export default function CustomSignUpForm({
 
             try {
                 const response = await fetch(
-                    `/api/athlete-profile/options?query=${encodeURIComponent(query)}`,
+                    `/api/perfil-atleta/options?query=${encodeURIComponent(query)}`,
                 );
 
                 if (!response.ok) {
@@ -1896,10 +1897,14 @@ export default function CustomSignUpForm({
             setSuccessMessage(
                 "Registo concluído com sucesso. A redirecionar...",
             );
+            // Forçar refresh do JWT para incluir o accountType atualizado
+            try {
+                await session?.touch();
+            } catch {}
             setTimeout(() => {
-                router.push(getDashboardPathForAccountType(accountType));
-                router.refresh();
-            }, 1000);
+                window.location.href =
+                    getDashboardPathForAccountType(accountType);
+            }, 1200);
         } catch (error) {
             setErrorMessage(getClerkErrorMessage(error));
         } finally {
@@ -2261,9 +2266,12 @@ export default function CustomSignUpForm({
                                 </p>
                                 <div className="flex justify-center">
                                     {photoPreviewUrl ? (
-                                        <img
+                                        <Image
                                             src={photoPreviewUrl}
                                             alt="Preview da foto"
+                                            width={64}
+                                            height={64}
+                                            unoptimized
                                             className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                                         />
                                     ) : (

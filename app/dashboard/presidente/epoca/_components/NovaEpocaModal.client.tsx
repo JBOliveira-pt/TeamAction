@@ -10,15 +10,17 @@ export default function NovaEpocaModal() {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         criarEpoca,
-        null
+        null,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
+    const [prevState, setPrevState] = useState(state);
+    if (state !== prevState) {
+        setPrevState(state);
+        if (state?.success) setOpen(false);
+    }
     useEffect(() => {
-        if (state?.success) {
-            formRef.current?.reset();
-            setOpen(false);
-        }
+        if (state?.success) formRef.current?.reset();
     }, [state]);
 
     return (
@@ -42,7 +44,9 @@ export default function NovaEpocaModal() {
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
                         {/* Header */}
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nova Época</h2>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                                Nova Época
+                            </h2>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -57,11 +61,16 @@ export default function NovaEpocaModal() {
                             </div>
                         )}
 
-                        <form ref={formRef} action={action} className="space-y-4">
+                        <form
+                            ref={formRef}
+                            action={action}
+                            className="space-y-4"
+                        >
                             {/* Nome */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Nome da Época <span className="text-red-400">*</span>
+                                    Nome da Época{" "}
+                                    <span className="text-red-400">*</span>
                                 </label>
                                 <input
                                     name="nome"
@@ -76,7 +85,8 @@ export default function NovaEpocaModal() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Data de Início <span className="text-red-400">*</span>
+                                        Data de Início{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         name="data_inicio"
@@ -87,7 +97,8 @@ export default function NovaEpocaModal() {
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Data de Fim <span className="text-red-400">*</span>
+                                        Data de Fim{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         name="data_fim"
@@ -107,12 +118,16 @@ export default function NovaEpocaModal() {
                                     defaultChecked
                                     className="w-4 h-4 rounded accent-blue-600"
                                 />
-                                <label htmlFor="ativa" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <label
+                                    htmlFor="ativa"
+                                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                                >
                                     Definir como época ativa
                                 </label>
                             </div>
                             <p className="text-xs text-gray-400 dark:text-gray-500 -mt-2">
-                                Se ativada, a época anterior será automaticamente desativada.
+                                Se ativada, a época anterior será
+                                automaticamente desativada.
                             </p>
 
                             {/* Botões */}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ReciboFilters } from "@/app/lib/receipts-data";
 
 export default function ReciboFiltersForm({
@@ -57,12 +58,12 @@ export default function ReciboFiltersForm({
                 >
                     Filtrar
                 </button>
-                <a
-                    href="/dashboard/receipts"
+                <Link
+                    href="/dashboard/presidente/recibos"
                     className="rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                     Limpar
-                </a>
+                </Link>
             </div>
         </form>
     );

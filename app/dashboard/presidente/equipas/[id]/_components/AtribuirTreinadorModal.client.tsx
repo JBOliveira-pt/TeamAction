@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { atribuirTreinadorEquipa } from '@/app/lib/actions';
-import { X } from 'lucide-react';
-import { useActionState, useEffect, useState } from 'react';
+import { atribuirTreinadorEquipa } from "@/app/lib/actions";
+import { X } from "lucide-react";
+import { useActionState, useState } from "react";
 
 type State = { error?: string; success?: boolean } | null;
 type Treinador = { id: string; name: string; email: string };
@@ -23,10 +23,12 @@ export default function AtribuirTreinadorModal({
         atribuirTreinadorEquipa,
         null,
     );
+    const [prevState, setPrevState] = useState(state);
 
-    useEffect(() => {
+    if (state !== prevState) {
+        setPrevState(state);
         if (state?.success) setOpen(false);
-    }, [state]);
+    }
 
     return (
         <>
@@ -34,7 +36,7 @@ export default function AtribuirTreinadorModal({
                 onClick={() => setOpen(true)}
                 className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
             >
-                {treinadorAtualId ? 'Alterar' : 'Atribuir treinador'}
+                {treinadorAtualId ? "Alterar" : "Atribuir treinador"}
             </button>
 
             {open && (
@@ -86,7 +88,7 @@ export default function AtribuirTreinadorModal({
                                 ) : (
                                     <select
                                         name="treinador_id"
-                                        defaultValue={treinadorAtualId ?? ''}
+                                        defaultValue={treinadorAtualId ?? ""}
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
                                     >
                                         <option value="">Sem treinador</option>
@@ -114,7 +116,7 @@ export default function AtribuirTreinadorModal({
                                     }
                                     className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-60"
                                 >
-                                    {isPending ? 'A guardar…' : 'Guardar'}
+                                    {isPending ? "A guardar…" : "Guardar"}
                                 </button>
                             </div>
                         </form>

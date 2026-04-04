@@ -7,7 +7,7 @@ import {
     fetchNotificacoes,
 } from "@/app/lib/data";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const resultadoStyle: Record<string, string> = {
     V: "text-emerald-400 font-bold",
@@ -16,90 +16,112 @@ const resultadoStyle: Record<string, string> = {
 };
 
 const estadoStyle: Record<string, string> = {
-    ativa:       "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-    inativa:     "bg-red-500/10 text-red-400 border border-red-500/20",
+    ativa: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+    inativa: "bg-red-500/10 text-red-400 border border-red-500/20",
     periodo_off: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
 };
 
 const tipoNotificacaoIcon: Record<string, string> = {
-    convite:      "📩",
-    pagamento:    "💰",
-    jogo:         "⚽",
-    suspensao:    "🚫",
-    sistema:      "⚙️",
-    aviso:        "⚠️",
+    convite: "📩",
+    pagamento: "💰",
+    jogo: "⚽",
+    suspensao: "🚫",
+    sistema: "⚙️",
+    aviso: "⚠️",
 };
 
 function tempoRelativo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime();
-    const mins  = Math.floor(diff / 60000);
+    const mins = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
-    const days  = Math.floor(diff / 86400000);
-    if (mins  < 60)  return `há ${mins}min`;
-    if (hours < 24)  return `há ${hours}h`;
+    const days = Math.floor(diff / 86400000);
+    if (mins < 60) return `há ${mins}min`;
+    if (hours < 24) return `há ${hours}h`;
     return `há ${days}d`;
 }
 
 export default async function PresidenteDashboard() {
-    const [dashboard, ultimosJogos, proximosJogos, equipas, notificacoes] = await Promise.all([
-        fetchPresidenteDashboard(),
-        fetchUltimosJogos(),
-        fetchProximosJogos(),
-        fetchEquipas(),
-        fetchNotificacoes(),
-    ]);
+    const [dashboard, ultimosJogos, proximosJogos, equipas, notificacoes] =
+        await Promise.all([
+            fetchPresidenteDashboard().catch(() => ({
+                totalEquipas: 0,
+                totalAtletas: 0,
+                jogosAgendados: 0,
+                mensalidadesEmAtraso: 0,
+                epocaNome: null as string | null,
+            })),
+            fetchUltimosJogos().catch(() => []),
+            fetchProximosJogos().catch(() => []),
+            fetchEquipas().catch(() => []),
+            fetchNotificacoes().catch(() => []),
+        ]);
 
     const naoLidas = notificacoes.filter((n) => !n.lida).length;
 
     const metricas = [
         {
-            label:   "Total de Atletas",
-            valor:   String(dashboard.totalAtletas),
+            label: "Total de Atletas",
+            valor: String(dashboard.totalAtletas),
             detalhe: `${dashboard.totalEquipas} equipas`,
-            cor:     "text-cyan-400",
-            borda:   "border-cyan-500/30",
-            bg:      "bg-cyan-500/5",
-            icon:    "👥",
+            cor: "text-cyan-400",
+            borda: "border-cyan-500/30",
+            bg: "bg-cyan-500/5",
+            icon: "👥",
         },
         {
-            label:   "Equipas",
-            valor:   String(dashboard.totalEquipas),
+            label: "Equipas",
+            valor: String(dashboard.totalEquipas),
             detalhe: "Esta época",
-            cor:     "text-emerald-400",
-            borda:   "border-emerald-500/30",
-            bg:      "bg-emerald-500/5",
-            icon:    "🏅",
+            cor: "text-emerald-400",
+            borda: "border-emerald-500/30",
+            bg: "bg-emerald-500/5",
+            icon: "🏅",
         },
         {
-            label:   "Jogos Agendados",
-            valor:   String(dashboard.jogosAgendados),
+            label: "Jogos Agendados",
+            valor: String(dashboard.jogosAgendados),
             detalhe: "Próximos jogos",
-            cor:     "text-blue-400",
-            borda:   "border-blue-500/30",
-            bg:      "bg-blue-500/5",
-            icon:    "📅",
+            cor: "text-blue-400",
+            borda: "border-blue-500/30",
+            bg: "bg-blue-500/5",
+            icon: "📅",
         },
         {
-            label:   "Mensalidades em Atraso",
-            valor:   String(dashboard.mensalidadesEmAtraso),
+            label: "Mensalidades em Atraso",
+            valor: String(dashboard.mensalidadesEmAtraso),
             detalhe: "Mês atual",
-            cor:     "text-amber-400",
-            borda:   "border-amber-500/30",
-            bg:      "bg-amber-500/5",
-            icon:    "💶",
+            cor: "text-amber-400",
+            borda: "border-amber-500/30",
+            bg: "bg-amber-500/5",
+            icon: "💶",
         },
     ];
 
     const atalhos = [
-        { label: "Convidar Atleta",     href: "/dashboard/presidente/atletas",    icon: "➕" },
-        { label: "Agendar Jogo",    href: "/dashboard/presidente/jogos",       icon: "⚽" },
-        { label: "Nova Equipa",     href: "/dashboard/presidente/equipas",     icon: "🏅" },
-        { label: "Relatórios",      href: "/dashboard/presidente/relatorios",  icon: "📄" },
+        {
+            label: "Convidar Atleta",
+            href: "/dashboard/presidente/atletas",
+            icon: "➕",
+        },
+        {
+            label: "Agendar Jogo",
+            href: "/dashboard/presidente/jogos",
+            icon: "⚽",
+        },
+        {
+            label: "Nova Equipa",
+            href: "/dashboard/presidente/equipas",
+            icon: "🏅",
+        },
+        {
+            label: "Relatórios",
+            href: "/dashboard/presidente/relatorios",
+            icon: "📄",
+        },
     ];
 
     return (
         <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
-
             {/* Cabeçalho */}
             <div className="flex items-start justify-between gap-4">
                 <div>
@@ -141,18 +163,20 @@ export default async function PresidenteDashboard() {
                             </p>
                             <span className="text-lg">{m.icon}</span>
                         </div>
-                        <p className={`text-4xl font-bold ${m.cor}`}>{m.valor}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">{m.detalhe}</p>
+                        <p className={`text-4xl font-bold ${m.cor}`}>
+                            {m.valor}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                            {m.detalhe}
+                        </p>
                     </div>
                 ))}
             </div>
 
             {/* Linha principal: Jogos + Notificações */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
                 {/* Últimos + Próximos Jogos — ocupa 2/3 */}
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-
                     {/* Últimos Jogos */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
                         <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
@@ -166,20 +190,40 @@ export default async function PresidenteDashboard() {
                             <div className="space-y-3">
                                 {ultimosJogos.map((j) => {
                                     const tipo =
-                                        j.resultado_nos != null && j.resultado_adv != null
-                                            ? j.resultado_nos > j.resultado_adv ? "V"
-                                            : j.resultado_nos < j.resultado_adv ? "D"
-                                            : "E"
+                                        j.resultado_nos != null &&
+                                        j.resultado_adv != null
+                                            ? j.resultado_nos > j.resultado_adv
+                                                ? "V"
+                                                : j.resultado_nos <
+                                                    j.resultado_adv
+                                                  ? "D"
+                                                  : "E"
                                             : null;
                                     return (
-                                        <div key={j.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0">
+                                        <div
+                                            key={j.id}
+                                            className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0"
+                                        >
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">{j.adversario}</p>
+                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                    {j.adversario}
+                                                </p>
                                                 <p className="text-xs text-gray-400 dark:text-gray-500">
-                                                    {new Date(j.data).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })} · {j.casa_fora}
+                                                    {new Date(
+                                                        j.data,
+                                                    ).toLocaleDateString(
+                                                        "pt-PT",
+                                                        {
+                                                            day: "2-digit",
+                                                            month: "short",
+                                                        },
+                                                    )}{" "}
+                                                    · {j.casa_fora}
                                                 </p>
                                             </div>
-                                            <span className={`text-sm ${tipo ? resultadoStyle[tipo] : "text-gray-400"}`}>
+                                            <span
+                                                className={`text-sm ${tipo ? resultadoStyle[tipo] : "text-gray-400"}`}
+                                            >
                                                 {j.resultado_nos != null
                                                     ? `${j.resultado_nos}–${j.resultado_adv}`
                                                     : "—"}
@@ -203,11 +247,22 @@ export default async function PresidenteDashboard() {
                         ) : (
                             <div className="space-y-3">
                                 {proximosJogos.map((j) => (
-                                    <div key={j.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0">
+                                    <div
+                                        key={j.id}
+                                        className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0"
+                                    >
                                         <div>
-                                            <p className="text-sm font-medium text-gray-900 dark:text-white">{j.adversario}</p>
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {j.adversario}
+                                            </p>
                                             <p className="text-xs text-gray-400 dark:text-gray-500">
-                                                {new Date(j.data).toLocaleDateString("pt-PT", { day: "2-digit", month: "short" })} · {j.local ?? "Local TBD"}
+                                                {new Date(
+                                                    j.data,
+                                                ).toLocaleDateString("pt-PT", {
+                                                    day: "2-digit",
+                                                    month: "short",
+                                                })}{" "}
+                                                · {j.local ?? "Local TBD"}
                                             </p>
                                         </div>
                                         <span className="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full capitalize">
@@ -252,7 +307,9 @@ export default async function PresidenteDashboard() {
                                         {tipoNotificacaoIcon[n.tipo] ?? "🔔"}
                                     </span>
                                     <div className="min-w-0 flex-1">
-                                        <p className={`text-xs font-semibold truncate ${!n.lida ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-300"}`}>
+                                        <p
+                                            className={`text-xs font-semibold truncate ${!n.lida ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-300"}`}
+                                        >
                                             {n.titulo}
                                         </p>
                                         <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
@@ -272,7 +329,9 @@ export default async function PresidenteDashboard() {
             {/* Equipas */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">📋 Equipas</h2>
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        📋 Equipas
+                    </h2>
                     <Link
                         href="/dashboard/presidente/equipas"
                         className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
@@ -296,12 +355,23 @@ export default async function PresidenteDashboard() {
                         </thead>
                         <tbody>
                             {equipas.map((e) => (
-                                <tr key={e.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0">
-                                    <td className="py-3 font-medium text-gray-900 dark:text-white">{e.nome}</td>
-                                    <td className="py-3 text-gray-500 dark:text-gray-400">{Number(e.total_atletas)}</td>
-                                    <td className="py-3 text-gray-500 dark:text-gray-400">{e.nome_treinador ?? "—"}</td>
+                                <tr
+                                    key={e.id}
+                                    className="border-b border-gray-100 dark:border-gray-800/50 last:border-0"
+                                >
+                                    <td className="py-3 font-medium text-gray-900 dark:text-white">
+                                        {e.nome}
+                                    </td>
+                                    <td className="py-3 text-gray-500 dark:text-gray-400">
+                                        {Number(e.total_atletas)}
+                                    </td>
+                                    <td className="py-3 text-gray-500 dark:text-gray-400">
+                                        {e.nome_treinador ?? "—"}
+                                    </td>
                                     <td className="py-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400 border border-slate-500/20"}`}>
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400 border border-slate-500/20"}`}
+                                        >
                                             {e.estado}
                                         </span>
                                     </td>
@@ -314,5 +384,3 @@ export default async function PresidenteDashboard() {
         </div>
     );
 }
-
-

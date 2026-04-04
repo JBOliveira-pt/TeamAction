@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { uploadDocumento } from "@/app/lib/actions";
 
 type UploadState = { error?: string; success?: boolean } | null;
@@ -8,34 +8,37 @@ type UploadState = { error?: string; success?: boolean } | null;
 export default function DocumentoUpload() {
     const [state, action, isPending] = useActionState<UploadState, FormData>(
         uploadDocumento,
-        null
+        null,
     );
     const formRef = useRef<HTMLFormElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const [ficheiro, setFicheiro] = useState<File | null>(null);
     const [dragging, setDragging] = useState(false);
+    const [prevState, setPrevState] = useState(state);
 
-    useEffect(() => {
+    if (state !== prevState) {
+        setPrevState(state);
         if (state?.success) {
-            formRef.current?.reset();
             setFicheiro(null);
         }
+    }
+    useEffect(() => {
+        if (state?.success) formRef.current?.reset();
     }, [state]);
 
     const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-        setFicheiro(file);
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        if (inputRef.current) {
-            inputRef.current.files = dt.files;
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            setFicheiro(file);
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            if (inputRef.current) {
+                inputRef.current.files = dt.files;
+            }
         }
-    }
-};
-
+    };
 
     return (
         <form ref={formRef} action={action} className="space-y-4">
@@ -52,7 +55,10 @@ export default function DocumentoUpload() {
 
             {/* Zona drag & drop */}
             <div
-                onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={handleDrop}
                 onClick={() => inputRef.current?.click()}
@@ -64,11 +70,17 @@ export default function DocumentoUpload() {
             >
                 <span className="text-4xl">📂</span>
                 {ficheiro ? (
-                    <p className="text-sm font-semibold text-violet-400">{ficheiro.name}</p>
+                    <p className="text-sm font-semibold text-violet-400">
+                        {ficheiro.name}
+                    </p>
                 ) : (
                     <>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">Arrasta ficheiros para aqui</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">PDF, XLSX, DOCX · máx. 10MB</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            Arrasta ficheiros para aqui
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                            PDF, XLSX, DOCX · máx. 10MB
+                        </p>
                     </>
                 )}
                 <input
@@ -108,4 +120,3 @@ export default function DocumentoUpload() {
         </form>
     );
 }
-

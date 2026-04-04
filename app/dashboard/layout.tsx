@@ -1,10 +1,22 @@
 import SideNav from "@/app/ui/dashboard/sidenav";
 import { LoginAvisoPopup } from "@/app/components/login-aviso-popup";
 import { UserInteractionTracker } from "@/app/components/user-interaction-tracker";
-import { AccountType, normalizeAccountType } from "@/app/lib/account-type";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import {
+    AccountType,
+    getDashboardPathForAccountType,
+    normalizeAccountType,
+} from "@/app/lib/account-type";
+import { auth } from "@clerk/nextjs/server";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import postgres from "postgres";
+
+const sql = postgres(process.env.POSTGRES_URL!, {
+    ssl: "require",
+    max: 2,
+    idle_timeout: 20,
+    connect_timeout: 15,
+});
 
 export const metadata: Metadata = {
     title: {
@@ -22,17 +34,24 @@ export default async function Layout({
 }: {
     children: React.ReactNode;
 }) {
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
 
     if (!userId) {
         redirect("/login");
     }
 
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const accountType = normalizeAccountType(
-        user.unsafeMetadata?.accountType ?? user.publicMetadata?.accountType,
-    );
+    const metadata = (sessionClaims?.metadata || {}) as {
+        accountType?: unknown;
+    };
+    let accountType = normalizeAccountType(metadata.accountType);
+
+    // Fallback: JWT pode estar desatualizado após signup, verificar BD
+    if (!accountType) {
+        const rows = await sql<{ account_type: string | null }[]>`
+            SELECT account_type FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+        `;
+        accountType = normalizeAccountType(rows[0]?.account_type);
+    }
 
     if (!accountType) {
         redirect("/signup");

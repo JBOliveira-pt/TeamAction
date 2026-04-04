@@ -171,8 +171,9 @@ export default function LandingPage() {
                             Tudo que um treinador moderno precisa
                         </h2>
                         <p className="text-slate-500 mt-4 italic text-lg font-light">
-                            "Baseado em fluxos de trabalho profissionais de alto
-                            nível, mas com a simplicidade que você merece."
+                            &quot;Baseado em fluxos de trabalho profissionais de
+                            alto nível, mas com a simplicidade que você
+                            merece.&quot;
                         </p>
                     </div>
 
@@ -232,8 +233,8 @@ export default function LandingPage() {
                             O Atleta no centro do jogo
                         </h2>
                         <p className="text-slate-500 mt-4 italic text-lg font-light">
-                            "Acompanhe sua evolução, receba feedbacks e esteja
-                            sempre pronto para o próximo desafio."
+                            &quot;Acompanhe sua evolução, receba feedbacks e
+                            esteja sempre pronto para o próximo desafio.&quot;
                         </p>
                     </div>
 
@@ -294,8 +295,8 @@ export default function LandingPage() {
                             Gestão Institucional de Elite
                         </h2>
                         <p className="text-slate-500 mt-4 italic text-lg font-light">
-                            "Visão macro do seu clube: finanças, categorias de
-                            base e infraestrutura em um só lugar."
+                            &quot;Visão macro do seu clube: finanças, categorias
+                            de base e infraestrutura em um só lugar.&quot;
                         </p>
                     </div>
 

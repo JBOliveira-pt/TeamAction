@@ -4,9 +4,12 @@ import {
     getDashboardPathForAccountType,
     normalizeAccountType,
 } from "@/app/lib/account-type";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { verifyInviteToken } from "@/app/lib/invite-token";
+import postgres from "postgres";
+
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 interface SignUpPageProps {
     searchParams: Promise<{ invite?: string }>;
@@ -34,23 +37,35 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         }
     }
 
-    const { userId } = await auth();
+    const { userId, sessionClaims } = await auth();
 
     if (userId) {
-        const client = await clerkClient();
-        const user = await client.users.getUser(userId);
-        const accountType = normalizeAccountType(
-            user.unsafeMetadata?.accountType ??
-                user.publicMetadata?.accountType,
-        );
+        const metadata = (sessionClaims?.metadata || {}) as {
+            accountType?: unknown;
+        };
+        let accountType = normalizeAccountType(metadata.accountType);
+
+        // Fallback: verificar BD quando o JWT ainda não foi atualizado
+        if (!accountType) {
+            const atRows = await sql<{ account_type: string | null }[]>`
+                SELECT account_type FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+            `;
+            accountType = normalizeAccountType(atRows[0]?.account_type);
+        }
 
         if (accountType) {
             redirect(getDashboardPathForAccountType(accountType));
         }
 
-        const initialFirstName = user.firstName || "";
-        const initialLastName = user.lastName || "";
-        const initialEmail = user.emailAddresses[0]?.emailAddress || "";
+        // Buscar nome/email da BD local em vez de chamar a API do Clerk
+        const rows = await sql<{ name: string; email: string }[]>`
+            SELECT name, email FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+        `;
+        const dbUser = rows[0];
+        const nameParts = (dbUser?.name || "").split(" ");
+        const initialFirstName = nameParts[0] || "";
+        const initialLastName = nameParts.slice(1).join(" ") || "";
+        const initialEmail = dbUser?.email || "";
 
         return (
             <main className="relative min-h-screen overflow-hidden">

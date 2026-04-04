@@ -2,7 +2,7 @@
 
 import LoginView from "../ui/login-form";
 import RegisterView from "../ui/submit-form";
-import { useState, useEffect, Suspense, useCallback } from "react";
+import { useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
@@ -10,7 +10,7 @@ function LoginPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
-    const { isSignedIn, isLoaded } = useAuth();
+    const { isLoaded } = useAuth();
 
     const initialView =
         searchParams.get("view") === "register" ? "register" : "login";
@@ -32,21 +32,18 @@ function LoginPageContent() {
         [searchParams, router, pathname],
     );
 
-    // Sincroniza com mudanças na URL
-    useEffect(() => {
+    // Sincroniza com mudanças na URL (sem useEffect)
+    const [prevSearchStr, setPrevSearchStr] = useState(searchParams.toString());
+    const currentSearchStr = searchParams.toString();
+    if (currentSearchStr !== prevSearchStr) {
+        setPrevSearchStr(currentSearchStr);
         const view = searchParams.get("view");
         if (view === "register" && currentView !== "register") {
             setCurrentView("register");
         } else if ((view === "login" || !view) && currentView !== "login") {
             setCurrentView("login");
         }
-    }, [searchParams, currentView]);
-
-    useEffect(() => {
-        if (isLoaded && isSignedIn) {
-            router.replace("/dashboard");
-        }
-    }, [isLoaded, isSignedIn, router]);
+    }
 
     // Mostrar loading enquanto verifica autenticação
     if (!isLoaded) {

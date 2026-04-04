@@ -28,7 +28,7 @@ function getProfileBadge(accountType: AccountType | null) {
         return {
             label: "Presidente",
             className:
-                "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+                "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
         };
     }
 
@@ -50,7 +50,7 @@ function getProfileBadge(accountType: AccountType | null) {
 
     if (accountType === "responsavel") {
         return {
-            label: "Pai/Enc.",
+            label: "Responsável",
             className:
                 "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
         };
@@ -120,11 +120,11 @@ export default async function AdminUsersPage({
                         Pesquisa global e acesso ao perfil para edição.
                     </p>
                 </div>
-                <form className="w-full md:w-80">
+                <form className="w-full md:w-96">
                     <input
                         name="query"
                         defaultValue={query}
-                        placeholder="Pesquisar por nome, email, função, organização"
+                        placeholder="Pesquisar por nome, e-mail, função ou clube/equipa"
                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     />
                 </form>
@@ -135,7 +135,7 @@ export default async function AdminUsersPage({
                     <thead className="bg-gray-50 dark:bg-gray-950/70">
                         <tr>
                             <th className="text-left px-4 py-3">Nome</th>
-                            <th className="text-left px-4 py-3">Email</th>
+                            <th className="text-left px-4 py-3">E-mail</th>
                             <th className="text-left px-4 py-3">
                                 <Link
                                     href={buildSortHref("account_type")}
@@ -150,7 +150,7 @@ export default async function AdminUsersPage({
                                     href={buildSortHref("organization")}
                                     className={`inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${sort === "organization" ? "text-blue-600 dark:text-blue-400" : ""}`}
                                 >
-                                    Organização
+                                    Clube/Equipa
                                     <ArrowUpDown size={14} />
                                 </Link>
                             </th>

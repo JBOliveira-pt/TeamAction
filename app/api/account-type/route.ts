@@ -548,6 +548,22 @@ async function ensureUserExistsWithOrganization(
                 VALUES (gen_random_uuid(), ${fullName}, ${email}, ${passwordValue}, ${userId}, ${role}, ${newOrg[0].id}, ${uploadedImageUrl || currentUser.imageUrl || null}, NOW(), NOW())
             `;
         }
+
+        // Auto-create equipa mirror for this organization (1:1)
+        await tx`
+            INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
+            VALUES (
+                gen_random_uuid(),
+                ${newOrg[0].id},
+                ${orgName},
+                'Geral',
+                'Não definido',
+                'ativa',
+                NOW(),
+                NOW()
+            )
+            ON CONFLICT (organization_id) DO NOTHING
+        `;
     });
 }
 
@@ -868,6 +884,16 @@ export async function POST(req: Request) {
                             updated_at = NOW()
                     `;
                 }
+
+                // Sync equipa mirror with updated club details
+                await sql`
+                    UPDATE equipas
+                    SET
+                        nome = ${presidentProfile.clubName},
+                        desporto = ${presidentProfile.sport},
+                        updated_at = NOW()
+                    WHERE organization_id = ${organizationId}
+                `;
             }
 
             const userExtraColumns = await sql<{ column_name: string }[]>`

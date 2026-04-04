@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type MonthlyCountPoint = {
     month: string;
@@ -65,6 +65,18 @@ export function MonthlyCountChart({
         tabs?.[0]?.id ?? null,
     );
 
+    const [prevTabs, setPrevTabs] = useState(tabs);
+    if (tabs !== prevTabs) {
+        setPrevTabs(tabs);
+        if (
+            tabs &&
+            tabs.length > 0 &&
+            !tabs.some((tab) => tab.id === selectedTabId)
+        ) {
+            setSelectedTabId(tabs[0].id);
+        }
+    }
+
     const activeData = useMemo(() => {
         if (!tabs || tabs.length === 0) {
             return data;
@@ -74,24 +86,10 @@ export function MonthlyCountChart({
         return selected?.data ?? tabs[0].data;
     }, [data, selectedTabId, tabs]);
 
-    const [series, setSeries] = useState<MonthlyCountPoint[]>(
-        activeData.slice(-12),
+    const series = useMemo(
+        () => activeData.slice(-selectedMonths),
+        [activeData, selectedMonths],
     );
-
-    useEffect(() => {
-        if (!tabs || tabs.length === 0) {
-            return;
-        }
-
-        const exists = tabs.some((tab) => tab.id === selectedTabId);
-        if (!exists) {
-            setSelectedTabId(tabs[0].id);
-        }
-    }, [selectedTabId, tabs]);
-
-    useEffect(() => {
-        setSeries(activeData.slice(-selectedMonths));
-    }, [activeData, selectedMonths]);
 
     const total = useMemo(
         () => series.reduce((sum, item) => sum + item.count, 0),

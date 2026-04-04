@@ -8,42 +8,48 @@ type State = { error?: string; success?: boolean } | null;
 type Atleta = { id: string; nome: string; equipa_nome: string | null };
 
 const MESES = [
-    { value: "1",  label: "Janeiro" },
-    { value: "2",  label: "Fevereiro" },
-    { value: "3",  label: "Março" },
-    { value: "4",  label: "Abril" },
-    { value: "5",  label: "Maio" },
-    { value: "6",  label: "Junho" },
-    { value: "7",  label: "Julho" },
-    { value: "8",  label: "Agosto" },
-    { value: "9",  label: "Setembro" },
+    { value: "1", label: "Janeiro" },
+    { value: "2", label: "Fevereiro" },
+    { value: "3", label: "Março" },
+    { value: "4", label: "Abril" },
+    { value: "5", label: "Maio" },
+    { value: "6", label: "Junho" },
+    { value: "7", label: "Julho" },
+    { value: "8", label: "Agosto" },
+    { value: "9", label: "Setembro" },
     { value: "10", label: "Outubro" },
     { value: "11", label: "Novembro" },
     { value: "12", label: "Dezembro" },
 ];
 
 const ESTADOS = [
-    { value: "pago",      label: "Pago" },
-    { value: "pendente",  label: "Pendente" },
+    { value: "pago", label: "Pago" },
+    { value: "pendente", label: "Pendente" },
     { value: "em_atraso", label: "Em Atraso" },
 ];
 
-export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[] }) {
+export default function RegistarMensalidadeModal({
+    atletas,
+}: {
+    atletas: Atleta[];
+}) {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         registarPagamento,
-        null
+        null,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
     const anoAtual = new Date().getFullYear();
     const mesAtual = String(new Date().getMonth() + 1);
 
+    const [prevState, setPrevState] = useState(state);
+    if (state !== prevState) {
+        setPrevState(state);
+        if (state?.success) setOpen(false);
+    }
     useEffect(() => {
-        if (state?.success) {
-            formRef.current?.reset();
-            setOpen(false);
-        }
+        if (state?.success) formRef.current?.reset();
     }, [state]);
 
     return (
@@ -64,7 +70,9 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
                         {/* Header */}
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Registar Pagamento</h2>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                                Registar Pagamento
+                            </h2>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -79,11 +87,16 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                             </div>
                         )}
 
-                        <form ref={formRef} action={action} className="space-y-4">
+                        <form
+                            ref={formRef}
+                            action={action}
+                            className="space-y-4"
+                        >
                             {/* Atleta */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Atleta <span className="text-red-400">*</span>
+                                    Atleta{" "}
+                                    <span className="text-red-400">*</span>
                                 </label>
                                 <select
                                     name="atleta_id"
@@ -93,7 +106,10 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                                     <option value="">Seleciona o atleta</option>
                                     {atletas.map((a) => (
                                         <option key={a.id} value={a.id}>
-                                            {a.nome}{a.equipa_nome ? ` · ${a.equipa_nome}` : ""}
+                                            {a.nome}
+                                            {a.equipa_nome
+                                                ? ` · ${a.equipa_nome}`
+                                                : ""}
                                         </option>
                                     ))}
                                 </select>
@@ -103,7 +119,8 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Mês <span className="text-red-400">*</span>
+                                        Mês{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <select
                                         name="mes"
@@ -112,13 +129,19 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         {MESES.map((m) => (
-                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                            <option
+                                                key={m.value}
+                                                value={m.value}
+                                            >
+                                                {m.label}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Ano <span className="text-red-400">*</span>
+                                        Ano{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <select
                                         name="ano"
@@ -126,8 +149,14 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                                         required
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
-                                        {[anoAtual - 1, anoAtual, anoAtual + 1].map((a) => (
-                                            <option key={a} value={String(a)}>{a}</option>
+                                        {[
+                                            anoAtual - 1,
+                                            anoAtual,
+                                            anoAtual + 1,
+                                        ].map((a) => (
+                                            <option key={a} value={String(a)}>
+                                                {a}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -137,10 +166,13 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Valor (€) <span className="text-red-400">*</span>
+                                        Valor (€){" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">€</span>
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                                            €
+                                        </span>
                                         <input
                                             name="valor"
                                             type="number"
@@ -154,7 +186,8 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Estado <span className="text-red-400">*</span>
+                                        Estado{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <select
                                         name="estado"
@@ -163,7 +196,12 @@ export default function RegistarMensalidadeModal({ atletas }: { atletas: Atleta[
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         {ESTADOS.map((e) => (
-                                            <option key={e.value} value={e.value}>{e.label}</option>
+                                            <option
+                                                key={e.value}
+                                                value={e.value}
+                                            >
+                                                {e.label}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>

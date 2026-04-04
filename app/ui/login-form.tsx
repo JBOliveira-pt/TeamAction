@@ -79,15 +79,20 @@ const LoginContent = ({ setView }: { setView: (v: "register") => void }) => {
                     {isSignedIn ? (
                         <>
                             <p className="text-center text-xs text-amber-300">
-                                Sessão ativa detectada. Para entrar com outro
-                                usuário, escolha Trocar conta.
+                                Sessão ativa detectada.
                             </p>
+                            <Link
+                                href={callbackUrl}
+                                className="block w-full rounded-xl bg-blue-600 py-3.5 text-center text-lg font-bold text-white shadow-lg shadow-blue-700/40 transition-all hover:-translate-y-0.5 hover:bg-blue-500"
+                            >
+                                Retornar à Sessão
+                            </Link>
                             <button
                                 type="button"
                                 onClick={handleOpenSignIn}
-                                className="w-full rounded-xl bg-amber-500 py-3.5 text-lg font-bold text-slate-950 shadow-lg shadow-amber-700/40 transition-all hover:-translate-y-0.5 hover:bg-amber-400"
+                                className="w-full rounded-xl border border-amber-500/60 bg-transparent py-3.5 text-lg font-bold text-amber-400 transition-all hover:-translate-y-0.5 hover:bg-amber-500/10"
                             >
-                                Trocar conta
+                                Trocar de Conta
                             </button>
                         </>
                     ) : (

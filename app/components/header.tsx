@@ -8,7 +8,13 @@ import { useClerk } from "@clerk/nextjs";
 import { LogOut, Moon, Settings, Sun, User, UserRoundCog } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import {
+    ReactNode,
+    useEffect,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from "react";
 
 interface DashboardHeaderProps {
     mobileMenuTrigger?: ReactNode;
@@ -34,15 +40,15 @@ export function DashboardHeader({
     user,
 }: DashboardHeaderProps) {
     const { theme, toggleTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false,
+    );
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
     const { signOut } = useClerk();
     const router = useRouter();
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     useEffect(() => {
         if (!userMenuOpen) return;

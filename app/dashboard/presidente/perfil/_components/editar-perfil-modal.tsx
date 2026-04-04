@@ -1,22 +1,24 @@
-'use client';
+"use client";
 
-import { useActionState, useEffect, useState } from 'react';
-import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { atualizarMeuPerfil } from '@/app/lib/actions';
+import { useActionState, useState } from "react";
+import { PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { atualizarMeuPerfil } from "@/app/lib/actions";
 
 interface Props {
     firstName: string;
-    lastName:  string;
-    iban:      string | null;
+    lastName: string;
+    iban: string | null;
 }
 
 export function EditarPerfilModal({ firstName, lastName, iban }: Props) {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState(atualizarMeuPerfil, null);
+    const [prevState, setPrevState] = useState(state);
 
-    useEffect(() => {
+    if (state !== prevState) {
+        setPrevState(state);
         if (state?.success) setOpen(false);
-    }, [state]);
+    }
 
     return (
         <>
@@ -31,13 +33,16 @@ export function EditarPerfilModal({ firstName, lastName, iban }: Props) {
             {open && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setOpen(false);
+                    }}
                 >
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 w-full max-w-md mx-4 p-6 shadow-xl">
-                        
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Editar Perfil</h2>
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                Editar Perfil
+                            </h2>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -80,7 +85,7 @@ export function EditarPerfilModal({ firstName, lastName, iban }: Props) {
                                 </label>
                                 <input
                                     name="iban"
-                                    defaultValue={iban ?? ''}
+                                    defaultValue={iban ?? ""}
                                     placeholder="PT50..."
                                     className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
@@ -110,7 +115,7 @@ export function EditarPerfilModal({ firstName, lastName, iban }: Props) {
                                     disabled={isPending}
                                     className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    {isPending ? 'A guardar...' : 'Guardar'}
+                                    {isPending ? "A guardar..." : "Guardar"}
                                 </button>
                             </div>
                         </form>
@@ -120,4 +125,3 @@ export function EditarPerfilModal({ firstName, lastName, iban }: Props) {
         </>
     );
 }
-

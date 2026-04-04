@@ -63,13 +63,13 @@ function getAccountTypeLabel(accountType: AccountType | null) {
             };
         case "responsavel":
             return {
-                label: "Pai/Enc.",
+                label: "Responsável",
                 className:
                     "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
             };
         default:
             return {
-                label: "Usuário",
+                label: "Utilizador",
                 className:
                     "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200",
             };
@@ -165,7 +165,7 @@ export default async function AdminUserDetailPage({
         if (resolvedSearchParams?.error === "delete") {
             return {
                 kind: "error" as const,
-                message: "Falha ao excluir o usuário. Tente novamente.",
+                message: "Falha ao excluir o utilizador. Tente novamente.",
             };
         }
 
@@ -173,7 +173,7 @@ export default async function AdminUserDetailPage({
             return {
                 kind: "warning" as const,
                 message:
-                    "Usuário removido da base de dados, mas houve falha ao remover no Clerk.",
+                    "Utilizador removido da base de dados, mas houve falha ao remover no Clerk.",
             };
         }
 
@@ -184,7 +184,7 @@ export default async function AdminUserDetailPage({
         <div className="space-y-4">
             <header>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Perfil do Usuário
+                    Perfil do Utilizador
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                     Verificação e alteração de dados cadastrais.

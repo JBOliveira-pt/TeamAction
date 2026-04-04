@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     if (!organizationName || organizationName.trim().length === 0) {
         return new Response(
             JSON.stringify({ error: "Organization name is required" }),
-            { status: 400, headers: { "Content-Type": "application/json" } }
+            { status: 400, headers: { "Content-Type": "application/json" } },
         );
     }
 
@@ -30,14 +30,20 @@ export async function POST(req: Request) {
         if (existingUser.length > 0 && existingUser[0].organization_id) {
             return new Response(
                 JSON.stringify({ error: "User already has an organization" }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
+                {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                },
             );
         }
 
         if (existingUser.length === 0) {
             return new Response(
                 JSON.stringify({ error: "User not found in database" }),
-                { status: 404, headers: { "Content-Type": "application/json" } }
+                {
+                    status: 404,
+                    headers: { "Content-Type": "application/json" },
+                },
             );
         }
 
@@ -66,24 +72,42 @@ export async function POST(req: Request) {
             WHERE clerk_user_id = ${userId}
         `;
 
-        console.log(`[ONBOARDING] ✅ Created organization: ${organizationName} (${organizationId}) for user ${userId}`);
+        // Auto-create equipa mirror for this organization (1:1)
+        await sql`
+            INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
+            VALUES (
+                gen_random_uuid(),
+                ${organizationId},
+                ${organizationName},
+                'Geral',
+                'Não definido',
+                'ativa',
+                NOW(),
+                NOW()
+            )
+            ON CONFLICT (organization_id) DO NOTHING
+        `;
+
+        console.log(
+            `[ONBOARDING] ✅ Created organization + equipa: ${organizationName} (${organizationId}) for user ${userId}`,
+        );
 
         return new Response(
-            JSON.stringify({ 
-                success: true, 
+            JSON.stringify({
+                success: true,
                 organizationId,
-                redirect: "/dashboard"
+                redirect: "/dashboard",
             }),
-            { 
+            {
                 status: 200,
-                headers: { "Content-Type": "application/json" }
-            }
+                headers: { "Content-Type": "application/json" },
+            },
         );
     } catch (error) {
         console.error("[ONBOARDING] ❌ Error:", error);
         return new Response(
             JSON.stringify({ error: "Failed to create organization" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+            { status: 500, headers: { "Content-Type": "application/json" } },
         );
     }
 }

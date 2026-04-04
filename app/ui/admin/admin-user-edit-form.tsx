@@ -218,23 +218,20 @@ export function AdminUserEditForm({
         reader.readAsDataURL(file);
     }
 
+    const [prevCodigoPostal, setPrevCodigoPostal] = useState(codigoPostal);
+    if (codigoPostal !== prevCodigoPostal) {
+        setPrevCodigoPostal(codigoPostal);
+        if (!codigoPostal) setCidade("");
+    }
+
     useEffect(() => {
-        const normalized = normalizePostalCode(codigoPostal);
-        if (codigoPostal !== normalized) {
-            setCodigoPostal(normalized);
-            return;
-        }
-        if (!normalized) {
-            setCidade("");
-            return;
-        }
-        if (!POSTAL_CODE_REGEX.test(normalized)) {
+        if (!codigoPostal || !POSTAL_CODE_REGEX.test(codigoPostal)) {
             return;
         }
         let isCancelled = false;
         const resolveCity = async () => {
             try {
-                const city = await fetchCityByPostalCode(normalized);
+                const city = await fetchCityByPostalCode(codigoPostal);
                 if (!isCancelled) {
                     setCidade(city || "");
                 }
@@ -297,7 +294,7 @@ export function AdminUserEditForm({
                     </div>
                 ) : (
                     <div>
-                        <label className={labelCls}>Nome da organização</label>
+                        <label className={labelCls}>Nome do Clube/Equipa</label>
                         <input
                             name="organizationName"
                             defaultValue={user.organization_name || ""}
@@ -308,7 +305,7 @@ export function AdminUserEditForm({
             </div>
 
             <div>
-                <label className={labelCls}>Email *</label>
+                <label className={labelCls}>E-mail *</label>
                 <input
                     type="email"
                     name="email"
@@ -317,7 +314,7 @@ export function AdminUserEditForm({
                     className={inputCls}
                 />
                 <p className={hintCls}>
-                    Se alterar o email, o Clerk enviará uma verificação para o
+                    Se alterar o e-mail, o Clerk enviará uma verificação para o
                     novo endereço.
                 </p>
             </div>
@@ -432,7 +429,9 @@ export function AdminUserEditForm({
                                 name="codigoPostal"
                                 value={codigoPostal}
                                 onChange={(e) =>
-                                    setCodigoPostal(e.target.value)
+                                    setCodigoPostal(
+                                        normalizePostalCode(e.target.value),
+                                    )
                                 }
                                 placeholder="1000-001"
                                 maxLength={8}
@@ -676,7 +675,7 @@ export function AdminUserEditForm({
             {/* ── Organização (não-atleta) ── */}
             {isAtleta && (
                 <div>
-                    <label className={labelCls}>Nome da organização</label>
+                    <label className={labelCls}>Nome do Clube/Equipa</label>
                     <input
                         name="organizationName"
                         defaultValue={user.organization_name || ""}

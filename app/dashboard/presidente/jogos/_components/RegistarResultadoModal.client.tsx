@@ -1,24 +1,29 @@
-'use client';
+"use client";
 
-import { useActionState, useEffect, useState } from 'react';
-import { registarResultado } from '@/app/lib/actions';
-import { X } from 'lucide-react';
+import { useActionState, useState } from "react";
+import { registarResultado } from "@/app/lib/actions";
+import { X } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
 
 type Jogo = {
-    id:        string;
+    id: string;
     adversario: string;
-    data:      string;
+    data: string;
 };
 
 export default function RegistarResultadoModal({ jogo }: { jogo: Jogo }) {
     const [open, setOpen] = useState(false);
-    const [state, action, isPending] = useActionState<State, FormData>(registarResultado, null);
+    const [state, action, isPending] = useActionState<State, FormData>(
+        registarResultado,
+        null,
+    );
+    const [prevState, setPrevState] = useState(state);
 
-    useEffect(() => {
+    if (state !== prevState) {
+        setPrevState(state);
         if (state?.success) setOpen(false);
-    }, [state]);
+    }
 
     return (
         <>
@@ -40,9 +45,15 @@ export default function RegistarResultadoModal({ jogo }: { jogo: Jogo }) {
                         {/* Header */}
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Registar Resultado</h2>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                                    Registar Resultado
+                                </h2>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    vs {jogo.adversario} · {new Date(jogo.data).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                                    vs {jogo.adversario} ·{" "}
+                                    {new Date(jogo.data).toLocaleDateString(
+                                        "pt-PT",
+                                        { day: "2-digit", month: "short" },
+                                    )}
                                 </p>
                             </div>
                             <button
@@ -66,7 +77,8 @@ export default function RegistarResultadoModal({ jogo }: { jogo: Jogo }) {
                             <div className="flex items-center gap-4">
                                 <div className="flex-1 space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Nós <span className="text-red-400">*</span>
+                                        Nós{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         name="resultado_nos"
@@ -77,10 +89,13 @@ export default function RegistarResultadoModal({ jogo }: { jogo: Jogo }) {
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-2xl font-bold text-center text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     />
                                 </div>
-                                <span className="text-2xl font-bold text-gray-400 mt-5">—</span>
+                                <span className="text-2xl font-bold text-gray-400 mt-5">
+                                    —
+                                </span>
                                 <div className="flex-1 space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        {jogo.adversario} <span className="text-red-400">*</span>
+                                        {jogo.adversario}{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <input
                                         name="resultado_adv"
@@ -94,7 +109,11 @@ export default function RegistarResultadoModal({ jogo }: { jogo: Jogo }) {
                             </div>
 
                             <p className="text-xs text-gray-400 dark:text-gray-500">
-                                ℹ️ O jogo vai ser marcado automaticamente como <span className="font-medium text-gray-600 dark:text-gray-300">Realizado</span>.
+                                ℹ️ O jogo vai ser marcado automaticamente como{" "}
+                                <span className="font-medium text-gray-600 dark:text-gray-300">
+                                    Realizado
+                                </span>
+                                .
                             </p>
 
                             {/* Botões */}
@@ -111,7 +130,9 @@ export default function RegistarResultadoModal({ jogo }: { jogo: Jogo }) {
                                     disabled={isPending}
                                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                 >
-                                    {isPending ? 'A guardar...' : 'Guardar Resultado'}
+                                    {isPending
+                                        ? "A guardar..."
+                                        : "Guardar Resultado"}
                                 </button>
                             </div>
                         </form>

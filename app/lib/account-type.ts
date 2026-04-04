@@ -27,7 +27,7 @@ export function getDashboardPathForAccountType(
         case "atleta":
             return "/dashboard/atleta";
         case "responsavel":
-            return "/dashboard/pai";
+            return "/dashboard/responsavel";
         default:
             return "/signup";
     }

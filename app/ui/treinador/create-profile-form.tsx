@@ -1,5 +1,6 @@
 "use client";
 import { useState, ChangeEvent } from "react";
+import Image from "next/image";
 import { Button } from "@/app/ui/button";
 import {
     UserIcon,
@@ -136,9 +137,12 @@ export default function CreateTreinadorProfileForm() {
                         <div className="relative shrink-0">
                             {preview ? (
                                 <>
-                                    <img
+                                    <Image
                                         src={preview}
                                         alt="Preview"
+                                        width={80}
+                                        height={80}
+                                        unoptimized
                                         className="w-20 h-20 rounded-full object-cover ring-2 ring-gray-300 dark:ring-gray-700"
                                     />
                                     <button

@@ -9,36 +9,50 @@ type State = { error?: string; success?: boolean } | null;
 type Equipa = { id: string; nome: string };
 
 const POSICOES = [
-    "Guarda-Redes", "Defesa Central", "Defesa Esquerdo", "Defesa Direito",
-    "Médio Defensivo", "Médio Centro", "Médio Ofensivo",
-    "Extremo Esquerdo", "Extremo Direito", "Avançado Centro", "Outro",
+    "Guarda-Redes",
+    "Defesa Central",
+    "Defesa Esquerdo",
+    "Defesa Direito",
+    "Médio Defensivo",
+    "Médio Centro",
+    "Médio Ofensivo",
+    "Extremo Esquerdo",
+    "Extremo Direito",
+    "Avançado Centro",
+    "Outro",
 ];
 
 const ESTADOS = [
-    { value: "ativo",     label: "Ativo" },
-    { value: "suspenso",  label: "Suspenso" },
-    { value: "inativo",   label: "Inativo" },
+    { value: "ativo", label: "Ativo" },
+    { value: "suspenso", label: "Suspenso" },
+    { value: "inativo", label: "Inativo" },
 ];
 
 const MAOS = [
-    { value: "direita",    label: "Direita" },
-    { value: "esquerda",   label: "Esquerda" },
+    { value: "direita", label: "Direita" },
+    { value: "esquerda", label: "Esquerda" },
     { value: "ambidestro", label: "Ambidestro" },
 ];
 
-export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] }) {
+export default function AdicionarAtletaModal({
+    equipas,
+}: {
+    equipas: Equipa[];
+}) {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         adicionarAtleta,
-        null
+        null,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
+    const [prevState, setPrevState] = useState(state);
+    if (state !== prevState) {
+        setPrevState(state);
+        if (state?.success) setOpen(false);
+    }
     useEffect(() => {
-        if (state?.success) {
-            formRef.current?.reset();
-            setOpen(false);
-        }
+        if (state?.success) formRef.current?.reset();
     }, [state]);
 
     return (
@@ -62,7 +76,9 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                     <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
                         {/* Header */}
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Adicionar Atleta</h2>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                                Adicionar Atleta
+                            </h2>
                             <button
                                 onClick={() => setOpen(false)}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -77,11 +93,16 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                             </div>
                         )}
 
-                        <form ref={formRef} action={action} className="space-y-4">
+                        <form
+                            ref={formRef}
+                            action={action}
+                            className="space-y-4"
+                        >
                             {/* Nome */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Nome Completo <span className="text-red-400">*</span>
+                                    Nome Completo{" "}
+                                    <span className="text-red-400">*</span>
                                 </label>
                                 <input
                                     name="nome"
@@ -104,13 +125,16 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                                     >
                                         <option value="">Sem equipa</option>
                                         {equipas.map((e) => (
-                                            <option key={e.id} value={e.id}>{e.nome}</option>
+                                            <option key={e.id} value={e.id}>
+                                                {e.nome}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Estado <span className="text-red-400">*</span>
+                                        Estado{" "}
+                                        <span className="text-red-400">*</span>
                                     </label>
                                     <select
                                         name="estado"
@@ -119,7 +143,12 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         {ESTADOS.map((s) => (
-                                            <option key={s.value} value={s.value}>{s.label}</option>
+                                            <option
+                                                key={s.value}
+                                                value={s.value}
+                                            >
+                                                {s.label}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -137,7 +166,9 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                                     >
                                         <option value="">Seleciona</option>
                                         {POSICOES.map((p) => (
-                                            <option key={p} value={p}>{p}</option>
+                                            <option key={p} value={p}>
+                                                {p}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -167,7 +198,9 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                                 >
                                     <option value="">Seleciona</option>
                                     {MAOS.map((m) => (
-                                        <option key={m.value} value={m.value}>{m.label}</option>
+                                        <option key={m.value} value={m.value}>
+                                            {m.label}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -180,7 +213,10 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                                     type="checkbox"
                                     className="w-4 h-4 rounded accent-blue-600"
                                 />
-                                <label htmlFor="federado" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <label
+                                    htmlFor="federado"
+                                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                                >
                                     Atleta Federado
                                 </label>
                             </div>
@@ -212,7 +248,9 @@ export default function AdicionarAtletaModal({ equipas }: { equipas: Equipa[] })
                                     disabled={isPending}
                                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                 >
-                                    {isPending ? "A adicionar..." : "Adicionar Atleta"}
+                                    {isPending
+                                        ? "A adicionar..."
+                                        : "Adicionar Atleta"}
                                 </button>
                             </div>
                         </form>

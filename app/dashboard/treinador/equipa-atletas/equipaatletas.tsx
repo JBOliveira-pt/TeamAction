@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import Image from "next/image";
 
 type Atleta = {
     id: string;
@@ -55,7 +56,10 @@ function Toast({ msg, tipo }: { msg: string; tipo: "ok" | "erro" }) {
 function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
     const [email, setEmail] = useState("");
     const [verificando, setVerificando] = useState(false);
-    const [resultado, setResultado] = useState<{ existe: boolean; nome?: string } | null>(null);
+    const [resultado, setResultado] = useState<{
+        existe: boolean;
+        nome?: string;
+    } | null>(null);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -66,13 +70,17 @@ function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
         timer.current = setTimeout(async () => {
             setVerificando(true);
             try {
-                const res = await fetch(`/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`);
+                const res = await fetch(
+                    `/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`,
+                );
                 if (res.ok) setResultado(await res.json());
             } finally {
                 setVerificando(false);
             }
         }, 400);
-        return () => { if (timer.current) clearTimeout(timer.current); };
+        return () => {
+            if (timer.current) clearTimeout(timer.current);
+        };
     }, [email]);
 
     return (
@@ -80,12 +88,29 @@ function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Convidar por Email</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Verifica se o atleta já está registado na plataforma</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                            Convidar por Email
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Verifica se o atleta já está registado na plataforma
+                        </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                    >
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
@@ -105,7 +130,9 @@ function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
                     </div>
 
                     {verificando && (
-                        <p className="text-xs text-gray-400 text-center">A verificar...</p>
+                        <p className="text-xs text-gray-400 text-center">
+                            A verificar...
+                        </p>
                     )}
 
                     {!verificando && resultado?.existe && (
@@ -115,11 +142,17 @@ function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
                             </p>
                             {resultado.nome && (
                                 <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                    Encontrado: <span className="font-semibold">{resultado.nome}</span>
+                                    Encontrado:{" "}
+                                    <span className="font-semibold">
+                                        {resultado.nome}
+                                    </span>
                                 </p>
                             )}
                             <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                Este atleta já tem conta na plataforma. Para o adicionar à equipa, utiliza a opção <strong>"Pesquisar Atleta"</strong> e envia um convite de equipa.
+                                Este atleta já tem conta na plataforma. Para o
+                                adicionar à equipa, utiliza a opção{" "}
+                                <strong>&quot;Pesquisar Atleta&quot;</strong> e
+                                envia um convite de equipa.
                             </p>
                         </div>
                     )}
@@ -130,7 +163,11 @@ function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
                                 ℹ️ Atleta não encontrado na plataforma
                             </p>
                             <p className="text-xs text-blue-700 dark:text-blue-400">
-                                Não existe nenhum utilizador com este e-mail registado. Para adicionar um atleta externo, contacta o Presidente do clube para criar o perfil ou aguarda que o atleta se registe na plataforma.
+                                Não existe nenhum utilizador com este e-mail
+                                registado. Para adicionar um atleta externo,
+                                contacta o Presidente do clube para criar o
+                                perfil ou aguarda que o atleta se registe na
+                                plataforma.
                             </p>
                         </div>
                     )}
@@ -161,20 +198,24 @@ function ModalTodosAtletas({
     const [todos, setTodos] = useState<AtletaResultado[]>([]);
     const [loading, setLoading] = useState(true);
     const [filtro, setFiltro] = useState("");
-    const [atletaSelecionado, setAtletaSelecionado] = useState<AtletaResultado | null>(null);
+    const [atletaSelecionado, setAtletaSelecionado] =
+        useState<AtletaResultado | null>(null);
     const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
 
     useEffect(() => {
         fetch("/api/atletas/todos")
-            .then((r) => r.ok ? r.json() : [])
-            .then((data) => { setTodos(data); setLoading(false); })
+            .then((r) => (r.ok ? r.json() : []))
+            .then((data) => {
+                setTodos(data);
+                setLoading(false);
+            })
             .catch(() => setLoading(false));
     }, []);
 
     const visiveis = todos.filter((a) =>
-        a.nome.toLowerCase().includes(filtro.toLowerCase())
+        a.nome.toLowerCase().includes(filtro.toLowerCase()),
     );
 
     const enviarConvite = async () => {
@@ -205,12 +246,29 @@ function ModalTodosAtletas({
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh]">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Todos os Atletas</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Seleciona um atleta para convidar</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                            Todos os Atletas
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Seleciona um atleta para convidar
+                        </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                    >
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
@@ -224,21 +282,32 @@ function ModalTodosAtletas({
                     />
                 </div>
                 <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col gap-1.5">
-                    {loading && <p className="text-xs text-gray-400 text-center py-4">A carregar...</p>}
+                    {loading && (
+                        <p className="text-xs text-gray-400 text-center py-4">
+                            A carregar...
+                        </p>
+                    )}
                     {!loading && visiveis.length === 0 && (
-                        <p className="text-sm text-gray-400 text-center py-4">Nenhum atleta encontrado.</p>
+                        <p className="text-sm text-gray-400 text-center py-4">
+                            Nenhum atleta encontrado.
+                        </p>
                     )}
                     {visiveis.map((a) => (
                         <button
                             key={a.id}
-                            onClick={() => { setAtletaSelecionado(a); setErro(""); }}
+                            onClick={() => {
+                                setAtletaSelecionado(a);
+                                setErro("");
+                            }}
                             className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${atletaSelecionado?.id === a.id ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20" : "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 hover:bg-blue-50 dark:hover:bg-blue-900/20"}`}
                         >
                             <div className="flex items-center gap-3">
                                 {a.image_url ? (
-                                    <img
+                                    <Image
                                         src={a.image_url}
                                         alt={a.nome}
+                                        width={36}
+                                        height={36}
                                         className="w-9 h-9 rounded-full object-cover shrink-0"
                                     />
                                 ) : (
@@ -249,14 +318,22 @@ function ModalTodosAtletas({
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{a.nome}</p>
+                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                        {a.nome}
+                                    </p>
                                     <p className="text-xs text-gray-400">
                                         {a.posicao ?? "—"}
-                                        {a.numero_camisola ? ` · #${a.numero_camisola}` : ""}
-                                        {a.equipa_nome ? ` · ${a.equipa_nome}` : ""}
+                                        {a.numero_camisola
+                                            ? ` · #${a.numero_camisola}`
+                                            : ""}
+                                        {a.equipa_nome
+                                            ? ` · ${a.equipa_nome}`
+                                            : ""}
                                     </p>
                                 </div>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${estadoCor[a.estado] ?? estadoCor.Inativo}`}>
+                                <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold shrink-0 ${estadoCor[a.estado] ?? estadoCor.Inativo}`}
+                                >
                                     {a.estado}
                                 </span>
                             </div>
@@ -275,7 +352,11 @@ function ModalTodosAtletas({
                                 onChange={(e) => setEquipaId(e.target.value)}
                             >
                                 <option value="">Sem equipa definida</option>
-                                {equipas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                                {equipas.map((e) => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.nome}
+                                    </option>
+                                ))}
                             </select>
                         )}
                         {erro && <p className="text-xs text-red-500">{erro}</p>}
@@ -287,7 +368,10 @@ function ModalTodosAtletas({
                             >
                                 {enviando ? "A enviar..." : "Enviar Convite"}
                             </button>
-                            <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all">
+                            <button
+                                onClick={onClose}
+                                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all"
+                            >
                                 Cancelar
                             </button>
                         </div>
@@ -545,7 +629,11 @@ function ModalCriarAtleta({
     const [numeroCamisola, setNumeroCamisola] = useState("");
     const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
     const [email, setEmail] = useState("");
-    const [avisoEmail, setAvisoEmail] = useState<{ existe: boolean; nome?: string; temClube?: boolean } | null>(null);
+    const [avisoEmail, setAvisoEmail] = useState<{
+        existe: boolean;
+        nome?: string;
+        temClube?: boolean;
+    } | null>(null);
     const [verificandoEmail, setVerificandoEmail] = useState(false);
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
@@ -559,17 +647,24 @@ function ModalCriarAtleta({
         timerEmail.current = setTimeout(async () => {
             setVerificandoEmail(true);
             try {
-                const res = await fetch(`/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`);
+                const res = await fetch(
+                    `/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`,
+                );
                 if (res.ok) setAvisoEmail(await res.json());
             } finally {
                 setVerificandoEmail(false);
             }
         }, 400);
-        return () => { if (timerEmail.current) clearTimeout(timerEmail.current); };
+        return () => {
+            if (timerEmail.current) clearTimeout(timerEmail.current);
+        };
     }, [email]);
 
     const criar = async () => {
-        if (!nome.trim()) { setErro("O nome é obrigatório."); return; }
+        if (!nome.trim()) {
+            setErro("O nome é obrigatório.");
+            return;
+        }
         setErro("");
         setEnviando(true);
         const equipa = equipas.find((e) => e.id === equipaId);
@@ -579,7 +674,9 @@ function ModalCriarAtleta({
             body: JSON.stringify({
                 nome: nome.trim(),
                 posicao: posicao.trim() || null,
-                numero_camisola: numeroCamisola ? parseInt(numeroCamisola) : null,
+                numero_camisola: numeroCamisola
+                    ? parseInt(numeroCamisola)
+                    : null,
                 equipa_id: equipaId || null,
                 equipa_nome: equipa?.nome ?? null,
                 email: email.trim() || null,
@@ -600,18 +697,37 @@ function ModalCriarAtleta({
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base">Criar Atleta</h3>
-                        <p className="text-xs text-gray-400 mt-0.5">Adicionar novo atleta à tua equipa</p>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                            Criar Atleta
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Adicionar novo atleta à tua equipa
+                        </p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                    >
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
                 <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nome *</label>
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Nome *
+                        </label>
                         <input
                             autoFocus
                             className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -622,7 +738,9 @@ function ModalCriarAtleta({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Posição</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                Posição
+                            </label>
                             <input
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 placeholder="Ex: Avançado"
@@ -631,7 +749,9 @@ function ModalCriarAtleta({
                             />
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Nº Camisola</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                Nº Camisola
+                            </label>
                             <input
                                 type="number"
                                 min="1"
@@ -639,33 +759,50 @@ function ModalCriarAtleta({
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 placeholder="—"
                                 value={numeroCamisola}
-                                onChange={(e) => setNumeroCamisola(e.target.value)}
+                                onChange={(e) =>
+                                    setNumeroCamisola(e.target.value)
+                                }
                             />
                         </div>
                     </div>
                     {equipas.length > 0 && (
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Equipa</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                Equipa
+                            </label>
                             <select
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 value={equipaId}
                                 onChange={(e) => setEquipaId(e.target.value)}
                             >
                                 <option value="">Sem equipa</option>
-                                {equipas.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
+                                {equipas.map((e) => (
+                                    <option key={e.id} value={e.id}>
+                                        {e.nome}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     )}
                     <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Email (opcional)</label>
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                            Email (opcional)
+                        </label>
                         <input
                             type="email"
                             className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                             placeholder="Para vincular a conta existente"
                             value={email}
-                            onChange={(e) => { setEmail(e.target.value); setErro(""); }}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                setErro("");
+                            }}
                         />
-                        {verificandoEmail && <p className="text-xs text-gray-400">A verificar...</p>}
+                        {verificandoEmail && (
+                            <p className="text-xs text-gray-400">
+                                A verificar...
+                            </p>
+                        )}
                     </div>
 
                     {/* Aviso: email já existe na plataforma e tem clube */}
@@ -676,11 +813,16 @@ function ModalCriarAtleta({
                             </p>
                             {avisoEmail.nome && (
                                 <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                    Conta encontrada: <span className="font-semibold">{avisoEmail.nome}</span>
+                                    Conta encontrada:{" "}
+                                    <span className="font-semibold">
+                                        {avisoEmail.nome}
+                                    </span>
                                 </p>
                             )}
                             <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                Se este atleta já estiver vinculado a um clube, o perfil ficará <strong>suspenso</strong> até o administrador resolver a situação.
+                                Se este atleta já estiver vinculado a um clube,
+                                o perfil ficará <strong>suspenso</strong> até o
+                                administrador resolver a situação.
                             </p>
                         </div>
                     )}
@@ -695,7 +837,10 @@ function ModalCriarAtleta({
                     >
                         {enviando ? "A criar..." : "Criar Atleta"}
                     </button>
-                    <button onClick={onClose} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all">
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all"
+                    >
                         Cancelar
                     </button>
                 </div>
@@ -894,7 +1039,9 @@ export default function EquipaAtletas({
 
             {/* Modal Convidar por Email */}
             {showConvidarEmail && (
-                <ModalConvidarEmail onClose={() => setShowConvidarEmail(false)} />
+                <ModalConvidarEmail
+                    onClose={() => setShowConvidarEmail(false)}
+                />
             )}
 
             {/* Modal Criar Atleta (apenas treinadores sem clube) */}
@@ -904,7 +1051,10 @@ export default function EquipaAtletas({
                     onClose={() => setShowCriarAtleta(false)}
                     onCriado={(nome, suspenso) => {
                         if (suspenso) {
-                            showToast(`${nome} criado — suspenso por conflito de clube. Admin irá resolver.`, "erro");
+                            showToast(
+                                `${nome} criado — suspenso por conflito de clube. Admin irá resolver.`,
+                                "erro",
+                            );
                         } else {
                             showToast(`${nome} adicionado à equipa!`);
                         }

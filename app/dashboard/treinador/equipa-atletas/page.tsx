@@ -20,16 +20,20 @@ async function fetchData() {
     `;
     const temClube = clubeRows.length > 0;
 
+    const internalUserId = user[0].id;
+
     const [atletas, equipas] = await Promise.all([
-        sql<{
-            id: string;
-            nome: string;
-            posicao: string | null;
-            numero_camisola: number | null;
-            estado: string;
-            equipa_id: string | null;
-            equipa_nome: string | null;
-        }[]>`
+        sql<
+            {
+                id: string;
+                nome: string;
+                posicao: string | null;
+                numero_camisola: number | null;
+                estado: string;
+                equipa_id: string | null;
+                equipa_nome: string | null;
+            }[]
+        >`
             SELECT a.id, a.nome, a.posicao, a.numero_camisola, a.estado,
                    a.equipa_id, e.nome AS equipa_nome
             FROM atletas a
@@ -38,7 +42,9 @@ async function fetchData() {
             ORDER BY a.nome ASC
         `,
         sql<{ id: string; nome: string }[]>`
-            SELECT id, nome FROM equipas WHERE organization_id = ${orgId} ORDER BY nome ASC
+            SELECT id, nome FROM equipas
+            WHERE organization_id = ${orgId} AND treinador_id = ${internalUserId}
+            ORDER BY nome ASC
         `,
     ]);
 
@@ -46,6 +52,16 @@ async function fetchData() {
 }
 
 export default async function Page() {
-    const { atletas, equipas, temClube } = await fetchData().catch(() => ({ atletas: [], equipas: [], temClube: false }));
-    return <EquipaAtletas atletas={atletas} equipas={equipas} temClube={temClube} />;
+    const { atletas, equipas, temClube } = await fetchData().catch(() => ({
+        atletas: [],
+        equipas: [],
+        temClube: false,
+    }));
+    return (
+        <EquipaAtletas
+            atletas={atletas}
+            equipas={equipas}
+            temClube={temClube}
+        />
+    );
 }

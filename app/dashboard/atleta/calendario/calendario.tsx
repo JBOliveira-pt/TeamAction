@@ -1,5 +1,5 @@
-﻿'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿"use client";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type JogoDB = {
     id: string;
@@ -28,25 +28,25 @@ type CalendarNote = {
     created_at: string;
 };
 
-const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const MONTHS = [
-    'Janeiro',
-    'Fevereiro',
-    'Março',
-    'Abril',
-    'Maio',
-    'Junho',
-    'Julho',
-    'Agosto',
-    'Setembro',
-    'Outubro',
-    'Novembro',
-    'Dezembro',
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
 ];
 
 function dateKey(y: number, m: number, d: number) {
-    return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 function buildGrid(year: number, month: number): (number | null)[][] {
@@ -64,21 +64,27 @@ function buildGrid(year: number, month: number): (number | null)[][] {
 }
 
 function formatFullDate(key: string) {
-    const [y, m, d] = key.split('-');
+    const [y, m, d] = key.split("-");
     const date = new Date(+y, +m - 1, +d);
     const weekday = [
-        'Domingo',
-        'Segunda',
-        'Terça',
-        'Quarta',
-        'Quinta',
-        'Sexta',
-        'Sábado',
+        "Domingo",
+        "Segunda",
+        "Terça",
+        "Quarta",
+        "Quinta",
+        "Sexta",
+        "Sábado",
     ][date.getDay()];
     return { weekday, day: parseInt(d), month: MONTHS[+m - 1], year: y };
 }
 
-function eventDateKey(data: string) {
+function eventDateKey(data: string | Date) {
+    if (data instanceof Date) {
+        const y = data.getFullYear();
+        const m = String(data.getMonth() + 1).padStart(2, "0");
+        const d = String(data.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+    }
     return data.slice(0, 10);
 }
 
@@ -106,7 +112,7 @@ export default function Calendario({
     // Notes state
     const [notes, setNotes] = useState<CalendarNote[]>([]);
     const [notesLoading, setNotesLoading] = useState(false);
-    const [newNota, setNewNota] = useState('');
+    const [newNota, setNewNota] = useState("");
     const [savingNota, setSavingNota] = useState(false);
 
     // Group by date
@@ -132,7 +138,7 @@ export default function Calendario({
 
     // Month stats
     const monthStats = useMemo(() => {
-        const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
         const mJogos = jogos.filter((j) =>
             eventDateKey(j.data).startsWith(prefix),
         ).length;
@@ -173,7 +179,7 @@ export default function Calendario({
     useEffect(() => {
         if (selectedDate) {
             fetchNotes(selectedDate);
-            setNewNota('');
+            setNewNota("");
         }
     }, [selectedDate, fetchNotes]);
 
@@ -182,7 +188,7 @@ export default function Calendario({
     const closeModal = () => {
         setSelectedDate(null);
         setNotes([]);
-        setNewNota('');
+        setNewNota("");
     };
 
     const addNota = async (e: React.FormEvent) => {
@@ -190,15 +196,15 @@ export default function Calendario({
         if (!selectedDate || !newNota.trim()) return;
         setSavingNota(true);
         try {
-            const res = await fetch('/api/calendario/notas', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/calendario/notas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ data: selectedDate, nota: newNota }),
             });
             if (res.ok) {
                 const created: CalendarNote = await res.json();
                 setNotes((prev) => [...prev, created]);
-                setNewNota('');
+                setNewNota("");
             }
         } finally {
             setSavingNota(false);
@@ -207,7 +213,7 @@ export default function Calendario({
 
     const deleteNota = async (id: string) => {
         try {
-            await fetch(`/api/calendario/notas/${id}`, { method: 'DELETE' });
+            await fetch(`/api/calendario/notas/${id}`, { method: "DELETE" });
             setNotes((prev) => prev.filter((n) => n.id !== id));
         } catch {
             /* ignore */
@@ -234,7 +240,7 @@ export default function Calendario({
                                 <span className="text-3xl">📅</span>
                                 <div>
                                     <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                                        {selDate.weekday}, {selDate.day} de{' '}
+                                        {selDate.weekday}, {selDate.day} de{" "}
                                         {selDate.month}
                                     </h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -276,27 +282,27 @@ export default function Calendario({
                                                         vs {j.adversario}
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        {j.casa_fora === 'casa'
-                                                            ? 'Em Casa'
-                                                            : 'Fora'}{' '}
+                                                        {j.casa_fora === "casa"
+                                                            ? "Em Casa"
+                                                            : "Fora"}{" "}
                                                         · {j.equipa_nome}
                                                     </p>
                                                 </div>
                                                 <span
                                                     className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                                                        j.estado === 'agendado'
-                                                            ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                                        j.estado === "agendado"
+                                                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
                                                             : j.estado ===
-                                                                'realizado'
-                                                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                                "realizado"
+                                                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                                                     }`}
                                                 >
-                                                    {j.estado === 'agendado'
-                                                        ? 'Agendado'
+                                                    {j.estado === "agendado"
+                                                        ? "Agendado"
                                                         : j.estado ===
-                                                            'realizado'
-                                                          ? 'Realizado'
+                                                            "realizado"
+                                                          ? "Realizado"
                                                           : j.estado}
                                                 </span>
                                             </div>
@@ -332,7 +338,7 @@ export default function Calendario({
                                                         {s.duracao_min} min
                                                         {s.observacoes
                                                             ? ` · ${s.observacoes}`
-                                                            : ''}
+                                                            : ""}
                                                     </p>
                                                 </div>
                                             </div>
@@ -399,7 +405,7 @@ export default function Calendario({
                                         disabled={savingNota || !newNota.trim()}
                                         className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
                                     >
-                                        {savingNota ? '...' : 'Guardar'}
+                                        {savingNota ? "..." : "Guardar"}
                                     </button>
                                 </form>
                             </div>
@@ -419,9 +425,9 @@ export default function Calendario({
                         {(monthStats.jogos > 0 || monthStats.sessoes > 0) && (
                             <span className="ml-2 text-gray-400 dark:text-gray-500">
                                 {monthStats.jogos > 0 &&
-                                    `· ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? 's' : ''}`}
+                                    `· ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
                                 {monthStats.sessoes > 0 &&
-                                    ` · ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? 's' : ''}`}{' '}
+                                    ` · ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`}{" "}
                                 este mês
                             </span>
                         )}
@@ -457,8 +463,8 @@ export default function Calendario({
                             key={d}
                             className={`py-3 text-center text-xs font-bold tracking-widest uppercase ${
                                 i >= 5
-                                    ? 'text-rose-400 bg-rose-50/60 dark:bg-rose-950/20'
-                                    : 'text-indigo-500 dark:text-indigo-400'
+                                    ? "text-rose-400 bg-rose-50/60 dark:bg-rose-950/20"
+                                    : "text-indigo-500 dark:text-indigo-400"
                             }`}
                         >
                             {d}
@@ -494,12 +500,12 @@ export default function Calendario({
                                         min-h-[110px] p-2.5 flex flex-col relative
                                         border-r border-slate-100 dark:border-gray-800 last:border-r-0
                                         transition-colors duration-100
-                                        ${!day ? 'bg-slate-50/50 dark:bg-gray-950/50' : ''}
-                                        ${isPast && day ? 'opacity-60' : ''}
-                                        ${day ? 'cursor-pointer' : ''}
-                                        ${isWeekend && day ? 'bg-rose-50/40 dark:bg-rose-950/10' : ''}
-                                        ${day && !isWeekend ? 'hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20' : ''}
-                                        ${day && isWeekend ? 'hover:bg-rose-50/70 dark:hover:bg-rose-950/20' : ''}
+                                        ${!day ? "bg-slate-50/50 dark:bg-gray-950/50" : ""}
+                                        ${isPast && day ? "opacity-60" : ""}
+                                        ${day ? "cursor-pointer" : ""}
+                                        ${isWeekend && day ? "bg-rose-50/40 dark:bg-rose-950/10" : ""}
+                                        ${day && !isWeekend ? "hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20" : ""}
+                                        ${day && isWeekend ? "hover:bg-rose-50/70 dark:hover:bg-rose-950/20" : ""}
                                     `}
                                 >
                                     {day && (
@@ -510,12 +516,12 @@ export default function Calendario({
                                                         text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all
                                                         ${
                                                             isToday
-                                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-300 dark:shadow-indigo-900'
+                                                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-300 dark:shadow-indigo-900"
                                                                 : isPast
-                                                                  ? 'text-gray-400 dark:text-gray-600'
+                                                                  ? "text-gray-400 dark:text-gray-600"
                                                                   : isWeekend
-                                                                    ? 'text-rose-400'
-                                                                    : 'text-slate-600 dark:text-slate-300'
+                                                                    ? "text-rose-400"
+                                                                    : "text-slate-600 dark:text-slate-300"
                                                         }
                                                     `}
                                                 >
@@ -550,7 +556,7 @@ export default function Calendario({
                                                                 🤾
                                                             </span>
                                                             <span className="truncate">
-                                                                vs{' '}
+                                                                vs{" "}
                                                                 {j.adversario}
                                                             </span>
                                                         </div>
@@ -562,7 +568,7 @@ export default function Calendario({
                                                         +
                                                         {dayJogos.length +
                                                             daySessoes.length -
-                                                            2}{' '}
+                                                            2}{" "}
                                                         mais
                                                     </div>
                                                 )}

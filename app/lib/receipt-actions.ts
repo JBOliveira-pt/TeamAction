@@ -13,13 +13,19 @@ export async function sendReciboAction(reciboId: string) {
     try {
         console.log("sendReciboAction inicializado para:", reciboId);
         const result = await sendRecibo(reciboId);
-        console.log("Recibo enviado com sucesso, PDF URL:", result?.substring(0, 50) + "...");
+        console.log(
+            "Recibo enviado com sucesso, PDF URL:",
+            result?.substring(0, 50) + "...",
+        );
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Falha ao enviar recibo.";
+        const message =
+            error instanceof Error ? error.message : "Falha ao enviar recibo.";
         console.error("Erro em sendReciboAction:", message);
-        redirect(`/dashboard/receipts/${reciboId}?error=${encodeURIComponent(message)}`);
+        redirect(
+            `/dashboard/presidente/recibos/${reciboId}?error=${encodeURIComponent(message)}`,
+        );
     }
 
-    revalidatePath("/dashboard/receipts");
-    redirect("/dashboard/receipts?sent=1");
+    revalidatePath("/dashboard/presidente/recibos");
+    redirect("/dashboard/presidente/recibos?sent=1");
 }

@@ -1,22 +1,20 @@
-import { fetchEquipaById, fetchTreinadoresOrg } from '@/app/lib/data';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import AdicionarAtletaEquipaModal from './_components/AdicionarAtletaEquipaModal.client';
-import AtribuirTreinadorModal from './_components/AtribuirTreinadorModal.client';
+import { fetchEquipaById } from "@/app/lib/data";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const estadoEquipaStyle: Record<string, string> = {
-    ativa: 'bg-emerald-500/10 text-emerald-400',
-    periodo_off: 'bg-amber-500/10 text-amber-400',
-    inativa: 'bg-red-500/10 text-red-400',
+    ativa: "bg-emerald-500/10 text-emerald-400",
+    periodo_off: "bg-amber-500/10 text-amber-400",
+    inativa: "bg-red-500/10 text-red-400",
 };
 
 const atletaEstadoStyle: Record<string, string> = {
-    ativo: 'bg-emerald-500/10 text-emerald-400',
-    suspenso: 'bg-amber-500/10 text-amber-400',
-    inativo: 'bg-red-500/10 text-red-400',
+    ativo: "bg-emerald-500/10 text-emerald-400",
+    suspenso: "bg-amber-500/10 text-amber-400",
+    inativo: "bg-red-500/10 text-red-400",
 };
 
 export default async function EquipaDetailPage({
@@ -25,14 +23,11 @@ export default async function EquipaDetailPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const [{ equipa, atletas, staff, jogos }, treinadores] = await Promise.all([
-        fetchEquipaById(id),
-        fetchTreinadoresOrg(),
-    ]);
+    const { equipa, atletas, staff, jogos } = await fetchEquipaById(id);
 
     if (!equipa) return notFound();
 
-    const jogosRealizados = jogos.filter((j) => j.estado === 'realizado');
+    const jogosRealizados = jogos.filter((j) => j.estado === "realizado");
     const vitorias = jogosRealizados.filter(
         (j) =>
             j.resultado_nos != null &&
@@ -64,7 +59,7 @@ export default async function EquipaDetailPage({
             ? Math.round((vitorias / jogosRealizados.length) * 100)
             : 0;
 
-    const treinador = staff.find((s) => s.funcao === 'treinador');
+    const treinador = staff.find((s) => s.funcao === "treinador");
 
     return (
         <div className="p-6 space-y-6">
@@ -87,7 +82,7 @@ export default async function EquipaDetailPage({
                         </p>
                     </div>
                     <span
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoEquipaStyle[equipa.estado] ?? 'bg-slate-500/10 text-slate-400'}`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${estadoEquipaStyle[equipa.estado] ?? "bg-slate-500/10 text-slate-400"}`}
                     >
                         {equipa.estado}
                     </span>
@@ -143,17 +138,9 @@ export default async function EquipaDetailPage({
                                 <p className="text-xs text-gray-400 dark:text-gray-500">
                                     Treinador
                                 </p>
-                                <div className="flex items-center justify-between mt-0.5">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {equipa.treinador_nome ?? '—'}
-                                    </p>
-                                    <AtribuirTreinadorModal
-                                        equipaId={equipa.id}
-                                        equipaNome={equipa.nome}
-                                        treinadorAtualId={equipa.treinador_id}
-                                        treinadores={treinadores}
-                                    />
-                                </div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                    {equipa.treinador_nome ?? "—"}
+                                </p>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 dark:text-gray-500">
@@ -169,7 +156,7 @@ export default async function EquipaDetailPage({
                                             key={s.id}
                                             className="text-sm font-medium text-gray-900 dark:text-white mt-0.5"
                                         >
-                                            {s.nome}{' '}
+                                            {s.nome}{" "}
                                             <span className="text-gray-400 dark:text-gray-500 text-xs">
                                                 ({s.funcao})
                                             </span>
@@ -182,10 +169,10 @@ export default async function EquipaDetailPage({
                                     Golos Marcados / Sofridos
                                 </p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
-                                    {golosMarcados}{' '}
+                                    {golosMarcados}{" "}
                                     <span className="text-gray-400 dark:text-gray-500">
                                         /
-                                    </span>{' '}
+                                    </span>{" "}
                                     {golosSofridos}
                                 </p>
                             </div>
@@ -214,10 +201,10 @@ export default async function EquipaDetailPage({
                                         <p className="text-xs text-gray-400 dark:text-gray-500">
                                             {new Date(
                                                 jogo.data,
-                                            ).toLocaleDateString('pt-PT', {
-                                                day: '2-digit',
-                                                month: 'short',
-                                            })}{' '}
+                                            ).toLocaleDateString("pt-PT", {
+                                                day: "2-digit",
+                                                month: "short",
+                                            })}{" "}
                                             · {jogo.casa_fora}
                                         </p>
                                     </div>
@@ -240,14 +227,10 @@ export default async function EquipaDetailPage({
                 {/* Coluna direita — Atletas */}
                 <div className="lg:col-span-2">
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
                             <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
                                 Atletas ({atletas.length})
                             </h2>
-                            <AdicionarAtletaEquipaModal
-                                equipaId={equipa.id}
-                                equipaNome={equipa.nome}
-                            />
                         </div>
                         {atletas.length === 0 ? (
                             <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
@@ -284,14 +267,14 @@ export default async function EquipaDetailPage({
                                             <td className="px-6 py-3 text-gray-500 dark:text-gray-400">
                                                 {atleta.numero_camisola != null
                                                     ? `#${atleta.numero_camisola}`
-                                                    : '—'}
+                                                    : "—"}
                                             </td>
                                             <td className="px-6 py-3 text-gray-500 dark:text-gray-400">
-                                                {atleta.posicao ?? '—'}
+                                                {atleta.posicao ?? "—"}
                                             </td>
                                             <td className="px-6 py-3">
                                                 <span
-                                                    className={`px-2 py-1 rounded-full text-xs font-medium ${atletaEstadoStyle[atleta.estado] ?? 'bg-slate-500/10 text-slate-400'}`}
+                                                    className={`px-2 py-1 rounded-full text-xs font-medium ${atletaEstadoStyle[atleta.estado] ?? "bg-slate-500/10 text-slate-400"}`}
                                                 >
                                                     {atleta.estado}
                                                 </span>

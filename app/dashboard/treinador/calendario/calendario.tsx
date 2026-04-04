@@ -23,8 +23,18 @@ type CalendarNote = {
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const MONTHS = [
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
 ];
 
 function dateKey(y: number, m: number, d: number) {
@@ -48,20 +58,36 @@ function buildGrid(year: number, month: number): (number | null)[][] {
 function formatFullDate(key: string) {
     const [y, m, d] = key.split("-");
     const date = new Date(+y, +m - 1, +d);
-    const weekday = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"][date.getDay()];
+    const weekday = [
+        "Domingo",
+        "Segunda",
+        "Terça",
+        "Quarta",
+        "Quinta",
+        "Sexta",
+        "Sábado",
+    ][date.getDay()];
     return { weekday, day: parseInt(d), month: MONTHS[+m - 1], year: y };
 }
 
-function jogoDateKey(data: string) {
-    // data may come as full ISO string or just date
-    return data.slice(0, 10);
+function jogoDateKey(data: string | Date) {
+    // data may come as Date object from DB or ISO string
+    if (typeof data === "string") return data.slice(0, 10);
+    const y = data.getFullYear();
+    const m = String(data.getMonth() + 1).padStart(2, "0");
+    const d = String(data.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
 }
 
 export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
     const router = useRouter();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayKey = dateKey(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate(),
+    );
 
     const [year, setYear] = useState(today.getFullYear());
     const [month, setMonth] = useState(today.getMonth());
@@ -88,7 +114,9 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
     // Month stats
     const monthStats = useMemo(() => {
         const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-        const monthJogos = jogos.filter((j) => jogoDateKey(j.data).startsWith(prefix));
+        const monthJogos = jogos.filter((j) =>
+            jogoDateKey(j.data).startsWith(prefix),
+        );
         return {
             jogos: monthJogos.length,
             agendados: monthJogos.filter((j) => j.estado === "agendado").length,
@@ -99,12 +127,16 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
 
     // Navigation
     const prevMonth = () => {
-        if (month === 0) { setMonth(11); setYear((y) => y - 1); }
-        else setMonth((m) => m - 1);
+        if (month === 0) {
+            setMonth(11);
+            setYear((y) => y - 1);
+        } else setMonth((m) => m - 1);
     };
     const nextMonth = () => {
-        if (month === 11) { setMonth(0); setYear((y) => y + 1); }
-        else setMonth((m) => m + 1);
+        if (month === 11) {
+            setMonth(0);
+            setYear((y) => y + 1);
+        } else setMonth((m) => m + 1);
     };
 
     // Fetch notes when date changes
@@ -130,9 +162,6 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
 
     const openDay = (d: number) => {
         const key = dateKey(year, month, d);
-        const dayDate = new Date(year, month, d);
-        dayDate.setHours(0, 0, 0, 0);
-        if (dayDate < today) return; // Block past dates
         setSelectedDate(key);
     };
 
@@ -166,15 +195,19 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
         try {
             await fetch(`/api/calendario/notas/${id}`, { method: "DELETE" });
             setNotes((prev) => prev.filter((n) => n.id !== id));
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     };
 
-    const selectedDayJogos = selectedDate ? jogosByDate[selectedDate] || [] : [];
+    const selectedDayJogos = selectedDate
+        ? jogosByDate[selectedDate] || []
+        : [];
     const selDate = selectedDate ? formatFullDate(selectedDate) : null;
+    const selectedIsPast = selectedDate ? selectedDate < todayKey : false;
 
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col gap-6">
-
             {/* ── MODAL ──────────────────────────────────────────────────── */}
             {selectedDate && selDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -185,9 +218,12 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                 <span className="text-3xl">📅</span>
                                 <div>
                                     <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                                        {selDate.weekday}, {selDate.day} de {selDate.month}
+                                        {selDate.weekday}, {selDate.day} de{" "}
+                                        {selDate.month}
                                     </h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{selDate.year}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {selDate.year}
+                                    </p>
                                 </div>
                             </div>
                             <button
@@ -200,21 +236,33 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                         </div>
 
                         <div className="p-6 flex flex-col gap-6">
-                            {/* Redirect buttons */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => { closeModal(); router.push("/dashboard/treinador/sessoes"); }}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-sm shadow"
-                                >
-                                    <span>🏋️</span> Marcar Treino
-                                </button>
-                                <button
-                                    onClick={() => { closeModal(); router.push("/dashboard/treinador/jogos"); }}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-sm shadow"
-                                >
-                                    <span>🤾</span> Marcar Jogo
-                                </button>
-                            </div>
+                            {/* Redirect buttons (only for future/today) */}
+                            {!selectedIsPast && (
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            closeModal();
+                                            router.push(
+                                                "/dashboard/treinador/sessoes",
+                                            );
+                                        }}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-sm shadow"
+                                    >
+                                        <span>🏋️</span> Marcar Treino
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            closeModal();
+                                            router.push(
+                                                "/dashboard/treinador/jogos",
+                                            );
+                                        }}
+                                        className="flex-1 flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-sm shadow"
+                                    >
+                                        <span>🤾</span> Marcar Jogo
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Jogos do dia */}
                             <div>
@@ -232,23 +280,36 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                                 key={j.id}
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800"
                                             >
-                                                <span className="text-xl shrink-0">🤾</span>
+                                                <span className="text-xl shrink-0">
+                                                    🤾
+                                                </span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
                                                         vs {j.adversario}
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        {j.casa_fora === "casa" ? "Em Casa" : "Fora"} · {j.equipa_nome}
+                                                        {j.casa_fora === "casa"
+                                                            ? "Em Casa"
+                                                            : "Fora"}{" "}
+                                                        · {j.equipa_nome}
                                                     </p>
                                                 </div>
-                                                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                                                    j.estado === "agendado"
-                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
-                                                        : j.estado === "realizado"
-                                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                                        : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                                                }`}>
-                                                    {j.estado === "agendado" ? "Agendado" : j.estado === "realizado" ? "Realizado" : j.estado}
+                                                <span
+                                                    className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                                                        j.estado === "agendado"
+                                                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                            : j.estado ===
+                                                                "realizado"
+                                                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                                                    }`}
+                                                >
+                                                    {j.estado === "agendado"
+                                                        ? "Agendado"
+                                                        : j.estado ===
+                                                            "realizado"
+                                                          ? "Realizado"
+                                                          : j.estado}
                                                 </span>
                                             </div>
                                         ))}
@@ -262,7 +323,9 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                     Anotações pessoais
                                 </h4>
                                 {notesLoading ? (
-                                    <p className="text-sm text-gray-400 text-center py-3">A carregar...</p>
+                                    <p className="text-sm text-gray-400 text-center py-3">
+                                        A carregar...
+                                    </p>
                                 ) : notes.length === 0 ? (
                                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
                                         Sem anotações para este dia.
@@ -274,40 +337,55 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                                 key={n.id}
                                                 className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
                                             >
-                                                <span className="text-lg shrink-0 mt-0.5">📝</span>
+                                                <span className="text-lg shrink-0 mt-0.5">
+                                                    📝
+                                                </span>
                                                 <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
                                                     {n.nota}
                                                 </p>
-                                                <button
-                                                    onClick={() => deleteNota(n.id)}
-                                                    className="shrink-0 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none"
-                                                    aria-label="Eliminar anotação"
-                                                >
-                                                    ×
-                                                </button>
+                                                {!selectedIsPast && (
+                                                    <button
+                                                        onClick={() =>
+                                                            deleteNota(n.id)
+                                                        }
+                                                        className="shrink-0 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none"
+                                                        aria-label="Eliminar anotação"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 )}
 
-                                {/* Add note form */}
-                                <form onSubmit={addNota} className="flex gap-2 mt-2">
-                                    <input
-                                        type="text"
-                                        className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
-                                        placeholder="Adicionar anotação..."
-                                        value={newNota}
-                                        onChange={(e) => setNewNota(e.target.value)}
-                                        disabled={savingNota}
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={savingNota || !newNota.trim()}
-                                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
+                                {/* Add note form (only for future/today) */}
+                                {!selectedIsPast && (
+                                    <form
+                                        onSubmit={addNota}
+                                        className="flex gap-2 mt-2"
                                     >
-                                        {savingNota ? "..." : "Guardar"}
-                                    </button>
-                                </form>
+                                        <input
+                                            type="text"
+                                            className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
+                                            placeholder="Adicionar anotação..."
+                                            value={newNota}
+                                            onChange={(e) =>
+                                                setNewNota(e.target.value)
+                                            }
+                                            disabled={savingNota}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={
+                                                savingNota || !newNota.trim()
+                                            }
+                                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
+                                        >
+                                            {savingNota ? "..." : "Guardar"}
+                                        </button>
+                                    </form>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -324,7 +402,8 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                         Jogos e anotações pessoais
                         {monthStats.jogos > 0 && (
                             <span className="ml-2 text-gray-400 dark:text-gray-500">
-                                · {monthStats.jogos} jogo{monthStats.jogos !== 1 ? "s" : ""} este mês
+                                · {monthStats.jogos} jogo
+                                {monthStats.jogos !== 1 ? "s" : ""} este mês
                             </span>
                         )}
                     </p>
@@ -380,15 +459,19 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                             const isToday = key === todayKey;
                             const isWeekend = di >= 5;
 
-                            const dayDate = day ? new Date(year, month, day) : null;
+                            const dayDate = day
+                                ? new Date(year, month, day)
+                                : null;
                             if (dayDate) dayDate.setHours(0, 0, 0, 0);
                             const isPast = dayDate ? dayDate < today : false;
-                            const isClickable = !!day && !isPast;
+                            const isClickable = !!day;
 
                             return (
                                 <div
                                     key={di}
-                                    onClick={() => isClickable && day && openDay(day)}
+                                    onClick={() =>
+                                        isClickable && day && openDay(day)
+                                    }
                                     className={`
                                         min-h-[110px] p-2.5 flex flex-col relative
                                         border-r border-slate-100 dark:border-gray-800 last:border-r-0
@@ -407,13 +490,14 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                                 <span
                                                     className={`
                                                         text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all
-                                                        ${isToday
-                                                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-300 dark:shadow-indigo-900"
-                                                            : isPast
-                                                            ? "text-gray-400 dark:text-gray-600"
-                                                            : isWeekend
-                                                            ? "text-rose-400"
-                                                            : "text-slate-600 dark:text-slate-300"
+                                                        ${
+                                                            isToday
+                                                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-300 dark:shadow-indigo-900"
+                                                                : isPast
+                                                                  ? "text-gray-400 dark:text-gray-600"
+                                                                  : isWeekend
+                                                                    ? "text-rose-400"
+                                                                    : "text-slate-600 dark:text-slate-300"
                                                         }
                                                     `}
                                                 >
@@ -423,18 +507,26 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
 
                                             {/* Jogo chips */}
                                             <div className="flex flex-col gap-1 flex-1">
-                                                {dayJogos.slice(0, 2).map((j, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1 truncate"
-                                                    >
-                                                        <span className="text-[10px] shrink-0">🤾</span>
-                                                        <span className="truncate">vs {j.adversario}</span>
-                                                    </div>
-                                                ))}
+                                                {dayJogos
+                                                    .slice(0, 2)
+                                                    .map((j, i) => (
+                                                        <div
+                                                            key={i}
+                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1 truncate"
+                                                        >
+                                                            <span className="text-[10px] shrink-0">
+                                                                🤾
+                                                            </span>
+                                                            <span className="truncate">
+                                                                vs{" "}
+                                                                {j.adversario}
+                                                            </span>
+                                                        </div>
+                                                    ))}
                                                 {dayJogos.length > 2 && (
                                                     <div className="text-[11px] font-bold text-indigo-500 dark:text-indigo-400 pl-2">
-                                                        +{dayJogos.length - 2} mais
+                                                        +{dayJogos.length - 2}{" "}
+                                                        mais
                                                     </div>
                                                 )}
                                             </div>
@@ -451,15 +543,21 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
             <div className="flex flex-wrap gap-4 justify-center">
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
                     <span className="w-3 h-3 rounded-full bg-rose-500" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">🤾 Jogo</span>
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        🤾 Jogo
+                    </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
                     <span className="w-3 h-3 rounded-full bg-blue-500" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">📝 Anotação pessoal</span>
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        📝 Anotação pessoal
+                    </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
                     <span className="w-3 h-3 rounded-full bg-gray-300" />
-                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">Dias passados (não editáveis)</span>
+                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+                        Dias passados (não editáveis)
+                    </span>
                 </div>
             </div>
         </div>
