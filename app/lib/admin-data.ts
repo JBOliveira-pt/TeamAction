@@ -861,7 +861,7 @@ export type AdminRelacaoPendenteRow = {
     atleta_email: string;
     alvo_nome: string | null;
     alvo_clube_nome: string | null;
-    tipo: string;
+    relation_kind: string;
     status: string;
     created_at: string;
 };
@@ -883,7 +883,7 @@ export async function fetchAdminRelacoesPendentes(): Promise<
             ua.name AS atleta_nome,
             ua.email AS atleta_email,
             COALESCE(o.name, '') AS alvo_clube_nome,
-            arp.tipo,
+            arp.relation_kind,
             arp.status,
             arp.created_at
         FROM atleta_relacoes_pendentes arp

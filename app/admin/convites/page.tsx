@@ -289,7 +289,7 @@ export default async function AdminConvitesPage({
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <TipoBadge tipo={r.tipo} />
+                                        <TipoBadge tipo={r.relation_kind} />
                                         <StatusBadge status={r.status} />
                                     </div>
                                 </div>
