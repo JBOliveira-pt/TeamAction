@@ -44,3 +44,5 @@ export { fetchDesportoOrg } from "./organizacao";
 export { fetchConvitesPendentes } from "./atletas";
 export { fetchEscaloesByUser } from "./organizacao";
 export { fetchUsersForStaff } from "./users";
+export { fetchMeuPerfil } from "./perfil";
+export type { PerfilUtilizador } from "./perfil";

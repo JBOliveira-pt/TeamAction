@@ -200,10 +200,10 @@ export default function SideNav({ accountType }: SideNavProps) {
         selectedProfile === "presidente"
             ? "/dashboard/presidente/perfil"
             : selectedProfile === "atleta"
-              ? "/dashboard/utilizador/perfil"
+              ? "/dashboard/atleta/perfil"
               : selectedProfile === "treinador"
-                ? "/dashboard/treinador"
-                : "/dashboard";
+                ? "/dashboard/treinador/perfil"
+                : "/dashboard/responsavel/perfil";
 
     const settingsHref =
         selectedProfile === "presidente"

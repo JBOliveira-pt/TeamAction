@@ -142,19 +142,30 @@ export async function atualizarMeuPerfil(
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) return { error: "NÃ£o autenticado." };
+    if (!clerkUserId) return { error: "Não autenticado." };
 
     const firstName = formData.get("firstName")?.toString().trim();
     const lastName = formData.get("lastName")?.toString().trim();
+    const telefone = formData.get("telefone")?.toString().trim() || null;
+    const morada = formData.get("morada")?.toString().trim() || null;
+    const cidade = formData.get("cidade")?.toString().trim() || null;
+    const codigoPostal =
+        formData.get("codigo_postal")?.toString().trim() || null;
+    const pais = formData.get("pais")?.toString().trim() || null;
+    const dataNascimento =
+        formData.get("data_nascimento")?.toString().trim() || null;
+    const nif = formData.get("nif")?.toString().trim() || null;
     const iban = formData.get("iban")?.toString().trim() || null;
 
-    if (!firstName) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!lastName) return { error: "Apelido Ã© obrigatÃ³rio." };
+    if (!firstName) return { error: "Nome é obrigatório." };
+    if (!lastName) return { error: "Apelido é obrigatório." };
 
     const normalizedIban = iban ? iban.replace(/\s/g, "") : null;
     if (normalizedIban && !/^[A-Z]{2}[A-Z0-9]{11,30}$/.test(normalizedIban)) {
-        return { error: "IBAN invÃ¡lido." };
+        return { error: "IBAN inválido." };
     }
+
+    const fullName = `${firstName} ${lastName}`.trim();
 
     try {
         // Atualiza nome no Clerk
@@ -177,7 +188,16 @@ export async function atualizarMeuPerfil(
         // Atualiza DB
         await sql`
             UPDATE users
-            SET name = ${`${firstName} ${lastName}`.trim()}, iban = ${normalizedIban}
+            SET name = ${fullName},
+                telefone = ${telefone},
+                morada = ${morada},
+                cidade = ${cidade},
+                codigo_postal = ${codigoPostal},
+                pais = ${pais},
+                data_nascimento = ${dataNascimento},
+                nif = ${nif},
+                iban = ${normalizedIban},
+                updated_at = NOW()
             WHERE clerk_user_id = ${clerkUserId}
         `;
     } catch (error) {
@@ -186,5 +206,9 @@ export async function atualizarMeuPerfil(
     }
 
     revalidatePath("/dashboard/presidente/perfil");
+    revalidatePath("/dashboard/treinador/perfil");
+    revalidatePath("/dashboard/atleta/perfil");
+    revalidatePath("/dashboard/responsavel/perfil");
+    revalidatePath("/dashboard/utilizador/perfil");
     return { success: true };
 }

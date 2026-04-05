@@ -2,6 +2,6 @@ import PerfilUnificadoPage from "@/app/ui/components/perfil-unificado";
 
 export const dynamic = "force-dynamic";
 
-export default function PresidentePerfilPage() {
+export default function AtletaPerfilPage() {
     return <PerfilUnificadoPage />;
 }
