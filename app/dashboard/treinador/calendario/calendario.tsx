@@ -14,6 +14,25 @@ type JogoDB = {
     equipa_nome: string;
 };
 
+type Epoca = {
+    id: string;
+    nome: string;
+    data_inicio: string;
+    data_fim: string;
+    ativa: boolean;
+} | null;
+
+type SessaoDB = {
+    id: string;
+    data: string;
+    hora: string | null;
+    tipo: string;
+    duracao_min: number | null;
+    local: string | null;
+    notas: string | null;
+    equipa_nome: string | null;
+};
+
 type CalendarNote = {
     id: string;
     nota: string;
@@ -70,8 +89,7 @@ function formatFullDate(key: string) {
     return { weekday, day: parseInt(d), month: MONTHS[+m - 1], year: y };
 }
 
-function jogoDateKey(data: string | Date) {
-    // data may come as Date object from DB or ISO string
+function eventDateKey(data: string | Date) {
     if (typeof data === "string") return data.slice(0, 10);
     const y = data.getFullYear();
     const m = String(data.getMonth() + 1).padStart(2, "0");
@@ -79,7 +97,15 @@ function jogoDateKey(data: string | Date) {
     return `${y}-${m}-${d}`;
 }
 
-export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
+export default function Calendario({
+    jogos,
+    epoca,
+    sessoes,
+}: {
+    jogos: JogoDB[];
+    epoca: Epoca;
+    sessoes: SessaoDB[];
+}) {
     const router = useRouter();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -104,24 +130,39 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
     const jogosByDate = useMemo(() => {
         const map: Record<string, JogoDB[]> = {};
         for (const j of jogos) {
-            const k = jogoDateKey(j.data);
+            const k = eventDateKey(j.data);
             if (!map[k]) map[k] = [];
             map[k].push(j);
         }
         return map;
     }, [jogos]);
 
+    const sessoesByDate = useMemo(() => {
+        const map: Record<string, SessaoDB[]> = {};
+        for (const s of sessoes) {
+            const k = eventDateKey(s.data);
+            if (!map[k]) map[k] = [];
+            map[k].push(s);
+        }
+        return map;
+    }, [sessoes]);
+
+    const epocaInicioKey = epoca?.data_inicio
+        ? eventDateKey(epoca.data_inicio)
+        : null;
+    const epocaFimKey = epoca?.data_fim ? eventDateKey(epoca.data_fim) : null;
+
     // Month stats
     const monthStats = useMemo(() => {
         const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-        const monthJogos = jogos.filter((j) =>
-            jogoDateKey(j.data).startsWith(prefix),
-        );
-        return {
-            jogos: monthJogos.length,
-            agendados: monthJogos.filter((j) => j.estado === "agendado").length,
-        };
-    }, [jogos, year, month]);
+        const nJogos = jogos.filter((j) =>
+            eventDateKey(j.data).startsWith(prefix),
+        ).length;
+        const nSessoes = sessoes.filter((s) =>
+            eventDateKey(s.data).startsWith(prefix),
+        ).length;
+        return { jogos: nJogos, sessoes: nSessoes };
+    }, [jogos, sessoes, year, month]);
 
     const grid = buildGrid(year, month);
 
@@ -203,7 +244,12 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
     const selectedDayJogos = selectedDate
         ? jogosByDate[selectedDate] || []
         : [];
+    const selectedDaySessoes = selectedDate
+        ? sessoesByDate[selectedDate] || []
+        : [];
     const selDate = selectedDate ? formatFullDate(selectedDate) : null;
+    const isEpocaStart = selectedDate === epocaInicioKey;
+    const isEpocaEnd = selectedDate === epocaFimKey;
     const selectedIsPast = selectedDate ? selectedDate < todayKey : false;
 
     return (
@@ -236,6 +282,31 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                         </div>
 
                         <div className="p-6 flex flex-col gap-6">
+                            {/* Época markers */}
+                            {(isEpocaStart || isEpocaEnd) && (
+                                <div
+                                    className={`flex items-center gap-3 p-3 rounded-xl border ${
+                                        isEpocaStart
+                                            ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800"
+                                            : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                                    }`}
+                                >
+                                    <span className="text-xl shrink-0">
+                                        {isEpocaStart ? "🏁" : "🔚"}
+                                    </span>
+                                    <div>
+                                        <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                            {isEpocaStart
+                                                ? "Início da Época"
+                                                : "Fim da Época"}
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {epoca?.nome}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Redirect buttons (only for future/today) */}
                             {!selectedIsPast && (
                                 <div className="flex gap-3">
@@ -311,6 +382,49 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                                           ? "Realizado"
                                                           : j.estado}
                                                 </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Treinos / Sessões */}
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
+                                    Treinos
+                                </h4>
+                                {selectedDaySessoes.length === 0 ? (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                        Sem treinos neste dia.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        {selectedDaySessoes.map((s) => (
+                                            <div
+                                                key={s.id}
+                                                className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800"
+                                            >
+                                                <span className="text-xl shrink-0">
+                                                    🏋️
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                                        {s.tipo}
+                                                        {s.hora
+                                                            ? ` · ${s.hora.slice(0, 5)}`
+                                                            : ""}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                        {s.equipa_nome ??
+                                                            "Sem equipa"}
+                                                        {s.duracao_min
+                                                            ? ` · ${s.duracao_min} min`
+                                                            : ""}
+                                                        {s.local
+                                                            ? ` · ${s.local}`
+                                                            : ""}
+                                                    </p>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -399,11 +513,15 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                         <span>📅</span> Calendário
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Jogos e anotações pessoais
-                        {monthStats.jogos > 0 && (
+                        Jogos e treinos da minha equipa
+                        {(monthStats.jogos > 0 || monthStats.sessoes > 0) && (
                             <span className="ml-2 text-gray-400 dark:text-gray-500">
-                                · {monthStats.jogos} jogo
-                                {monthStats.jogos !== 1 ? "s" : ""} este mês
+                                ·
+                                {monthStats.jogos > 0 &&
+                                    ` ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
+                                {monthStats.sessoes > 0 &&
+                                    ` ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`}{" "}
+                                este mês
                             </span>
                         )}
                     </p>
@@ -428,6 +546,36 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                     </button>
                 </div>
             </div>
+
+            {/* ── ÉPOCA BANNER ──────────────────────────────────── */}
+            {epoca && (
+                <div className="flex items-center gap-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-2xl px-5 py-3">
+                    <span className="text-lg">🏆</span>
+                    <div className="flex-1">
+                        <p className="text-sm font-bold text-violet-700 dark:text-violet-300">
+                            {epoca.nome}
+                        </p>
+                        <p className="text-xs text-violet-500 dark:text-violet-400">
+                            {new Date(epoca.data_inicio).toLocaleDateString(
+                                "pt-PT",
+                            )}{" "}
+                            →{" "}
+                            {new Date(epoca.data_fim).toLocaleDateString(
+                                "pt-PT",
+                            )}
+                        </p>
+                    </div>
+                    <span
+                        className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                            epoca.ativa
+                                ? "bg-violet-100 text-violet-700 dark:bg-violet-800 dark:text-violet-200"
+                                : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                        }`}
+                    >
+                        {epoca.ativa ? "Em curso" : "Concluída"}
+                    </span>
+                </div>
+            )}
 
             {/* ── CALENDAR GRID ─────────────────────────────────────────── */}
             <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg shadow-slate-200 dark:shadow-gray-950 overflow-hidden border border-slate-100 dark:border-gray-800">
@@ -456,6 +604,9 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                         {week.map((day, di) => {
                             const key = day ? dateKey(year, month, day) : null;
                             const dayJogos = key ? jogosByDate[key] || [] : [];
+                            const daySessoes = key
+                                ? sessoesByDate[key] || []
+                                : [];
                             const isToday = key === todayKey;
                             const isWeekend = di >= 5;
 
@@ -465,6 +616,9 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                             if (dayDate) dayDate.setHours(0, 0, 0, 0);
                             const isPast = dayDate ? dayDate < today : false;
                             const isClickable = !!day;
+
+                            const isEpStart = key === epocaInicioKey;
+                            const isEpEnd = key === epocaFimKey;
 
                             return (
                                 <div
@@ -477,11 +631,11 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                         border-r border-slate-100 dark:border-gray-800 last:border-r-0
                                         transition-colors duration-100
                                         ${!day ? "bg-slate-50/50 dark:bg-gray-950/50" : ""}
-                                        ${isPast && day ? "bg-gray-50 dark:bg-gray-950/70 opacity-60" : ""}
+                                        ${isPast && day ? "opacity-60" : ""}
                                         ${isClickable ? "cursor-pointer" : ""}
-                                        ${isWeekend && day && !isPast ? "bg-rose-50/40 dark:bg-rose-950/10" : ""}
-                                        ${isClickable && !isWeekend ? "hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20" : ""}
-                                        ${isClickable && isWeekend ? "hover:bg-rose-50/70 dark:hover:bg-rose-950/20" : ""}
+                                        ${isWeekend && day ? "bg-rose-50/40 dark:bg-rose-950/10" : ""}
+                                        ${day && !isWeekend ? "hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20" : ""}
+                                        ${day && isWeekend ? "hover:bg-rose-50/70 dark:hover:bg-rose-950/20" : ""}
                                     `}
                                 >
                                     {day && (
@@ -503,15 +657,28 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                                 >
                                                     {day}
                                                 </span>
+                                                {(isEpStart || isEpEnd) && (
+                                                    <span
+                                                        className="text-[10px] shrink-0"
+                                                        title={
+                                                            isEpStart
+                                                                ? "Início da Época"
+                                                                : "Fim da Época"
+                                                        }
+                                                    >
+                                                        {isEpStart
+                                                            ? "🏁"
+                                                            : "🔚"}
+                                                    </span>
+                                                )}
                                             </div>
 
-                                            {/* Jogo chips */}
                                             <div className="flex flex-col gap-1 flex-1">
                                                 {dayJogos
                                                     .slice(0, 2)
-                                                    .map((j, i) => (
+                                                    .map((j) => (
                                                         <div
-                                                            key={i}
+                                                            key={j.id}
                                                             className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1 truncate"
                                                         >
                                                             <span className="text-[10px] shrink-0">
@@ -526,6 +693,27 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                                                 {dayJogos.length > 2 && (
                                                     <div className="text-[11px] font-bold text-indigo-500 dark:text-indigo-400 pl-2">
                                                         +{dayJogos.length - 2}{" "}
+                                                        mais
+                                                    </div>
+                                                )}
+                                                {daySessoes
+                                                    .slice(0, 2)
+                                                    .map((s) => (
+                                                        <div
+                                                            key={s.id}
+                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 truncate"
+                                                        >
+                                                            <span className="text-[10px] shrink-0">
+                                                                🏋️
+                                                            </span>
+                                                            <span className="truncate">
+                                                                {s.tipo}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                {daySessoes.length > 2 && (
+                                                    <div className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400 pl-2">
+                                                        +{daySessoes.length - 2}{" "}
                                                         mais
                                                     </div>
                                                 )}
@@ -548,17 +736,33 @@ export default function Calendario({ jogos }: { jogos: JogoDB[] }) {
                     </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="w-3 h-3 rounded-full bg-emerald-500" />
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        📝 Anotação pessoal
+                        🏋️ Treino
                     </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                    <span className="w-3 h-3 rounded-full bg-gray-300" />
-                    <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
-                        Dias passados (não editáveis)
+                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        📝 Anotação
                     </span>
                 </div>
+                {epoca && (
+                    <>
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
+                            <span className="text-xs">🏁</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                Início da Época
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
+                            <span className="text-xs">🔚</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                Fim da Época
+                            </span>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

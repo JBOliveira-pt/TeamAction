@@ -11,8 +11,8 @@ export async function searchClubes(
     if (!query || query.trim().length < 2) return [];
     try {
         const results = await sql<{ id: string; nome: string }[]>`
-            SELECT id, nome
-            FROM organizations
+            SELECT organization_id AS id, nome
+            FROM clubes
             WHERE nome ILIKE ${"%" + query.trim() + "%"}
             LIMIT 6
         `;
@@ -109,11 +109,14 @@ export async function convidarAtleta(
     }
 
     // Buscar info do clube
-    const org = await sql<{ name: string; email: string }[]>`
-        SELECT name, email FROM organizations WHERE id = ${organizationId}
+    const clube = await sql<{ nome: string }[]>`
+        SELECT nome FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
     `;
-    const orgName = org[0]?.name ?? "Clube";
-    const orgEmail = org[0]?.email ?? "";
+    const org = await sql<{ name: string }[]>`
+        SELECT name FROM organizations WHERE id = ${organizationId} LIMIT 1
+    `;
+    const orgName = clube[0]?.nome ?? org[0]?.name ?? "Clube";
+    const orgEmail = "";
 
     // Criar convite
     try {

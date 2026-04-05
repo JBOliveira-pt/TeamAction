@@ -2,7 +2,7 @@
 
 import { sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
-import { getOrganizationId } from "@/app/lib/data";
+import { getOrganizationId, requireAccountType } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
 
 // ========================================
@@ -15,9 +15,9 @@ export async function registarPagamento(
 ): Promise<{ error?: string; success?: boolean } | null> {
     let organizationId: string;
     try {
-        organizationId = await getOrganizationId();
+        ({ organizationId } = await requireAccountType("presidente"));
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: "Acesso restrito ao presidente." };
     }
 
     const atletaId = formData.get("atleta_id")?.toString();
@@ -134,9 +134,9 @@ export async function suspenderAtleta(
 ): Promise<{ error?: string; success?: boolean } | null> {
     let organizationId: string;
     try {
-        organizationId = await getOrganizationId();
+        ({ organizationId } = await requireAccountType("presidente"));
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: "Acesso restrito ao presidente." };
     }
 
     const atletaId = formData.get("atleta_id")?.toString();

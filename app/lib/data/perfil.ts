@@ -37,12 +37,13 @@ export async function fetchMeuPerfil(): Promise<PerfilUtilizador | null> {
                 u.cidade,
                 u.codigo_postal,
                 u.pais,
-                o.nif,
-                u.iban,
+                c.nipc AS nif,
+                c.iban,
                 o.name AS org_name,
                 u.created_at
             FROM users u
             LEFT JOIN organizations o ON o.id = u.organization_id
+            LEFT JOIN clubes c ON c.organization_id = u.organization_id
             WHERE u.clerk_user_id = ${userId}
             LIMIT 1
         `;

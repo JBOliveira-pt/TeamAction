@@ -44,14 +44,15 @@ export async function fetchPerfilPresidente() {
             }[]
         >`
             SELECT
-                u.iban,
+                c.iban,
                 o.name   AS org_name,
                 o.slug   AS org_slug,
                 o.created_at AS org_created_at
             FROM users u
             JOIN organizations o ON o.id = u.organization_id
+            LEFT JOIN clubes c ON c.organization_id = u.organization_id
             WHERE u.organization_id = ${organizationId}
-              AND u.role = 'admin'
+              AND u.account_type = 'presidente'
             LIMIT 1
         `;
 
@@ -82,10 +83,23 @@ export async function fetchOrganizacao() {
                 codigo_postal: string | null;
             }[]
         >`
-            SELECT id, name, slug, desporto, cidade, pais, website, logo_url, plano,
-                   nif, telefone, morada, codigo_postal
-            FROM organizations
-            WHERE id = ${organizationId}
+            SELECT
+                o.id,
+                o.name,
+                o.slug,
+                c.modalidade  AS desporto,
+                c.cidade,
+                c.pais,
+                c.website,
+                o.logo_url,
+                o.plano,
+                c.nipc        AS nif,
+                c.telefone,
+                c.morada,
+                c.codigo_postal
+            FROM organizations o
+            LEFT JOIN clubes c ON c.organization_id = o.id
+            WHERE o.id = ${organizationId}
             LIMIT 1
         `;
         return data[0] ?? null;
@@ -110,7 +124,10 @@ export async function fetchDesportoOrg(): Promise<string> {
     try {
         const organizationId = await getOrganizationId();
         const result = await sql<{ desporto: string }[]>`
-            SELECT desporto FROM organizations WHERE id = ${organizationId}
+            SELECT c.modalidade AS desporto
+            FROM clubes c
+            WHERE c.organization_id = ${organizationId}
+            LIMIT 1
         `;
         return result[0]?.desporto ?? "";
     } catch (error) {

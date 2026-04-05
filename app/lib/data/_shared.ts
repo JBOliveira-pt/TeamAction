@@ -148,8 +148,6 @@ export async function getOrganizationId(options?: {
                 clerkUser.unsafeMetadata?.accountType ??
                     clerkUser.publicMetadata?.accountType,
             );
-            const role = "user";
-
             if (email) {
                 const fallbackUser = await sql<
                     { id: string; organization_id: string }[]
@@ -199,7 +197,7 @@ export async function getOrganizationId(options?: {
                         if (existingByEmail[0]?.organization_id) {
                             await txSql`
                                 UPDATE users
-                                SET clerk_user_id = ${userId}, role = ${role}, updated_at = NOW()
+                                SET clerk_user_id = ${userId}, updated_at = NOW()
                                 WHERE id = ${existingByEmail[0].id}
                             `;
                             return existingByEmail[0].organization_id;
@@ -222,15 +220,15 @@ export async function getOrganizationId(options?: {
                         if (existingUser) {
                             await txSql`
                                 UPDATE users
-                                SET clerk_user_id = ${userId}, role = ${role}, organization_id = ${newOrg[0].id},
+                                SET clerk_user_id = ${userId}, organization_id = ${newOrg[0].id},
                                     name = ${fullName}, image_url = ${clerkUser.imageUrl || null}, updated_at = NOW()
                                 WHERE id = ${existingUser.id}
                             `;
                         } else {
                             const placeholderPassword = `clerk_managed_${crypto.randomUUID()}`;
                             await txSql`
-                                INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-                                VALUES (gen_random_uuid(), ${fullName}, ${email}, ${placeholderPassword}, ${userId}, ${role}, ${newOrg[0].id}, ${clerkUser.imageUrl || null}, NOW(), NOW())
+                                INSERT INTO users (id, name, email, password, clerk_user_id, organization_id, image_url, created_at, updated_at)
+                                VALUES (gen_random_uuid(), ${fullName}, ${email}, ${placeholderPassword}, ${userId}, ${newOrg[0].id}, ${clerkUser.imageUrl || null}, NOW(), NOW())
                             `;
                         }
 
@@ -286,3 +284,29 @@ export const sql = postgres(process.env.POSTGRES_URL!, {
     idle_timeout: 20,
     connect_timeout: 15,
 });
+
+/**
+ * Retorna { organizationId, userId } apenas se o user autenticado
+ * tiver o account_type exigido. Lança erro caso contrário.
+ */
+export async function requireAccountType(
+    ...allowed: AccountType[]
+): Promise<{ organizationId: string; dbUserId: string }> {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) throw new Error("Not authenticated");
+
+    const rows = await sql<
+        { id: string; organization_id: string; account_type: string | null }[]
+    >`SELECT id, organization_id, account_type FROM users WHERE clerk_user_id = ${clerkId} LIMIT 1`;
+
+    const user = rows[0];
+    if (!user?.organization_id) throw new Error("No organization found");
+    if (
+        !user.account_type ||
+        !allowed.includes(user.account_type as AccountType)
+    ) {
+        throw new Error("Forbidden: account type not allowed");
+    }
+
+    return { organizationId: user.organization_id, dbUserId: user.id };
+}

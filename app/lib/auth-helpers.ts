@@ -52,20 +52,18 @@ export async function getCurrentUser() {
                 id: string;
                 name: string;
                 email: string;
-                role: string;
+                account_type: string | null;
                 organization_id: string;
                 image_url: string | null;
-                iban: string | null;
             }[]
         >`
                 SELECT
                 id,
                 name,
                 email,
-                CASE WHEN role = 'admin' THEN 'user' ELSE role END AS role,
+                account_type,
                 organization_id,
-                image_url,
-                iban
+                image_url
             FROM users 
             WHERE clerk_user_id = ${userId}
         `;

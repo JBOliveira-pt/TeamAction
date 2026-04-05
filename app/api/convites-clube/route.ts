@@ -59,12 +59,12 @@ export async function GET(req: NextRequest) {
             cc.tipo,
             cc.estado,
             cc.created_at::text,
-            o.name   AS clube_nome,
+            c.nome   AS clube_nome,
             e.nome   AS equipa_nome,
             e.desporto,
             sender.name AS convidado_por_nome
         FROM convites_clube cc
-        JOIN organizations o ON o.id = cc.clube_org_id
+        JOIN clubes c ON c.organization_id = cc.clube_org_id
         JOIN equipas e ON e.id = cc.equipa_id
         JOIN users sender ON sender.id = cc.convidado_por
         WHERE cc.convidado_user_id = ${me.id}

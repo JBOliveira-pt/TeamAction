@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { ENABLED_SPORTS } from "@/app/lib/president-sport-options";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -18,6 +19,8 @@ type SelectOption = {
 
 export async function GET() {
     try {
+        const enabledSportsArray = Array.from(ENABLED_SPORTS);
+
         const rows = await sql<CourseRow[]>`
             SELECT
                 m.id AS modality_id,
@@ -29,6 +32,7 @@ export async function GET() {
             FROM cursos c
             INNER JOIN modalidades m ON m.id = c.modality_id
             INNER JOIN graus_tecnicos g ON g.id = c.level_id
+            WHERE m.name = ANY(${enabledSportsArray})
             ORDER BY m.name ASC, g.id ASC
         `;
 

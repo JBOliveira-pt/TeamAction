@@ -22,7 +22,10 @@ import {
     PASSWORD_PRECHECK_NOTICE_DURATION_MS,
     validatePasswordPolicy,
 } from "@/app/lib/password-policy";
-import { PRESIDENT_SPORT_OPTIONS } from "@/app/lib/president-sport-options";
+import {
+    PRESIDENT_SPORT_OPTIONS,
+    ENABLED_SPORTS,
+} from "@/app/lib/president-sport-options";
 import {
     COUNTRY_OPTIONS,
     type SelectOption,
@@ -419,6 +422,7 @@ export default function CompleteAccountTypeForm({
         setTrainerTechnicalLevelOptionsByModality,
     ] = useState<Record<string, SelectOption[]>>({});
     const [trainerPhone, setTrainerPhone] = useState("");
+    const [trainerNif, setTrainerNif] = useState("");
     const [trainerPostalCode, setTrainerPostalCode] = useState("");
     const [trainerAddress, setTrainerAddress] = useState("");
     const [trainerCity, setTrainerCity] = useState("");
@@ -989,7 +993,7 @@ export default function CompleteAccountTypeForm({
         }
 
         if (!emailAddress.trim()) {
-            setError("Email inválido.");
+            setError("E-mail inválido.");
             return;
         }
 
@@ -1368,6 +1372,7 @@ export default function CompleteAccountTypeForm({
                     "trainer_postal_code",
                     normalizePostalCode(trainerPostalCode),
                 );
+                payload.append("trainer_nif", trainerNif.trim());
                 payload.append("trainer_address", trainerAddress.trim());
                 payload.append("trainer_city", trainerCity.trim());
                 payload.append("trainer_country", PORTUGAL_COUNTRY);
@@ -1547,7 +1552,7 @@ export default function CompleteAccountTypeForm({
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Email
+                                    E-mail
                                 </label>
                                 <div className="relative">
                                     <input
@@ -1557,6 +1562,9 @@ export default function CompleteAccountTypeForm({
                                         readOnly
                                         aria-readonly="true"
                                         className="peer block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 py-3 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-300 outline-none"
+                                        placeholder={
+                                            initialEmail || "E-mail cadastrado"
+                                        }
                                     />
                                     <Mail className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray dark:text-gray-500" />
                                 </div>
@@ -1812,8 +1820,17 @@ export default function CompleteAccountTypeForm({
                                         Selecione uma modalidade
                                     </option>
                                     {PRESIDENT_SPORT_OPTIONS.map((sport) => (
-                                        <option key={sport} value={sport}>
+                                        <option
+                                            key={sport}
+                                            value={sport}
+                                            disabled={
+                                                !ENABLED_SPORTS.has(sport)
+                                            }
+                                        >
                                             {sport}
+                                            {!ENABLED_SPORTS.has(sport)
+                                                ? " (em breve)"
+                                                : ""}
                                         </option>
                                     ))}
                                 </select>
@@ -2241,7 +2258,7 @@ export default function CompleteAccountTypeForm({
                                         )
                                     }
                                     className="block w-full rounded-lg border border-red-400/40 bg-slate-900/60 px-3 py-3 text-sm text-white outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 transition-all"
-                                    placeholder="email do responsável"
+                                    placeholder="e-mail do responsável"
                                 />
                                 <datalist id="athlete-responsible-email-options">
                                     {athleteResponsibleEmailOptions.map(
@@ -2294,8 +2311,17 @@ export default function CompleteAccountTypeForm({
                                         Selecione uma modalidade
                                     </option>
                                     {PRESIDENT_SPORT_OPTIONS.map((sport) => (
-                                        <option key={sport} value={sport}>
+                                        <option
+                                            key={sport}
+                                            value={sport}
+                                            disabled={
+                                                !ENABLED_SPORTS.has(sport)
+                                            }
+                                        >
                                             {sport}
+                                            {!ENABLED_SPORTS.has(sport)
+                                                ? " (em breve)"
+                                                : ""}
                                         </option>
                                     ))}
                                 </select>
@@ -2390,6 +2416,48 @@ export default function CompleteAccountTypeForm({
                                     </select>
                                 </div>
                             )}
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                Telefone (opcional)
+                            </label>
+                            <input
+                                type="tel"
+                                value={trainerPhone}
+                                onChange={(event) =>
+                                    setTrainerPhone(
+                                        formatPortuguesePhone(
+                                            event.target.value,
+                                        ),
+                                    )
+                                }
+                                maxLength={17}
+                                inputMode="numeric"
+                                className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                placeholder="Ex: (351) 912 345 678"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                NIF (opcional)
+                            </label>
+                            <input
+                                type="text"
+                                value={trainerNif}
+                                onChange={(event) =>
+                                    setTrainerNif(
+                                        event.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 9),
+                                    )
+                                }
+                                maxLength={9}
+                                inputMode="numeric"
+                                className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                placeholder="Ex: 123456789"
+                            />
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-3">

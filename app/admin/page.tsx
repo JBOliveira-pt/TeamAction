@@ -75,10 +75,14 @@ export default async function AdminOverviewPage() {
 
     const cards = [
         { label: "Total de Users", value: stats.users },
-        { label: "Logs de Ações Registados", value: stats.actionLogs },
-        { label: "Logs de Views Registados", value: stats.viewLogs },
-        { label: "Logs Registados (Total)", value: logsTotal },
+        { label: "Pedidos de Plano Pendentes", value: stats.pendingPlans },
+        {
+            label: "Alterações de Perfil Pendentes",
+            value: stats.pendingProfileChanges,
+        },
         { label: "Avisos Não Lidos", value: stats.avisosNaoLidos },
+        { label: "Logs de Ações", value: stats.actionLogs },
+        { label: "Logs de Views", value: stats.viewLogs },
     ];
 
     return (
@@ -93,7 +97,7 @@ export default async function AdminOverviewPage() {
                 </p>
             </header>
 
-            <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {cards.map((card) => (
                     <article
                         key={card.label}

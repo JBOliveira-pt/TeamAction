@@ -105,26 +105,41 @@ export async function atualizarOrganizacao(
     }
 
     try {
+        // Update organization name (multi-tenancy label)
         await sql`
             UPDATE organizations
+            SET name = ${name}, updated_at = NOW()
+            WHERE id = ${organizationId}
+        `;
+
+        // Update all club-specific data in clubes
+        await sql`
+            UPDATE clubes
             SET
-                name          = ${name},
-                desporto      = ${desporto},
-                cidade        = ${cidade},
-                pais          = ${pais},
+                nome          = ${name},
+                modalidade    = ${desporto},
+                nipc          = ${nif},
                 website       = ${website},
-                nif           = ${nif},
                 telefone      = ${telefone},
                 morada        = ${morada},
                 codigo_postal = ${codigoPostal},
+                cidade        = ${cidade},
+                pais          = ${pais},
                 updated_at    = NOW()
-            WHERE id = ${organizationId}
+            WHERE organization_id = ${organizationId}
+        `;
+
+        // Sync equipa mirror name + sport
+        await sql`
+            UPDATE equipas
+            SET nome = ${name}, desporto = ${desporto}, updated_at = NOW()
+            WHERE organization_id = ${organizationId}
         `;
     } catch (error) {
         console.error(error);
         return { error: "Erro ao atualizar definiÃ§Ãµes." };
     }
 
-    revalidatePath("/dashboard/presidente/definicoes");
+    revalidatePath("/dashboard/presidente/clube");
     return { success: true };
 }

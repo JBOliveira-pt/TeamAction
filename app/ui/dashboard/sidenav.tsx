@@ -50,7 +50,6 @@ export default function SideNav({ accountType }: SideNavProps) {
     const pathname = usePathname();
     const [dbUser, setDbUser] = useState<{
         name: string;
-        role: string;
         foto?: string;
     } | null>(null);
 
@@ -94,13 +93,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                     if (data.user) {
                         setDbUser({
                             name: data.user.name,
-                            role: data.user.role,
                             foto: data.user.image_url || clerkUser.imageUrl,
                         });
                     }
                 }
             } catch (error) {
-                console.error("Erro ao buscar dados do usuário:", error);
+                console.error("Erro ao buscar dados do utilizador:", error);
             }
         }
 
@@ -185,7 +183,7 @@ export default function SideNav({ accountType }: SideNavProps) {
     const userData = dbUser
         ? {
               ...dbUser,
-              role: accountTypeLabel || dbUser.role,
+              role: accountTypeLabel || "Conta",
           }
         : {
               name:
@@ -205,10 +203,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                 ? "/dashboard/treinador/perfil"
                 : "/dashboard/responsavel/perfil";
 
-    const settingsHref =
-        selectedProfile === "presidente"
-            ? "/dashboard/presidente/definicoes"
-            : undefined;
+    const settingsHref = "/dashboard/definicoes";
 
     return (
         <>
@@ -372,8 +367,8 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 />
                                 <NavItem
                                     icon={<CircleUserRound size={20} />}
-                                    label="Definições"
-                                    href="/dashboard/presidente/definicoes"
+                                    label="Clube"
+                                    href="/dashboard/presidente/clube"
                                     onClick={() => setIsOpen(false)}
                                 />
                                 <NavItem

@@ -20,7 +20,7 @@ export default async function Page({
     const currentUser = await getCurrentUser();
     const canSend =
         !!currentUser &&
-        (currentUser.role === "admin" ||
+        (currentUser.account_type === "presidente" ||
             currentUser.id === recibo.recibo_created_by);
 
     return (

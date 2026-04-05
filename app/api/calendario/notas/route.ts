@@ -8,7 +8,7 @@ async function ensureTable() {
     await sql`
         CREATE TABLE IF NOT EXISTS calendar_notes (
             id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-            treinador_id UUID       NOT NULL,
+            user_id     UUID        NOT NULL,
             organization_id UUID   NOT NULL,
             data        DATE        NOT NULL,
             nota        TEXT        NOT NULL,
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const rows = await sql<{ id: string; nota: string; created_at: string }[]>`
         SELECT id, nota, created_at
         FROM calendar_notes
-        WHERE treinador_id = ${user.id}
+        WHERE user_id = ${user.id}
           AND organization_id = ${user.organization_id}
           AND data = ${date}
         ORDER BY created_at ASC
@@ -58,12 +58,13 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { data, nota } = body as { data?: string; nota?: string };
-    if (!data || !nota?.trim()) return new Response("Missing fields", { status: 400 });
+    if (!data || !nota?.trim())
+        return new Response("Missing fields", { status: 400 });
 
     await ensureTable();
 
     const rows = await sql<{ id: string; nota: string; created_at: string }[]>`
-        INSERT INTO calendar_notes (treinador_id, organization_id, data, nota)
+        INSERT INTO calendar_notes (user_id, organization_id, data, nota)
         VALUES (${user.id}, ${user.organization_id}, ${data}, ${nota.trim()})
         RETURNING id, nota, created_at
     `;

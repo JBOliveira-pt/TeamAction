@@ -62,9 +62,10 @@ export async function GET(req: NextRequest) {
             u.name,
             u.email,
             u.image_url,
-            o.name AS organization_name
+            COALESCE(c.nome, o.name) AS organization_name
         FROM users u
         LEFT JOIN organizations o ON o.id = u.organization_id
+        LEFT JOIN clubes c ON c.organization_id = u.organization_id
         WHERE u.account_type = ${tipo}
           AND u.organization_id != ${me.organization_id}
           AND (u.name ILIKE ${"%" + q + "%"} OR u.email ILIKE ${"%" + q + "%"})

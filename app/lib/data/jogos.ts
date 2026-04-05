@@ -137,6 +137,110 @@ export async function fetchSessoesAtleta() {
     }
 }
 
+export async function fetchSessoesPresidente() {
+    try {
+        const organizationId = await getOrganizationId();
+        return await sql<
+            {
+                id: string;
+                data: string;
+                hora: string | null;
+                tipo: string;
+                duracao_min: number | null;
+                local: string | null;
+                notas: string | null;
+                equipa_nome: string | null;
+            }[]
+        >`
+            SELECT
+                s.id, s.data, s.hora, s.tipo, s.duracao_min, s.local, s.notas,
+                e.nome AS equipa_nome
+            FROM sessoes s
+            LEFT JOIN equipas e ON e.id = s.equipa_id
+            WHERE s.organization_id = ${organizationId}
+            ORDER BY s.data DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+// ---------- CALENDÁRIO TREINADOR ----------
+
+export async function fetchJogosTreinador() {
+    try {
+        const { userId: clerkUserId } = await auth();
+        if (!clerkUserId) return [];
+
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!user) return [];
+
+        return await sql<
+            {
+                id: string;
+                adversario: string;
+                data: string;
+                casa_fora: string;
+                resultado_nos: number | null;
+                resultado_adv: number | null;
+                estado: string;
+                equipa_id: string;
+                equipa_nome: string;
+            }[]
+        >`
+            SELECT
+                j.id, j.adversario, j.data, j.casa_fora,
+                j.resultado_nos, j.resultado_adv, j.estado,
+                j.equipa_id, e.nome AS equipa_nome
+            FROM jogos j
+            JOIN equipas e ON e.id = j.equipa_id AND e.treinador_id = ${user.id}
+            ORDER BY j.data DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+export async function fetchSessoesTreinador() {
+    try {
+        const { userId: clerkUserId } = await auth();
+        if (!clerkUserId) return [];
+
+        const [user] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!user) return [];
+
+        return await sql<
+            {
+                id: string;
+                data: string;
+                hora: string | null;
+                tipo: string;
+                duracao_min: number | null;
+                local: string | null;
+                notas: string | null;
+                equipa_nome: string | null;
+            }[]
+        >`
+            SELECT
+                s.id, s.data, s.hora, s.tipo, s.duracao_min, s.local, s.notas,
+                e.nome AS equipa_nome
+            FROM sessoes s
+            LEFT JOIN equipas e ON e.id = s.equipa_id
+            WHERE s.treinador_id = ${user.id}
+            ORDER BY s.data DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
 export async function fetchUltimosJogos() {
     try {
         const organizationId = await getOrganizationId();

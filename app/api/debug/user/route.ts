@@ -25,7 +25,7 @@ export async function GET() {
 
         // Buscar usuário no banco pelo clerk_user_id
         const user = await sql`
-            SELECT id, name, email, clerk_user_id, role, organization_id, image_url
+            SELECT id, name, email, clerk_user_id, organization_id, image_url
             FROM users 
             WHERE clerk_user_id = ${userId}
         `;

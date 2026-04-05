@@ -47,6 +47,7 @@ export default function NovaEquipaModal({
     >("none");
     const [treinadorId, setTreinadorId] = useState("");
     const [treinadorNomeFake, setTreinadorNomeFake] = useState("");
+    const [treinadorEmailFake, setTreinadorEmailFake] = useState("");
 
     // Atletas state
     const [atletas, setAtletas] = useState<AtletaEntry[]>([]);
@@ -71,6 +72,7 @@ export default function NovaEquipaModal({
         setTreinadorMode("none");
         setTreinadorId("");
         setTreinadorNomeFake("");
+        setTreinadorEmailFake("");
         setAtletas([]);
         setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
     };
@@ -82,6 +84,7 @@ export default function NovaEquipaModal({
             setTreinadorMode("none");
             setTreinadorId("");
             setTreinadorNomeFake("");
+            setTreinadorEmailFake("");
             setAtletas([]);
             setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
             setOpen(false);
@@ -171,6 +174,15 @@ export default function NovaEquipaModal({
                             />
                             <input
                                 type="hidden"
+                                name="treinador_email_fake"
+                                value={
+                                    treinadorMode === "fake"
+                                        ? treinadorEmailFake
+                                        : ""
+                                }
+                            />
+                            <input
+                                type="hidden"
                                 name="atletas_json"
                                 value={JSON.stringify(atletas)}
                             />
@@ -251,8 +263,8 @@ export default function NovaEquipaModal({
                                     <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                         Treinador
                                     </span>
-                                    <span className="text-xs text-gray-400">
-                                        (opcional)
+                                    <span className="text-xs text-red-400">
+                                        *
                                     </span>
                                 </div>
 
@@ -339,10 +351,22 @@ export default function NovaEquipaModal({
                                             placeholder="Nome do treinador"
                                             className={inputClass}
                                         />
+                                        <input
+                                            type="email"
+                                            value={treinadorEmailFake}
+                                            onChange={(e) =>
+                                                setTreinadorEmailFake(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Email do treinador (opcional)"
+                                            className={inputClass}
+                                        />
                                         <p className="text-[10px] text-gray-400">
-                                            Será adicionado como staff. Poderá
-                                            ser associado a uma conta real mais
-                                            tarde.
+                                            Se o email pertencer a um treinador
+                                            registado, será enviado um convite
+                                            de vinculação. Caso contrário, o
+                                            administrador será notificado.
                                         </p>
                                     </div>
                                 )}

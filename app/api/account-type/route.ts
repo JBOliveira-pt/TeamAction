@@ -5,6 +5,7 @@ import { uploadImageToR2 } from "@/app/lib/r2-storage";
 import { hash } from "bcryptjs";
 import {
     PRESIDENT_SPORT_OPTIONS,
+    ENABLED_SPORTS,
     normalizePresidentSport,
 } from "@/app/lib/president-sport-options";
 import {
@@ -58,6 +59,7 @@ type TrainerProfileInput = {
     technicalLevelName: string | null;
     technicalLevelDescription: string | null;
     phone: string | null;
+    nif: string | null;
     postalCode: string | null;
     address: string | null;
     city: string | null;
@@ -151,6 +153,12 @@ function parsePresidentProfile(formData: FormData): {
         };
     }
 
+    if (!ENABLED_SPORTS.has(normalizedSport)) {
+        return {
+            error: "Esta modalidade ainda não está disponível na plataforma.",
+        };
+    }
+
     if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
         return {
             error: "Código Postal inválido. Use o formato 0000-000.",
@@ -205,6 +213,12 @@ async function parseTrainerProfile(formData: FormData): Promise<{
         return { error: "Modalidade inválida para Treinador." };
     }
 
+    if (!ENABLED_SPORTS.has(modality)) {
+        return {
+            error: "Esta modalidade ainda não está disponível na plataforma.",
+        };
+    }
+
     if (!nationality) {
         return { error: "Nacionalidade é obrigatória para Treinador." };
     }
@@ -254,6 +268,12 @@ async function parseTrainerProfile(formData: FormData): Promise<{
         const modality = modalityRows[0];
         if (!modality) {
             return { error: "Curso IPJD/PNFT inválido para Treinador." };
+        }
+
+        if (!ENABLED_SPORTS.has(modality.name)) {
+            return {
+                error: "Esta modalidade de curso ainda não está disponível na plataforma.",
+            };
         }
 
         const technicalLevelRows = await sql<
@@ -319,6 +339,7 @@ async function parseTrainerProfile(formData: FormData): Promise<{
             technicalLevelName,
             technicalLevelDescription,
             phone: getOptionalString(formData, "trainer_phone"),
+            nif: getOptionalString(formData, "trainer_nif"),
             postalCode,
             address: getOptionalString(formData, "trainer_address"),
             city,
@@ -471,7 +492,6 @@ function getMinimumAgeForAccountType(accountType: AccountType): number {
 
 async function ensureUserExistsWithOrganization(
     userId: string,
-    role: "user",
     currentUser: any,
     uploadedImageUrl?: string | null,
     hashedPassword?: string,
@@ -494,7 +514,7 @@ async function ensureUserExistsWithOrganization(
     if (byClerk[0]?.organization_id) {
         await sql`
             UPDATE users
-            SET role = ${role}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
+            SET image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
             WHERE id = ${byClerk[0].id}
         `;
         return;
@@ -516,7 +536,7 @@ async function ensureUserExistsWithOrganization(
         if (existingByEmail[0]?.organization_id) {
             await tx`
                 UPDATE users
-                SET clerk_user_id = ${userId}, role = ${role}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
+                SET clerk_user_id = ${userId}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
                 WHERE id = ${existingByEmail[0].id}
             `;
             return;
@@ -538,14 +558,14 @@ async function ensureUserExistsWithOrganization(
         if (existingUser) {
             await tx`
                 UPDATE users
-                SET clerk_user_id = ${userId}, role = ${role}, organization_id = ${newOrg[0].id},
+                SET clerk_user_id = ${userId}, organization_id = ${newOrg[0].id},
                     name = ${fullName}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
                 WHERE id = ${existingUser.id}
             `;
         } else {
             await tx`
-                INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-                VALUES (gen_random_uuid(), ${fullName}, ${email}, ${passwordValue}, ${userId}, ${role}, ${newOrg[0].id}, ${uploadedImageUrl || currentUser.imageUrl || null}, NOW(), NOW())
+                INSERT INTO users (id, name, email, password, clerk_user_id, organization_id, image_url, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${fullName}, ${email}, ${passwordValue}, ${userId}, ${newOrg[0].id}, ${uploadedImageUrl || currentUser.imageUrl || null}, NOW(), NOW())
             `;
         }
 
@@ -650,7 +670,6 @@ export async function POST(req: Request) {
             );
         }
 
-        const role: "user" = "user";
         const presidentProfileResult =
             accountType === "presidente"
                 ? parsePresidentProfile(formData)
@@ -792,7 +811,6 @@ export async function POST(req: Request) {
 
         await ensureUserExistsWithOrganization(
             userId,
-            role,
             currentUser,
             uploadedImageUrl,
             hashedPassword,
@@ -818,18 +836,11 @@ export async function POST(req: Request) {
             const organizationId = userOrg[0]?.organization_id ?? null;
 
             if (organizationId) {
+                // organizations = multi-tenancy only; update just the name
                 await sql`
                     UPDATE organizations
                     SET
                         name = ${presidentProfile.clubName},
-                        desporto = ${presidentProfile.sport},
-                        nif = ${presidentProfile.nipc},
-                        website = ${presidentProfile.website},
-                        telefone = ${presidentProfile.phone},
-                        codigo_postal = ${presidentProfile.postalCode},
-                        morada = ${presidentProfile.address},
-                        cidade = ${presidentProfile.city},
-                        pais = ${presidentProfile.country},
                         updated_at = NOW()
                     WHERE id = ${organizationId}
                 `;
@@ -902,7 +913,6 @@ export async function POST(req: Request) {
                 WHERE table_schema = 'public'
                   AND table_name = 'users'
                   AND column_name IN (
-                    'iban',
                     'nipc',
                     'website',
                     'telefone',
@@ -915,14 +925,6 @@ export async function POST(req: Request) {
 
             const hasUserColumn = (column: string) =>
                 userExtraColumns.some((item) => item.column_name === column);
-
-            if (hasUserColumn("iban")) {
-                await sql`
-                    UPDATE users
-                    SET iban = ${presidentProfile.iban}, updated_at = NOW()
-                    WHERE clerk_user_id = ${userId}
-                `;
-            }
 
             if (hasUserColumn("nipc")) {
                 await sql`
@@ -989,6 +991,7 @@ export async function POST(req: Request) {
                   AND table_name = 'users'
                   AND column_name IN (
                     'telefone',
+                    'nif',
                     'codigo_postal',
                     'morada',
                     'cidade',
@@ -1003,6 +1006,14 @@ export async function POST(req: Request) {
                 await sql`
                     UPDATE users
                     SET telefone = ${trainerProfile.phone}, updated_at = NOW()
+                    WHERE clerk_user_id = ${userId}
+                `;
+            }
+
+            if (hasUserColumn("nif")) {
+                await sql`
+                    UPDATE users
+                    SET nif = ${trainerProfile.nif}, updated_at = NOW()
                     WHERE clerk_user_id = ${userId}
                 `;
             }
@@ -1047,7 +1058,7 @@ export async function POST(req: Request) {
                     name = ${fullName},
                     email = ${currentEmail},
                     password = ${hashedPassword},
-                    role = ${role},
+                    role = ${accountType},
                     data_nascimento = ${birthDate},
                     idade = ${age},
                     image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
@@ -1061,7 +1072,7 @@ export async function POST(req: Request) {
                     name = ${fullName},
                     email = ${currentEmail},
                     password = ${hashedPassword},
-                    role = ${role},
+                    role = ${accountType},
                     data_nascimento = ${birthDate},
                     image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
                     updated_at = NOW()
@@ -1074,7 +1085,7 @@ export async function POST(req: Request) {
                     name = ${fullName},
                     email = ${currentEmail},
                     password = ${hashedPassword},
-                    role = ${role},
+                    role = ${accountType},
                     image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
                     updated_at = NOW()
                 WHERE clerk_user_id = ${userId}
@@ -1444,7 +1455,6 @@ export async function POST(req: Request) {
 
         return Response.json({
             success: true,
-            role,
             accountType,
             name: fullName,
             email: currentEmail,

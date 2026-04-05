@@ -1,9 +1,9 @@
-import { auth } from '@clerk/nextjs/server';
-import Link from 'next/link';
-import postgres from 'postgres';
-import StaffPanel from './components/StaffPanel';
+import { auth } from "@clerk/nextjs/server";
+import Link from "next/link";
+import postgres from "postgres";
+import StaffPanel from "./components/StaffPanel";
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 async function fetchDashboardData() {
     const { userId } = await auth();
@@ -18,7 +18,13 @@ async function fetchDashboardData() {
     if (!user) return null;
 
     const orgId = user.organization_id;
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = new Date().toISOString().split("T")[0];
+
+    // Buscar a equipa do treinador (0-1 equipa)
+    const equipaRows = await sql<{ id: string }[]>`
+        SELECT id FROM equipas WHERE treinador_id = ${user.id} LIMIT 1
+    `;
+    const equipaId = equipaRows[0]?.id ?? null;
 
     const [
         atletasResult,
@@ -27,70 +33,89 @@ async function fetchDashboardData() {
         ultimasSessoesResult,
         assiduidadeResult,
     ] = await Promise.all([
-        // Total atletas ativos
-        sql<{ total: number }[]>`
-            SELECT COUNT(*)::int AS total FROM atletas
-            WHERE organization_id = ${orgId} AND estado = 'Ativo'
-        `,
-        // Próxima sessão
-        sql<{ id: string; data: string; tipo: string; duracao_min: number }[]>`
-            SELECT id, data::text, tipo, duracao_min FROM sessoes
-            WHERE organization_id = ${orgId} AND data >= ${hoje}::date
-            ORDER BY data ASC LIMIT 1
-        `,
-        // Próximo jogo
-        sql<
-            {
-                id: string;
-                adversario: string;
-                data: string;
-                casa_fora: string;
-            }[]
-        >`
-            SELECT id, adversario, data::text, casa_fora FROM jogos
-            WHERE organization_id = ${orgId} AND estado = 'agendado' AND data >= ${hoje}::date
-            ORDER BY data ASC LIMIT 1
-        `,
-        // Últimas 3 sessões
-        sql<{ id: string; data: string; tipo: string }[]>`
-            SELECT id, data::text, tipo FROM sessoes
-            WHERE organization_id = ${orgId}
-            ORDER BY data DESC LIMIT 3
-        `,
-        // Assiduidade geral: % de presenças
-        sql<{ total: number; presencas: number }[]>`
-            SELECT
-                COUNT(*)::int AS total,
-                SUM(CASE WHEN estado = 'P' THEN 1 ELSE 0 END)::int AS presencas
-            FROM assiduidade
-            WHERE sessao_id IN (
-                SELECT id FROM sessoes WHERE organization_id = ${orgId}
-            )
-        `,
+        // Total atletas ativos da equipa
+        equipaId
+            ? sql<{ total: number }[]>`
+                SELECT COUNT(*)::int AS total FROM atletas
+                WHERE organization_id = ${orgId} AND equipa_id = ${equipaId} AND estado = 'Ativo'
+            `
+            : Promise.resolve([{ total: 0 }]),
+        // Próxima sessão da equipa
+        equipaId
+            ? sql<
+                  {
+                      id: string;
+                      data: string;
+                      tipo: string;
+                      duracao_min: number;
+                  }[]
+              >`
+                SELECT id, data::text, tipo, duracao_min FROM sessoes
+                WHERE treinador_id = ${user.id} AND data >= ${hoje}::date
+                ORDER BY data ASC LIMIT 1
+            `
+            : Promise.resolve([]),
+        // Próximo jogo da equipa
+        equipaId
+            ? sql<
+                  {
+                      id: string;
+                      adversario: string;
+                      data: string;
+                      casa_fora: string;
+                  }[]
+              >`
+                SELECT id, adversario, data::text, casa_fora FROM jogos
+                WHERE equipa_id = ${equipaId} AND estado = 'agendado' AND data >= ${hoje}::date
+                ORDER BY data ASC LIMIT 1
+            `
+            : Promise.resolve([]),
+        // Últimas 3 sessões da equipa
+        equipaId
+            ? sql<{ id: string; data: string; tipo: string }[]>`
+                SELECT id, data::text, tipo FROM sessoes
+                WHERE treinador_id = ${user.id}
+                ORDER BY data DESC LIMIT 3
+            `
+            : Promise.resolve([]),
+        // Assiduidade da equipa
+        equipaId
+            ? sql<{ total: number; presencas: number }[]>`
+                SELECT
+                    COUNT(*)::int AS total,
+                    SUM(CASE WHEN estado = 'P' THEN 1 ELSE 0 END)::int AS presencas
+                FROM assiduidade
+                WHERE sessao_id IN (
+                    SELECT id FROM sessoes WHERE treinador_id = ${user.id}
+                )
+            `
+            : Promise.resolve([{ total: 0, presencas: 0 }]),
     ]).catch(() => [null, null, null, null, null]);
 
-    // Staff do clube
-    const staffResult = await sql<
-        { id: string; nome: string; funcao: string }[]
-    >`
-        SELECT id, nome, funcao FROM staff
-        WHERE organization_id = ${orgId}
-        ORDER BY nome ASC
-    `.catch(() => []);
+    // Staff da equipa do treinador
+    const staffResult = equipaId
+        ? await sql<{ id: string; nome: string; funcao: string }[]>`
+            SELECT id, nome, funcao FROM staff
+            WHERE equipa_id = ${equipaId}
+            ORDER BY nome ASC
+        `.catch(() => [])
+        : [];
 
-    // Atleta mais assíduo
-    const atletaDestaqueResult = await sql<{ nome: string; pct: number }[]>`
-        SELECT a.nome,
-               ROUND(100.0 * SUM(CASE WHEN ass.estado = 'P' THEN 1 ELSE 0 END) / NULLIF(COUNT(ass.id), 0))::int AS pct
-        FROM assiduidade ass
-        JOIN atletas a ON a.id = ass.atleta_id
-        WHERE ass.sessao_id IN (
-            SELECT id FROM sessoes WHERE organization_id = ${orgId}
-        )
-        GROUP BY a.id, a.nome
-        HAVING COUNT(ass.id) >= 3
-        ORDER BY pct DESC LIMIT 1
-    `.catch(() => []);
+    // Atleta mais assíduo da equipa
+    const atletaDestaqueResult = equipaId
+        ? await sql<{ nome: string; pct: number }[]>`
+            SELECT a.nome,
+                   ROUND(100.0 * SUM(CASE WHEN ass.estado = 'P' THEN 1 ELSE 0 END) / NULLIF(COUNT(ass.id), 0))::int AS pct
+            FROM assiduidade ass
+            JOIN atletas a ON a.id = ass.atleta_id
+            WHERE ass.sessao_id IN (
+                SELECT id FROM sessoes WHERE treinador_id = ${user.id}
+            )
+            GROUP BY a.id, a.nome
+            HAVING COUNT(ass.id) >= 3
+            ORDER BY pct DESC LIMIT 1
+        `.catch(() => [])
+        : [];
 
     const totalAtletas = atletasResult?.[0]?.total ?? 0;
     const proximaSessao = proximaSessaoResult?.[0] ?? null;
@@ -117,17 +142,17 @@ async function fetchDashboardData() {
 }
 
 function formatData(iso: string) {
-    return new Date(iso).toLocaleDateString('pt-PT', {
-        day: 'numeric',
-        month: 'short',
+    return new Date(iso).toLocaleDateString("pt-PT", {
+        day: "numeric",
+        month: "short",
     });
 }
 
 export default async function TreinadorDashboard() {
     const data = await fetchDashboardData();
 
-    const nome = data?.nome ?? 'Treinador';
-    const primeiroNome = nome.split(' ')[0];
+    const nome = data?.nome ?? "Treinador";
+    const primeiroNome = nome.split(" ")[0];
 
     return (
         <div className="flex w-full min-h-screen">
@@ -137,10 +162,10 @@ export default async function TreinadorDashboard() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                            Olá,{' '}
+                            Olá,{" "}
                             <span className="text-blue-600 dark:text-blue-400">
                                 {primeiroNome}
-                            </span>{' '}
+                            </span>{" "}
                             👋
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -177,7 +202,7 @@ export default async function TreinadorDashboard() {
                                     {data.proximaSessao.tipo}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {formatData(data.proximaSessao.data)} ·{' '}
+                                    {formatData(data.proximaSessao.data)} ·{" "}
                                     {data.proximaSessao.duracao_min} min
                                 </p>
                             </>
@@ -200,10 +225,10 @@ export default async function TreinadorDashboard() {
                                     vs {data.proximoJogo.adversario}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {formatData(data.proximoJogo.data)} ·{' '}
-                                    {data.proximoJogo.casa_fora === 'casa'
-                                        ? 'Casa'
-                                        : 'Fora'}
+                                    {formatData(data.proximoJogo.data)} ·{" "}
+                                    {data.proximoJogo.casa_fora === "casa"
+                                        ? "Casa"
+                                        : "Fora"}
                                 </p>
                             </>
                         ) : (
@@ -304,34 +329,34 @@ export default async function TreinadorDashboard() {
                         <div className="grid grid-cols-2 gap-2">
                             {[
                                 {
-                                    label: 'Calendário',
-                                    href: '/dashboard/treinador/calendario',
-                                    emoji: '📅',
+                                    label: "Calendário",
+                                    href: "/dashboard/treinador/calendario",
+                                    emoji: "📅",
                                 },
                                 {
-                                    label: 'Exercícios',
-                                    href: '/dashboard/treinador/exercicios',
-                                    emoji: '📋',
+                                    label: "Exercícios",
+                                    href: "/dashboard/treinador/exercicios",
+                                    emoji: "📋",
                                 },
                                 {
-                                    label: 'Quadro Tático',
-                                    href: '/dashboard/treinador/quadro-tatico',
-                                    emoji: '🗺️',
+                                    label: "Quadro Tático",
+                                    href: "/dashboard/treinador/quadro-tatico",
+                                    emoji: "🗺️",
                                 },
                                 {
-                                    label: 'Jogos',
-                                    href: '/dashboard/treinador/jogos',
-                                    emoji: '🏆',
+                                    label: "Jogos",
+                                    href: "/dashboard/treinador/jogos",
+                                    emoji: "🏆",
                                 },
                                 {
-                                    label: 'Equipa',
-                                    href: '/dashboard/treinador/equipa-atletas',
-                                    emoji: '👥',
+                                    label: "Equipa",
+                                    href: "/dashboard/treinador/equipa-atletas",
+                                    emoji: "👥",
                                 },
                                 {
-                                    label: 'Biblioteca',
-                                    href: '/dashboard/treinador/biblioteca',
-                                    emoji: '📚',
+                                    label: "Biblioteca",
+                                    href: "/dashboard/treinador/biblioteca",
+                                    emoji: "📚",
                                 },
                             ].map(({ label, href, emoji }) => (
                                 <Link

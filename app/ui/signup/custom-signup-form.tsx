@@ -7,7 +7,10 @@ import {
     PASSWORD_PRECHECK_NOTICE_DURATION_MS,
     validatePasswordPolicy,
 } from "@/app/lib/password-policy";
-import { PRESIDENT_SPORT_OPTIONS } from "@/app/lib/president-sport-options";
+import {
+    PRESIDENT_SPORT_OPTIONS,
+    ENABLED_SPORTS,
+} from "@/app/lib/president-sport-options";
 import {
     COUNTRY_OPTIONS,
     type SelectOption,
@@ -436,6 +439,7 @@ export default function CustomSignUpForm({
         setTrainerTechnicalLevelOptionsByModality,
     ] = useState<Record<string, SelectOption[]>>({});
     const [trainerPhone, setTrainerPhone] = useState("");
+    const [trainerNif, setTrainerNif] = useState("");
     const [trainerPostalCode, setTrainerPostalCode] = useState("");
     const [trainerAddress, setTrainerAddress] = useState("");
     const [trainerCity, setTrainerCity] = useState("");
@@ -1338,6 +1342,7 @@ export default function CustomSignUpForm({
                                       .length > 0
                                       ? trainerPhone.trim()
                                       : null,
+                              nif: trainerNif.trim() || null,
                               postalCode:
                                   normalizePostalCode(trainerPostalCode) ||
                                   null,
@@ -1875,6 +1880,7 @@ export default function CustomSignUpForm({
                     "trainer_postal_code",
                     normalizePostalCode(trainerPostalCode),
                 );
+                payload.append("trainer_nif", trainerNif.trim());
                 payload.append("trainer_address", trainerAddress.trim());
                 payload.append("trainer_city", trainerCity.trim());
                 payload.append("trainer_country", PORTUGAL_COUNTRY);
@@ -2359,8 +2365,17 @@ export default function CustomSignUpForm({
                                         Selecione uma modalidade
                                     </option>
                                     {PRESIDENT_SPORT_OPTIONS.map((sport) => (
-                                        <option key={sport} value={sport}>
+                                        <option
+                                            key={sport}
+                                            value={sport}
+                                            disabled={
+                                                !ENABLED_SPORTS.has(sport)
+                                            }
+                                        >
                                             {sport}
+                                            {!ENABLED_SPORTS.has(sport)
+                                                ? " (em breve)"
+                                                : ""}
                                         </option>
                                     ))}
                                 </select>
@@ -2905,8 +2920,17 @@ export default function CustomSignUpForm({
                                         Selecione uma modalidade
                                     </option>
                                     {PRESIDENT_SPORT_OPTIONS.map((sport) => (
-                                        <option key={sport} value={sport}>
+                                        <option
+                                            key={sport}
+                                            value={sport}
+                                            disabled={
+                                                !ENABLED_SPORTS.has(sport)
+                                            }
+                                        >
                                             {sport}
+                                            {!ENABLED_SPORTS.has(sport)
+                                                ? " (em breve)"
+                                                : ""}
                                         </option>
                                     ))}
                                 </select>
@@ -3021,6 +3045,27 @@ export default function CustomSignUpForm({
                                 inputMode="numeric"
                                 className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                 placeholder="Ex: 912345678"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                NIF (opcional)
+                            </label>
+                            <input
+                                type="text"
+                                value={trainerNif}
+                                onChange={(event) =>
+                                    setTrainerNif(
+                                        event.target.value
+                                            .replace(/\D/g, "")
+                                            .slice(0, 9),
+                                    )
+                                }
+                                maxLength={9}
+                                inputMode="numeric"
+                                className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                placeholder="Ex: 123456789"
                             />
                         </div>
 

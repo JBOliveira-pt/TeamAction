@@ -120,7 +120,7 @@ export function DashboardHeader({
                                 {user?.name || "Usuário"}
                             </p>
                             <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
-                                {user?.role || "Guest"}
+                                {user?.role || "Conta"}
                             </p>
                         </div>
                         <Avatar
@@ -164,16 +164,14 @@ export function DashboardHeader({
                                                 size={16}
                                                 className="text-gray-500 dark:text-gray-400"
                                             />
-                                            Definições da Conta
+                                            Definições
                                         </Link>
                                     ) : null}
                                     <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
                                 </>
                             )}
                             <button
-                                onClick={() =>
-                                    signOut(() => router.push("/login"))
-                                }
+                                onClick={() => signOut(() => router.push("/"))}
                                 className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors text-left"
                             >
                                 <LogOut size={16} />

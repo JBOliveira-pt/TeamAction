@@ -19,9 +19,7 @@ export type User = {
     email: string;
     password: string;
     image_url: string;
-    role?: "admin" | "user";
     organization_id?: string;
-    iban?: string | null;
     account_type?: "presidente" | "treinador" | "atleta" | "responsavel" | null;
 };
 
@@ -108,7 +106,6 @@ export type PresidentePerfil = {
     name: string;
     email: string;
     image_url: string;
-    role: "admin" | "user";
     organization_id: string;
     iban: string | null;
     organization?: Organization;

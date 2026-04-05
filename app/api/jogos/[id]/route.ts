@@ -5,8 +5,10 @@ import { NextRequest } from "next/server";
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 async function getUser(clerkUserId: string) {
-    const rows = await sql<{ id: string; organization_id: string }[]>`
-        SELECT id, organization_id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+    const rows = await sql<
+        { id: string; organization_id: string; account_type: string | null }[]
+    >`
+        SELECT id, organization_id, account_type FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
     `;
     return rows[0] ?? null;
 }
@@ -22,7 +24,7 @@ export async function PUT(
     if (!user) return new Response("User not found", { status: 404 });
 
     const { id } = await params;
-    const body = await req.json() as {
+    const body = (await req.json()) as {
         resultado_nos?: number | null;
         resultado_adv?: number | null;
         estado?: string;
@@ -33,9 +35,10 @@ export async function PUT(
     };
 
     const estadosValidos = ["agendado", "realizado", "cancelado"];
-    const estado = body.estado && estadosValidos.includes(body.estado)
-        ? body.estado
-        : undefined;
+    const estado =
+        body.estado && estadosValidos.includes(body.estado)
+            ? body.estado
+            : undefined;
 
     // Validate resultado if provided
     if (body.resultado_nos !== undefined && body.resultado_nos !== null) {
@@ -45,6 +48,19 @@ export async function PUT(
     if (body.resultado_adv !== undefined && body.resultado_adv !== null) {
         if (!Number.isInteger(body.resultado_adv) || body.resultado_adv < 0)
             return new Response("Resultado inválido.", { status: 400 });
+    }
+
+    // Treinador só pode editar jogos da sua equipa
+    if (user.account_type === "treinador") {
+        const own = await sql`
+            SELECT j.id FROM jogos j
+            JOIN equipas e ON e.id = j.equipa_id AND e.treinador_id = ${user.id}
+            WHERE j.id = ${id} AND j.organization_id = ${user.organization_id}
+        `;
+        if (own.length === 0)
+            return new Response("Só pode editar jogos da sua equipa.", {
+                status: 403,
+            });
     }
 
     const rows = await sql<{ id: string }[]>`
@@ -78,6 +94,19 @@ export async function DELETE(
     if (!user) return new Response("User not found", { status: 404 });
 
     const { id } = await params;
+
+    // Treinador só pode apagar jogos da sua equipa
+    if (user.account_type === "treinador") {
+        const own = await sql`
+            SELECT j.id FROM jogos j
+            JOIN equipas e ON e.id = j.equipa_id AND e.treinador_id = ${user.id}
+            WHERE j.id = ${id} AND j.organization_id = ${user.organization_id}
+        `;
+        if (own.length === 0)
+            return new Response("Só pode apagar jogos da sua equipa.", {
+                status: 403,
+            });
+    }
 
     const deleted = await sql`
         DELETE FROM jogos

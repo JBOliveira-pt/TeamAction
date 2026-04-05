@@ -20,6 +20,9 @@ export const PRESIDENT_SPORT_OPTIONS = [
     "Hóquei indoor",
 ] as const;
 
+/** Modalidades atualmente habilitadas na plataforma. */
+export const ENABLED_SPORTS: ReadonlySet<string> = new Set(["Andebol"]);
+
 export type PresidentSportOption = (typeof PRESIDENT_SPORT_OPTIONS)[number];
 
 export function normalizePresidentSport(

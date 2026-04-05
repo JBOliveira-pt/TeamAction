@@ -1,4 +1,5 @@
 import {
+    adminChangeAccountTypeAction,
     adminDeleteUserAction,
     adminUpdateUserAction,
 } from "@/app/lib/admin-actions";
@@ -10,6 +11,7 @@ import {
 } from "@/app/lib/admin-data";
 import { AdminDeleteUserDangerZone } from "../../../ui/admin/delete-user-danger-zone";
 import { AdminUserEditForm } from "../../../ui/admin/admin-user-edit-form";
+import { AdminAccountTypeChanger } from "../../../ui/admin/account-type-changer";
 import { clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
@@ -169,6 +171,20 @@ export default async function AdminUserDetailPage({
             };
         }
 
+        if (resolvedSearchParams?.success === "type_changed") {
+            return {
+                kind: "success" as const,
+                message: "Tipo de conta alterado com sucesso.",
+            };
+        }
+
+        if (resolvedSearchParams?.error === "type_change") {
+            return {
+                kind: "error" as const,
+                message: "Falha ao alterar o tipo de conta. Tente novamente.",
+            };
+        }
+
         if (resolvedSearchParams?.warning === "clerk") {
             return {
                 kind: "warning" as const,
@@ -253,6 +269,12 @@ export default async function AdminUserDetailPage({
                     equipas={equipas}
                 />
             </section>
+
+            <AdminAccountTypeChanger
+                userId={id}
+                currentType={accountType}
+                action={adminChangeAccountTypeAction}
+            />
 
             <AdminDeleteUserDangerZone deleteAction={deleteAction} />
         </div>

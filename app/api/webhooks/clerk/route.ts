@@ -78,8 +78,6 @@ export async function POST(req: Request) {
             const accountType = normalizeAccountType(
                 unsafe_metadata?.accountType ?? public_metadata?.accountType,
             );
-            const role = "user";
-
             console.log(
                 `[WEBHOOK] Tentando criar usuário: ${email} (id: ${id})`,
             );
@@ -102,8 +100,8 @@ export async function POST(req: Request) {
                     // 2. Criar Usuário vinculado à Org criada acima
                     const placeholderPassword = `clerk_managed_${crypto.randomUUID()}`;
                     await tx`
-            INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-                    VALUES (gen_random_uuid(), ${name}, ${email}, ${placeholderPassword}, ${id}, ${role}, ${org.id}, ${image_url || null}, NOW(), NOW())
+            INSERT INTO users (id, name, email, password, clerk_user_id, organization_id, image_url, created_at, updated_at)
+                    VALUES (gen_random_uuid(), ${name}, ${email}, ${placeholderPassword}, ${id}, ${org.id}, ${image_url || null}, NOW(), NOW())
           `;
 
                     console.log(
@@ -121,8 +119,8 @@ export async function POST(req: Request) {
 
                 const fallbackPassword = `clerk_managed_${crypto.randomUUID()}`;
                 await sql`
-          INSERT INTO users (id, name, email, password, clerk_user_id, role, organization_id, image_url, created_at, updated_at)
-                VALUES (gen_random_uuid(), ${name}, ${email}, ${fallbackPassword}, ${id}, ${role}, '00000000-0000-0000-0000-000000000000', ${image_url || null}, NOW(), NOW())
+          INSERT INTO users (id, name, email, password, clerk_user_id, organization_id, image_url, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${name}, ${email}, ${fallbackPassword}, ${id}, '00000000-0000-0000-0000-000000000000', ${image_url || null}, NOW(), NOW())
           ON CONFLICT DO NOTHING
         `;
 
@@ -141,10 +139,9 @@ export async function POST(req: Request) {
             );
 
             if (accountType) {
-                const role = "user";
                 await sql`
         UPDATE users
-        SET name = ${name}, image_url = ${image_url}, role = ${role}, updated_at = NOW()
+        SET name = ${name}, image_url = ${image_url}, updated_at = NOW()
         WHERE clerk_user_id = ${id}
       `;
             } else {
@@ -158,7 +155,98 @@ export async function POST(req: Request) {
         }
 
         if (eventType === "user.deleted") {
-            await sql`DELETE FROM users WHERE clerk_user_id = ${id}`;
+            // Buscar o user para obter o id UUID e email (id do webhook é clerk_user_id)
+            const [user] = await sql<
+                { id: string; email: string }[]
+            >`SELECT id, email FROM users WHERE clerk_user_id = ${id} LIMIT 1`;
+
+            if (user) {
+                await sql.begin(async (tx: any) => {
+                    // --- Cascade delete: apagar todos os dados vinculados ---
+
+                    // IDs dos atletas deste user
+                    const atletaRows = await tx`
+                        SELECT id FROM atletas WHERE user_id = ${user.id}
+                    `.catch(() => []);
+                    const atletaIds = atletaRows.map(
+                        (a: { id: string }) => a.id,
+                    );
+
+                    // Dados filhos de atletas
+                    if (atletaIds.length > 0) {
+                        for (const tbl of [
+                            "mensalidades",
+                            "estatisticas_jogo",
+                            "assiduidade",
+                            "eventos_jogo",
+                            "avaliacoes_fisicas",
+                            "convites_equipa",
+                            "recibos",
+                        ]) {
+                            await tx`
+                                DELETE FROM ${tx(tbl)}
+                                WHERE atleta_id = ANY(${atletaIds})
+                            `.catch(() => {});
+                        }
+                    }
+
+                    // Dados diretos do user
+                    for (const [tbl, col] of [
+                        ["atletas", "user_id"],
+                        ["staff", "user_id"],
+                        ["notificacoes", "recipient_user_id"],
+                        ["user_action_logs", "user_id"],
+                        ["pedidos_alteracao_perfil", "user_id"],
+                        ["pedidos_plano", "user_id"],
+                        ["notas_atleta", "user_id"],
+                        ["condicao_fisica", "user_id"],
+                        ["atleta_relacoes_pendentes", "atleta_user_id"],
+                        [
+                            "atleta_relacoes_pendentes",
+                            "alvo_responsavel_user_id",
+                        ],
+                        ["atleta_relacoes_pendentes", "alvo_treinador_user_id"],
+                        ["exercicios", "treinador_id"],
+                        ["sessoes", "treinador_id"],
+                        ["avaliacoes_fisicas", "treinador_id"],
+                        ["jogadas_taticas", "treinador_id"],
+                        ["planos_nutricao", "treinador_id"],
+                        ["convites_equipa", "treinador_id"],
+                        ["calendar_notes", "user_id"],
+                    ] as const) {
+                        await tx`
+                            DELETE FROM ${tx(tbl)}
+                            WHERE ${tx(col)} = ${user.id}
+                        `.catch(() => {});
+                    }
+
+                    // Recibos criados por este user
+                    await tx`
+                        DELETE FROM recibos WHERE created_by = ${user.id}
+                    `.catch(() => {});
+
+                    // Equipas: limpar treinador (não apagar)
+                    await tx`
+                        UPDATE equipas SET treinador_id = NULL
+                        WHERE treinador_id = ${user.id}
+                    `.catch(() => {});
+
+                    // Sessões: limpar criado_por
+                    await tx`
+                        UPDATE sessoes SET criado_por = NULL
+                        WHERE criado_por = ${user.id}
+                    `.catch(() => {});
+
+                    // Medico (ligada por email)
+                    await tx`
+                        DELETE FROM medico WHERE email = ${user.email}
+                    `.catch(() => {});
+
+                    // Finalmente, apagar o user
+                    await tx`DELETE FROM users WHERE id = ${user.id}`;
+                });
+            }
+
             return new Response("User deleted", { status: 200 });
         }
 

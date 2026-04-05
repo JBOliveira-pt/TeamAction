@@ -17,12 +17,23 @@ export async function GET(req: NextRequest) {
     const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
     if (q.length < 2) return Response.json([]);
 
-    const rows = await sql<{ id: string; name: string; cidade: string | null; desporto: string | null }[]>`
-        SELECT id, name, cidade, desporto
-        FROM organizations
-        WHERE id != ${orgId}
-          AND name ILIKE ${"%" + q + "%"}
-        ORDER BY name ASC
+    const rows = await sql<
+        {
+            id: string;
+            name: string;
+            cidade: string | null;
+            desporto: string | null;
+        }[]
+    >`
+        SELECT
+            c.organization_id AS id,
+            c.nome AS name,
+            c.cidade,
+            c.modalidade AS desporto
+        FROM clubes c
+        WHERE c.organization_id != ${orgId}
+          AND c.nome ILIKE ${"%" + q + "%"}
+        ORDER BY c.nome ASC
         LIMIT 10
     `;
 

@@ -25,7 +25,7 @@ export async function DELETE(
     const deleted = await sql`
         DELETE FROM calendar_notes
         WHERE id = ${id}
-          AND treinador_id = ${user.id}
+          AND user_id = ${user.id}
           AND organization_id = ${user.organization_id}
         RETURNING id
     `;

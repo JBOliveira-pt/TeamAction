@@ -64,7 +64,7 @@ export async function POST(
         }
 
         const canSend =
-            currentUser.role === "admin" ||
+            currentUser.account_type === "presidente" ||
             receipt.created_by === currentUser.id;
 
         if (!canSend) {

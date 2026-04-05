@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import RegistarResultadoModal from "./_components/RegistarResultadoModal.client";
+import ConvocatoriaModal from "./_components/ConvocatoriaModal.client";
 
 type Jogo = {
     id: string;
@@ -222,25 +223,33 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {j.estado !== "cancelado" &&
-                                                new Date(j.data) <=
-                                                    new Date() && (
-                                                    <RegistarResultadoModal
-                                                        jogo={{
-                                                            id: j.id,
-                                                            adversario:
-                                                                j.adversario,
-                                                            data: j.data,
-                                                        }}
-                                                    />
-                                                )}
-                                            {j.estado !== "cancelado" &&
-                                                new Date(j.data) >
-                                                    new Date() && (
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500 italic">
-                                                        Aguarda início
-                                                    </span>
-                                                )}
+                                            <div className="flex flex-col gap-1">
+                                                {j.estado !== "cancelado" &&
+                                                    new Date(j.data) <=
+                                                        new Date() && (
+                                                        <RegistarResultadoModal
+                                                            jogo={{
+                                                                id: j.id,
+                                                                adversario:
+                                                                    j.adversario,
+                                                                data: j.data,
+                                                            }}
+                                                        />
+                                                    )}
+                                                {j.estado !== "cancelado" &&
+                                                    j.equipa_id && (
+                                                        <ConvocatoriaModal
+                                                            jogoId={j.id}
+                                                            equipaId={
+                                                                j.equipa_id
+                                                            }
+                                                            adversario={
+                                                                j.adversario
+                                                            }
+                                                            data={j.data}
+                                                        />
+                                                    )}
+                                            </div>
                                         </td>
                                     </tr>
                                 );

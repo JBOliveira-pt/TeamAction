@@ -1,7 +1,17 @@
-import { fetchJogos } from "@/app/lib/data";
+import {
+    fetchJogosTreinador,
+    fetchEpocaAtiva,
+    fetchSessoesTreinador,
+} from "@/app/lib/data";
 import Calendario from "./calendario";
 
+export const dynamic = "force-dynamic";
+
 export default async function CalendarioPage() {
-    const jogos = await fetchJogos().catch(() => []);
-    return <Calendario jogos={jogos} />;
+    const [jogos, epoca, sessoes] = await Promise.all([
+        fetchJogosTreinador().catch(() => []),
+        fetchEpocaAtiva().catch(() => null),
+        fetchSessoesTreinador().catch(() => []),
+    ]);
+    return <Calendario jogos={jogos} epoca={epoca} sessoes={sessoes} />;
 }

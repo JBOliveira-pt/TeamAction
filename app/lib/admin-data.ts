@@ -9,7 +9,6 @@ export type AdminUserRow = {
     id: string;
     name: string;
     email: string;
-    role: string;
     image_url: string | null;
     organization_id: string | null;
     organization_name: string | null;
@@ -162,7 +161,6 @@ export async function fetchAdminUsers(query: string) {
                 u.id,
                 u.name,
                 u.email,
-                u.role,
                 u.image_url,
                 u.organization_id,
                 o.name AS organization_name,
@@ -182,19 +180,19 @@ export async function fetchAdminUsers(query: string) {
             u.id,
             u.name,
             u.email,
-            u.role,
             u.image_url,
             u.organization_id,
             o.name AS organization_name,
             u.clerk_user_id,
             u.created_at,
-            u.updated_at
+            u.updated_at,
+            u.account_type
         FROM users u
         LEFT JOIN organizations o ON o.id = u.organization_id
         WHERE
             u.name ILIKE ${`%${term}%`}
             OR u.email ILIKE ${`%${term}%`}
-            OR u.role ILIKE ${`%${term}%`}
+            OR COALESCE(u.account_type, '') ILIKE ${`%${term}%`}
             OR COALESCE(o.name, '') ILIKE ${`%${term}%`}
         ORDER BY u.created_at DESC NULLS LAST, u.name ASC
         LIMIT 200
@@ -217,7 +215,7 @@ export async function fetchAdminUserById(id: string) {
         WHERE table_schema = 'public'
           AND table_name = 'users'
           AND column_name IN (
-              'iban', 'data_nascimento', 'telefone',
+              'data_nascimento', 'telefone',
               'sobrenome', 'morada', 'peso_kg', 'altura_cm',
               'nif', 'codigo_postal', 'cidade', 'pais'
           )
@@ -231,14 +229,13 @@ export async function fetchAdminUserById(id: string) {
             u.id,
             u.name,
             u.email,
-            u.role,
             u.image_url,
             u.organization_id,
             o.name AS organization_name,
             u.clerk_user_id,
             u.created_at,
             u.updated_at,
-            ${has("iban") ? sql`u.iban` : sql`NULL`} AS iban,
+            c.iban,
             ${has("data_nascimento") ? sql`u.data_nascimento::text` : sql`NULL`} AS data_nascimento,
             ${has("telefone") ? sql`u.telefone` : sql`NULL`} AS telefone,
             ${has("sobrenome") ? sql`u.sobrenome` : sql`NULL`} AS sobrenome,
@@ -252,6 +249,7 @@ export async function fetchAdminUserById(id: string) {
             u.account_type
         FROM users u
         LEFT JOIN organizations o ON o.id = u.organization_id
+        LEFT JOIN clubes c ON c.organization_id = u.organization_id
         WHERE u.id = ${id}
         LIMIT 1
     `;
@@ -306,27 +304,45 @@ export async function fetchUserActionLogs(filters: UserActionLogFilters) {
 export async function fetchAdminOverviewStats() {
     await ensureAdminTables();
 
-    const [usersCount, actionLogsCount, viewLogsCount, unreadAvisos] =
-        await Promise.all([
-            sql<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM users`,
-            sql<
-                { count: number }[]
-            >`SELECT COUNT(*)::int AS count FROM user_action_logs WHERE LOWER(interaction_type) <> ${VIEW_INTERACTION_TYPE}`,
-            sql<
-                { count: number }[]
-            >`SELECT COUNT(*)::int AS count FROM user_action_logs WHERE LOWER(interaction_type) = ${VIEW_INTERACTION_TYPE}`,
-            sql<{ count: number }[]>`
+    const [
+        usersCount,
+        actionLogsCount,
+        viewLogsCount,
+        unreadAvisos,
+        pendingPlans,
+        pendingProfileChanges,
+    ] = await Promise.all([
+        sql<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM users`,
+        sql<
+            { count: number }[]
+        >`SELECT COUNT(*)::int AS count FROM user_action_logs WHERE LOWER(interaction_type) <> ${VIEW_INTERACTION_TYPE}`,
+        sql<
+            { count: number }[]
+        >`SELECT COUNT(*)::int AS count FROM user_action_logs WHERE LOWER(interaction_type) = ${VIEW_INTERACTION_TYPE}`,
+        sql<{ count: number }[]>`
             SELECT COUNT(*)::int AS count
             FROM notificacoes
             WHERE tipo = 'Aviso' AND lida = false
         `,
-        ]);
+        sql<{ count: number }[]>`
+            SELECT COUNT(*)::int AS count
+            FROM pedidos_plano
+            WHERE status = 'pendente'
+        `.catch(() => [{ count: 0 }]),
+        sql<{ count: number }[]>`
+            SELECT COUNT(*)::int AS count
+            FROM pedidos_alteracao_perfil
+            WHERE status = 'pendente'
+        `.catch(() => [{ count: 0 }]),
+    ]);
 
     return {
         users: usersCount[0]?.count ?? 0,
         actionLogs: actionLogsCount[0]?.count ?? 0,
         viewLogs: viewLogsCount[0]?.count ?? 0,
         avisosNaoLidos: unreadAvisos[0]?.count ?? 0,
+        pendingPlans: pendingPlans[0]?.count ?? 0,
+        pendingProfileChanges: pendingProfileChanges[0]?.count ?? 0,
     };
 }
 
@@ -615,4 +631,265 @@ export async function fetchUserByClerkId(clerkUserId: string) {
     `;
 
     return data[0] ?? null;
+}
+
+// ========================================
+// Pedidos de Plano
+// ========================================
+
+export type AdminPedidoPlanoRow = {
+    id: string;
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    organization_id: string;
+    organization_name: string | null;
+    plano_atual: string | null;
+    plano_solicitado: string;
+    status: string;
+    created_at: string;
+};
+
+export async function fetchAdminPedidosPlano(
+    statusFilter: string = "pendente",
+): Promise<AdminPedidoPlanoRow[]> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'pedidos_plano'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    if (statusFilter === "todos") {
+        return sql<AdminPedidoPlanoRow[]>`
+            SELECT
+                pp.id,
+                pp.user_id,
+                u.name AS user_name,
+                u.email AS user_email,
+                pp.organization_id,
+                o.name AS organization_name,
+                o.plano AS plano_atual,
+                pp.plano_solicitado,
+                pp.status,
+                pp.created_at
+            FROM pedidos_plano pp
+            JOIN users u ON u.id = pp.user_id
+            LEFT JOIN organizations o ON o.id = pp.organization_id
+            ORDER BY pp.created_at DESC
+            LIMIT 200
+        `;
+    }
+
+    return sql<AdminPedidoPlanoRow[]>`
+        SELECT
+            pp.id,
+            pp.user_id,
+            u.name AS user_name,
+            u.email AS user_email,
+            pp.organization_id,
+            o.name AS organization_name,
+            o.plano AS plano_atual,
+            pp.plano_solicitado,
+            pp.status,
+            pp.created_at
+        FROM pedidos_plano pp
+        JOIN users u ON u.id = pp.user_id
+        LEFT JOIN organizations o ON o.id = pp.organization_id
+        WHERE pp.status = ${statusFilter}
+        ORDER BY pp.created_at DESC
+        LIMIT 200
+    `;
+}
+
+// ========================================
+// Pedidos de Alteração de Perfil
+// ========================================
+
+export type AdminPedidoPerfilRow = {
+    id: string;
+    user_id: string;
+    user_name: string;
+    user_email: string;
+    organization_name: string | null;
+    campo: string;
+    valor_atual: string | null;
+    valor_novo: string;
+    status: string;
+    created_at: string;
+};
+
+export async function fetchAdminPedidosPerfil(
+    statusFilter: string = "pendente",
+): Promise<AdminPedidoPerfilRow[]> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'pedidos_alteracao_perfil'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    if (statusFilter === "todos") {
+        return sql<AdminPedidoPerfilRow[]>`
+            SELECT
+                pap.id,
+                pap.user_id,
+                u.name AS user_name,
+                u.email AS user_email,
+                o.name AS organization_name,
+                pap.campo,
+                pap.valor_atual,
+                pap.valor_novo,
+                pap.status,
+                pap.created_at
+            FROM pedidos_alteracao_perfil pap
+            JOIN users u ON u.id = pap.user_id
+            LEFT JOIN organizations o ON o.id = pap.organization_id
+            ORDER BY pap.created_at DESC
+            LIMIT 200
+        `;
+    }
+
+    return sql<AdminPedidoPerfilRow[]>`
+        SELECT
+            pap.id,
+            pap.user_id,
+            u.name AS user_name,
+            u.email AS user_email,
+            o.name AS organization_name,
+            pap.campo,
+            pap.valor_atual,
+            pap.valor_novo,
+            pap.status,
+            pap.created_at
+        FROM pedidos_alteracao_perfil pap
+        JOIN users u ON u.id = pap.user_id
+        LEFT JOIN organizations o ON o.id = pap.organization_id
+        WHERE pap.status = ${statusFilter}
+        ORDER BY pap.created_at DESC
+        LIMIT 200
+    `;
+}
+
+// ========================================
+// Convites Pendentes (clube + equipa)
+// ========================================
+
+export type AdminConviteRow = {
+    id: string;
+    tipo_convite: string;
+    convidado_nome: string;
+    convidado_email: string;
+    clube_nome: string | null;
+    equipa_nome: string | null;
+    convidado_por_nome: string | null;
+    estado: string;
+    created_at: string;
+};
+
+export async function fetchAdminConvitesClubeAll(): Promise<AdminConviteRow[]> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'convites_clube'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    return sql<AdminConviteRow[]>`
+        SELECT
+            cc.id,
+            cc.tipo AS tipo_convite,
+            uc.name AS convidado_nome,
+            uc.email AS convidado_email,
+            o.name AS clube_nome,
+            e.nome AS equipa_nome,
+            up.name AS convidado_por_nome,
+            cc.estado,
+            cc.created_at
+        FROM convites_clube cc
+        JOIN users uc ON uc.id = cc.convidado_user_id
+        LEFT JOIN organizations o ON o.id = cc.clube_org_id
+        LEFT JOIN equipas e ON e.id = cc.equipa_id
+        LEFT JOIN users up ON up.id = cc.convidado_por
+        ORDER BY cc.created_at DESC
+        LIMIT 200
+    `;
+}
+
+export async function fetchAdminConvitesEquipaAll(): Promise<
+    AdminConviteRow[]
+> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'convites_equipa'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    return sql<AdminConviteRow[]>`
+        SELECT
+            ce.id,
+            'equipa' AS tipo_convite,
+            COALESCE(a_user.name, CONCAT('Atleta #', ce.atleta_id)) AS convidado_nome,
+            COALESCE(a_user.email, '') AS convidado_email,
+            o.name AS clube_nome,
+            ce.equipa_nome,
+            ut.name AS convidado_por_nome,
+            ce.estado,
+            ce.created_at
+        FROM convites_equipa ce
+        LEFT JOIN atletas a ON a.id = ce.atleta_id
+        LEFT JOIN users a_user ON a_user.id = a.user_id
+        LEFT JOIN organizations o ON o.id = ce.organization_id
+        LEFT JOIN users ut ON ut.id = ce.treinador_id
+        ORDER BY ce.created_at DESC
+        LIMIT 200
+    `;
+}
+
+// ========================================
+// Relações Pendentes (atleta_relacoes_pendentes)
+// ========================================
+
+export type AdminRelacaoPendenteRow = {
+    id: string;
+    atleta_nome: string;
+    atleta_email: string;
+    alvo_nome: string | null;
+    alvo_clube_nome: string | null;
+    tipo: string;
+    status: string;
+    created_at: string;
+};
+
+export async function fetchAdminRelacoesPendentes(): Promise<
+    AdminRelacaoPendenteRow[]
+> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'atleta_relacoes_pendentes'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    return sql<AdminRelacaoPendenteRow[]>`
+        SELECT
+            arp.id,
+            ua.name AS atleta_nome,
+            ua.email AS atleta_email,
+            COALESCE(o.name, '') AS alvo_clube_nome,
+            arp.tipo,
+            arp.status,
+            arp.created_at
+        FROM atleta_relacoes_pendentes arp
+        LEFT JOIN users ua ON ua.id = arp.atleta_user_id
+        LEFT JOIN organizations o ON o.id = arp.alvo_clube_id
+        ORDER BY arp.created_at DESC
+        LIMIT 200
+    `;
 }

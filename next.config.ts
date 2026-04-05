@@ -1,21 +1,11 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
     async redirects() {
         return [
             {
-                source: '/dashboard/atleta/perfil/criar',
-                destination: '/dashboard/utilizador/perfil/criar',
-                permanent: true,
-            },
-            {
-                source: '/dashboard/atleta/perfil/editar',
-                destination: '/dashboard/utilizador/perfil/editar',
-                permanent: true,
-            },
-            {
-                source: '/dashboard/atleta/perfil',
-                destination: '/dashboard/utilizador/perfil',
+                source: "/dashboard/atleta/perfil",
+                destination: "/dashboard/utilizador/perfil",
                 permanent: true,
             },
         ];
@@ -23,16 +13,16 @@ const nextConfig: NextConfig = {
     images: {
         remotePatterns: [
             {
-                protocol: 'https',
-                hostname: 'i.ytimg.com',
+                protocol: "https",
+                hostname: "i.ytimg.com",
             },
             {
-                protocol: 'https',
-                hostname: 'pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev',
+                protocol: "https",
+                hostname: "pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev",
             },
             {
-                protocol: 'https',
-                hostname: 'img.clerk.com',
+                protocol: "https",
+                hostname: "img.clerk.com",
             },
         ],
     },

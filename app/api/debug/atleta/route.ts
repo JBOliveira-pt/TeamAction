@@ -1,24 +1,22 @@
-import { auth } from '@clerk/nextjs/server';
-import postgres from 'postgres';
+import { auth } from "@clerk/nextjs/server";
+import postgres from "postgres";
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 export async function GET() {
     try {
         const { userId: clerkUserId } = await auth();
         if (!clerkUserId)
             return Response.json(
-                { error: 'Not authenticated' },
+                { error: "Not authenticated" },
                 { status: 401 },
             );
 
-        const [user] = await sql<
-            { id: string; name: string; Encarregado_Edu: string | null }[]
-        >`
-            SELECT id, name, "Encarregado_Edu" FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        const [user] = await sql<{ id: string; name: string }[]>`
+            SELECT id, name FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
         `;
         if (!user)
-            return Response.json({ error: 'User not found' }, { status: 404 });
+            return Response.json({ error: "User not found" }, { status: 404 });
 
         const [atleta] = await sql`
             SELECT * FROM atletas WHERE user_id = ${user.id} LIMIT 1
@@ -32,7 +30,7 @@ export async function GET() {
             user: {
                 id: user.id,
                 name: user.name,
-                encarregado_edu: user['Encarregado_Edu'],
+                encarregado_educacao: atleta?.encarregado_educacao ?? null,
             },
             atleta: atleta ?? null,
             equipa: equipa[0] ?? null,

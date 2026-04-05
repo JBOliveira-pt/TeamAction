@@ -134,6 +134,159 @@ async function deleteRecibosByUser(
     }
 }
 
+/**
+ * Apaga em cascata todos os dados vinculados a um utilizador.
+ * Deve correr dentro de uma transação.
+ *
+ * Ordem: tabelas-filha primeiro, depois tabelas-pai, por fim users.
+ */
+export async function cascadeDeleteUser(
+    tx: SqlExecutor,
+    userId: string,
+    userEmail?: string | null,
+): Promise<void> {
+    // 1) Obter IDs dos atletas vinculados a este user
+    const atletaIds = (await tableExists(tx, "atletas"))
+        ? (
+              await tx<{ id: string }[]>`
+            SELECT id FROM atletas WHERE user_id = ${userId}
+        `
+          ).map((a) => a.id)
+        : [];
+
+    // 2) Dados filhos de atletas (atleta_id → atletas.id)
+    if (atletaIds.length > 0) {
+        await deleteByTableColumnIn(tx, "mensalidades", "atleta_id", atletaIds);
+        await deleteByTableColumnIn(
+            tx,
+            "estatisticas_jogo",
+            "atleta_id",
+            atletaIds,
+        );
+        await deleteByTableColumnIn(tx, "assiduidade", "atleta_id", atletaIds);
+        await deleteByTableColumnIn(tx, "eventos_jogo", "atleta_id", atletaIds);
+        await deleteByTableColumnIn(
+            tx,
+            "avaliacoes_fisicas",
+            "atleta_id",
+            atletaIds,
+        );
+        await deleteByTableColumnIn(
+            tx,
+            "convites_equipa",
+            "atleta_id",
+            atletaIds,
+        );
+        // recibos vinculados ao atleta
+        await deleteByTableColumnIn(tx, "recibos", "atleta_id", atletaIds);
+    }
+
+    // 3) Dados directamente ligados ao user_id
+    await deleteByColumnIfExists(tx, "atletas", "user_id", userId);
+    await deleteByColumnIfExists(tx, "staff", "user_id", userId);
+    await deleteByColumnIfExists(
+        tx,
+        "notificacoes",
+        "recipient_user_id",
+        userId,
+    );
+    await deleteByColumnIfExists(tx, "user_action_logs", "user_id", userId);
+    await deleteByColumnIfExists(
+        tx,
+        "pedidos_alteracao_perfil",
+        "user_id",
+        userId,
+    );
+    await deleteByColumnIfExists(tx, "pedidos_plano", "user_id", userId);
+    await deleteByColumnIfExists(tx, "notas_atleta", "user_id", userId);
+    await deleteByColumnIfExists(tx, "condicao_fisica", "user_id", userId);
+    await deleteRecibosByUser(tx, userId);
+
+    // 4) Relações pendentes (atleta ou responsável)
+    await deleteByColumnIfExists(
+        tx,
+        "atleta_relacoes_pendentes",
+        "atleta_user_id",
+        userId,
+    );
+    await deleteByColumnIfExists(
+        tx,
+        "atleta_relacoes_pendentes",
+        "alvo_responsavel_user_id",
+        userId,
+    );
+    await deleteByColumnIfExists(
+        tx,
+        "atleta_relacoes_pendentes",
+        "alvo_treinador_user_id",
+        userId,
+    );
+
+    // 5) Dados criados por treinador (treinador_id → users.id)
+    await deleteByColumnIfExists(tx, "exercicios", "treinador_id", userId);
+    await deleteByColumnIfExists(tx, "sessoes", "treinador_id", userId);
+    await deleteByColumnIfExists(
+        tx,
+        "avaliacoes_fisicas",
+        "treinador_id",
+        userId,
+    );
+    await deleteByColumnIfExists(tx, "jogadas_taticas", "treinador_id", userId);
+    await deleteByColumnIfExists(tx, "planos_nutricao", "treinador_id", userId);
+    await deleteByColumnIfExists(tx, "convites_equipa", "treinador_id", userId);
+    await deleteByColumnIfExists(tx, "calendar_notes", "user_id", userId);
+
+    // 6) Equipas: limpar treinador_id (equipa é partilhada, não se apaga)
+    await nullifyColumnIfExists(tx, "equipas", "treinador_id", userId);
+
+    // 7) Sessões criadas por este user
+    await nullifyColumnIfExists(tx, "sessoes", "criado_por", userId);
+
+    // 8) Tabela medico (ligada por email)
+    if (userEmail && (await tableExists(tx, "medico"))) {
+        await tx`DELETE FROM medico WHERE email = ${userEmail}`;
+    }
+
+    // 9) Finalmente, apagar o registo do user
+    await tx`DELETE FROM users WHERE id = ${userId}`;
+}
+
+/** Apagar linhas de uma tabela onde a coluna está num array de IDs */
+async function deleteByTableColumnIn(
+    tx: SqlExecutor,
+    tableName: string,
+    columnName: string,
+    ids: string[],
+): Promise<void> {
+    if (ids.length === 0) return;
+    const hasT = await tableExists(tx, tableName);
+    if (!hasT) return;
+    const hasC = await columnExists(tx, tableName, columnName);
+    if (!hasC) return;
+    await tx`
+        DELETE FROM ${tx(tableName)}
+        WHERE ${tx(columnName)} = ANY(${ids})
+    `;
+}
+
+/** SET column = NULL onde column = userId */
+async function nullifyColumnIfExists(
+    tx: SqlExecutor,
+    tableName: string,
+    columnName: string,
+    userId: string,
+): Promise<void> {
+    const hasT = await tableExists(tx, tableName);
+    if (!hasT) return;
+    const hasC = await columnExists(tx, tableName, columnName);
+    if (!hasC) return;
+    await tx`
+        UPDATE ${tx(tableName)}
+        SET ${tx(columnName)} = NULL
+        WHERE ${tx(columnName)} = ${userId}
+    `;
+}
+
 export async function adminLoginAction(formData: FormData): Promise<void> {
     const password = String(formData.get("password") || "").trim();
 
@@ -150,16 +303,6 @@ export async function adminLoginAction(formData: FormData): Promise<void> {
 
     if (!isValid) {
         redirect("/admin-login?error=1");
-    }
-
-    try {
-        await sql`
-            UPDATE users
-            SET role = 'user', updated_at = NOW()
-            WHERE role = 'admin'
-        `;
-    } catch (error) {
-        console.error("Falha ao normalizar papeis de usuários:", error);
     }
 
     const token = createAdminSessionToken();
@@ -313,7 +456,7 @@ export async function adminUpdateUserAction(
             WHERE table_schema = 'public'
               AND table_name = 'users'
               AND column_name IN (
-                  'iban', 'data_nascimento', 'telefone',
+                  'data_nascimento', 'telefone',
                   'sobrenome', 'morada', 'peso_kg', 'altura_cm',
                   'nif', 'codigo_postal', 'cidade', 'pais'
               )
@@ -353,10 +496,10 @@ export async function adminUpdateUserAction(
         }
 
         // Update optional columns individually
-        if (hasCol("iban")) {
+        if (iban !== null) {
             await sql`
-                UPDATE users SET iban = ${iban}, updated_at = NOW()
-                WHERE id = ${userId}
+                UPDATE clubes SET iban = ${iban}, updated_at = NOW()
+                WHERE presidente_user_id = ${userId}
             `;
         }
         if (hasCol("data_nascimento") && dataNascimento) {
@@ -457,6 +600,12 @@ export async function adminUpdateUserAction(
                 UPDATE organizations
                 SET name = ${organizationName}, updated_at = NOW()
                 WHERE id = ${currentUser.organization_id}
+            `;
+            // Keep clubes.nome in sync
+            await sql`
+                UPDATE clubes
+                SET nome = ${organizationName}, updated_at = NOW()
+                WHERE organization_id = ${currentUser.organization_id}
             `;
         }
 
@@ -559,32 +708,7 @@ export async function adminDeleteUserAction(
     try {
         await sql.begin(async (tx) => {
             const executor = tx as unknown as SqlExecutor;
-
-            await deleteRecibosByUser(executor, userId);
-            await deleteByColumnIfExists(
-                executor,
-                "atletas",
-                "user_id",
-                userId,
-            );
-            await deleteByColumnIfExists(executor, "staff", "user_id", userId);
-            await deleteByColumnIfExists(
-                executor,
-                "notificacoes",
-                "recipient_user_id",
-                userId,
-            );
-            await deleteByColumnIfExists(
-                executor,
-                "user_action_logs",
-                "user_id",
-                userId,
-            );
-
-            await executor`
-                DELETE FROM users
-                WHERE id = ${userId}
-            `;
+            await cascadeDeleteUser(executor, userId, targetUser.email);
         });
     } catch (error) {
         console.error(error);
@@ -722,4 +846,326 @@ export async function adminCreateAvisoAction(
     revalidatePath("/dashboard");
     revalidatePath("/admin/avisos");
     redirect("/admin/avisos?success=1");
+}
+
+// ========================================
+// Aprovar / Rejeitar Pedidos de Plano
+// ========================================
+
+export async function adminResolvePedidoPlanoAction(
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const pedidoId = String(formData.get("pedidoId") || "").trim();
+    const decisao = String(formData.get("decisao") || "").trim();
+
+    if (!pedidoId || (decisao !== "aprovado" && decisao !== "rejeitado")) {
+        redirect("/admin/planos?error=invalid");
+    }
+
+    try {
+        const pedido = await sql<
+            {
+                id: string;
+                user_id: string;
+                organization_id: string;
+                plano_solicitado: string;
+                status: string;
+            }[]
+        >`
+            SELECT id, user_id, organization_id, plano_solicitado, status
+            FROM pedidos_plano
+            WHERE id = ${pedidoId}
+            LIMIT 1
+        `;
+
+        if (!pedido.length || pedido[0].status !== "pendente") {
+            redirect("/admin/planos?error=not_found");
+        }
+
+        const { user_id, organization_id, plano_solicitado } = pedido[0];
+
+        await sql`
+            UPDATE pedidos_plano
+            SET status = ${decisao}, updated_at = NOW()
+            WHERE id = ${pedidoId}
+        `;
+
+        if (decisao === "aprovado") {
+            await sql`
+                UPDATE organizations
+                SET plano = ${plano_solicitado}, updated_at = NOW()
+                WHERE id = ${organization_id}
+            `;
+        }
+
+        // Notificar o utilizador
+        const planoLabel: Record<string, string> = {
+            team: "Team",
+            club_pro: "Club Pro",
+            legend: "Legend",
+        };
+        const label = planoLabel[plano_solicitado] || plano_solicitado;
+        const titulo =
+            decisao === "aprovado" ? "Plano Aprovado" : "Plano Rejeitado";
+        const descricao =
+            decisao === "aprovado"
+                ? `O seu pedido para o plano ${label} foi aprovado. O plano já está ativo.`
+                : `O seu pedido para o plano ${label} foi rejeitado pelo administrador.`;
+
+        await ensureRecipientUserIdColumn(sql);
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+            VALUES (gen_random_uuid(), ${organization_id}, ${user_id}, ${titulo}, ${descricao}, 'Aviso', false, NOW())
+        `;
+
+        // Audit log
+        await ensureAdminTables();
+        const metadata: JSONValue = JSON.parse(
+            JSON.stringify({
+                pedidoId,
+                decisao,
+                plano_solicitado,
+                organization_id,
+                user_id,
+            }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${`admin_plan_${decisao}`},
+                ${"/admin/planos"},
+                ${sql.json(metadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        redirect("/admin/planos?error=action");
+    }
+
+    revalidatePath("/admin/planos");
+    revalidatePath("/dashboard");
+    redirect(`/admin/planos?success=${decisao}`);
+}
+
+// ========================================
+// Aprovar / Rejeitar Pedidos de Alteração de Perfil
+// ========================================
+
+export async function adminResolvePedidoPerfilAction(
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const pedidoId = String(formData.get("pedidoId") || "").trim();
+    const decisao = String(formData.get("decisao") || "").trim();
+
+    if (!pedidoId || (decisao !== "aprovado" && decisao !== "rejeitado")) {
+        redirect("/admin/pedidos?error=invalid");
+    }
+
+    try {
+        const pedido = await sql<
+            {
+                id: string;
+                user_id: string;
+                organization_id: string | null;
+                campo: string;
+                valor_atual: string | null;
+                valor_novo: string;
+                status: string;
+            }[]
+        >`
+            SELECT id, user_id, organization_id, campo, valor_atual, valor_novo, status
+            FROM pedidos_alteracao_perfil
+            WHERE id = ${pedidoId}
+            LIMIT 1
+        `;
+
+        if (!pedido.length || pedido[0].status !== "pendente") {
+            redirect("/admin/pedidos?error=not_found");
+        }
+
+        const { user_id, organization_id, campo, valor_novo } = pedido[0];
+
+        await sql`
+            UPDATE pedidos_alteracao_perfil
+            SET status = ${decisao}, updated_at = NOW()
+            WHERE id = ${pedidoId}
+        `;
+
+        // Se aprovado, aplicar a alteração
+        if (decisao === "aprovado") {
+            if (campo === "email") {
+                await sql`
+                    UPDATE users SET email = ${valor_novo}, updated_at = NOW()
+                    WHERE id = ${user_id}
+                `;
+
+                // Sync with Clerk
+                const userData = await sql<
+                    { clerk_user_id: string | null }[]
+                >`SELECT clerk_user_id FROM users WHERE id = ${user_id} LIMIT 1`;
+                const clerkUserId = userData[0]?.clerk_user_id;
+                if (clerkUserId) {
+                    try {
+                        const client = await clerkClient();
+                        await client.emailAddresses.createEmailAddress({
+                            userId: clerkUserId,
+                            emailAddress: valor_novo,
+                        });
+                    } catch (err) {
+                        console.error(
+                            "Falha ao atualizar email no Clerk:",
+                            err,
+                        );
+                    }
+                }
+            } else if (campo === "data_nascimento") {
+                await sql`
+                    UPDATE users SET data_nascimento = ${valor_novo}, updated_at = NOW()
+                    WHERE id = ${user_id}
+                `;
+            }
+        }
+
+        // Notificar o utilizador
+        const campoLabel: Record<string, string> = {
+            email: "email",
+            data_nascimento: "data de nascimento",
+        };
+        const titulo =
+            decisao === "aprovado"
+                ? "Alteração Aprovada"
+                : "Alteração Rejeitada";
+        const descricao =
+            decisao === "aprovado"
+                ? `A alteração do campo ${campoLabel[campo] || campo} foi aprovada e aplicada.`
+                : `A alteração do campo ${campoLabel[campo] || campo} foi rejeitada pelo administrador.`;
+
+        if (organization_id) {
+            await ensureRecipientUserIdColumn(sql);
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (gen_random_uuid(), ${organization_id}, ${user_id}, ${titulo}, ${descricao}, 'Aviso', false, NOW())
+            `;
+        }
+
+        // Audit log
+        await ensureAdminTables();
+        const metadata: JSONValue = JSON.parse(
+            JSON.stringify({
+                pedidoId,
+                decisao,
+                campo,
+                valor_novo,
+                user_id,
+            }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${`admin_profile_change_${decisao}`},
+                ${"/admin/pedidos"},
+                ${sql.json(metadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        redirect("/admin/pedidos?error=action");
+    }
+
+    revalidatePath("/admin/pedidos");
+    revalidatePath("/dashboard");
+    redirect(`/admin/pedidos?success=${decisao}`);
+}
+
+// ========================================
+// Alterar Account Type de um utilizador
+// ========================================
+
+export async function adminChangeAccountTypeAction(
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const userId = String(formData.get("userId") || "").trim();
+    const newAccountType = String(formData.get("accountType") || "").trim();
+
+    const validated = normalizeAccountType(newAccountType);
+    if (!userId || !validated) {
+        redirect("/admin/users?error=invalid_type");
+    }
+
+    try {
+        const userData = await sql<
+            {
+                id: string;
+                clerk_user_id: string | null;
+                account_type: string | null;
+                name: string;
+            }[]
+        >`SELECT id, clerk_user_id, account_type, name FROM users WHERE id = ${userId} LIMIT 1`;
+
+        if (!userData.length) {
+            redirect(`/admin/users/${userId}?error=not_found`);
+        }
+
+        const { clerk_user_id, account_type: oldType, name } = userData[0];
+
+        // Update database
+        await sql`
+            UPDATE users SET account_type = ${validated}, updated_at = NOW()
+            WHERE id = ${userId}
+        `;
+
+        // Update Clerk metadata
+        if (clerk_user_id) {
+            try {
+                const client = await clerkClient();
+                await client.users.updateUserMetadata(clerk_user_id, {
+                    publicMetadata: { accountType: validated },
+                    unsafeMetadata: { accountType: validated },
+                });
+            } catch (err) {
+                console.error("Falha ao atualizar accountType no Clerk:", err);
+            }
+        }
+
+        // Audit log
+        await ensureAdminTables();
+        const metadata: JSONValue = JSON.parse(
+            JSON.stringify({
+                userId,
+                oldAccountType: oldType,
+                newAccountType: validated,
+                userName: name,
+            }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${"admin_account_type_change"},
+                ${`/admin/users/${userId}`},
+                ${sql.json(metadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        redirect(`/admin/users/${userId}?error=type_change`);
+    }
+
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    redirect(`/admin/users/${userId}?success=type_changed`);
 }

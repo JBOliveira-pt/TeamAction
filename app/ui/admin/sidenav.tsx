@@ -12,12 +12,18 @@ import {
     ShieldCheck,
     Users,
     X,
+    CreditCard,
+    FileEdit,
+    Mail,
 } from "lucide-react";
 import { useState } from "react";
 
 const links = [
     { href: "/admin", label: "Visão Geral", icon: Home },
     { href: "/admin/users", label: "Utilizadores", icon: Users },
+    { href: "/admin/planos", label: "Pedidos de Plano", icon: CreditCard },
+    { href: "/admin/pedidos", label: "Alterações de Perfil", icon: FileEdit },
+    { href: "/admin/convites", label: "Convites", icon: Mail },
     { href: "/admin/logs", label: "Logs", icon: Logs },
     { href: "/admin/avisos", label: "Avisos", icon: Megaphone },
 ];

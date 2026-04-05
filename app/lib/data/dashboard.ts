@@ -1,10 +1,10 @@
-import { sql, getOrganizationId } from "./_shared";
+import { sql, getOrganizationId, requireAccountType } from "./_shared";
 
 // ---------- MENSALIDADES ----------
 
 export async function fetchMensalidades() {
     try {
-        const organizationId = await getOrganizationId();
+        const { organizationId } = await requireAccountType("presidente");
 
         const data = await sql<
             {

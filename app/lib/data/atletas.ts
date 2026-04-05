@@ -188,7 +188,7 @@ export async function fetchAtletaAtual() {
                 atletas.mao_dominante,
                 equipas.nome AS equipa_nome,
                 treinador.name AS treinador_nome,
-                u."Encarregado_Edu" AS encarregado
+                atletas.encarregado_educacao AS encarregado
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
             LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
@@ -268,16 +268,12 @@ export async function fetchPerfilAtletaGeral() {
                 cidade: string | null;
                 codigo_postal: string | null;
                 pais: string | null;
-                menor_idade: boolean | null;
-                encarregado_edu: string | null;
                 status: boolean | null;
             }[]
         >`
             SELECT
                 id, name, email, telefone, data_nascimento,
                 morada, cidade, codigo_postal, pais,
-                "Menor_idade" AS menor_idade,
-                "Encarregado_Edu" AS encarregado_edu,
                 CASE
                     WHEN status::text = 'true'  THEN true
                     WHEN status::text = 'false' THEN false
@@ -289,30 +285,76 @@ export async function fetchPerfilAtletaGeral() {
         `;
         if (!user) return null;
 
+        // Detectar se peso_kg/altura_cm existem na tabela users
+        const userCols = await sql<{ column_name: string }[]>`
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'users'
+              AND column_name IN ('peso_kg', 'altura_cm')
+        `;
+        const colSet = new Set(userCols.map((c) => c.column_name));
+
+        let peso_kg: number | null = null;
+        let altura_cm: number | null = null;
+        if (colSet.has("peso_kg") || colSet.has("altura_cm")) {
+            const [medidas] = await sql<
+                { peso_kg: number | null; altura_cm: number | null }[]
+            >`
+                SELECT
+                    ${colSet.has("peso_kg") ? sql`peso_kg` : sql`NULL::numeric AS peso_kg`},
+                    ${colSet.has("altura_cm") ? sql`altura_cm` : sql`NULL::numeric AS altura_cm`}
+                FROM users WHERE id = ${user.id} LIMIT 1
+            `;
+            peso_kg = medidas?.peso_kg ?? null;
+            altura_cm = medidas?.altura_cm ?? null;
+        }
+
         const [atleta] = await sql<
             {
                 mao_dominante: string | null;
                 equipa_nome: string | null;
+                federado: boolean | null;
+                treinador_nome: string | null;
+                menor_idade: boolean | null;
+                encarregado_educacao: string | null;
             }[]
         >`
-            SELECT atletas.mao_dominante, equipas.nome AS equipa_nome
+            SELECT atletas.mao_dominante, equipas.nome AS equipa_nome,
+                   atletas.federado, treinador.name AS treinador_nome,
+                   atletas.menor_idade, atletas.encarregado_educacao
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
             WHERE atletas.user_id = ${user.id}
             LIMIT 1
         `;
 
-        let guardian: { name: string; email: string } | null = null;
-        if (user.menor_idade && user.encarregado_edu) {
-            const [g] = await sql<{ name: string; email: string }[]>`
-                SELECT name, email FROM users
-                WHERE email = ${user.encarregado_edu}
+        let guardian: {
+            name: string;
+            email: string;
+            image_url: string | null;
+        } | null = null;
+        if (atleta?.menor_idade && atleta?.encarregado_educacao) {
+            const [g] = await sql<
+                { name: string; email: string; image_url: string | null }[]
+            >`
+                SELECT name, email, image_url FROM users
+                WHERE email = ${atleta.encarregado_educacao}
                 LIMIT 1
             `;
             guardian = g ?? null;
         }
 
-        return { user, atleta: atleta ?? null, guardian };
+        return {
+            user: {
+                ...user,
+                peso_kg,
+                altura_cm,
+                menor_idade: atleta?.menor_idade ?? null,
+                encarregado_educacao: atleta?.encarregado_educacao ?? null,
+            },
+            atleta: atleta ?? null,
+            guardian,
+        };
     } catch (error) {
         console.error("Database Error:", error);
         return null;
@@ -332,7 +374,7 @@ export async function fetchAtletaDoResponsavel() {
         `;
         if (!guardian) return null;
 
-        // Find the minor whose Encarregado_Edu matches the guardian's email
+        // Find the minor whose encarregado_educacao (atletas) matches the guardian's email
         const [minorUser] = await sql<
             {
                 id: string;
@@ -348,15 +390,17 @@ export async function fetchAtletaDoResponsavel() {
             }[]
         >`
             SELECT
-                id, name, email, telefone, data_nascimento, morada, cidade, codigo_postal, pais,
+                u.id, u.name, u.email, u.telefone, u.data_nascimento,
+                u.morada, u.cidade, u.codigo_postal, u.pais,
                 CASE
-                    WHEN status::text = 'true'  THEN true
-                    WHEN status::text = 'false' THEN false
+                    WHEN u.status::text = 'true'  THEN true
+                    WHEN u.status::text = 'false' THEN false
                     ELSE NULL
                 END AS status
-            FROM users
-            WHERE "Encarregado_Edu" = ${guardian.email}
-            AND "Menor_idade" = true
+            FROM users u
+            INNER JOIN atletas a ON a.user_id = u.id
+            WHERE a.encarregado_educacao = ${guardian.email}
+            AND a.menor_idade = true
             LIMIT 1
         `;
         if (!minorUser) return null;

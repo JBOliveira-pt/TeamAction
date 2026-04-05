@@ -89,9 +89,12 @@ export default function AtribuirTreinadorModal({
                                     <select
                                         name="treinador_id"
                                         defaultValue={treinadorAtualId ?? ""}
+                                        required
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
                                     >
-                                        <option value="">Sem treinador</option>
+                                        <option value="">
+                                            Seleciona treinador
+                                        </option>
                                         {treinadores.map((t) => (
                                             <option key={t.id} value={t.id}>
                                                 {t.name} — {t.email}

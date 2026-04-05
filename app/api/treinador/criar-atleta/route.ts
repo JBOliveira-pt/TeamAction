@@ -64,17 +64,23 @@ export async function POST(req: NextRequest) {
 
     let linkedUserId: string | null = null;
     let suspenso = false;
+    let emailUserFound = false;
 
     // Se foi fornecido um email, verificar se existe na plataforma
     if (body.email?.trim()) {
         const emailNorm = body.email.trim().toLowerCase();
         const userRows = await sql<
-            { id: string; organization_id: string | null }[]
+            {
+                id: string;
+                organization_id: string | null;
+                account_type: string | null;
+            }[]
         >`
-            SELECT id, organization_id FROM users WHERE LOWER(email) = ${emailNorm} LIMIT 1
+            SELECT id, organization_id, account_type FROM users WHERE LOWER(email) = ${emailNorm} LIMIT 1
         `;
 
         if (userRows.length > 0) {
+            emailUserFound = true;
             const atletaUser = userRows[0];
             linkedUserId = atletaUser.id;
 
@@ -127,6 +133,67 @@ export async function POST(req: NextRequest) {
                 'Atleta suspenso por conflito de clube',
                 ${`O atleta "${body.nome.trim()}" foi criado pelo treinador "${treinador.name}" mas está vinculado a outro clube. O perfil ficou suspenso até resolução.`},
                 'Aviso',
+                false,
+                NOW()
+            )
+        `.catch(() => {});
+    } else if (body.email?.trim() && emailUserFound && linkedUserId) {
+        // User existe na plataforma — enviar convite de vinculação à equipa
+        if (body.equipa_id) {
+            await sql`
+                INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${treinador.organization_id},
+                    ${treinador.id},
+                    ${treinador.name},
+                    ${novoAtleta.id},
+                    ${body.equipa_id},
+                    ${body.equipa_nome ?? null},
+                    'pendente',
+                    NOW(), NOW()
+                )
+            `.catch(() => {});
+
+            // Notificação direcionada ao atleta
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${treinador.organization_id},
+                    ${linkedUserId},
+                    ${`Convite para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                    ${`O treinador "${treinador.name}" adicionou-o como atleta e enviou um convite de vinculação.`},
+                    'convite_equipa',
+                    false,
+                    NOW()
+                )
+            `.catch(() => {});
+        }
+
+        // Notificação normal
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${treinador.organization_id},
+                'Novo atleta adicionado',
+                ${`O treinador "${treinador.name}" adicionou o atleta "${body.nome.trim()}" (vinculado a conta existente).`},
+                'Info',
+                false,
+                NOW()
+            )
+        `.catch(() => {});
+    } else if (body.email?.trim() && !emailUserFound) {
+        // Email não pertence a ninguém na plataforma — avisar admin
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${treinador.organization_id},
+                'Convite de atleta pendente',
+                ${`O treinador "${treinador.name}" criou o atleta "${body.nome.trim()}" com email "${body.email.trim()}" que não existe na plataforma. Envie o convite de registo manualmente.`},
+                'Alerta',
                 false,
                 NOW()
             )

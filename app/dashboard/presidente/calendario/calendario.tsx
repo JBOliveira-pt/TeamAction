@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 
 type JogoDB = {
     id: string;
@@ -20,6 +20,23 @@ type Epoca = {
     data_fim: string;
     ativa: boolean;
 } | null;
+
+type CalendarNote = {
+    id: string;
+    nota: string;
+    created_at: string;
+};
+
+type SessaoDB = {
+    id: string;
+    data: string;
+    hora: string | null;
+    tipo: string;
+    duracao_min: number | null;
+    local: string | null;
+    notas: string | null;
+    equipa_nome: string | null;
+};
 
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -84,9 +101,11 @@ function eventDateKey(data: string | Date) {
 export default function CalendarioPresidente({
     jogos,
     epoca,
+    sessoes,
 }: {
     jogos: JogoDB[];
     epoca: Epoca;
+    sessoes: SessaoDB[];
 }) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -100,6 +119,12 @@ export default function CalendarioPresidente({
     const [month, setMonth] = useState(today.getMonth());
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+    // Notes state
+    const [notes, setNotes] = useState<CalendarNote[]>([]);
+    const [notesLoading, setNotesLoading] = useState(false);
+    const [newNota, setNewNota] = useState("");
+    const [savingNota, setSavingNota] = useState(false);
+
     const jogosByDate = useMemo(() => {
         const map: Record<string, JogoDB[]> = {};
         for (const j of jogos) {
@@ -110,6 +135,16 @@ export default function CalendarioPresidente({
         return map;
     }, [jogos]);
 
+    const sessoesByDate = useMemo(() => {
+        const map: Record<string, SessaoDB[]> = {};
+        for (const s of sessoes) {
+            const k = eventDateKey(s.data);
+            if (!map[k]) map[k] = [];
+            map[k].push(s);
+        }
+        return map;
+    }, [sessoes]);
+
     const epocaInicioKey = epoca?.data_inicio
         ? eventDateKey(epoca.data_inicio)
         : null;
@@ -117,9 +152,14 @@ export default function CalendarioPresidente({
 
     const monthStats = useMemo(() => {
         const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-        return jogos.filter((j) => eventDateKey(j.data).startsWith(prefix))
-            .length;
-    }, [jogos, year, month]);
+        const nJogos = jogos.filter((j) =>
+            eventDateKey(j.data).startsWith(prefix),
+        ).length;
+        const nSessoes = sessoes.filter((s) =>
+            eventDateKey(s.data).startsWith(prefix),
+        ).length;
+        return { jogos: nJogos, sessoes: nSessoes };
+    }, [jogos, sessoes, year, month]);
 
     const grid = buildGrid(year, month);
 
@@ -136,16 +176,74 @@ export default function CalendarioPresidente({
         } else setMonth((m) => m + 1);
     };
 
+    // Fetch notes when date changes
+    const fetchNotes = useCallback(async (date: string) => {
+        setNotesLoading(true);
+        try {
+            const res = await fetch(`/api/calendario/notas?data=${date}`);
+            if (res.ok) setNotes(await res.json());
+            else setNotes([]);
+        } catch {
+            setNotes([]);
+        } finally {
+            setNotesLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (selectedDate) {
+            fetchNotes(selectedDate);
+            setNewNota("");
+        }
+    }, [selectedDate, fetchNotes]);
+
     const openDay = (d: number) => setSelectedDate(dateKey(year, month, d));
-    const closeModal = () => setSelectedDate(null);
+    const closeModal = () => {
+        setSelectedDate(null);
+        setNotes([]);
+        setNewNota("");
+    };
+
+    const addNota = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedDate || !newNota.trim()) return;
+        setSavingNota(true);
+        try {
+            const res = await fetch("/api/calendario/notas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data: selectedDate, nota: newNota }),
+            });
+            if (res.ok) {
+                const created: CalendarNote = await res.json();
+                setNotes((prev) => [...prev, created]);
+                setNewNota("");
+            }
+        } finally {
+            setSavingNota(false);
+        }
+    };
+
+    const deleteNota = async (id: string) => {
+        try {
+            await fetch(`/api/calendario/notas/${id}`, { method: "DELETE" });
+            setNotes((prev) => prev.filter((n) => n.id !== id));
+        } catch {
+            /* ignore */
+        }
+    };
 
     const selectedDayJogos = selectedDate
         ? jogosByDate[selectedDate] || []
+        : [];
+    const selectedDaySessoes = selectedDate
+        ? sessoesByDate[selectedDate] || []
         : [];
     const selDate = selectedDate ? formatFullDate(selectedDate) : null;
 
     const isEpocaStart = selectedDate === epocaInicioKey;
     const isEpocaEnd = selectedDate === epocaFimKey;
+    const selectedIsPast = selectedDate ? selectedDate < todayKey : false;
 
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col gap-6">
@@ -253,6 +351,120 @@ export default function CalendarioPresidente({
                                     </div>
                                 )}
                             </div>
+
+                            {/* Treinos / Sessões */}
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
+                                    Treinos
+                                </h4>
+                                {selectedDaySessoes.length === 0 ? (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                        Sem treinos neste dia.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        {selectedDaySessoes.map((s) => (
+                                            <div
+                                                key={s.id}
+                                                className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800"
+                                            >
+                                                <span className="text-xl shrink-0">
+                                                    🏋️
+                                                </span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
+                                                        {s.tipo}
+                                                        {s.hora
+                                                            ? ` · ${s.hora.slice(0, 5)}`
+                                                            : ""}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                        {s.equipa_nome ??
+                                                            "Sem equipa"}
+                                                        {s.duracao_min
+                                                            ? ` · ${s.duracao_min} min`
+                                                            : ""}
+                                                        {s.local
+                                                            ? ` · ${s.local}`
+                                                            : ""}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Anotações pessoais */}
+                            <div>
+                                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
+                                    Anotações pessoais
+                                </h4>
+                                {notesLoading ? (
+                                    <p className="text-sm text-gray-400 text-center py-3">
+                                        A carregar...
+                                    </p>
+                                ) : notes.length === 0 ? (
+                                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                        Sem anotações para este dia.
+                                    </p>
+                                ) : (
+                                    <div className="flex flex-col gap-2 mb-3">
+                                        {notes.map((n) => (
+                                            <div
+                                                key={n.id}
+                                                className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
+                                            >
+                                                <span className="text-lg shrink-0 mt-0.5">
+                                                    📝
+                                                </span>
+                                                <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
+                                                    {n.nota}
+                                                </p>
+                                                {!selectedIsPast && (
+                                                    <button
+                                                        onClick={() =>
+                                                            deleteNota(n.id)
+                                                        }
+                                                        className="shrink-0 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none"
+                                                        aria-label="Eliminar anotação"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Add note form (only for future/today) */}
+                                {!selectedIsPast && (
+                                    <form
+                                        onSubmit={addNota}
+                                        className="flex gap-2 mt-2"
+                                    >
+                                        <input
+                                            type="text"
+                                            className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
+                                            placeholder="Adicionar anotação..."
+                                            value={newNota}
+                                            onChange={(e) =>
+                                                setNewNota(e.target.value)
+                                            }
+                                            disabled={savingNota}
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={
+                                                savingNota || !newNota.trim()
+                                            }
+                                            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
+                                        >
+                                            {savingNota ? "..." : "Guardar"}
+                                        </button>
+                                    </form>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -265,10 +477,14 @@ export default function CalendarioPresidente({
                         <span>📅</span> Calendário
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Jogos de todas as equipas
-                        {monthStats > 0 && (
+                        Jogos e treinos de todas as equipas
+                        {(monthStats.jogos > 0 || monthStats.sessoes > 0) && (
                             <span className="ml-2 text-gray-400 dark:text-gray-500">
-                                · {monthStats} jogo{monthStats !== 1 ? "s" : ""}{" "}
+                                ·
+                                {monthStats.jogos > 0 &&
+                                    ` ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
+                                {monthStats.sessoes > 0 &&
+                                    ` ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`}{" "}
                                 este mês
                             </span>
                         )}
@@ -350,6 +566,9 @@ export default function CalendarioPresidente({
                         {week.map((day, di) => {
                             const key = day ? dateKey(year, month, day) : null;
                             const dayJogos = key ? jogosByDate[key] || [] : [];
+                            const daySessoes = key
+                                ? sessoesByDate[key] || []
+                                : [];
                             const isToday = key === todayKey;
                             const isWeekend = di >= 5;
                             const dayDate = day
@@ -435,6 +654,27 @@ export default function CalendarioPresidente({
                                                         mais
                                                     </div>
                                                 )}
+                                                {daySessoes
+                                                    .slice(0, 2)
+                                                    .map((s) => (
+                                                        <div
+                                                            key={s.id}
+                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 truncate"
+                                                        >
+                                                            <span className="text-[10px] shrink-0">
+                                                                🏋️
+                                                            </span>
+                                                            <span className="truncate">
+                                                                {s.tipo}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                {daySessoes.length > 2 && (
+                                                    <div className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400 pl-2">
+                                                        +{daySessoes.length - 2}{" "}
+                                                        mais
+                                                    </div>
+                                                )}
                                             </div>
                                         </>
                                     )}
@@ -451,6 +691,12 @@ export default function CalendarioPresidente({
                     <span className="w-3 h-3 rounded-full bg-rose-500" />
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                         🤾 Jogo
+                    </span>
+                </div>
+                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
+                    <span className="w-3 h-3 rounded-full bg-blue-500" />
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        📝 Anotação
                     </span>
                 </div>
                 {epoca && (
