@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { atualizarInfoDesportiva } from "@/app/lib/actions";
 import {
     Pencil,
@@ -43,6 +43,21 @@ export default function InfoDesportivaCard({
         atualizarInfoDesportiva,
         null,
     );
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        if (state?.success) {
+            const show = setTimeout(() => {
+                setEditing(false);
+                setShowSuccess(true);
+            }, 0);
+            const hide = setTimeout(() => setShowSuccess(false), 3000);
+            return () => {
+                clearTimeout(show);
+                clearTimeout(hide);
+            };
+        }
+    }, [state]);
 
     const maoDominanteLabel = maoDominante
         ? maoDominante.charAt(0).toUpperCase() + maoDominante.slice(1)
@@ -75,8 +90,8 @@ export default function InfoDesportivaCard({
                 </button>
             </div>
 
-            {state?.success && !editing && (
-                <div className="mb-4 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400">
+            {showSuccess && (
+                <div className="mb-4 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400 animate-fade-out">
                     Informações atualizadas com sucesso!
                 </div>
             )}

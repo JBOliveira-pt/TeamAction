@@ -1,12 +1,12 @@
-import { fetchJogosAtleta, fetchSessoesAtleta } from '@/app/lib/data';
-import Calendario from '../../atleta/calendario/calendario';
+import { fetchJogosResponsavel, fetchSessoesResponsavel } from "@/app/lib/data";
+import Calendario from "../../atleta/calendario/calendario";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function PaiCalendarioPage() {
     const [jogos, sessoes] = await Promise.all([
-        fetchJogosAtleta().catch(() => []),
-        fetchSessoesAtleta().catch(() => []),
+        fetchJogosResponsavel().catch(() => []),
+        fetchSessoesResponsavel().catch(() => []),
     ]);
     return (
         <main className="p-4">

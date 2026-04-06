@@ -10,7 +10,8 @@ import {
     UserIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 
 type TreinadorPerfil = {
     nome: string;
@@ -42,6 +43,21 @@ export default function EditTreinadorProfileForm({
         atualizarPerfilTreinador,
         null,
     );
+    const [showSuccess, setShowSuccess] = useState(false);
+    const router = useRouter();
+
+    useEffect(() => {
+        if (state?.success) {
+            const show = setTimeout(() => setShowSuccess(true), 0);
+            const nav = setTimeout(() => {
+                router.push("/dashboard/treinador/perfil");
+            }, 1500);
+            return () => {
+                clearTimeout(show);
+                clearTimeout(nav);
+            };
+        }
+    }, [state, router]);
 
     return (
         <form action={formAction}>
@@ -190,6 +206,13 @@ export default function EditTreinadorProfileForm({
                         <CalendarIcon className={iconBase} />
                     </div>
                 </div>
+
+                {/* Sucesso */}
+                {showSuccess && (
+                    <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400 animate-fade-out">
+                        Perfil atualizado com sucesso!
+                    </div>
+                )}
 
                 {/* Erro global */}
                 {state?.error && (

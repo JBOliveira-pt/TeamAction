@@ -26,6 +26,8 @@ export { fetchMensalidades } from "./dashboard";
 export { fetchPresidenteDashboard } from "./dashboard";
 export { fetchUltimosJogos } from "./jogos";
 export { fetchProximosJogos } from "./jogos";
+export { fetchJogosResponsavel } from "./jogos";
+export { fetchSessoesResponsavel } from "./jogos";
 export { fetchStaff } from "./dashboard";
 export { fetchEstatisticasPorEquipa } from "./dashboard";
 export { fetchTopAtletas } from "./dashboard";

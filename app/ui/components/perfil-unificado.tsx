@@ -191,6 +191,7 @@ export default async function PerfilUnificadoPage() {
                 pais={perfil.pais}
                 dataNascimento={dataNascimentoISO}
                 nif={perfil.nif}
+                nipc={perfil.nipc}
                 iban={perfil.iban}
                 accountType={perfil.account_type}
                 orgName={perfil.org_name}

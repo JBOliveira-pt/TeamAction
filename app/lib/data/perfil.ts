@@ -14,6 +14,7 @@ export type PerfilUtilizador = {
     codigo_postal: string | null;
     pais: string | null;
     nif: string | null;
+    nipc: string | null;
     iban: string | null;
     org_name: string | null;
     created_at: string;
@@ -37,7 +38,8 @@ export async function fetchMeuPerfil(): Promise<PerfilUtilizador | null> {
                 u.cidade,
                 u.codigo_postal,
                 u.pais,
-                c.nipc AS nif,
+                u.nif,
+                c.nipc,
                 c.iban,
                 o.name AS org_name,
                 u.created_at

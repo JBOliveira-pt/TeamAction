@@ -51,6 +51,72 @@ export async function POST(request: Request) {
             );
         }
 
+        // Verificar se é atleta menor de idade
+        const [atletaRow] = await sql<
+            { menor_idade: boolean | null; encarregado_educacao: string | null }[]
+        >`
+            SELECT menor_idade, encarregado_educacao FROM atletas WHERE user_id = ${user.id} LIMIT 1
+        `.catch(() => [{ menor_idade: null, encarregado_educacao: null }]);
+
+        if (atletaRow?.menor_idade === true) {
+            if (!atletaRow.encarregado_educacao) {
+                return NextResponse.json(
+                    { error: "Não é possível alterar o avatar sem um responsável associado." },
+                    { status: 403 },
+                );
+            }
+
+            // Upload para R2 mas guardar URL em dados_pendentes (NÃO alterar image_url)
+            const imageUrl = await uploadImageToR2(file, "user", user.id);
+
+            // Merge com dados pendentes existentes
+            const [current] = await sql<
+                { dados_pendentes: Record<string, unknown> | null }[]
+            >`
+                SELECT dados_pendentes FROM atletas WHERE user_id = ${user.id} LIMIT 1
+            `.catch(() => [{ dados_pendentes: null }]);
+
+            const merged = {
+                ...(current?.dados_pendentes ?? {}),
+                users: {
+                    ...((current?.dados_pendentes as Record<string, unknown>)?.users as Record<string, unknown> ?? {}),
+                    image_url: imageUrl,
+                },
+                data_pedido: new Date().toISOString(),
+            };
+
+            await sql`
+                UPDATE atletas
+                SET dados_pendentes = ${JSON.stringify(merged)}::jsonb,
+                    updated_at = NOW()
+                WHERE user_id = ${user.id}
+            `;
+
+            // Notificar responsável
+            const respRows = await sql<{ id: string }[]>`
+                SELECT id FROM users WHERE LOWER(email) = LOWER(${atletaRow.encarregado_educacao}) LIMIT 1
+            `.catch(() => []);
+            if (respRows[0]) {
+                await sql`
+                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        (SELECT COALESCE(organization_id, '00000000-0000-0000-0000-000000000000') FROM users WHERE id = ${user.id} LIMIT 1),
+                        ${respRows[0].id},
+                        'Aprovação necessária — Avatar alterado',
+                        'O atleta menor pretende alterar a sua foto de perfil. É necessária a sua aprovação.',
+                        'aprovacao_responsavel',
+                        false,
+                        NOW()
+                    )
+                `.catch(() => {});
+            }
+
+            return NextResponse.json({ imageUrl: user.image_url, pendente: true });
+        }
+
+        // Adulto — salvar directamente
+
         // Delete old R2 image if it's not a Clerk URL
         if (user.image_url && !user.image_url.includes("img.clerk.com")) {
             try {

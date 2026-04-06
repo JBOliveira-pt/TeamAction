@@ -570,20 +570,24 @@ async function ensureUserExistsWithOrganization(
         }
 
         // Auto-create equipa mirror for this organization (1:1)
-        await tx`
-            INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
-            VALUES (
-                gen_random_uuid(),
-                ${newOrg[0].id},
-                ${orgName},
-                'Geral',
-                'Não definido',
-                'ativa',
-                NOW(),
-                NOW()
-            )
-            ON CONFLICT (organization_id) DO NOTHING
+        const existingEquipa = await tx`
+            SELECT id FROM equipas WHERE organization_id = ${newOrg[0].id} LIMIT 1
         `;
+        if (existingEquipa.length === 0) {
+            await tx`
+                INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${newOrg[0].id},
+                    ${orgName},
+                    'Geral',
+                    'Não definido',
+                    'ativa',
+                    NOW(),
+                    NOW()
+                )
+            `;
+        }
     });
 }
 
@@ -1058,7 +1062,7 @@ export async function POST(req: Request) {
                     name = ${fullName},
                     email = ${currentEmail},
                     password = ${hashedPassword},
-                    role = ${accountType},
+                    account_type = ${accountType},
                     data_nascimento = ${birthDate},
                     idade = ${age},
                     image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
@@ -1072,7 +1076,7 @@ export async function POST(req: Request) {
                     name = ${fullName},
                     email = ${currentEmail},
                     password = ${hashedPassword},
-                    role = ${accountType},
+                    account_type = ${accountType},
                     data_nascimento = ${birthDate},
                     image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
                     updated_at = NOW()
@@ -1085,7 +1089,7 @@ export async function POST(req: Request) {
                     name = ${fullName},
                     email = ${currentEmail},
                     password = ${hashedPassword},
-                    role = ${accountType},
+                    account_type = ${accountType},
                     image_url = ${uploadedImageUrl || currentUser.imageUrl || null},
                     updated_at = NOW()
                 WHERE clerk_user_id = ${userId}
@@ -1209,16 +1213,18 @@ export async function POST(req: Request) {
                 `;
 
                 if (existingAtleta.length === 0) {
+                    const isMinor = age !== null && age < 18;
                     await sql`
                         INSERT INTO atletas (
                             id, nome, organization_id, user_id, estado,
-                            created_at, updated_at
+                            menor_idade, created_at, updated_at
                         ) VALUES (
                             gen_random_uuid(),
                             ${fullName},
                             ${athleteOrgId},
                             ${athleteDbId},
                             'ativo',
+                            ${isMinor},
                             NOW(),
                             NOW()
                         )
@@ -1355,6 +1361,15 @@ export async function POST(req: Request) {
                         athleteProfile.responsiblePendingApproval &&
                         athleteProfile.responsibleEmail
                     ) {
+                        // Preencher encarregado_educacao no registo do atleta
+                        await sql`
+                            UPDATE atletas
+                            SET encarregado_educacao = ${athleteProfile.responsibleEmail},
+                                updated_at = NOW()
+                            WHERE user_id = ${athleteUserId}
+                              AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
+                        `.catch(() => {});
+
                         await sql`
                             INSERT INTO atleta_relacoes_pendentes (
                                 atleta_user_id,
@@ -1393,24 +1408,25 @@ export async function POST(req: Request) {
             }
         }
 
-        // When a "responsavel" completes signup, auto-link to athletes that
-        // invited this email via atleta_relacoes_pendentes
+        // When a "responsavel" completes signup, handle linking to minor athlete
         if (accountType === "responsavel") {
             try {
-                const hasPendingTable = await hasTable(
-                    "atleta_relacoes_pendentes",
-                );
-                if (hasPendingTable) {
-                    const responsavelUserRows = await sql<{ id: string }[]>`
-                        SELECT id
-                        FROM users
-                        WHERE clerk_user_id = ${userId}
-                        LIMIT 1
-                    `;
-                    const responsavelDbId = responsavelUserRows[0]?.id;
+                const responsavelUserRows = await sql<{ id: string }[]>`
+                    SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+                `;
+                const responsavelDbId = responsavelUserRows[0]?.id;
+                const responsibleMinorEmail = String(
+                    formData.get("responsible_minor_email") || "",
+                ).trim();
 
-                    if (responsavelDbId) {
-                        // Check for columns before updating
+                if (responsavelDbId && responsibleMinorEmail) {
+                    // 1. For existing athlete-initiated links (minor signed up first),
+                    //    just store the responsible user_id but keep status 'pendente'
+                    //    so the minor can accept/reject.
+                    const hasPendingTable = await hasTable(
+                        "atleta_relacoes_pendentes",
+                    );
+                    if (hasPendingTable) {
                         const pendingColumns = await sql<
                             { column_name: string }[]
                         >`
@@ -1427,16 +1443,6 @@ export async function POST(req: Request) {
                             await sql`
                                 UPDATE atleta_relacoes_pendentes
                                 SET alvo_responsavel_user_id = ${responsavelDbId},
-                                    status = 'aprovado',
-                                    updated_at = NOW()
-                                WHERE relation_kind = 'responsavel'
-                                  AND status = 'pendente'
-                                  AND LOWER(alvo_email) = LOWER(${currentEmail})
-                            `;
-                        } else {
-                            await sql`
-                                UPDATE atleta_relacoes_pendentes
-                                SET status = 'aprovado',
                                     updated_at = NOW()
                                 WHERE relation_kind = 'responsavel'
                                   AND status = 'pendente'
@@ -1444,10 +1450,98 @@ export async function POST(req: Request) {
                             `;
                         }
                     }
+
+                    // 2. Check if the minor athlete exists in the platform
+                    const minorRows = await sql<
+                        {
+                            user_id: string;
+                            nome: string;
+                            menor_idade: boolean | null;
+                        }[]
+                    >`
+                        SELECT a.user_id, a.nome, a.menor_idade
+                        FROM atletas a
+                        INNER JOIN users u ON u.id = a.user_id
+                        WHERE LOWER(u.email) = LOWER(${responsibleMinorEmail})
+                          AND a.menor_idade = true
+                        LIMIT 1
+                    `;
+
+                    if (minorRows.length > 0) {
+                        const minor = minorRows[0];
+                        // Minor exists — create linking request for them to accept
+                        // Check if link already exists (from athlete-initiated flow)
+                        const existingLink = await sql<{ id: string }[]>`
+                            SELECT id FROM atleta_relacoes_pendentes
+                            WHERE atleta_user_id = ${minor.user_id}
+                              AND relation_kind = 'responsavel'
+                              AND LOWER(alvo_email) = LOWER(${currentEmail})
+                            LIMIT 1
+                        `.catch(() => []);
+
+                        if (existingLink.length === 0) {
+                            // Responsible signed up first — create the link request
+                            await sql`
+                                INSERT INTO atleta_relacoes_pendentes (
+                                    id, atleta_user_id, relation_kind, status,
+                                    alvo_email, alvo_responsavel_user_id,
+                                    created_at, updated_at
+                                ) VALUES (
+                                    gen_random_uuid(), ${minor.user_id}, 'responsavel', 'pendente',
+                                    ${currentEmail}, ${responsavelDbId},
+                                    NOW(), NOW()
+                                )
+                                ON CONFLICT DO NOTHING
+                            `;
+                        }
+
+                        // Update atleta.encarregado_educacao for the link
+                        await sql`
+                            UPDATE atletas
+                            SET encarregado_educacao = ${currentEmail}, updated_at = NOW()
+                            WHERE user_id = ${minor.user_id}
+                              AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
+                        `.catch(() => {});
+
+                        // Notify the minor athlete about the linking request
+                        const minorOrg = await sql<
+                            { organization_id: string | null }[]
+                        >`
+                            SELECT organization_id FROM users WHERE id = ${minor.user_id} LIMIT 1
+                        `.catch(() => []);
+
+                        await sql`
+                            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                            VALUES (
+                                gen_random_uuid(),
+                                ${minorOrg[0]?.organization_id ?? "00000000-0000-0000-0000-000000000000"},
+                                ${minor.user_id},
+                                'Pedido de Vinculação — Responsável',
+                                ${`${fullName} (${currentEmail}) registou-se como responsável e pretende vincular-se ao seu perfil. Pode aceitar ou recusar este pedido.`},
+                                'vinculacao_responsavel',
+                                false,
+                                NOW()
+                            )
+                        `.catch(() => {});
+                    } else {
+                        // Minor does NOT exist — notify admin
+                        await sql`
+                            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
+                            VALUES (
+                                gen_random_uuid(),
+                                '00000000-0000-0000-0000-000000000000',
+                                'Responsável sem atleta — Ação necessária',
+                                ${`O responsável "${fullName}" (${currentEmail}) registou-se indicando o e-mail "${responsibleMinorEmail}" como atleta menor de idade, mas esse atleta ainda não existe na plataforma. É necessário enviar um convite ao atleta.`},
+                                'Aviso',
+                                false,
+                                NOW()
+                            )
+                        `.catch(() => {});
+                    }
                 }
             } catch (linkError) {
                 console.error(
-                    "[ACCOUNT_TYPE] Failed to auto-link responsavel:",
+                    "[ACCOUNT_TYPE] Failed to handle responsavel linking:",
                     linkError,
                 );
             }

@@ -83,6 +83,15 @@ export async function PUT(
     `;
 
     if (convite.tipo === "treinador") {
+        // Buscar a equipa atual do treinador (antes de mover) para encontrar atletas
+        const equipaAntigaRows = await sql<{ id: string }[]>`
+            SELECT id FROM equipas
+            WHERE organization_id = ${me.organization_id}
+              AND treinador_id = ${me.id}
+            LIMIT 1
+        `.catch(() => []);
+        const equipaAntigaId = equipaAntigaRows[0]?.id;
+
         // Assign as trainer on the club's equipa
         await sql`
             UPDATE equipas
@@ -104,6 +113,52 @@ export async function PUT(
             WHERE organization_id = ${me.organization_id}
               AND treinador_id = ${me.id}
         `.catch(() => {});
+
+        // N2: Enviar pedido de federação a todos os atletas da equipa antiga
+        if (equipaAntigaId) {
+            const atletasDaEquipa = await sql<
+                { user_id: string; nome: string }[]
+            >`
+                SELECT user_id, nome FROM atletas
+                WHERE equipa_id = ${equipaAntigaId} AND user_id IS NOT NULL
+            `.catch(() => []);
+
+            // Buscar nome do clube de destino
+            const clubeNomeRows = await sql<{ nome: string }[]>`
+                SELECT nome FROM clubes WHERE organization_id = ${convite.clube_org_id} LIMIT 1
+            `.catch(() => []);
+            const clubeDestNome = clubeNomeRows[0]?.nome ?? "Clube";
+
+            for (const atleta of atletasDaEquipa) {
+                // Criar relação pendente de tipo 'clube' para cada atleta
+                await sql`
+                    INSERT INTO atleta_relacoes_pendentes (
+                        id, atleta_user_id, relation_kind, status,
+                        alvo_clube_id, alvo_equipa_id, alvo_nome,
+                        created_at, updated_at
+                    ) VALUES (
+                        gen_random_uuid(), ${atleta.user_id}, 'clube', 'pendente',
+                        ${convite.clube_org_id}, ${convite.equipa_id}, ${clubeDestNome},
+                        NOW(), NOW()
+                    )
+                `.catch(() => {});
+
+                // Notificar o atleta
+                await sql`
+                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${me.organization_id},
+                        ${atleta.user_id},
+                        'Pedido de Federação — O teu treinador juntou-se a um clube',
+                        ${`O treinador entrou no clube "${clubeDestNome}". Para continuares vinculado ao treinador, aceita o convite de federação. Caso recuses, serás desvinculado da equipa.`},
+                        'federacao_clube',
+                        false,
+                        NOW()
+                    )
+                `.catch(() => {});
+            }
+        }
     }
 
     if (convite.tipo === "atleta") {

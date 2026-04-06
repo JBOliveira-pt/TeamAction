@@ -74,7 +74,8 @@ type CompleteStage =
     | "form"
     | "president-profile"
     | "trainer-profile"
-    | "athlete-profile";
+    | "athlete-profile"
+    | "responsible-profile";
 
 type AthleteLookupOption = {
     value: string;
@@ -446,6 +447,7 @@ export default function CompleteAccountTypeForm({
     >([]);
     const [athleteResponsibleEmailOptions, setAthleteResponsibleEmailOptions] =
         useState<AthleteLookupOption[]>([]);
+    const [responsibleMinorEmail, setResponsibleMinorEmail] = useState("");
     const precheckNoticeTimeoutRef = useRef<number | null>(null);
     const pendingNoticeTimeoutRef = useRef<number | null>(null);
     const precheckNoticeLockedUntilRef = useRef(0);
@@ -1054,6 +1056,12 @@ export default function CompleteAccountTypeForm({
             return;
         }
 
+        if (selected === "responsavel" && stage === "form") {
+            setError(null);
+            setStage("responsible-profile");
+            return;
+        }
+
         if (selected === "presidente") {
             const normalizedIban = extractIbanBodyDigits(presidentIban);
             if (
@@ -1250,6 +1258,24 @@ export default function CompleteAccountTypeForm({
             }
         }
 
+        if (selected === "responsavel") {
+            if (!isValidEmailFormat(responsibleMinorEmail)) {
+                setError(
+                    "É obrigatório indicar o e-mail do atleta menor de idade a quem está vinculado.",
+                );
+                return;
+            }
+            if (
+                responsibleMinorEmail.trim().toLowerCase() ===
+                emailAddress.trim().toLowerCase()
+            ) {
+                setError(
+                    "O e-mail do atleta menor não pode ser igual ao seu e-mail.",
+                );
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         setError(null);
 
@@ -1376,6 +1402,12 @@ export default function CompleteAccountTypeForm({
                 payload.append("trainer_address", trainerAddress.trim());
                 payload.append("trainer_city", trainerCity.trim());
                 payload.append("trainer_country", PORTUGAL_COUNTRY);
+            }
+            if (selected === "responsavel") {
+                payload.append(
+                    "responsible_minor_email",
+                    responsibleMinorEmail.trim(),
+                );
             }
 
             const response = await fetch("/api/account-type", {
@@ -2528,6 +2560,47 @@ export default function CompleteAccountTypeForm({
                     </div>
                 )}
 
+                {stage === "responsible-profile" && (
+                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                                Dados do Responsável
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Indique o e-mail do atleta menor de idade a quem
+                                está vinculado(a).
+                            </p>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                E-mail do Atleta Menor{" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <Mail
+                                    size={16}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                />
+                                <input
+                                    type="email"
+                                    value={responsibleMinorEmail}
+                                    onChange={(e) =>
+                                        setResponsibleMinorEmail(e.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="email.do.atleta@exemplo.pt"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                O atleta receberá um pedido de vinculação. Se
+                                ainda não tiver conta, o administrador será
+                                notificado.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {error && (
                     <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
                         {error}
@@ -2594,7 +2667,9 @@ export default function CompleteAccountTypeForm({
                                   ? "Concluir perfil"
                                   : stage === "athlete-profile"
                                     ? "Concluir perfil"
-                                    : `Continuar como ${accountTypeLabel}`}
+                                    : stage === "responsible-profile"
+                                      ? "Concluir perfil"
+                                      : `Continuar como ${accountTypeLabel}`}
                     </button>
                 </div>
             </div>

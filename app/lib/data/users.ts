@@ -11,7 +11,7 @@ export async function fetchUsers() {
                 name,
                 email,
                 image_url,
-                role
+                account_type
             FROM users
             WHERE organization_id = ${organizationId}
             ORDER BY name ASC

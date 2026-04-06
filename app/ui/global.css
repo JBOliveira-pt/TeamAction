@@ -102,3 +102,20 @@ input[type="range"]::-moz-range-thumb:active {
 .dark input[type="range"]::-moz-range-thumb:hover {
     background: #2563eb;
 }
+
+/* Success toast fade-out */
+@keyframes fade-out {
+    0% {
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.animate-fade-out {
+    animation: fade-out 3s ease-out forwards;
+}

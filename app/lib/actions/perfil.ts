@@ -4,10 +4,87 @@ import { sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
+// ── Helper: busca info de menor + responsável ──
+async function getMinorInfo(clerkUserId: string) {
+    const [user] = await sql<{ id: string }[]>`
+        SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+    `;
+    if (!user) return null;
+
+    const [atleta] = await sql<
+        {
+            user_id: string;
+            menor_idade: boolean | null;
+            encarregado_educacao: string | null;
+            dados_pendentes: Record<string, unknown> | null;
+        }[]
+    >`
+        SELECT user_id, menor_idade, encarregado_educacao, dados_pendentes
+        FROM atletas WHERE user_id = ${user.id} LIMIT 1
+    `.catch(() => []);
+
+    return {
+        userId: user.id,
+        isMinor: atleta?.menor_idade === true,
+        guardianEmail: atleta?.encarregado_educacao ?? null,
+        currentPending: atleta?.dados_pendentes ?? null,
+    };
+}
+
+// ── Helper: guarda dados pendentes + notifica responsável ──
+async function storePendingChanges(
+    athleteUserId: string,
+    guardianEmail: string,
+    clerkUserId: string,
+    newChanges: Record<string, unknown>,
+    descricao: string,
+) {
+    // Merge com dados pendentes existentes
+    const [current] = await sql<
+        { dados_pendentes: Record<string, unknown> | null }[]
+    >`
+        SELECT dados_pendentes FROM atletas WHERE user_id = ${athleteUserId} LIMIT 1
+    `.catch(() => [{ dados_pendentes: null }]);
+
+    const merged = {
+        ...(current?.dados_pendentes ?? {}),
+        ...newChanges,
+        data_pedido: new Date().toISOString(),
+    };
+
+    await sql`
+        UPDATE atletas
+        SET dados_pendentes = ${JSON.stringify(merged)}::jsonb,
+            updated_at = NOW()
+        WHERE user_id = ${athleteUserId}
+    `;
+
+    // Notificar responsável
+    const respRows = await sql<{ id: string }[]>`
+        SELECT id FROM users WHERE LOWER(email) = LOWER(${guardianEmail}) LIMIT 1
+    `.catch(() => []);
+
+    if (respRows[0]) {
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+            VALUES (
+                gen_random_uuid(),
+                (SELECT COALESCE(organization_id, '00000000-0000-0000-0000-000000000000') FROM users WHERE id = ${athleteUserId} LIMIT 1),
+                ${respRows[0].id},
+                'Aprovação necessária — Alteração de dados',
+                ${descricao},
+                'aprovacao_responsavel',
+                false,
+                NOW()
+            )
+        `.catch(() => {});
+    }
+}
+
 export async function atualizarPerfilAtleta(
-    prevState: { error?: string } | null,
+    prevState: { error?: string; success?: boolean; pendente?: boolean } | null,
     formData: FormData,
-): Promise<{ error?: string } | null> {
+): Promise<{ error?: string; success?: boolean; pendente?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
 
@@ -25,47 +102,41 @@ export async function atualizarPerfilAtleta(
         formData.get("encarregado_email")?.toString().trim() || null;
 
     try {
-        const [user] = await sql<{ id: string }[]>`
-            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
-        `;
-        if (!user) return { error: "Utilizador não encontrado." };
+        const minor = await getMinorInfo(clerkUserId);
+        if (!minor) return { error: "Utilizador não encontrado." };
 
-        const [atleta] = await sql<
-            { id: string; menor_idade: boolean | null }[]
-        >`
-            SELECT id, menor_idade FROM atletas WHERE user_id = ${user.id} LIMIT 1
-        `;
-
-        if (atleta?.menor_idade) {
-            await sql`
-                UPDATE users
-                SET telefone = ${telefone}, morada = ${morada}, cidade = ${cidade},
-                    codigo_postal = ${codigoPostal}, pais = ${pais},
-                    data_nascimento = ${dataNascimento},
-                    status = 'false'
-                WHERE clerk_user_id = ${clerkUserId}
-            `;
-            await sql`
-                UPDATE atletas
-                SET mao_dominante = ${maoDominante},
-                    encarregado_educacao = ${encarregadoEmail}
-                WHERE user_id = ${user.id}
-            `;
-        } else {
-            await sql`
-                UPDATE users
-                SET telefone = ${telefone}, morada = ${morada}, cidade = ${cidade},
-                    codigo_postal = ${codigoPostal}, pais = ${pais},
-                    data_nascimento = ${dataNascimento}
-                WHERE clerk_user_id = ${clerkUserId}
-            `;
-            // Update atletas table for mao_dominante
-            await sql`
-                UPDATE atletas
-                SET mao_dominante = ${maoDominante}
-                WHERE user_id = ${user.id}
-            `;
+        if (minor.isMinor) {
+            if (!minor.guardianEmail) {
+                return { error: "Não é possível editar sem um responsável associado." };
+            }
+            // Guardar alterações pendentes — NÃO salvar diretamente
+            await storePendingChanges(
+                minor.userId,
+                minor.guardianEmail,
+                clerkUserId,
+                {
+                    users: { telefone, morada, cidade, codigo_postal: codigoPostal, pais, data_nascimento: dataNascimento },
+                    atletas: { mao_dominante: maoDominante, encarregado_educacao: encarregadoEmail },
+                },
+                "O atleta menor pretende alterar os seus dados pessoais. É necessária a sua aprovação.",
+            );
+            revalidatePath("/dashboard/atleta/geral");
+            return { pendente: true };
         }
+
+        // Adulto — salvar diretamente
+        await sql`
+            UPDATE users
+            SET telefone = ${telefone}, morada = ${morada}, cidade = ${cidade},
+                codigo_postal = ${codigoPostal}, pais = ${pais},
+                data_nascimento = ${dataNascimento}
+            WHERE clerk_user_id = ${clerkUserId}
+        `;
+        await sql`
+            UPDATE atletas
+            SET mao_dominante = ${maoDominante}
+            WHERE user_id = ${minor.userId}
+        `;
     } catch (error) {
         console.error(error);
         return { error: "Erro ao atualizar perfil." };
@@ -76,18 +147,23 @@ export async function atualizarPerfilAtleta(
 }
 
 export async function atualizarPerfilTreinador(
-    prevState: { error?: string } | null,
+    prevState: { error?: string; success?: boolean } | null,
     formData: FormData,
-): Promise<{ error?: string } | null> {
+): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
 
     const nome = formData.get("nome")?.toString().trim() || null;
     const sobrenome = formData.get("sobrenome")?.toString().trim() || null;
-    const telefone = formData.get("telefone")?.toString().trim() || null;
+    const telefoneRaw = formData.get("telefone")?.toString().trim() || null;
     const morada = formData.get("morada")?.toString().trim() || null;
     const dataNascimento =
         formData.get("data_nascimento")?.toString().trim() || null;
+
+    // Normalizar telefone: guardar apenas os 9 dígitos
+    const telefone = telefoneRaw
+        ? telefoneRaw.replace(/\D/g, "").replace(/^351/, "").slice(0, 9) || null
+        : null;
 
     const fullName =
         nome && sobrenome
@@ -111,7 +187,7 @@ export async function atualizarPerfilTreinador(
     }
 
     revalidatePath("/dashboard/treinador/perfil");
-    return null;
+    return { success: true };
 }
 
 export async function aprovarPerfilAtleta(
@@ -166,6 +242,7 @@ export async function atualizarMeuPerfil(
     const dataNascimento =
         formData.get("data_nascimento")?.toString().trim() || null;
     const nif = formData.get("nif")?.toString().trim() || null;
+    const nipc = formData.get("nipc")?.toString().trim() || null;
     const iban = formData.get("iban")?.toString().trim() || null;
 
     if (!firstName) return { error: "Nome é obrigatório." };
@@ -179,7 +256,28 @@ export async function atualizarMeuPerfil(
     const fullName = `${firstName} ${lastName}`.trim();
 
     try {
-        // Atualiza nome no Clerk
+        // Verificar se é atleta menor de idade ANTES de salvar
+        const minor = await getMinorInfo(clerkUserId);
+
+        if (minor?.isMinor) {
+            if (!minor.guardianEmail) {
+                return { error: "Não é possível editar sem um responsável associado." };
+            }
+            // Guardar alterações pendentes — NÃO salvar directamente
+            await storePendingChanges(
+                minor.userId,
+                minor.guardianEmail,
+                clerkUserId,
+                {
+                    users: { name: fullName, telefone, morada, cidade, codigo_postal: codigoPostal, pais, data_nascimento: dataNascimento, nif },
+                },
+                "O atleta menor pretende alterar os seus dados cadastrais. É necessária a sua aprovação.",
+            );
+            revalidatePath("/dashboard/atleta/perfil");
+            return { success: true };
+        }
+
+        // Atualiza nome no Clerk (adultos)
         const clerkRes = await fetch(
             `https://api.clerk.com/v1/users/${clerkUserId}`,
             {
@@ -211,11 +309,13 @@ export async function atualizarMeuPerfil(
             WHERE clerk_user_id = ${clerkUserId}
         `;
 
-        // Atualiza IBAN no clube (se presidente)
-        if (normalizedIban !== undefined) {
+        // Atualiza IBAN e NIPC no clube (se presidente)
+        if (normalizedIban !== undefined || nipc !== undefined) {
             await sql`
                 UPDATE clubes
-                SET iban = ${normalizedIban}, updated_at = NOW()
+                SET iban = COALESCE(${normalizedIban}, iban),
+                    nipc = COALESCE(${nipc}, nipc),
+                    updated_at = NOW()
                 WHERE presidente_user_id = (
                     SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
                 )
@@ -288,11 +388,29 @@ export async function atualizarInfoDesportiva(
     }
 
     try {
-        const [user] = await sql<{ id: string }[]>`
-            SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
-        `;
-        if (!user) return { error: "Utilizador não encontrado." };
+        const minor = await getMinorInfo(clerkUserId);
+        if (!minor) return { error: "Utilizador não encontrado." };
 
+        if (minor.isMinor) {
+            if (!minor.guardianEmail) {
+                return { error: "Não é possível editar sem um responsável associado." };
+            }
+            // Guardar alterações pendentes — NÃO salvar diretamente
+            await storePendingChanges(
+                minor.userId,
+                minor.guardianEmail,
+                clerkUserId,
+                {
+                    users: { peso_kg: pesoKg, altura_cm: alturaCm },
+                    atletas: { mao_dominante: maoDominante },
+                },
+                "O atleta menor pretende alterar as suas informações desportivas (peso, altura, mão dominante). É necessária a sua aprovação.",
+            );
+            revalidatePath("/dashboard/atleta/perfil");
+            return { success: true };
+        }
+
+        // Adulto — salvar diretamente
         // Atualizar peso/altura na tabela users (se colunas existirem)
         const userCols = await sql<{ column_name: string }[]>`
             SELECT column_name FROM information_schema.columns
@@ -302,15 +420,15 @@ export async function atualizarInfoDesportiva(
         const colSet = new Set(userCols.map((c) => c.column_name));
 
         if (colSet.has("peso_kg")) {
-            await sql`UPDATE users SET peso_kg = ${pesoKg}, updated_at = NOW() WHERE id = ${user.id}`;
+            await sql`UPDATE users SET peso_kg = ${pesoKg}, updated_at = NOW() WHERE id = ${minor.userId}`;
         }
         if (colSet.has("altura_cm")) {
-            await sql`UPDATE users SET altura_cm = ${alturaCm}, updated_at = NOW() WHERE id = ${user.id}`;
+            await sql`UPDATE users SET altura_cm = ${alturaCm}, updated_at = NOW() WHERE id = ${minor.userId}`;
         }
 
         // Atualizar mão dominante na tabela atletas
         await sql`
-            UPDATE atletas SET mao_dominante = ${maoDominante} WHERE user_id = ${user.id}
+            UPDATE atletas SET mao_dominante = ${maoDominante} WHERE user_id = ${minor.userId}
         `;
     } catch (error) {
         console.error(error);

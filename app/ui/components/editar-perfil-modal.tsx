@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
     atualizarMeuPerfil,
     solicitarAlteracaoEmail,
@@ -37,6 +37,7 @@ interface Props {
     pais: string | null;
     dataNascimento: string | null;
     nif: string | null;
+    nipc: string | null;
     iban: string | null;
     accountType: string | null;
     orgName: string | null;
@@ -114,6 +115,7 @@ export default function PerfilInlineEditor({
     pais,
     dataNascimento,
     nif,
+    nipc,
     iban,
     accountType,
     orgName,
@@ -129,6 +131,7 @@ export default function PerfilInlineEditor({
     const [postal, setPostal] = useState(codigoPostal ?? "");
     const [ibanVal, setIbanVal] = useState(iban ? formatIban(iban) : "");
     const [nifVal, setNifVal] = useState(nif ? formatNif(nif) : "");
+    const [nipcVal, setNipcVal] = useState(nipc ? formatNif(nipc) : "");
 
     // Validation errors (client-side)
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -146,6 +149,53 @@ export default function PerfilInlineEditor({
         solicitarAlteracaoDataNascimento,
         null,
     );
+
+    // Temporary success toasts
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [showEmailSuccess, setShowEmailSuccess] = useState(false);
+    const [showDobSuccess, setShowDobSuccess] = useState(false);
+
+    useEffect(() => {
+        if (state?.success) {
+            const show = setTimeout(() => {
+                setEditing(false);
+                setShowSuccess(true);
+            }, 0);
+            const hide = setTimeout(() => setShowSuccess(false), 3000);
+            return () => {
+                clearTimeout(show);
+                clearTimeout(hide);
+            };
+        }
+    }, [state]);
+
+    useEffect(() => {
+        if (emailState?.success) {
+            const show = setTimeout(() => {
+                setEditingEmail(false);
+                setShowEmailSuccess(true);
+            }, 0);
+            const hide = setTimeout(() => setShowEmailSuccess(false), 3000);
+            return () => {
+                clearTimeout(show);
+                clearTimeout(hide);
+            };
+        }
+    }, [emailState]);
+
+    useEffect(() => {
+        if (dobState?.success) {
+            const show = setTimeout(() => {
+                setEditingDob(false);
+                setShowDobSuccess(true);
+            }, 0);
+            const hide = setTimeout(() => setShowDobSuccess(false), 3000);
+            return () => {
+                clearTimeout(show);
+                clearTimeout(hide);
+            };
+        }
+    }, [dobState]);
 
     const emailPendente = pedidosPendentes.find((p) => p.campo === "email");
     const dobPendente = pedidosPendentes.find(
@@ -211,6 +261,12 @@ export default function PerfilInlineEditor({
             }
         }
 
+        const nipcRaw =
+            formData.get("nipc")?.toString().replace(/\D/g, "") ?? "";
+        if (nipcRaw && nipcRaw.length !== NIF_DIGITS_LENGTH) {
+            newErrors.nipc = "NIPC deve conter exatamente 9 dígitos.";
+        }
+
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
@@ -237,6 +293,7 @@ export default function PerfilInlineEditor({
         normalized.set("pais", formData.get("pais")?.toString().trim() ?? "");
         normalized.set("data_nascimento", dataNascimento ?? "");
         normalized.set("nif", nifRaw);
+        normalized.set("nipc", nipcRaw);
         normalized.set(
             "iban",
             ibanRaw ? IBAN_PREFIX + extractIbanBodyDigits(ibanRaw) : "",
@@ -285,8 +342,8 @@ export default function PerfilInlineEditor({
             )}
 
             {/* Sucesso/Erro da edição geral */}
-            {state?.success && (
-                <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400">
+            {showSuccess && (
+                <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400 animate-fade-out">
                     Perfil atualizado com sucesso!
                 </div>
             )}
@@ -384,16 +441,33 @@ export default function PerfilInlineEditor({
                             />
                         </div>
                         {accountType === "presidente" && (
-                            <Field
-                                label="IBAN"
-                                name="iban"
-                                value={ibanVal}
-                                onChange={(v) => setIbanVal(formatIban(v))}
-                                placeholder="PT50 0000 0000 0000 0000 0000 0"
-                                maxLength={31}
-                                mono
-                                error={errors.iban}
-                            />
+                            <>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <Field
+                                        label="NIPC do Clube"
+                                        name="nipc"
+                                        value={nipcVal}
+                                        onChange={(v) =>
+                                            setNipcVal(formatNif(v))
+                                        }
+                                        placeholder="123 456 789"
+                                        maxLength={11}
+                                        error={errors.nipc}
+                                    />
+                                    <Field
+                                        label="IBAN"
+                                        name="iban"
+                                        value={ibanVal}
+                                        onChange={(v) =>
+                                            setIbanVal(formatIban(v))
+                                        }
+                                        placeholder="PT50 0000 0000 0000 0000 0000 0"
+                                        maxLength={31}
+                                        mono
+                                        error={errors.iban}
+                                    />
+                                </div>
+                            </>
                         )}
                         <div className="flex gap-3 pt-2">
                             <button
@@ -437,11 +511,17 @@ export default function PerfilInlineEditor({
                         <InfoRow label="Código Postal" value={codigoPostal} />
                         <InfoRow label="País" value={pais} />
                         {accountType === "presidente" && (
-                            <InfoRow
-                                label="IBAN"
-                                value={iban ? formatIban(iban) : null}
-                                mono
-                            />
+                            <>
+                                <InfoRow
+                                    label="NIPC do Clube"
+                                    value={nipc ? formatNif(nipc) : null}
+                                />
+                                <InfoRow
+                                    label="IBAN"
+                                    value={iban ? formatIban(iban) : null}
+                                    mono
+                                />
+                            </>
                         )}
                     </>
                 )}
@@ -493,8 +573,8 @@ export default function PerfilInlineEditor({
                                         {emailState.error}
                                     </p>
                                 )}
-                                {emailState?.success && (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg">
+                                {showEmailSuccess && (
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg animate-fade-out">
                                         Pedido enviado com sucesso!
                                     </p>
                                 )}
@@ -570,8 +650,8 @@ export default function PerfilInlineEditor({
                                         {dobState.error}
                                     </p>
                                 )}
-                                {dobState?.success && (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg">
+                                {showDobSuccess && (
+                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg animate-fade-out">
                                         Data de nascimento atualizada com
                                         sucesso!
                                     </p>
