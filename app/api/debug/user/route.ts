@@ -25,9 +25,11 @@ export async function GET() {
 
         // Buscar usuário no banco pelo clerk_user_id
         const user = await sql`
-            SELECT id, name, email, clerk_user_id, organization_id, image_url
-            FROM users 
-            WHERE clerk_user_id = ${userId}
+            SELECT u.id, u.name, u.email, u.clerk_user_id, u.organization_id, u.image_url,
+                   COALESCE(a.menor_idade, false) AS menor_idade
+            FROM users u
+            LEFT JOIN atletas a ON a.user_id = u.id
+            WHERE u.clerk_user_id = ${userId}
         `;
 
         if (user.length === 0) {

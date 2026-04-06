@@ -30,6 +30,11 @@ function isPathAllowedForAccountType(
     path: string,
     accountType: AccountType,
 ): boolean {
+    // Rotas partilhadas acessíveis a qualquer accountType
+    if (path.startsWith("/dashboard/definicoes")) {
+        return true;
+    }
+
     if (accountType === "presidente") {
         return path.startsWith("/dashboard/presidente");
     }
@@ -59,6 +64,7 @@ const isPublicRoute = createRouteMatcher([
     "/onboarding(.*)",
     "/admin(.*)",
     "/admin-login(.*)",
+    "/api/admin(.*)",
     "/api/webhooks(.*)",
     "/api/password-breach-check(.*)",
     "/api/email-address-check(.*)",

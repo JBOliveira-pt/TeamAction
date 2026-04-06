@@ -5,7 +5,11 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 export type AprovacaoPendente = {
     id: string;
-    tipo: "convite_equipa" | "convite_clube" | "pedido_plano" | "alteracao_dados";
+    tipo:
+        | "convite_equipa"
+        | "convite_clube"
+        | "pedido_plano"
+        | "alteracao_dados";
     titulo: string;
     descricao: string;
     created_at: string;
@@ -154,7 +158,8 @@ export async function fetchAprovacoesPendentes(): Promise<AprovacaoPendente[]> {
             tipo: "alteracao_dados",
             titulo: "Alteração de Dados — Aprovação necessária",
             descricao: `${a.nome} pretende alterar os seus dados. É necessária a sua aprovação.`,
-            created_at: a.dados_pendentes.data_pedido as string ?? a.updated_at,
+            created_at:
+                (a.dados_pendentes.data_pedido as string) ?? a.updated_at,
         });
     }
 
@@ -165,4 +170,94 @@ export async function fetchAprovacoesPendentes(): Promise<AprovacaoPendente[]> {
     );
 
     return results;
+}
+
+export type DadosEducando = {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    telefone: string | null;
+    morada: string | null;
+    cidade: string | null;
+    codigoPostal: string | null;
+    pais: string | null;
+    nif: string | null;
+    dataNascimento: string | null;
+    planoAtual: string;
+    pedidoPlanoPendente: boolean;
+};
+
+/**
+ * Retorna os dados cadastrais do menor vinculado ao responsável,
+ * para a página de gestão de dados do educando.
+ */
+export async function fetchDadosEducando(): Promise<DadosEducando | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return null;
+
+    const [guardian] = await sql<{ email: string }[]>`
+        SELECT email FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+    `;
+    if (!guardian) return null;
+
+    const [minor] = await sql<
+        {
+            id: string;
+            name: string;
+            email: string;
+            telefone: string | null;
+            morada: string | null;
+            cidade: string | null;
+            codigo_postal: string | null;
+            pais: string | null;
+            nif: string | null;
+            data_nascimento: string | null;
+        }[]
+    >`
+        SELECT u.id, u.name, u.email, u.telefone, u.morada, u.cidade,
+               u.codigo_postal, u.pais, u.nif, u.data_nascimento::text
+        FROM users u
+        INNER JOIN atletas a ON a.user_id = u.id
+        WHERE a.menor_idade = true
+          AND a.encarregado_educacao = ${guardian.email}
+        LIMIT 1
+    `;
+    if (!minor) return null;
+
+    // Plano actual
+    const [org] = await sql<{ plano: string | null }[]>`
+        SELECT o.plano
+        FROM organizations o
+        INNER JOIN users u ON u.organization_id = o.id
+        WHERE u.id = ${minor.id}
+        LIMIT 1
+    `.catch(() => []);
+
+    // Pedido pendente?
+    const pendente = await sql<{ id: string }[]>`
+        SELECT id FROM pedidos_plano
+        WHERE user_id = ${minor.id} AND status IN ('pendente', 'pendente_responsavel')
+        LIMIT 1
+    `.catch(() => []);
+
+    const nameParts = (minor.name ?? "").split(" ");
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    return {
+        userId: minor.id,
+        firstName,
+        lastName,
+        email: minor.email,
+        telefone: minor.telefone,
+        morada: minor.morada,
+        cidade: minor.cidade,
+        codigoPostal: minor.codigo_postal,
+        pais: minor.pais,
+        nif: minor.nif,
+        dataNascimento: minor.data_nascimento,
+        planoAtual: org?.plano ?? "rookie",
+        pedidoPlanoPendente: pendente.length > 0,
+    };
 }

@@ -107,7 +107,9 @@ export async function atualizarPerfilAtleta(
 
         if (minor.isMinor) {
             if (!minor.guardianEmail) {
-                return { error: "Não é possível editar sem um responsável associado." };
+                return {
+                    error: "Não é possível editar sem um responsável associado.",
+                };
             }
             // Guardar alterações pendentes — NÃO salvar diretamente
             await storePendingChanges(
@@ -115,8 +117,18 @@ export async function atualizarPerfilAtleta(
                 minor.guardianEmail,
                 clerkUserId,
                 {
-                    users: { telefone, morada, cidade, codigo_postal: codigoPostal, pais, data_nascimento: dataNascimento },
-                    atletas: { mao_dominante: maoDominante, encarregado_educacao: encarregadoEmail },
+                    users: {
+                        telefone,
+                        morada,
+                        cidade,
+                        codigo_postal: codigoPostal,
+                        pais,
+                        data_nascimento: dataNascimento,
+                    },
+                    atletas: {
+                        mao_dominante: maoDominante,
+                        encarregado_educacao: encarregadoEmail,
+                    },
                 },
                 "O atleta menor pretende alterar os seus dados pessoais. É necessária a sua aprovação.",
             );
@@ -260,21 +272,9 @@ export async function atualizarMeuPerfil(
         const minor = await getMinorInfo(clerkUserId);
 
         if (minor?.isMinor) {
-            if (!minor.guardianEmail) {
-                return { error: "Não é possível editar sem um responsável associado." };
-            }
-            // Guardar alterações pendentes — NÃO salvar directamente
-            await storePendingChanges(
-                minor.userId,
-                minor.guardianEmail,
-                clerkUserId,
-                {
-                    users: { name: fullName, telefone, morada, cidade, codigo_postal: codigoPostal, pais, data_nascimento: dataNascimento, nif },
-                },
-                "O atleta menor pretende alterar os seus dados cadastrais. É necessária a sua aprovação.",
-            );
-            revalidatePath("/dashboard/atleta/perfil");
-            return { success: true };
+            return {
+                error: "Como atleta menor de idade, os teus dados cadastrais só podem ser alterados pelo teu encarregado de educação.",
+            };
         }
 
         // Atualiza nome no Clerk (adultos)
@@ -393,7 +393,9 @@ export async function atualizarInfoDesportiva(
 
         if (minor.isMinor) {
             if (!minor.guardianEmail) {
-                return { error: "Não é possível editar sem um responsável associado." };
+                return {
+                    error: "Não é possível editar sem um responsável associado.",
+                };
             }
             // Guardar alterações pendentes — NÃO salvar diretamente
             await storePendingChanges(
@@ -401,8 +403,11 @@ export async function atualizarInfoDesportiva(
                 minor.guardianEmail,
                 clerkUserId,
                 {
-                    users: { peso_kg: pesoKg, altura_cm: alturaCm },
-                    atletas: { mao_dominante: maoDominante },
+                    atletas: {
+                        peso_kg: pesoKg,
+                        altura_cm: alturaCm,
+                        mao_dominante: maoDominante,
+                    },
                 },
                 "O atleta menor pretende alterar as suas informações desportivas (peso, altura, mão dominante). É necessária a sua aprovação.",
             );
@@ -410,25 +415,14 @@ export async function atualizarInfoDesportiva(
             return { success: true };
         }
 
-        // Adulto — salvar diretamente
-        // Atualizar peso/altura na tabela users (se colunas existirem)
-        const userCols = await sql<{ column_name: string }[]>`
-            SELECT column_name FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = 'users'
-              AND column_name IN ('peso_kg', 'altura_cm')
-        `;
-        const colSet = new Set(userCols.map((c) => c.column_name));
-
-        if (colSet.has("peso_kg")) {
-            await sql`UPDATE users SET peso_kg = ${pesoKg}, updated_at = NOW() WHERE id = ${minor.userId}`;
-        }
-        if (colSet.has("altura_cm")) {
-            await sql`UPDATE users SET altura_cm = ${alturaCm}, updated_at = NOW() WHERE id = ${minor.userId}`;
-        }
-
-        // Atualizar mão dominante na tabela atletas
+        // Adulto — salvar diretamente na tabela atletas
         await sql`
-            UPDATE atletas SET mao_dominante = ${maoDominante} WHERE user_id = ${minor.userId}
+            UPDATE atletas
+            SET peso_kg = ${pesoKg},
+                altura_cm = ${alturaCm},
+                mao_dominante = ${maoDominante},
+                updated_at = NOW()
+            WHERE user_id = ${minor.userId}
         `;
     } catch (error) {
         console.error(error);

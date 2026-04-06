@@ -66,7 +66,7 @@ export default function DefinicoesForm({ org }: { org: Org }) {
                     </div>
                     <div className="space-y-1">
                         <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                            NIF do Clube
+                            NIPC do Clube
                         </label>
                         <input
                             name="nif"

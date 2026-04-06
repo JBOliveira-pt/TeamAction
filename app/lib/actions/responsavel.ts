@@ -309,7 +309,9 @@ export async function aprovarAlteracaoDados(
 
     if (Object.keys(usersChanges).length > 0) {
         if (usersChanges.name !== undefined) {
-            await sql`UPDATE users SET name = ${String(usersChanges.name)}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET name = ${String(usersChanges.name)}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
             const [clerkRow] = await sql<{ clerk_user_id: string }[]>`
                 SELECT clerk_user_id FROM users WHERE id = ${atletaUserId} LIMIT 1
             `.catch(() => []);
@@ -323,38 +325,65 @@ export async function aprovarAlteracaoDados(
                             Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ first_name: parts[0] || "", last_name: parts.slice(1).join(" ") || "" }),
+                        body: JSON.stringify({
+                            first_name: parts[0] || "",
+                            last_name: parts.slice(1).join(" ") || "",
+                        }),
                     },
                 ).catch(() => {});
             }
         }
         if (usersChanges.telefone !== undefined)
-            await sql`UPDATE users SET telefone = ${usersChanges.telefone as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET telefone = ${usersChanges.telefone as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.morada !== undefined)
-            await sql`UPDATE users SET morada = ${usersChanges.morada as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET morada = ${usersChanges.morada as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.cidade !== undefined)
-            await sql`UPDATE users SET cidade = ${usersChanges.cidade as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET cidade = ${usersChanges.cidade as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.codigo_postal !== undefined)
-            await sql`UPDATE users SET codigo_postal = ${usersChanges.codigo_postal as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET codigo_postal = ${usersChanges.codigo_postal as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.pais !== undefined)
-            await sql`UPDATE users SET pais = ${usersChanges.pais as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET pais = ${usersChanges.pais as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.data_nascimento !== undefined)
-            await sql`UPDATE users SET data_nascimento = ${usersChanges.data_nascimento as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET data_nascimento = ${usersChanges.data_nascimento as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.nif !== undefined)
-            await sql`UPDATE users SET nif = ${usersChanges.nif as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET nif = ${usersChanges.nif as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (usersChanges.image_url !== undefined)
-            await sql`UPDATE users SET image_url = ${usersChanges.image_url as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
-        if (usersChanges.peso_kg !== undefined)
-            await sql`UPDATE users SET peso_kg = ${usersChanges.peso_kg as number | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
-        if (usersChanges.altura_cm !== undefined)
-            await sql`UPDATE users SET altura_cm = ${usersChanges.altura_cm as number | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE users SET image_url = ${usersChanges.image_url as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
+                () => {},
+            );
     }
 
     if (Object.keys(atletasChanges).length > 0) {
         if (atletasChanges.mao_dominante !== undefined)
-            await sql`UPDATE atletas SET mao_dominante = ${atletasChanges.mao_dominante as string | null}, updated_at = NOW() WHERE user_id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE atletas SET mao_dominante = ${atletasChanges.mao_dominante as string | null}, updated_at = NOW() WHERE user_id = ${atletaUserId}`.catch(
+                () => {},
+            );
         if (atletasChanges.encarregado_educacao !== undefined)
-            await sql`UPDATE atletas SET encarregado_educacao = ${atletasChanges.encarregado_educacao as string | null}, updated_at = NOW() WHERE user_id = ${atletaUserId}`.catch(() => {});
+            await sql`UPDATE atletas SET encarregado_educacao = ${atletasChanges.encarregado_educacao as string | null}, updated_at = NOW() WHERE user_id = ${atletaUserId}`.catch(
+                () => {},
+            );
+        if (atletasChanges.peso_kg !== undefined)
+            await sql`UPDATE atletas SET peso_kg = ${atletasChanges.peso_kg as number | null}, updated_at = NOW() WHERE user_id = ${atletaUserId}`.catch(
+                () => {},
+            );
+        if (atletasChanges.altura_cm !== undefined)
+            await sql`UPDATE atletas SET altura_cm = ${atletasChanges.altura_cm as number | null}, updated_at = NOW() WHERE user_id = ${atletaUserId}`.catch(
+                () => {},
+            );
     }
 
     // Limpar dados pendentes
@@ -367,4 +396,158 @@ export async function aprovarAlteracaoDados(
     revalidatePath("/dashboard/atleta/perfil");
     revalidatePath("/dashboard/atleta/geral");
     return null;
+}
+
+/**
+ * Responsável edita directamente os dados cadastrais do menor.
+ * (Menores não podem editar os próprios dados cadastrais.)
+ */
+export async function editarDadosCadastraisEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const guardianEmail = await getGuardianEmail();
+    if (!guardianEmail) return { error: "Não autenticado." };
+
+    // Buscar menor vinculado a este responsável
+    const [minor] = await sql<{ user_id: string }[]>`
+        SELECT a.user_id
+        FROM atletas a
+        WHERE a.menor_idade = true
+          AND a.encarregado_educacao = ${guardianEmail}
+        LIMIT 1
+    `;
+    if (!minor) return { error: "Nenhum atleta menor vinculado à sua conta." };
+
+    const firstName = formData.get("firstName")?.toString().trim();
+    const lastName = formData.get("lastName")?.toString().trim();
+    const telefone = formData.get("telefone")?.toString().trim() || null;
+    const morada = formData.get("morada")?.toString().trim() || null;
+    const cidade = formData.get("cidade")?.toString().trim() || null;
+    const codigoPostal =
+        formData.get("codigo_postal")?.toString().trim() || null;
+    const pais = formData.get("pais")?.toString().trim() || null;
+    const nif = formData.get("nif")?.toString().trim() || null;
+
+    if (!firstName) return { error: "Nome é obrigatório." };
+    if (!lastName) return { error: "Apelido é obrigatório." };
+
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    try {
+        // Atualizar dados na BD
+        await sql`
+            UPDATE users
+            SET name = ${fullName},
+                telefone = ${telefone},
+                morada = ${morada},
+                cidade = ${cidade},
+                codigo_postal = ${codigoPostal},
+                pais = ${pais},
+                nif = ${nif},
+                updated_at = NOW()
+            WHERE id = ${minor.user_id}
+        `;
+
+        // Sincronizar nome com o Clerk
+        const [clerkRow] = await sql<{ clerk_user_id: string }[]>`
+            SELECT clerk_user_id FROM users WHERE id = ${minor.user_id} LIMIT 1
+        `.catch(() => []);
+        if (clerkRow?.clerk_user_id) {
+            await fetch(
+                `https://api.clerk.com/v1/users/${clerkRow.clerk_user_id}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                    }),
+                },
+            ).catch(() => {});
+        }
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao atualizar dados do educando." };
+    }
+
+    revalidatePath("/dashboard/responsavel/dados-educando");
+    revalidatePath("/dashboard/atleta/perfil");
+    return { success: true };
+}
+
+/**
+ * Responsável solicita troca de plano em nome do menor.
+ * O pedido vai diretamente para o admin (status 'pendente').
+ */
+export async function solicitarTrocaPlanoEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const guardianEmail = await getGuardianEmail();
+    if (!guardianEmail) return { error: "Não autenticado." };
+
+    const plano = String(formData.get("plano") || "").trim();
+    const planosValidos = ["team", "club_pro", "legend"];
+    if (!planosValidos.includes(plano)) {
+        return { error: "Plano inválido." };
+    }
+
+    // Buscar menor vinculado
+    const [minor] = await sql<
+        { user_id: string; organization_id: string; name: string }[]
+    >`
+        SELECT u.id AS user_id, u.organization_id, u.name
+        FROM atletas a
+        INNER JOIN users u ON u.id = a.user_id
+        WHERE a.menor_idade = true
+          AND a.encarregado_educacao = ${guardianEmail}
+        LIMIT 1
+    `;
+    if (!minor) return { error: "Nenhum atleta menor vinculado à sua conta." };
+
+    // Verificar se já existe pedido pendente
+    const existing = await sql<{ id: string }[]>`
+        SELECT id FROM pedidos_plano
+        WHERE user_id = ${minor.user_id} AND status IN ('pendente', 'pendente_responsavel')
+        LIMIT 1
+    `;
+    if (existing.length) {
+        return {
+            error: "Já existe um pedido de alteração de plano em análise para este atleta.",
+        };
+    }
+
+    // Criar pedido directamente como "pendente" (admin aprova)
+    await sql`
+        INSERT INTO pedidos_plano (user_id, organization_id, plano_solicitado, status)
+        VALUES (${minor.user_id}, ${minor.organization_id}, ${plano}, 'pendente')
+    `;
+
+    const planoLabel: Record<string, string> = {
+        team: "Team",
+        club_pro: "Club Pro",
+        legend: "Legend",
+    };
+
+    // Notificar admin
+    await sql`
+        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+        VALUES (
+            gen_random_uuid(),
+            ${minor.organization_id},
+            NULL,
+            'Pedido de Alteração de Plano (Menor)',
+            ${`O encarregado de educação solicitou a alteração para o plano ${planoLabel[plano] || plano} para o atleta "${minor.name}".`},
+            'Aviso',
+            false,
+            NOW()
+        )
+    `.catch(() => {});
+
+    revalidatePath("/dashboard/responsavel/dados-educando");
+    return { success: true };
 }

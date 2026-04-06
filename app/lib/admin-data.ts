@@ -216,7 +216,7 @@ export async function fetchAdminUserById(id: string) {
           AND table_name = 'users'
           AND column_name IN (
               'data_nascimento', 'telefone',
-              'sobrenome', 'morada', 'peso_kg', 'altura_cm',
+              'sobrenome', 'morada',
               'nif', 'codigo_postal', 'cidade', 'pais'
           )
     `;
@@ -240,8 +240,8 @@ export async function fetchAdminUserById(id: string) {
             ${has("telefone") ? sql`u.telefone` : sql`NULL`} AS telefone,
             ${has("sobrenome") ? sql`u.sobrenome` : sql`NULL`} AS sobrenome,
             ${has("morada") ? sql`u.morada` : sql`NULL`} AS morada,
-            ${has("peso_kg") ? sql`u.peso_kg` : sql`NULL`} AS peso_kg,
-            ${has("altura_cm") ? sql`u.altura_cm` : sql`NULL`} AS altura_cm,
+            a.peso_kg,
+            a.altura_cm,
             ${has("nif") ? sql`u.nif` : sql`NULL`} AS nif,
             ${has("codigo_postal") ? sql`u.codigo_postal` : sql`NULL`} AS codigo_postal,
             ${has("cidade") ? sql`u.cidade` : sql`NULL`} AS cidade,
@@ -250,6 +250,7 @@ export async function fetchAdminUserById(id: string) {
         FROM users u
         LEFT JOIN organizations o ON o.id = u.organization_id
         LEFT JOIN clubes c ON c.organization_id = u.organization_id
+        LEFT JOIN atletas a ON a.user_id = u.id
         WHERE u.id = ${id}
         LIMIT 1
     `;
@@ -857,9 +858,11 @@ export async function fetchAdminConvitesEquipaAll(): Promise<
 
 export type AdminRelacaoPendenteRow = {
     id: string;
+    atleta_user_id: string;
     atleta_nome: string;
     atleta_email: string;
     alvo_nome: string | null;
+    alvo_email: string | null;
     alvo_clube_nome: string | null;
     relation_kind: string;
     status: string;
@@ -880,8 +883,10 @@ export async function fetchAdminRelacoesPendentes(): Promise<
     return sql<AdminRelacaoPendenteRow[]>`
         SELECT
             arp.id,
+            arp.atleta_user_id,
             ua.name AS atleta_nome,
             ua.email AS atleta_email,
+            arp.alvo_email,
             COALESCE(o.name, '') AS alvo_clube_nome,
             arp.relation_kind,
             arp.status,

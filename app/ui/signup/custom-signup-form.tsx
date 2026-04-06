@@ -93,6 +93,7 @@ type SignUpStage =
     | "president-profile"
     | "trainer-profile"
     | "athlete-profile"
+    | "responsible-profile"
     | "verify";
 
 type AthleteLookupOption = {
@@ -133,7 +134,20 @@ const ACCOUNT_TYPE_OPTIONS: {
     },
 ];
 
-function isAthleteDataValid(alturaCm: string, pesoKg: string) {
+const MAO_DOMINANTE_OPTIONS = [
+    { value: "direita", label: "Direita" },
+    { value: "esquerda", label: "Esquerda" },
+    { value: "ambidestro", label: "Ambidestro" },
+] as const;
+
+type MaoDominante = (typeof MAO_DOMINANTE_OPTIONS)[number]["value"] | "";
+
+function isAthleteDataValid(
+    alturaCm: string,
+    pesoKg: string,
+    maoDominante: string,
+    athleteModality: string,
+) {
     const trimmedWeight = pesoKg.trim();
     const alturaNum = Number(alturaCm);
     const pesoNum = Number(pesoKg);
@@ -147,7 +161,9 @@ function isAthleteDataValid(alturaCm: string, pesoKg: string) {
         !Number.isNaN(pesoNum) &&
         pesoNum >= ATHLETE_WEIGHT_MIN_KG &&
         pesoNum <= ATHLETE_WEIGHT_MAX_KG &&
-        ATHLETE_WEIGHT_DECIMALS_REGEX.test(trimmedWeight)
+        ATHLETE_WEIGHT_DECIMALS_REGEX.test(trimmedWeight) &&
+        MAO_DOMINANTE_OPTIONS.some((opt) => opt.value === maoDominante) &&
+        athleteModality.trim().length > 0
     );
 }
 
@@ -417,6 +433,8 @@ export default function CustomSignUpForm({
     const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
     const [alturaCm, setAlturaCm] = useState("");
     const [pesoKg, setPesoKg] = useState("");
+    const [maoDominante, setMaoDominante] = useState<MaoDominante>("");
+    const [athleteModality, setAthleteModality] = useState("");
     const [presidentClubName, setPresidentClubName] = useState("");
     const [presidentSport, setPresidentSport] = useState("");
     const [presidentIban, setPresidentIban] = useState("");
@@ -463,6 +481,7 @@ export default function CustomSignUpForm({
     >([]);
     const [athleteResponsibleEmailOptions, setAthleteResponsibleEmailOptions] =
         useState<AthleteLookupOption[]>([]);
+    const [responsibleMinorEmail, setResponsibleMinorEmail] = useState("");
     const emailInputRef = useRef<HTMLInputElement | null>(null);
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
     const emailPrecheckTimeoutRef = useRef<number | null>(null);
@@ -1210,8 +1229,10 @@ export default function CustomSignUpForm({
     };
 
     const validateAthleteProfile = () => {
-        if (!isAthleteDataValid(alturaCm, pesoKg)) {
-            return "Para atleta, Altura deve estar entre 100 e 300 cm. Peso deve estar entre 10 e 300 kg, com no máximo 2 casas decimais.";
+        if (
+            !isAthleteDataValid(alturaCm, pesoKg, maoDominante, athleteModality)
+        ) {
+            return "Altura (100-300 cm), Peso (10-300 kg, máx. 2 decimais), Mão dominante e Modalidade são obrigatórios.";
         }
 
         if (athleteClubName.trim().length > 0 && !selectedAthleteClubOption) {
@@ -1356,6 +1377,8 @@ export default function CustomSignUpForm({
                         ? {
                               altura_cm: alturaCm,
                               peso_kg: pesoKg,
+                              mao_dominante: maoDominante,
+                              modality: athleteModality,
                               clubName:
                                   selectedAthleteClubOption?.label || null,
                               trainerName:
@@ -1493,6 +1516,12 @@ export default function CustomSignUpForm({
         if (accountType === "atleta") {
             setIsSubmitting(false);
             setStage("athlete-profile");
+            return;
+        }
+
+        if (accountType === "responsavel" && !invite) {
+            setIsSubmitting(false);
+            setStage("responsible-profile");
             return;
         }
 
@@ -1651,6 +1680,61 @@ export default function CustomSignUpForm({
         }
     };
 
+    const handleResponsibleProfileSubmit = async (
+        event: FormEvent<HTMLFormElement>,
+    ) => {
+        event.preventDefault();
+
+        if (!isLoaded) return;
+
+        setIsSubmitting(true);
+        setErrorMessage(null);
+
+        if (!isValidEmailFormat(responsibleMinorEmail)) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                "É obrigatório indicar o e-mail do atleta menor de idade a quem está vinculado.",
+            );
+            return;
+        }
+
+        if (
+            responsibleMinorEmail.trim().toLowerCase() ===
+            emailAddress.trim().toLowerCase()
+        ) {
+            setIsSubmitting(false);
+            setErrorMessage(
+                "O e-mail do atleta menor não pode ser igual ao seu e-mail.",
+            );
+            return;
+        }
+
+        try {
+            const didStartVerification =
+                await createSignupAndSendVerification();
+            if (!didStartVerification) {
+                return;
+            }
+        } catch (error) {
+            const message = getClerkErrorMessage(error);
+            if (isClerkInvalidEmailError(error)) {
+                setStage("form");
+                focusEmailFieldForEdit();
+                setErrorMessage(`${message}`);
+            } else if (isClerkPasswordBreachError(error)) {
+                setStage("form");
+                focusPasswordFieldForEdit();
+                setErrorMessage(
+                    `${message} Edite a palavra-passe para continuar.`,
+                );
+            } else {
+                setErrorMessage(message);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0] || null;
         if (!file) {
@@ -1755,6 +1839,8 @@ export default function CustomSignUpForm({
             if (accountType === "atleta") {
                 payload.append("altura_cm", alturaCm);
                 payload.append("peso_kg", pesoKg);
+                payload.append("mao_dominante", maoDominante);
+                payload.append("athlete_modality", athleteModality);
                 payload.append(
                     "athlete_club_name",
                     selectedAthleteClubOption?.label || "",
@@ -1885,6 +1971,12 @@ export default function CustomSignUpForm({
                 payload.append("trainer_city", trainerCity.trim());
                 payload.append("trainer_country", PORTUGAL_COUNTRY);
             }
+            if (accountType === "responsavel" && responsibleMinorEmail.trim()) {
+                payload.append(
+                    "responsible_minor_email",
+                    responsibleMinorEmail.trim(),
+                );
+            }
 
             const profileResponse = await fetch("/api/account-type", {
                 method: "POST",
@@ -1900,17 +1992,33 @@ export default function CustomSignUpForm({
                 );
             }
 
-            setSuccessMessage(
-                "Registo concluído com sucesso. A redirecionar...",
-            );
-            // Forçar refresh do JWT para incluir o accountType atualizado
-            try {
-                await session?.touch();
-            } catch {}
-            setTimeout(() => {
-                window.location.href =
-                    getDashboardPathForAccountType(accountType);
-            }, 1200);
+            const profileData = await profileResponse.json().catch(() => ({}));
+
+            if (
+                accountType === "responsavel" &&
+                profileData?.pendingValidation
+            ) {
+                setSuccessMessage(
+                    "Sua conta será concluída assim que o atleta valide sua relação.",
+                );
+                try {
+                    await session?.touch();
+                } catch {}
+                setTimeout(() => {
+                    window.location.href = "/aguardar-validacao";
+                }, 2000);
+            } else {
+                setSuccessMessage(
+                    "Registo concluído com sucesso. A redirecionar...",
+                );
+                try {
+                    await session?.touch();
+                } catch {}
+                setTimeout(() => {
+                    window.location.href =
+                        getDashboardPathForAccountType(accountType);
+                }, 1200);
+            }
         } catch (error) {
             setErrorMessage(getClerkErrorMessage(error));
         } finally {
@@ -2630,6 +2738,67 @@ export default function CustomSignUpForm({
                             </div>
                         </div>
 
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Mão Dominante
+                                </label>
+                                <select
+                                    required
+                                    value={maoDominante}
+                                    onChange={(event) =>
+                                        setMaoDominante(
+                                            event.target.value as MaoDominante,
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="" disabled>
+                                        — Selecione —
+                                    </option>
+                                    {MAO_DOMINANTE_OPTIONS.map((opt) => (
+                                        <option
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Modalidade
+                                </label>
+                                <select
+                                    required
+                                    value={athleteModality}
+                                    onChange={(event) =>
+                                        setAthleteModality(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="" disabled>
+                                        Selecione uma modalidade
+                                    </option>
+                                    {PRESIDENT_SPORT_OPTIONS.map((sport) => (
+                                        <option
+                                            key={sport}
+                                            value={sport}
+                                            disabled={
+                                                !ENABLED_SPORTS.has(sport)
+                                            }
+                                        >
+                                            {sport}
+                                            {!ENABLED_SPORTS.has(sport)
+                                                ? " (em breve)"
+                                                : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="grid gap-6 md:grid-cols-3">
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
@@ -3133,6 +3302,74 @@ export default function CustomSignUpForm({
                                     className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
                                 />
                             </div>
+                        </div>
+
+                        {errorMessage && (
+                            <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3">
+                                {errorMessage}
+                            </p>
+                        )}
+
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <button
+                                type="button"
+                                onClick={() => setStage("form")}
+                                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-emerald-600"
+                            >
+                                Voltar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!isLoaded || isSubmitting}
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
+                            >
+                                {isSubmitting
+                                    ? "A criar conta..."
+                                    : "Concluir perfil"}
+                            </button>
+                        </div>
+                    </form>
+                ) : stage === "responsible-profile" ? (
+                    <form
+                        className="space-y-6"
+                        onSubmit={handleResponsibleProfileSubmit}
+                    >
+                        <div className="rounded-lg border border-blue-200/20 bg-slate-900/50 p-4">
+                            <p className="text-sm font-semibold text-white">
+                                Dados do Responsável
+                            </p>
+                            <p className="mt-1 text-xs text-slate-300">
+                                Indique o e-mail do atleta menor de idade a quem
+                                está vinculado(a).
+                            </p>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                E-mail do Atleta Menor{" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <Mail
+                                    size={16}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                />
+                                <input
+                                    type="email"
+                                    required
+                                    value={responsibleMinorEmail}
+                                    onChange={(e) =>
+                                        setResponsibleMinorEmail(e.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="email.do.atleta@exemplo.pt"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                O atleta deve estar cadastrado na plataforma.
+                                Ele receberá um pedido de vinculação para
+                                aceitar ou recusar.
+                            </p>
                         </div>
 
                         {errorMessage && (

@@ -3,6 +3,7 @@ import {
     fetchAdminConvitesEquipaAll,
     fetchAdminRelacoesPendentes,
 } from "@/app/lib/admin-data";
+import SendResponsibleInviteButton from "./_components/SendResponsibleInviteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -276,6 +277,14 @@ export default async function AdminConvitesPage({
                                                 ({r.atleta_email})
                                             </span>
                                         </p>
+                                        {r.alvo_email && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                Email do responsável:{" "}
+                                                <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                    {r.alvo_email}
+                                                </span>
+                                            </p>
+                                        )}
                                         {r.alvo_clube_nome && (
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                                 Clube destino:{" "}
@@ -288,9 +297,25 @@ export default async function AdminConvitesPage({
                                             ).toLocaleString("pt-PT")}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <TipoBadge tipo={r.relation_kind} />
-                                        <StatusBadge status={r.status} />
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <TipoBadge tipo={r.relation_kind} />
+                                            <StatusBadge status={r.status} />
+                                        </div>
+                                        {r.relation_kind === "responsavel" &&
+                                            r.status?.toLowerCase() ===
+                                                "pendente" &&
+                                            r.alvo_email && (
+                                                <SendResponsibleInviteButton
+                                                    athleteUserId={
+                                                        r.atleta_user_id
+                                                    }
+                                                    athleteName={r.atleta_nome}
+                                                    responsibleEmail={
+                                                        r.alvo_email
+                                                    }
+                                                />
+                                            )}
                                     </div>
                                 </div>
                             </article>

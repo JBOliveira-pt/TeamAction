@@ -184,6 +184,11 @@ export function AdminUserEditForm({
     const isAtleta = accountType === "atleta";
     const isTreinador = accountType === "treinador";
 
+    // Split stored full name into first/last for separate editing
+    const nameParts = user.name.split(" ");
+    const defaultFirstName = nameParts[0] || "";
+    const defaultLastName = nameParts.slice(1).join(" ") || "";
+
     function handleIbanChange(e: ChangeEvent<HTMLInputElement>) {
         const raw = e.target.value;
         if (isIbanEffectivelyEmpty(raw) && raw.length <= IBAN_PREFIX.length) {
@@ -248,6 +253,18 @@ export function AdminUserEditForm({
     }, [codigoPostal]);
 
     function handleSubmit(formData: FormData) {
+        // Combine first + last name back into full name
+        const first = String(formData.get("firstName") || "").trim();
+        const last = String(formData.get("lastName") || "").trim();
+        formData.set("name", [first, last].filter(Boolean).join(" "));
+        formData.delete("firstName");
+        formData.delete("lastName");
+
+        // Sync sobrenome for athletes
+        if (isAtleta) {
+            formData.set("sobrenome", last);
+        }
+
         formData.set(
             "iban",
             isIbanEffectivelyEmpty(iban)
@@ -276,33 +293,32 @@ export function AdminUserEditForm({
                 <div>
                     <label className={labelCls}>Nome *</label>
                     <input
-                        name="name"
-                        defaultValue={user.name}
+                        name="firstName"
+                        defaultValue={defaultFirstName}
                         required
                         className={inputCls}
                     />
                 </div>
-
-                {isAtleta ? (
-                    <div>
-                        <label className={labelCls}>Sobrenome</label>
-                        <input
-                            name="sobrenome"
-                            defaultValue={user.sobrenome || ""}
-                            className={inputCls}
-                        />
-                    </div>
-                ) : (
-                    <div>
-                        <label className={labelCls}>Nome do Clube/Equipa</label>
-                        <input
-                            name="organizationName"
-                            defaultValue={user.organization_name || ""}
-                            className={inputCls}
-                        />
-                    </div>
-                )}
+                <div>
+                    <label className={labelCls}>Apelido</label>
+                    <input
+                        name="lastName"
+                        defaultValue={defaultLastName}
+                        className={inputCls}
+                    />
+                </div>
             </div>
+
+            {!isAtleta && (
+                <div>
+                    <label className={labelCls}>Nome do Clube/Equipa</label>
+                    <input
+                        name="organizationName"
+                        defaultValue={user.organization_name || ""}
+                        className={inputCls}
+                    />
+                </div>
+            )}
 
             <div>
                 <label className={labelCls}>E-mail *</label>

@@ -8,6 +8,7 @@ import {
 } from "@/app/lib/account-type";
 import { auth } from "@clerk/nextjs/server";
 import { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import postgres from "postgres";
 
@@ -55,6 +56,36 @@ export default async function Layout({
 
     if (!accountType) {
         redirect("/signup");
+    }
+
+    // Responsável com vinculação pendente não pode aceder ao dashboard
+    if (accountType === "responsavel") {
+        const userRows = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+        `;
+        const dbUserId = userRows[0]?.id;
+
+        if (dbUserId) {
+            const acceptedRows = await sql<{ id: string }[]>`
+                SELECT id FROM atleta_relacoes_pendentes
+                WHERE alvo_responsavel_user_id = ${dbUserId}
+                  AND relation_kind = 'responsavel'
+                  AND status = 'aceite'
+                LIMIT 1
+            `;
+            if (acceptedRows.length === 0) {
+                redirect("/aguardar-validacao");
+            }
+        }
+    }
+
+    // Se o utilizador está em /dashboard (sem sub-rota), redirecionar
+    // imediatamente para o dashboard do seu tipo de conta.
+    // Isto evita o flash do loading.tsx do route group (overview).
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") || "";
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+        redirect(getDashboardPathForAccountType(accountType));
     }
 
     return (

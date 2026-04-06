@@ -172,9 +172,13 @@ export default async function PerfilUnificadoPage() {
                         maoDominante={atletaData.atleta?.mao_dominante ?? null}
                         equipaNome={atletaData.atleta?.equipa_nome ?? null}
                         federado={atletaData.atleta?.federado ?? null}
+                        numeroFederado={
+                            atletaData.atleta?.numero_federado ?? null
+                        }
                         treinadorNome={
                             atletaData.atleta?.treinador_nome ?? null
                         }
+                        isMinor={!!atletaData?.user?.menor_idade}
                     />
                 </div>
             )}
@@ -200,6 +204,7 @@ export default async function PerfilUnificadoPage() {
                     campo: p.campo,
                     valor_novo: p.valor_novo,
                 }))}
+                isMinor={!!atletaData?.user?.menor_idade}
             />
         </div>
     );

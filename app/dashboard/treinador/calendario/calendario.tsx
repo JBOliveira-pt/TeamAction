@@ -101,10 +101,12 @@ export default function Calendario({
     jogos,
     epoca,
     sessoes,
+    datasComNotas,
 }: {
     jogos: JogoDB[];
     epoca: Epoca;
     sessoes: SessaoDB[];
+    datasComNotas: string[];
 }) {
     const router = useRouter();
     const today = new Date();
@@ -125,6 +127,9 @@ export default function Calendario({
     const [notesLoading, setNotesLoading] = useState(false);
     const [newNota, setNewNota] = useState("");
     const [savingNota, setSavingNota] = useState(false);
+    const [noteDatesSet, setNoteDatesSet] = useState(
+        () => new Set(datasComNotas),
+    );
 
     // Group jogos by date key
     const jogosByDate = useMemo(() => {
@@ -226,6 +231,7 @@ export default function Calendario({
                 const created: CalendarNote = await res.json();
                 setNotes((prev) => [...prev, created]);
                 setNewNota("");
+                setNoteDatesSet((prev) => new Set(prev).add(selectedDate));
             }
         } finally {
             setSavingNota(false);
@@ -235,7 +241,17 @@ export default function Calendario({
     const deleteNota = async (id: string) => {
         try {
             await fetch(`/api/calendario/notas/${id}`, { method: "DELETE" });
-            setNotes((prev) => prev.filter((n) => n.id !== id));
+            setNotes((prev) => {
+                const remaining = prev.filter((n) => n.id !== id);
+                if (remaining.length === 0 && selectedDate) {
+                    setNoteDatesSet((s) => {
+                        const copy = new Set(s);
+                        copy.delete(selectedDate);
+                        return copy;
+                    });
+                }
+                return remaining;
+            });
         } catch {
             /* ignore */
         }
@@ -619,6 +635,9 @@ export default function Calendario({
 
                             const isEpStart = key === epocaInicioKey;
                             const isEpEnd = key === epocaFimKey;
+                            const hasNotes = key
+                                ? noteDatesSet.has(key)
+                                : false;
 
                             return (
                                 <div
@@ -715,6 +734,16 @@ export default function Calendario({
                                                     <div className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400 pl-2">
                                                         +{daySessoes.length - 2}{" "}
                                                         mais
+                                                    </div>
+                                                )}
+                                                {hasNotes && (
+                                                    <div className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1 truncate">
+                                                        <span className="text-[10px] shrink-0">
+                                                            📝
+                                                        </span>
+                                                        <span className="truncate">
+                                                            Anotação
+                                                        </span>
                                                     </div>
                                                 )}
                                             </div>

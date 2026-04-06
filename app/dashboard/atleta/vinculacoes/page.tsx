@@ -32,7 +32,7 @@ async function fetchVinculacoesPendentes() {
             arp.status,
             arp.created_at::text
         FROM atleta_relacoes_pendentes arp
-        LEFT JOIN users u ON u.id = arp.alvo_responsavel_user_id
+        LEFT JOIN users u ON u.email = arp.alvo_email
         WHERE arp.atleta_user_id = ${user.id}
           AND arp.relation_kind = 'responsavel'
           AND arp.status = 'pendente'

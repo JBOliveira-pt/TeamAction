@@ -24,11 +24,23 @@ export default function AtribuirTreinadorModal({
         null,
     );
     const [prevState, setPrevState] = useState(state);
+    const [mode, setMode] = useState<"real" | "fake">(
+        treinadorAtualId ? "real" : "fake",
+    );
+    const [fakeNome, setFakeNome] = useState("");
+    const [fakeEmail, setFakeEmail] = useState("");
 
     if (state !== prevState) {
         setPrevState(state);
-        if (state?.success) setOpen(false);
+        if (state?.success) {
+            setOpen(false);
+            setFakeNome("");
+            setFakeEmail("");
+        }
     }
+
+    const inputClass =
+        "w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors";
 
     return (
         <>
@@ -75,34 +87,105 @@ export default function AtribuirTreinadorModal({
                                 name="equipa_id"
                                 value={equipaId}
                             />
+                            <input
+                                type="hidden"
+                                name="treinador_mode"
+                                value={mode}
+                            />
+                            <input
+                                type="hidden"
+                                name="treinador_nome_fake"
+                                value={mode === "fake" ? fakeNome : ""}
+                            />
+                            <input
+                                type="hidden"
+                                name="treinador_email_fake"
+                                value={mode === "fake" ? fakeEmail : ""}
+                            />
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Treinador
-                                </label>
-                                {treinadores.length === 0 ? (
-                                    <p className="text-sm text-gray-400 dark:text-gray-500 py-2">
-                                        Nenhum treinador registado na
-                                        organiza&ccedil;&atilde;o.
-                                    </p>
-                                ) : (
-                                    <select
-                                        name="treinador_id"
-                                        defaultValue={treinadorAtualId ?? ""}
-                                        required
-                                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
-                                    >
-                                        <option value="">
-                                            Seleciona treinador
-                                        </option>
-                                        {treinadores.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name} — {t.email}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setMode("real")}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                        mode === "real"
+                                            ? "bg-violet-600 text-white border-violet-600"
+                                            : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-violet-500"
+                                    }`}
+                                >
+                                    Existente
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMode("fake")}
+                                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                        mode === "fake"
+                                            ? "bg-violet-600 text-white border-violet-600"
+                                            : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-violet-500"
+                                    }`}
+                                >
+                                    Novo (nome)
+                                </button>
                             </div>
+
+                            {mode === "real" && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                        Treinador
+                                    </label>
+                                    {treinadores.length === 0 ? (
+                                        <p className="text-sm text-gray-400 dark:text-gray-500 py-2">
+                                            Nenhum treinador registado na
+                                            organização.
+                                        </p>
+                                    ) : (
+                                        <select
+                                            name="treinador_id"
+                                            defaultValue={
+                                                treinadorAtualId ?? ""
+                                            }
+                                            className={inputClass}
+                                        >
+                                            <option value="">
+                                                Seleciona treinador
+                                            </option>
+                                            {treinadores.map((t) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.name} — {t.email}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+                            )}
+
+                            {mode === "fake" && (
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        value={fakeNome}
+                                        onChange={(e) =>
+                                            setFakeNome(e.target.value)
+                                        }
+                                        placeholder="Nome do treinador"
+                                        className={inputClass}
+                                    />
+                                    <input
+                                        type="email"
+                                        value={fakeEmail}
+                                        onChange={(e) =>
+                                            setFakeEmail(e.target.value)
+                                        }
+                                        placeholder="Email do treinador (opcional)"
+                                        className={inputClass}
+                                    />
+                                    <p className="text-[10px] text-gray-400">
+                                        Se o email pertencer a um treinador
+                                        registado, será enviado um convite. Caso
+                                        contrário, o admin será notificado.
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="flex justify-end gap-2 pt-1">
                                 <button
@@ -115,7 +198,10 @@ export default function AtribuirTreinadorModal({
                                 <button
                                     type="submit"
                                     disabled={
-                                        isPending || treinadores.length === 0
+                                        isPending ||
+                                        (mode === "real" &&
+                                            treinadores.length === 0) ||
+                                        (mode === "fake" && !fakeNome.trim())
                                     }
                                     className="px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors disabled:opacity-60"
                                 >

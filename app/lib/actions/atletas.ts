@@ -33,7 +33,7 @@ export async function adicionarAtleta(
         formData.get("numero_camisola")?.toString().trim() || null;
     const equipaId = formData.get("equipa_id")?.toString() || null;
     const estado = formData.get("estado")?.toString() || "ativo";
-    const federado = formData.get("federado") === "on";
+    const rawFederado = formData.get("federado") === "on";
     const numFederado =
         formData.get("numero_federado")?.toString().trim() || null;
     const maoDominante = formData.get("mao_dominante")?.toString() || null;
@@ -41,6 +41,16 @@ export async function adicionarAtleta(
     if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
 
     try {
+        // Validar: federado só é possível se a organização tiver um clube
+        let federado = rawFederado;
+        if (federado) {
+            const clubeRows = await sql<{ id: string }[]>`
+                SELECT id FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
+            `;
+            if (clubeRows.length === 0) federado = false;
+        }
+        const safeNumFederado = federado ? numFederado : null;
+
         await sql`
             INSERT INTO atletas (
                 id, nome, posicao, numero_camisola,
@@ -49,7 +59,7 @@ export async function adicionarAtleta(
             ) VALUES (
                 gen_random_uuid(), ${nome}, ${posicao},
                 ${numCamisola ? parseInt(numCamisola) : null},
-                ${equipaId}, ${estado}, ${federado}, ${numFederado},
+                ${equipaId}, ${estado}, ${federado}, ${safeNumFederado},
                 ${maoDominante}, ${organizationId}
             )
         `;
@@ -114,7 +124,7 @@ export async function editarAtleta(
         formData.get("numero_camisola")?.toString().trim() || null;
     const equipaId = formData.get("equipa_id")?.toString() || null;
     const estado = formData.get("estado")?.toString() || "ativo";
-    const federado = formData.get("federado") === "on";
+    const rawFederado = formData.get("federado") === "on";
     const numFederado =
         formData.get("numero_federado")?.toString().trim() || null;
     const maoDominante = formData.get("mao_dominante")?.toString() || null;
@@ -123,6 +133,16 @@ export async function editarAtleta(
     if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
 
     try {
+        // Validar: federado só é possível se a organização tiver um clube
+        let federado = rawFederado;
+        if (federado) {
+            const clubeRows = await sql<{ id: string }[]>`
+                SELECT id FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
+            `;
+            if (clubeRows.length === 0) federado = false;
+        }
+        const safeNumFederado = federado ? numFederado : null;
+
         await sql`
             UPDATE atletas SET
                 nome             = ${nome},
@@ -131,7 +151,7 @@ export async function editarAtleta(
                 equipa_id        = ${equipaId},
                 estado           = ${estado},
                 federado         = ${federado},
-                numero_federado  = ${numFederado},
+                numero_federado  = ${safeNumFederado},
                 mao_dominante    = ${maoDominante}
             WHERE id = ${id}
             AND organization_id = ${organizationId}

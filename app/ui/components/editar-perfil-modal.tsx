@@ -43,6 +43,7 @@ interface Props {
     orgName: string | null;
     membroDesde: string;
     pedidosPendentes?: PedidoPendente[];
+    isMinor?: boolean;
 }
 
 /* ── Constantes de validação (mesmas do signup) ── */
@@ -121,6 +122,7 @@ export default function PerfilInlineEditor({
     orgName,
     membroDesde,
     pedidosPendentes = [],
+    isMinor = false,
 }: Props) {
     const [editing, setEditing] = useState(false);
     const [editingEmail, setEditingEmail] = useState(false);
@@ -353,11 +355,31 @@ export default function PerfilInlineEditor({
                 </div>
             )}
 
+            {/* Aviso para menores — dados cadastrais bloqueados */}
+            {isMinor && (
+                <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                    <AlertTriangle
+                        size={18}
+                        className="text-blue-500 mt-0.5 shrink-0"
+                    />
+                    <div>
+                        <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                            Conta de menor de idade
+                        </p>
+                        <p className="text-xs text-blue-600 dark:text-blue-500 mt-0.5">
+                            A alteração dos teus dados pessoais, email e data de
+                            nascimento só pode ser feita pelo teu encarregado de
+                            educação.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* ── INFORMAÇÕES PESSOAIS ── */}
             <Section
                 icon={<User size={18} className="text-blue-500" />}
                 title="Informações Pessoais"
-                canEdit
+                canEdit={!isMinor}
                 editing={editing}
                 onToggle={() => {
                     setEditing((v) => !v);
@@ -533,7 +555,7 @@ export default function PerfilInlineEditor({
                 <Section
                     icon={<Mail size={18} className="text-blue-500" />}
                     title="Email"
-                    canEdit={!emailPendente}
+                    canEdit={!isMinor && !emailPendente}
                     editing={editingEmail}
                     onToggle={() => {
                         setEditingEmail((v) => !v);
@@ -610,7 +632,7 @@ export default function PerfilInlineEditor({
                 <Section
                     icon={<Calendar size={18} className="text-blue-500" />}
                     title="Data de Nascimento"
-                    canEdit={!dobPendente}
+                    canEdit={!isMinor && !dobPendente}
                     editing={editingDob}
                     onToggle={() => {
                         setEditingDob((v) => !v);

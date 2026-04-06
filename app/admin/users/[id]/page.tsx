@@ -10,7 +10,7 @@ import {
     fetchAdminEquipasByOrg,
 } from "@/app/lib/admin-data";
 import { AdminDeleteUserDangerZone } from "../../../ui/admin/delete-user-danger-zone";
-import { AdminUserEditForm } from "../../../ui/admin/admin-user-edit-form";
+import { AdminUserProfileView } from "../../../ui/admin/admin-user-profile-view";
 import { AdminAccountTypeChanger } from "../../../ui/admin/account-type-changer";
 import { clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
@@ -197,7 +197,7 @@ export default async function AdminUserDetailPage({
     })();
 
     return (
-        <div className="space-y-4">
+        <div className="p-6 space-y-5 max-w-5xl mx-auto">
             <header>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     Perfil do Utilizador
@@ -221,62 +221,44 @@ export default async function AdminUserDetailPage({
                 </div>
             )}
 
-            <section className="max-w-2xl space-y-5 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-                {/* Read-only info */}
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400">ID</p>
-                        <p className="break-all font-mono text-xs text-gray-700 dark:text-gray-300">
-                            {user.id}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-gray-500 dark:text-gray-400">
-                            Função
-                        </p>
-                        <span
-                            className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${badge.className}`}
-                        >
-                            {badge.label}
-                        </span>
-                    </div>
-                </div>
-
-                <hr className="border-gray-200 dark:border-gray-700" />
-
-                <AdminUserEditForm
-                    updateAction={updateAction}
-                    accountType={accountType}
-                    user={{
-                        name: user.name,
-                        email: user.email,
-                        image_url: user.image_url,
-                        organization_name: user.organization_name,
-                        iban: user.iban,
-                        data_nascimento: user.data_nascimento,
-                        telefone: user.telefone,
-                        sobrenome: user.sobrenome,
-                        morada: user.morada,
-                        peso_kg: user.peso_kg,
-                        altura_cm: user.altura_cm,
-                        nif: user.nif,
-                        codigo_postal: user.codigo_postal,
-                        cidade: user.cidade,
-                        pais: user.pais,
-                    }}
-                    atletaData={atletaData}
-                    staffData={staffData}
-                    equipas={equipas}
-                />
-            </section>
-
-            <AdminAccountTypeChanger
-                userId={id}
-                currentType={accountType}
-                action={adminChangeAccountTypeAction}
+            <AdminUserProfileView
+                updateAction={updateAction}
+                accountType={accountType}
+                accountTypeBadge={badge}
+                user={{
+                    id: user.id,
+                    clerk_user_id: user.clerk_user_id,
+                    created_at: user.created_at,
+                    name: user.name,
+                    email: user.email,
+                    image_url: user.image_url,
+                    organization_name: user.organization_name,
+                    iban: user.iban,
+                    data_nascimento: user.data_nascimento,
+                    telefone: user.telefone,
+                    sobrenome: user.sobrenome,
+                    morada: user.morada,
+                    peso_kg: user.peso_kg,
+                    altura_cm: user.altura_cm,
+                    nif: user.nif,
+                    codigo_postal: user.codigo_postal,
+                    cidade: user.cidade,
+                    pais: user.pais,
+                }}
+                atletaData={atletaData}
+                staffData={staffData}
+                equipas={equipas}
             />
 
-            <AdminDeleteUserDangerZone deleteAction={deleteAction} />
+            <div className="grid gap-4 md:grid-cols-2">
+                <AdminAccountTypeChanger
+                    userId={id}
+                    currentType={accountType}
+                    action={adminChangeAccountTypeAction}
+                />
+
+                <AdminDeleteUserDangerZone deleteAction={deleteAction} />
+            </div>
         </div>
     );
 }

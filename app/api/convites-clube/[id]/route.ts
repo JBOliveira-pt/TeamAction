@@ -75,6 +75,63 @@ export async function PUT(
         return Response.json({ ok: true, estado: "recusado" });
     }
 
+    // Check if athlete is a minor — requires responsible approval
+    if (convite.tipo === "atleta") {
+        const atletaInfo = await sql<
+            {
+                menor_idade: boolean | null;
+                encarregado_educacao: string | null;
+                nome: string;
+            }[]
+        >`
+            SELECT a.menor_idade, a.encarregado_educacao, a.nome
+            FROM atletas a WHERE a.user_id = ${me.id} LIMIT 1
+        `.catch(() => []);
+
+        const isMinor = atletaInfo[0]?.menor_idade === true;
+        const responsavelEmail = atletaInfo[0]?.encarregado_educacao;
+        const atletaNome = atletaInfo[0]?.nome ?? "Atleta";
+
+        if (isMinor) {
+            // Set state to pendente_responsavel instead of aceite
+            await sql`
+                UPDATE convites_clube
+                SET estado = 'pendente_responsavel', updated_at = NOW()
+                WHERE id = ${id}
+            `;
+
+            // Notify the responsible
+            if (responsavelEmail) {
+                const responsavelRows = await sql<{ id: string }[]>`
+                    SELECT id FROM users WHERE LOWER(email) = LOWER(${responsavelEmail}) LIMIT 1
+                `.catch(() => []);
+                if (responsavelRows[0]) {
+                    // Buscar nome do clube
+                    const clubeNomeRows = await sql<{ nome: string }[]>`
+                        SELECT nome FROM clubes WHERE organization_id = ${convite.clube_org_id} LIMIT 1
+                    `.catch(() => []);
+                    const clubeNome = clubeNomeRows[0]?.nome ?? "Clube";
+
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (
+                            gen_random_uuid(),
+                            ${me.organization_id},
+                            ${responsavelRows[0].id},
+                            'Aprovação necessária — Convite de Clube',
+                            ${`O atleta menor "${atletaNome}" aceitou um convite para o clube "${clubeNome}". É necessária a sua aprovação como encarregado de educação.`},
+                            'aprovacao_responsavel',
+                            false,
+                            NOW()
+                        )
+                    `.catch(() => {});
+                }
+            }
+
+            return Response.json({ ok: true, estado: "pendente_responsavel" });
+        }
+    }
+
     // Accept
     await sql`
         UPDATE convites_clube

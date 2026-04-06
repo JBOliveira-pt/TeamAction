@@ -64,6 +64,19 @@ export async function fetchPlanoAtual(): Promise<string> {
     return rows[0]?.plano ?? "rookie";
 }
 
+export async function fetchIsMinor(): Promise<boolean> {
+    const { userId } = await auth();
+    if (!userId) return false;
+    const rows = await sql<{ menor_idade: boolean | null }[]>`
+        SELECT a.menor_idade
+        FROM atletas a
+        INNER JOIN users u ON u.id = a.user_id
+        WHERE u.clerk_user_id = ${userId}
+        LIMIT 1
+    `.catch(() => []);
+    return rows[0]?.menor_idade === true;
+}
+
 export async function solicitarTrocaPlano(
     _prevState: { error?: string; success?: boolean } | null,
     formData: FormData,
@@ -90,14 +103,19 @@ export async function solicitarTrocaPlano(
         name: userName,
     } = userRows[0];
 
-    // Verificar se é atleta menor de idade
+    // Verificar se é atleta menor de idade — menores não podem alterar plano
     const atletaRows = await sql<
         { menor_idade: boolean | null; encarregado_educacao: string | null }[]
     >`
         SELECT menor_idade, encarregado_educacao FROM atletas WHERE user_id = ${dbUserId} LIMIT 1
     `.catch(() => []);
     const isMinor = atletaRows[0]?.menor_idade === true;
-    const responsavelEmail = atletaRows[0]?.encarregado_educacao;
+
+    if (isMinor) {
+        return {
+            error: "Como atleta menor de idade, a alteração de plano só pode ser solicitada pelo teu encarregado de educação.",
+        };
+    }
 
     // Check if there's already a pending request
     const existing = await sql<{ id: string }[]>`
@@ -112,7 +130,7 @@ export async function solicitarTrocaPlano(
     // Create the plan request
     await ensurePedidosPlanoTable();
 
-    const statusPedido = isMinor ? "pendente_responsavel" : "pendente";
+    const statusPedido = "pendente";
 
     await sql`
         INSERT INTO pedidos_plano (user_id, organization_id, plano_solicitado, status)
@@ -140,28 +158,6 @@ export async function solicitarTrocaPlano(
             NOW()
         )
     `;
-
-    // Se menor, notificar o responsável
-    if (isMinor && responsavelEmail) {
-        const responsavelRows = await sql<{ id: string }[]>`
-            SELECT id FROM users WHERE LOWER(email) = LOWER(${responsavelEmail}) LIMIT 1
-        `.catch(() => []);
-        if (responsavelRows[0]) {
-            await sql`
-                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
-                VALUES (
-                    gen_random_uuid(),
-                    ${orgId},
-                    ${responsavelRows[0].id},
-                    'Aprovação necessária — Alteração de Plano',
-                    ${`O atleta menor "${userName}" solicitou a alteração para o plano ${planoLabel[plano] || plano}. É necessária a sua aprovação como encarregado de educação.`},
-                    'aprovacao_responsavel',
-                    false,
-                    NOW()
-                )
-            `.catch(() => {});
-        }
-    }
 
     await logAction(userId, "plan_change_request", "/dashboard/definicoes", {
         plano_solicitado: plano,

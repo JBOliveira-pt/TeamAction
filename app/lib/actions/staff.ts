@@ -8,12 +8,14 @@ import { revalidatePath } from "next/cache";
 // Staff Actions (Modal)
 // ========================================
 
+const FUNCOES_TREINADOR = ["Treinador Principal", "Treinador Adjunto"];
+
 export async function adicionarMembro(
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData,
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId } = await auth();
-    if (!userId) return { error: "NÃ£o autenticado." };
+    if (!userId) return { error: "Não autenticado." };
 
     let organizationId: string | undefined;
     try {
@@ -22,25 +24,104 @@ export async function adicionarMembro(
         >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
     } catch {
-        return { error: "Erro ao obter organizaÃ§Ã£o." };
+        return { error: "Erro ao obter organização." };
     }
 
-    if (!organizationId) return { error: "OrganizaÃ§Ã£o nÃ£o encontrada." };
+    if (!organizationId) return { error: "Organização não encontrada." };
 
     const nome = formData.get("nome")?.toString().trim();
     const funcao = formData.get("funcao")?.toString() || null;
     const equipaId = formData.get("equipa_id")?.toString() || null;
+    const userIdStaff = formData.get("userid")?.toString().trim() || null;
+    const treinadorMode = formData.get("treinador_mode")?.toString() || null;
+    const treinadorEmailFake =
+        formData.get("treinador_email_fake")?.toString().trim() || null;
 
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!funcao) return { error: "FunÃ§Ã£o Ã© obrigatÃ³ria." };
+    if (!nome) return { error: "Nome é obrigatório." };
+    if (!funcao) return { error: "Função é obrigatória." };
+
+    const isTreinador = FUNCOES_TREINADOR.includes(funcao);
+
+    // Validação: treinadores reais devem ter user_id
+    if (isTreinador && treinadorMode === "real" && !userIdStaff) {
+        return {
+            error: "É obrigatório selecionar um utilizador da plataforma para treinadores reais.",
+        };
+    }
+
+    // Validação: unicidade de Treinador Principal e Treinador Adjunto por equipa
+    if (isTreinador && equipaId) {
+        const [jaExiste] = await sql<{ id: string }[]>`
+            SELECT id FROM staff
+            WHERE equipa_id = ${equipaId}
+              AND funcao = ${funcao}
+              AND organization_id = ${organizationId}
+            LIMIT 1
+        `;
+        if (jaExiste) {
+            return {
+                error: `Esta equipa já tem um ${funcao}. Remove o atual antes de adicionar outro.`,
+            };
+        }
+    }
 
     try {
+        const resolvedUserId =
+            isTreinador && treinadorMode === "real" ? userIdStaff : null;
+
         await sql`
-            INSERT INTO staff (id, nome, funcao, equipa_id, organization_id)
-            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${organizationId})
+            INSERT INTO staff (id, nome, funcao, equipa_id, user_id, organization_id, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${resolvedUserId}, ${organizationId}, NOW(), NOW())
         `;
 
-        // Buscar nome da equipa para a notificaÃ§Ã£o
+        // Se treinador fake com email, verificar existência e criar convite/notificação
+        if (isTreinador && treinadorMode === "fake" && treinadorEmailFake) {
+            const [existingUser] = await sql<
+                { id: string; name: string; account_type: string | null }[]
+            >`
+                SELECT id, name, account_type FROM users
+                WHERE email = ${treinadorEmailFake}
+                  AND account_type = 'treinador'
+                LIMIT 1
+            `;
+
+            if (existingUser) {
+                // Treinador existe — criar convite de vinculação ao clube
+                await sql`
+                    INSERT INTO convites_clube (id, clube_id, clube_org_id, convidado_user_id, tipo, estado, created_at, updated_at)
+                    SELECT gen_random_uuid(), c.id, c.organization_id, ${existingUser.id}, 'treinador', 'pendente', NOW(), NOW()
+                    FROM clubes c WHERE c.organization_id = ${organizationId} LIMIT 1
+                `;
+                await sql`
+                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${existingUser.id},
+                        ${existingUser.id},
+                        'Convite para clube',
+                        ${`Foste convidado para ser ${funcao} no clube.`},
+                        'convite_clube',
+                        false,
+                        NOW()
+                    )
+                `;
+            } else {
+                // Treinador não existe — notificar admin
+                await sql`
+                    INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${organizationId},
+                        'Treinador não encontrado na plataforma',
+                        ${`O presidente tentou associar o treinador "${nome}" (${treinadorEmailFake}) como ${funcao}, mas o email não está registado. É necessário enviar convite manualmente.`},
+                        'Alerta',
+                        NOW()
+                    )
+                `;
+            }
+        }
+
+        // Buscar nome da equipa para a notificação
         let equipaNome = "sem equipa";
         if (equipaId) {
             const equipaResult = await sql<{ nome: string }[]>`
@@ -49,7 +130,7 @@ export async function adicionarMembro(
             equipaNome = equipaResult[0]?.nome ?? "sem equipa";
         }
 
-        // NotificaÃ§Ã£o automÃ¡tica
+        // Notificação automática
         await sql`
             INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
             VALUES (
@@ -70,6 +151,7 @@ export async function adicionarMembro(
         nome,
         funcao,
         equipaId,
+        userIdStaff,
     });
     revalidatePath("/dashboard/presidente/staff");
     revalidatePath("/dashboard/presidente/notificacoes");
@@ -98,17 +180,40 @@ export async function editarMembro(
     const nome = formData.get("nome")?.toString().trim();
     const funcao = formData.get("funcao")?.toString() || null;
     const equipaId = formData.get("equipa_id")?.toString() || null;
+    const userIdStaff = formData.get("userid")?.toString().trim() || null;
 
     if (!id) return { error: "ID do membro em falta." };
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
-    if (!funcao) return { error: "FunÃ§Ã£o Ã© obrigatÃ³ria." };
+    if (!nome) return { error: "Nome é obrigatório." };
+    if (!funcao) return { error: "Função é obrigatória." };
+
+    const isTreinador = FUNCOES_TREINADOR.includes(funcao);
+
+    // Validação: unicidade de Treinador Principal e Treinador Adjunto por equipa
+    if (isTreinador && equipaId) {
+        const [jaExiste] = await sql<{ id: string }[]>`
+            SELECT id FROM staff
+            WHERE equipa_id = ${equipaId}
+              AND funcao = ${funcao}
+              AND organization_id = ${organizationId}
+              AND id != ${id}
+            LIMIT 1
+        `;
+        if (jaExiste) {
+            return {
+                error: `Esta equipa já tem um ${funcao}. Remove o atual antes de adicionar outro.`,
+            };
+        }
+    }
+
+    const resolvedUserId = isTreinador ? userIdStaff : null;
 
     try {
         await sql`
             UPDATE staff SET
                 nome      = ${nome},
                 funcao    = ${funcao},
-                equipa_id = ${equipaId}
+                equipa_id = ${equipaId},
+                user_id   = ${resolvedUserId}
             WHERE id = ${id}
             AND organization_id = ${organizationId}
         `;

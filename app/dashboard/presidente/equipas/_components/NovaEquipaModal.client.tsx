@@ -49,6 +49,14 @@ export default function NovaEquipaModal({
     const [treinadorNomeFake, setTreinadorNomeFake] = useState("");
     const [treinadorEmailFake, setTreinadorEmailFake] = useState("");
 
+    // Adjunto state
+    const [adjuntoMode, setAdjuntoMode] = useState<"none" | "real" | "fake">(
+        "none",
+    );
+    const [adjuntoId, setAdjuntoId] = useState("");
+    const [adjuntoNomeFake, setAdjuntoNomeFake] = useState("");
+    const [adjuntoEmailFake, setAdjuntoEmailFake] = useState("");
+
     // Atletas state
     const [atletas, setAtletas] = useState<AtletaEntry[]>([]);
     const [novoAtleta, setNovoAtleta] = useState<AtletaEntry>({
@@ -73,6 +81,10 @@ export default function NovaEquipaModal({
         setTreinadorId("");
         setTreinadorNomeFake("");
         setTreinadorEmailFake("");
+        setAdjuntoMode("none");
+        setAdjuntoId("");
+        setAdjuntoNomeFake("");
+        setAdjuntoEmailFake("");
         setAtletas([]);
         setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
     };
@@ -85,6 +97,10 @@ export default function NovaEquipaModal({
             setTreinadorId("");
             setTreinadorNomeFake("");
             setTreinadorEmailFake("");
+            setAdjuntoMode("none");
+            setAdjuntoId("");
+            setAdjuntoNomeFake("");
+            setAdjuntoEmailFake("");
             setAtletas([]);
             setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
             setOpen(false);
@@ -178,6 +194,29 @@ export default function NovaEquipaModal({
                                 value={
                                     treinadorMode === "fake"
                                         ? treinadorEmailFake
+                                        : ""
+                                }
+                            />
+                            <input
+                                type="hidden"
+                                name="adjunto_id"
+                                value={adjuntoMode === "real" ? adjuntoId : ""}
+                            />
+                            <input
+                                type="hidden"
+                                name="adjunto_nome_fake"
+                                value={
+                                    adjuntoMode === "fake"
+                                        ? adjuntoNomeFake
+                                        : ""
+                                }
+                            />
+                            <input
+                                type="hidden"
+                                name="adjunto_email_fake"
+                                value={
+                                    adjuntoMode === "fake"
+                                        ? adjuntoEmailFake
                                         : ""
                                 }
                             />
@@ -360,6 +399,129 @@ export default function NovaEquipaModal({
                                                 )
                                             }
                                             placeholder="Email do treinador (opcional)"
+                                            className={inputClass}
+                                        />
+                                        <p className="text-[10px] text-gray-400">
+                                            Se o email pertencer a um treinador
+                                            registado, será enviado um convite
+                                            de vinculação. Caso contrário, o
+                                            administrador será notificado.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* === Treinador Adjunto (opcional) === */}
+                            <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
+                                <div className="flex items-center gap-2">
+                                    <UserPlus
+                                        size={16}
+                                        className="text-blue-400"
+                                    />
+                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                        Treinador Adjunto
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                        (opcional)
+                                    </span>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setAdjuntoMode(
+                                                adjuntoMode === "real"
+                                                    ? "none"
+                                                    : "real",
+                                            )
+                                        }
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                            adjuntoMode === "real"
+                                                ? "bg-blue-600 text-white border-blue-600"
+                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-blue-500"
+                                        }`}
+                                    >
+                                        Existente
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setAdjuntoMode(
+                                                adjuntoMode === "fake"
+                                                    ? "none"
+                                                    : "fake",
+                                            )
+                                        }
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                            adjuntoMode === "fake"
+                                                ? "bg-blue-600 text-white border-blue-600"
+                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-blue-500"
+                                        }`}
+                                    >
+                                        Novo (nome)
+                                    </button>
+                                </div>
+
+                                {adjuntoMode === "real" && (
+                                    <div className="space-y-1">
+                                        {treinadores.length === 0 ? (
+                                            <p className="text-xs text-gray-400 py-2">
+                                                Nenhum treinador registado na
+                                                organização.
+                                            </p>
+                                        ) : (
+                                            <select
+                                                value={adjuntoId}
+                                                onChange={(e) =>
+                                                    setAdjuntoId(e.target.value)
+                                                }
+                                                className={inputClass}
+                                            >
+                                                <option value="">
+                                                    Seleciona treinador adjunto
+                                                </option>
+                                                {treinadores
+                                                    .filter(
+                                                        (t) =>
+                                                            t.id !==
+                                                            treinadorId,
+                                                    )
+                                                    .map((t) => (
+                                                        <option
+                                                            key={t.id}
+                                                            value={t.id}
+                                                        >
+                                                            {t.name} — {t.email}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        )}
+                                    </div>
+                                )}
+
+                                {adjuntoMode === "fake" && (
+                                    <div className="space-y-1">
+                                        <input
+                                            type="text"
+                                            value={adjuntoNomeFake}
+                                            onChange={(e) =>
+                                                setAdjuntoNomeFake(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Nome do treinador adjunto"
+                                            className={inputClass}
+                                        />
+                                        <input
+                                            type="email"
+                                            value={adjuntoEmailFake}
+                                            onChange={(e) =>
+                                                setAdjuntoEmailFake(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Email do treinador adjunto (opcional)"
                                             className={inputClass}
                                         />
                                         <p className="text-[10px] text-gray-400">

@@ -285,48 +285,33 @@ export async function fetchPerfilAtletaGeral() {
         `;
         if (!user) return null;
 
-        // Detectar se peso_kg/altura_cm existem na tabela users
-        const userCols = await sql<{ column_name: string }[]>`
-            SELECT column_name FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = 'users'
-              AND column_name IN ('peso_kg', 'altura_cm')
-        `;
-        const colSet = new Set(userCols.map((c) => c.column_name));
-
-        let peso_kg: number | null = null;
-        let altura_cm: number | null = null;
-        if (colSet.has("peso_kg") || colSet.has("altura_cm")) {
-            const [medidas] = await sql<
-                { peso_kg: number | null; altura_cm: number | null }[]
-            >`
-                SELECT
-                    ${colSet.has("peso_kg") ? sql`peso_kg` : sql`NULL::numeric AS peso_kg`},
-                    ${colSet.has("altura_cm") ? sql`altura_cm` : sql`NULL::numeric AS altura_cm`}
-                FROM users WHERE id = ${user.id} LIMIT 1
-            `;
-            peso_kg = medidas?.peso_kg ?? null;
-            altura_cm = medidas?.altura_cm ?? null;
-        }
-
         const [atleta] = await sql<
             {
                 mao_dominante: string | null;
                 equipa_nome: string | null;
                 federado: boolean | null;
+                numero_federado: string | null;
                 treinador_nome: string | null;
                 menor_idade: boolean | null;
                 encarregado_educacao: string | null;
+                peso_kg: number | null;
+                altura_cm: number | null;
             }[]
         >`
             SELECT atletas.mao_dominante, equipas.nome AS equipa_nome,
-                   atletas.federado, treinador.name AS treinador_nome,
-                   atletas.menor_idade, atletas.encarregado_educacao
+                   atletas.federado, atletas.numero_federado,
+                   treinador.name AS treinador_nome,
+                   atletas.menor_idade, atletas.encarregado_educacao,
+                   atletas.peso_kg, atletas.altura_cm
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
             LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
             WHERE atletas.user_id = ${user.id}
             LIMIT 1
         `;
+
+        const peso_kg = atleta?.peso_kg ?? null;
+        const altura_cm = atleta?.altura_cm ?? null;
 
         let guardian: {
             name: string;

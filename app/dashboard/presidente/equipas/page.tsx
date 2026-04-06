@@ -131,7 +131,9 @@ export default async function EquipasPage() {
                                         {e.escalao}
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                                        {e.nome_treinador ?? "—"}
+                                        {e.nome_treinador ??
+                                            e.staff_treinador_principal_nome ??
+                                            "—"}
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                         {Number(e.total_atletas)}
@@ -164,6 +166,13 @@ export default async function EquipasPage() {
                                                 treinadores={treinadores}
                                                 atletasIniciais={
                                                     atletasPorEquipa[e.id] ?? []
+                                                }
+                                                staffTreinadorPrincipal={
+                                                    e.staff_treinador_principal_nome
+                                                        ? {
+                                                              nome: e.staff_treinador_principal_nome,
+                                                          }
+                                                        : null
                                                 }
                                             />
                                             <EliminarEquipaModal

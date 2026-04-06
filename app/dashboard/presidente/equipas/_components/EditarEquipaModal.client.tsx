@@ -36,6 +36,7 @@ export default function EditarEquipaModal({
     escaloes,
     treinadores,
     atletasIniciais,
+    staffTreinadorPrincipal,
 }: {
     equipa: {
         id: string;
@@ -47,6 +48,7 @@ export default function EditarEquipaModal({
     escaloes: Escalao[];
     treinadores: Treinador[];
     atletasIniciais: AtletaExistente[];
+    staffTreinadorPrincipal?: { nome: string } | null;
 }) {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
@@ -56,7 +58,19 @@ export default function EditarEquipaModal({
     const formRef = useRef<HTMLFormElement>(null);
 
     // Treinador state
+    const initialTreinadorMode = equipa.treinador_id
+        ? "real"
+        : staffTreinadorPrincipal
+          ? "fake"
+          : "none";
+    const [treinadorMode, setTreinadorMode] = useState<
+        "none" | "real" | "fake"
+    >(initialTreinadorMode);
     const [treinadorId, setTreinadorId] = useState(equipa.treinador_id ?? "");
+    const [treinadorNomeFake, setTreinadorNomeFake] = useState(
+        staffTreinadorPrincipal?.nome ?? "",
+    );
+    const [treinadorEmailFake, setTreinadorEmailFake] = useState("");
 
     // Atletas state
     const [atletasExistentes, setAtletasExistentes] =
@@ -70,12 +84,21 @@ export default function EditarEquipaModal({
     });
 
     const resetState = useCallback(() => {
+        setTreinadorMode(
+            equipa.treinador_id
+                ? "real"
+                : staffTreinadorPrincipal
+                  ? "fake"
+                  : "none",
+        );
         setTreinadorId(equipa.treinador_id ?? "");
+        setTreinadorNomeFake(staffTreinadorPrincipal?.nome ?? "");
+        setTreinadorEmailFake("");
         setAtletasExistentes(atletasIniciais);
         setAtletasRemovidos([]);
         setAtletasNovos([]);
         setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
-    }, [equipa.treinador_id, atletasIniciais]);
+    }, [equipa.treinador_id, atletasIniciais, staffTreinadorPrincipal]);
 
     const handleOpen = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -154,8 +177,33 @@ export default function EditarEquipaModal({
                             <input type="hidden" name="id" value={equipa.id} />
                             <input
                                 type="hidden"
+                                name="treinador_mode"
+                                value={treinadorMode}
+                            />
+                            <input
+                                type="hidden"
                                 name="treinador_id"
-                                value={treinadorId}
+                                value={
+                                    treinadorMode === "real" ? treinadorId : ""
+                                }
+                            />
+                            <input
+                                type="hidden"
+                                name="treinador_nome_fake"
+                                value={
+                                    treinadorMode === "fake"
+                                        ? treinadorNomeFake
+                                        : ""
+                                }
+                            />
+                            <input
+                                type="hidden"
+                                name="treinador_email_fake"
+                                value={
+                                    treinadorMode === "fake"
+                                        ? treinadorEmailFake
+                                        : ""
+                                }
                             />
                             <input
                                 type="hidden"
@@ -243,30 +291,109 @@ export default function EditarEquipaModal({
                                         className="text-violet-400"
                                     />
                                     <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                        Treinador
+                                        Treinador Principal
+                                    </span>
+                                    <span className="text-xs text-red-400">
+                                        *
                                     </span>
                                 </div>
 
-                                {treinadores.length === 0 ? (
-                                    <p className="text-xs text-gray-400 py-1">
-                                        Nenhum treinador registado na
-                                        organização.
-                                    </p>
-                                ) : (
-                                    <select
-                                        value={treinadorId}
-                                        onChange={(e) =>
-                                            setTreinadorId(e.target.value)
-                                        }
-                                        className={inputClass}
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTreinadorMode(
+                                                treinadorMode === "real"
+                                                    ? "none"
+                                                    : "real",
+                                            );
+                                            setTreinadorNomeFake("");
+                                            setTreinadorEmailFake("");
+                                        }}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                            treinadorMode === "real"
+                                                ? "bg-violet-600 text-white border-violet-600"
+                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-violet-500"
+                                        }`}
                                     >
-                                        <option value="">Sem treinador</option>
-                                        {treinadores.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name} — {t.email}
+                                        Existente
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setTreinadorMode(
+                                                treinadorMode === "fake"
+                                                    ? "none"
+                                                    : "fake",
+                                            );
+                                            setTreinadorId("");
+                                        }}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                            treinadorMode === "fake"
+                                                ? "bg-violet-600 text-white border-violet-600"
+                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-violet-500"
+                                        }`}
+                                    >
+                                        Novo (nome)
+                                    </button>
+                                </div>
+
+                                {treinadorMode === "real" &&
+                                    (treinadores.length === 0 ? (
+                                        <p className="text-xs text-gray-400 py-1">
+                                            Nenhum treinador registado na
+                                            organização.
+                                        </p>
+                                    ) : (
+                                        <select
+                                            value={treinadorId}
+                                            onChange={(e) =>
+                                                setTreinadorId(e.target.value)
+                                            }
+                                            className={inputClass}
+                                        >
+                                            <option value="">
+                                                Seleciona treinador
                                             </option>
-                                        ))}
-                                    </select>
+                                            {treinadores.map((t) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.name} — {t.email}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ))}
+
+                                {treinadorMode === "fake" && (
+                                    <div className="space-y-1">
+                                        <input
+                                            type="text"
+                                            value={treinadorNomeFake}
+                                            onChange={(e) =>
+                                                setTreinadorNomeFake(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Nome do treinador"
+                                            className={inputClass}
+                                        />
+                                        <input
+                                            type="email"
+                                            value={treinadorEmailFake}
+                                            onChange={(e) =>
+                                                setTreinadorEmailFake(
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Email do treinador (opcional)"
+                                            className={inputClass}
+                                        />
+                                        <p className="text-[10px] text-gray-400">
+                                            Se o email pertencer a um treinador
+                                            registado, será enviado um convite
+                                            de vinculação. Caso contrário, o
+                                            administrador será notificado.
+                                        </p>
+                                    </div>
                                 )}
                             </div>
 

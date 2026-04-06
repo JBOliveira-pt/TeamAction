@@ -52,6 +52,7 @@ export default function SideNav({ accountType }: SideNavProps) {
     const [dbUser, setDbUser] = useState<{
         name: string;
         foto?: string;
+        menorIdade?: boolean;
     } | null>(null);
 
     const forcedProfile:
@@ -95,6 +96,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                         setDbUser({
                             name: data.user.name,
                             foto: data.user.image_url || clerkUser.imageUrl,
+                            menorIdade: data.user.menor_idade === true,
                         });
                     }
                 }
@@ -278,6 +280,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     href="/dashboard/presidente/calendario"
                                     onClick={() => setIsOpen(false)}
                                 />
+                                <NavItem
+                                    icon={<NotebookPen size={20} />}
+                                    label="Notas"
+                                    href="/dashboard/presidente/notas"
+                                    onClick={() => setIsOpen(false)}
+                                />
                             </NavSection>
                             <NavSection label="Época">
                                 <NavItem
@@ -328,12 +336,6 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 />
                             </NavSection>
                             <NavSection label="Comunicação">
-                                <NavItem
-                                    icon={<Activity size={20} />}
-                                    label="Notificações"
-                                    href="/dashboard/presidente/notificacoes"
-                                    onClick={() => setIsOpen(false)}
-                                />
                                 <NavItem
                                     icon={<Clipboard size={20} />}
                                     label="Comunicados"
@@ -389,6 +391,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     icon={<Calendar size={20} />}
                                     label="Calendário"
                                     href="/dashboard/treinador/calendario"
+                                    onClick={() => setIsOpen(false)}
+                                />
+                                <NavItem
+                                    icon={<NotebookPen size={20} />}
+                                    label="Notas"
+                                    href="/dashboard/treinador/notas"
                                     onClick={() => setIsOpen(false)}
                                 />
                             </NavSection>
@@ -480,12 +488,6 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     onClick={() => setIsOpen(false)}
                                 />
                                 <NavItem
-                                    icon={<Settings size={20} />}
-                                    label="Geral"
-                                    href="/dashboard/atleta/geral"
-                                    onClick={() => setIsOpen(false)}
-                                />
-                                <NavItem
                                     icon={<NotebookPen size={20} />}
                                     label="Notas"
                                     href="/dashboard/atleta/notas"
@@ -520,21 +522,17 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     onClick={() => setIsOpen(false)}
                                 />
                             </NavSection>
-                            <NavSection label="Financeiro">
-                                <NavItem
-                                    icon={<Receipt size={20} />}
-                                    label="Mensalidades"
-                                    href="/dashboard/responsavel/mensalidades"
-                                    onClick={() => setIsOpen(false)}
-                                />
-                            </NavSection>
+                            {!dbUser?.menorIdade && (
+                                <NavSection label="Financeiro">
+                                    <NavItem
+                                        icon={<Receipt size={20} />}
+                                        label="Mensalidades"
+                                        href="/dashboard/responsavel/mensalidades"
+                                        onClick={() => setIsOpen(false)}
+                                    />
+                                </NavSection>
+                            )}
                             <NavSection label="Clube">
-                                <NavItem
-                                    icon={<Bell size={20} />}
-                                    label="Notificações"
-                                    href="/dashboard/atleta/notificacoes"
-                                    onClick={() => setIsOpen(false)}
-                                />
                                 <NavItem
                                     icon={<UserCheck size={20} />}
                                     label="Vinculações"
@@ -573,9 +571,21 @@ export default function SideNav({ accountType }: SideNavProps) {
                                         onClick={() => setIsOpen(false)}
                                     />
                                     <NavItem
+                                        icon={<NotebookPen size={20} />}
+                                        label="Notas"
+                                        href="/dashboard/responsavel/notas"
+                                        onClick={() => setIsOpen(false)}
+                                    />
+                                    <NavItem
                                         icon={<User size={20} />}
                                         label="Perfil"
                                         href="/dashboard/responsavel/perfil"
+                                        onClick={() => setIsOpen(false)}
+                                    />
+                                    <NavItem
+                                        icon={<UserCog size={20} />}
+                                        label="Dados do Educando"
+                                        href="/dashboard/responsavel/dados-educando"
                                         onClick={() => setIsOpen(false)}
                                     />
                                 </NavSection>

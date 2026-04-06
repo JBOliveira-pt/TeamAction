@@ -58,9 +58,13 @@ export async function PUT(
             WHERE id = ${id}
         `;
 
-        // N3: Atleta recusa federação → desvincular do treinador (equipa_id = NULL)
+        // N3: Atleta recusa federação → desvincular do treinador e limpar federado
         await sql`
-            UPDATE atletas SET equipa_id = NULL, updated_at = NOW()
+            UPDATE atletas
+            SET equipa_id = NULL,
+                federado = false,
+                numero_federado = NULL,
+                updated_at = NOW()
             WHERE user_id = ${me.id}
         `.catch(() => {});
 

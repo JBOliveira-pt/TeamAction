@@ -52,3 +52,6 @@ export { fetchEscaloesByUser } from "./organizacao";
 export { fetchUsersForStaff } from "./users";
 export { fetchMeuPerfil } from "./perfil";
 export type { PerfilUtilizador } from "./perfil";
+export { fetchNotasCalendario } from "./notas-calendario";
+export { fetchDatasComNotas } from "./notas-calendario";
+export type { NotaCalendario } from "./notas-calendario";

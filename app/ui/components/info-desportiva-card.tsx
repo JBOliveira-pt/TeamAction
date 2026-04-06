@@ -11,6 +11,7 @@ import {
     Hand,
     Users,
     UserCheck,
+    Hash,
 } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
@@ -21,7 +22,9 @@ interface Props {
     maoDominante: string | null;
     equipaNome: string | null;
     federado: boolean | null;
+    numeroFederado: string | null;
     treinadorNome: string | null;
+    isMinor?: boolean;
 }
 
 const MAO_OPTIONS = [
@@ -36,7 +39,9 @@ export default function InfoDesportivaCard({
     maoDominante,
     equipaNome,
     federado,
+    numeroFederado,
     treinadorNome,
+    isMinor = false,
 }: Props) {
     const [editing, setEditing] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
@@ -70,24 +75,26 @@ export default function InfoDesportivaCard({
                     <Trophy size={18} className="text-blue-500" />
                     Informações Desportivas
                 </h3>
-                <button
-                    onClick={() => {
-                        setEditing((v) => !v);
-                    }}
-                    className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
-                >
-                    {editing ? (
-                        <>
-                            <X size={14} />
-                            Cancelar
-                        </>
-                    ) : (
-                        <>
-                            <Pencil size={14} />
-                            Editar
-                        </>
-                    )}
-                </button>
+                {!isMinor && (
+                    <button
+                        onClick={() => {
+                            setEditing((v) => !v);
+                        }}
+                        className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                    >
+                        {editing ? (
+                            <>
+                                <X size={14} />
+                                Cancelar
+                            </>
+                        ) : (
+                            <>
+                                <Pencil size={14} />
+                                Editar
+                            </>
+                        )}
+                    </button>
+                )}
             </div>
 
             {showSuccess && (
@@ -152,7 +159,7 @@ export default function InfoDesportivaCard({
                         </select>
                     </div>
 
-                    {/* Equipa e Treinador — read-only */}
+                    {/* Equipa, Treinador e Nº Federação — read-only */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <ReadOnlyField
                             label="Equipa"
@@ -166,6 +173,12 @@ export default function InfoDesportivaCard({
                             label="Treinador"
                             value={treinadorNome ?? "—"}
                         />
+                        {federado && numeroFederado && (
+                            <ReadOnlyField
+                                label="Nº Federação"
+                                value={numeroFederado}
+                            />
+                        )}
                     </div>
 
                     <div className="flex gap-3 pt-2">
@@ -213,6 +226,13 @@ export default function InfoDesportivaCard({
                         label="Treinador"
                         value={treinadorNome}
                     />
+                    {federado && numeroFederado && (
+                        <InfoRow
+                            icon={<Hash size={16} />}
+                            label="Nº Federação"
+                            value={numeroFederado}
+                        />
+                    )}
                 </div>
             )}
         </div>

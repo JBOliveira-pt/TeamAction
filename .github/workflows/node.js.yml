@@ -23,8 +23,6 @@ jobs:
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXRlcm5hbC11cmNoaW4tNjMuY2xlcmsuYWNjb3VudHMuZGV2JA
             NEXT_PUBLIC_CLERK_SIGN_IN_URL: /login
             NEXT_PUBLIC_CLERK_SIGN_UP_URL: /signup
-            NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
-            NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /onboarding
 
             # R2 Public URL
             NEXT_PUBLIC_R2_IMAGES_URL: https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images

@@ -209,7 +209,20 @@ function isValidEmailFormat(value: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
-function isAthleteDataValid(alturaCm: string, pesoKg: string): boolean {
+const MAO_DOMINANTE_OPTIONS = [
+    { value: "direita", label: "Direita" },
+    { value: "esquerda", label: "Esquerda" },
+    { value: "ambidestro", label: "Ambidestro" },
+] as const;
+
+type MaoDominante = (typeof MAO_DOMINANTE_OPTIONS)[number]["value"] | "";
+
+function isAthleteDataValid(
+    alturaCm: string,
+    pesoKg: string,
+    maoDominante: string,
+    athleteModality: string,
+): boolean {
     const trimmedWeight = pesoKg.trim();
     const alturaNum = Number(alturaCm);
     const pesoNum = Number(pesoKg);
@@ -223,7 +236,9 @@ function isAthleteDataValid(alturaCm: string, pesoKg: string): boolean {
         !Number.isNaN(pesoNum) &&
         pesoNum >= ATHLETE_WEIGHT_MIN_KG &&
         pesoNum <= ATHLETE_WEIGHT_MAX_KG &&
-        ATHLETE_WEIGHT_DECIMALS_REGEX.test(trimmedWeight)
+        ATHLETE_WEIGHT_DECIMALS_REGEX.test(trimmedWeight) &&
+        MAO_DOMINANTE_OPTIONS.some((opt) => opt.value === maoDominante) &&
+        athleteModality.trim().length > 0
     );
 }
 
@@ -400,6 +415,8 @@ export default function CompleteAccountTypeForm({
     const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
     const [alturaCm, setAlturaCm] = useState("");
     const [pesoKg, setPesoKg] = useState("");
+    const [maoDominante, setMaoDominante] = useState<MaoDominante>("");
+    const [athleteModality, setAthleteModality] = useState("");
     const [stage, setStage] = useState<CompleteStage>("form");
     const [presidentClubName, setPresidentClubName] = useState("");
     const [presidentSport, setPresidentSport] = useState("");
@@ -1221,9 +1238,16 @@ export default function CompleteAccountTypeForm({
         }
 
         if (selected === "atleta") {
-            if (!isAthleteDataValid(alturaCm, pesoKg)) {
+            if (
+                !isAthleteDataValid(
+                    alturaCm,
+                    pesoKg,
+                    maoDominante,
+                    athleteModality,
+                )
+            ) {
                 setError(
-                    "Para atleta, Altura deve estar entre 100 e 300 cm. Peso deve estar entre 10 e 300 kg, com no máximo 2 casas decimais.",
+                    "Altura (100-300 cm), Peso (10-300 kg, máx. 2 decimais), Mão dominante e Modalidade são obrigatórios.",
                 );
                 return;
             }
@@ -1294,6 +1318,8 @@ export default function CompleteAccountTypeForm({
             if (selected === "atleta") {
                 payload.append("altura_cm", alturaCm);
                 payload.append("peso_kg", pesoKg);
+                payload.append("mao_dominante", maoDominante);
+                payload.append("athlete_modality", athleteModality);
                 payload.append("athlete_club_name", athleteClubName.trim());
                 payload.append(
                     "athlete_trainer_name",
@@ -1422,16 +1448,29 @@ export default function CompleteAccountTypeForm({
                 );
             }
 
-            setSuccessMessage(
-                "Perfil concluído com sucesso. A redirecionar...",
-            );
-            // Forçar refresh do JWT para incluir o accountType atualizado
-            try {
-                await session?.touch();
-            } catch {}
-            setTimeout(() => {
-                window.location.href = "/dashboard";
-            }, 1200);
+            const responseData = await response.json().catch(() => ({}));
+
+            if (selected === "responsavel" && responseData?.pendingValidation) {
+                setSuccessMessage(
+                    "Sua conta será concluída assim que o atleta valide sua relação.",
+                );
+                try {
+                    await session?.touch();
+                } catch {}
+                setTimeout(() => {
+                    window.location.href = "/aguardar-validacao";
+                }, 2000);
+            } else {
+                setSuccessMessage(
+                    "Perfil concluído com sucesso. A redirecionar...",
+                );
+                try {
+                    await session?.touch();
+                } catch {}
+                setTimeout(() => {
+                    window.location.href = "/dashboard";
+                }, 1200);
+            }
         } catch (err) {
             setError(
                 err instanceof Error
@@ -2084,6 +2123,67 @@ export default function CompleteAccountTypeForm({
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                     placeholder="Ex: 63.5"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Mão Dominante
+                                </label>
+                                <select
+                                    required
+                                    value={maoDominante}
+                                    onChange={(event) =>
+                                        setMaoDominante(
+                                            event.target.value as MaoDominante,
+                                        )
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="" disabled>
+                                        — Selecione —
+                                    </option>
+                                    {MAO_DOMINANTE_OPTIONS.map((opt) => (
+                                        <option
+                                            key={opt.value}
+                                            value={opt.value}
+                                        >
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                    Modalidade
+                                </label>
+                                <select
+                                    required
+                                    value={athleteModality}
+                                    onChange={(event) =>
+                                        setAthleteModality(event.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                >
+                                    <option value="" disabled>
+                                        Selecione uma modalidade
+                                    </option>
+                                    {PRESIDENT_SPORT_OPTIONS.map((sport) => (
+                                        <option
+                                            key={sport}
+                                            value={sport}
+                                            disabled={
+                                                !ENABLED_SPORTS.has(sport)
+                                            }
+                                        >
+                                            {sport}
+                                            {!ENABLED_SPORTS.has(sport)
+                                                ? " (em breve)"
+                                                : ""}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 

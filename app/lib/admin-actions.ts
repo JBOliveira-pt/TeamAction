@@ -321,6 +321,8 @@ export async function adminUpdateUserAction(
 ): Promise<void> {
     await requireAdminSession();
 
+    const section = String(formData.get("_section") || "").trim() || null;
+
     const name = String(formData.get("name") || "").trim();
     const email = String(formData.get("email") || "").trim();
     const organizationName = String(
@@ -365,7 +367,10 @@ export async function adminUpdateUserAction(
     const equipaIdStaff =
         String(formData.get("equipaIdStaff") || "").trim() || null;
 
-    if (!name || !email) {
+    if (!section && (!name || !email)) {
+        redirect(`/admin/users/${userId}?error=required`);
+    }
+    if (section === "pessoais" && (!name || !email)) {
         redirect(`/admin/users/${userId}?error=required`);
     }
 
@@ -392,9 +397,16 @@ export async function adminUpdateUserAction(
 
         const clerkUserId = currentUser.clerk_user_id;
 
+        // Helper: check if a given section should run
+        const inSection = (s: string) => !section || section === s;
+
         // --- Photo upload via R2 ---
         let imageUrl: string | null = null;
-        if (profilePhoto instanceof File && profilePhoto.size > 0) {
+        if (
+            inSection("pessoais") &&
+            profilePhoto instanceof File &&
+            profilePhoto.size > 0
+        ) {
             const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
             const ALLOWED_PHOTO_TYPES = [
                 "image/jpeg",
@@ -415,30 +427,32 @@ export async function adminUpdateUserAction(
         if (clerkUserId) {
             const client = await clerkClient();
 
-            // Split name for Clerk first/last
-            const nameParts = name.split(/\s+/);
-            const firstName = nameParts[0] || name;
-            const lastName =
-                nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+            if (inSection("pessoais")) {
+                // Split name for Clerk first/last
+                const nameParts = name.split(/\s+/);
+                const firstName = nameParts[0] || name;
+                const lastName =
+                    nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
 
-            await client.users.updateUser(clerkUserId, {
-                firstName,
-                lastName,
-            });
-
-            // Handle email change via Clerk — creates an unverified email address
-            const previousEmail = currentUser.email.toLowerCase();
-            const newEmail = email.toLowerCase();
-            if (newEmail !== previousEmail) {
-                emailChanged = true;
-                await client.emailAddresses.createEmailAddress({
-                    userId: clerkUserId,
-                    emailAddress: email,
+                await client.users.updateUser(clerkUserId, {
+                    firstName,
+                    lastName,
                 });
+
+                // Handle email change via Clerk — creates an unverified email address
+                const previousEmail = currentUser.email.toLowerCase();
+                const newEmail = email.toLowerCase();
+                if (newEmail !== previousEmail) {
+                    emailChanged = true;
+                    await client.emailAddresses.createEmailAddress({
+                        userId: clerkUserId,
+                        emailAddress: email,
+                    });
+                }
             }
 
             // Handle password change via Clerk
-            if (rawPassword.length > 0) {
+            if (inSection("seguranca") && rawPassword.length > 0) {
                 await client.users.updateUser(clerkUserId, {
                     password: rawPassword,
                 });
@@ -447,7 +461,9 @@ export async function adminUpdateUserAction(
 
         // --- Database: update users table ---
         const hashedPassword =
-            rawPassword.length > 0 ? await bcrypt.hash(rawPassword, 12) : null;
+            inSection("seguranca") && rawPassword.length > 0
+                ? await bcrypt.hash(rawPassword, 12)
+                : null;
 
         // Discover optional columns
         const optionalCols = await sql<{ column_name: string }[]>`
@@ -464,99 +480,98 @@ export async function adminUpdateUserAction(
         const hasCol = (col: string) =>
             optionalCols.some((c) => c.column_name === col);
 
-        // Core fields always present
-        if (hashedPassword && imageUrl) {
+        // Core fields (name, email, password, image) — only for pessoais/seguranca/full
+        if (inSection("pessoais")) {
+            if (imageUrl) {
+                await sql`
+                    UPDATE users
+                    SET name = ${name}, email = ${email}, image_url = ${imageUrl},
+                        updated_at = NOW()
+                    WHERE id = ${userId}
+                `;
+            } else {
+                await sql`
+                    UPDATE users
+                    SET name = ${name}, email = ${email},
+                        updated_at = NOW()
+                    WHERE id = ${userId}
+                `;
+            }
+        }
+        if (hashedPassword) {
             await sql`
                 UPDATE users
-                SET name = ${name}, email = ${email}, image_url = ${imageUrl},
-                    password = ${hashedPassword}, updated_at = NOW()
-                WHERE id = ${userId}
-            `;
-        } else if (hashedPassword) {
-            await sql`
-                UPDATE users
-                SET name = ${name}, email = ${email},
-                    password = ${hashedPassword}, updated_at = NOW()
-                WHERE id = ${userId}
-            `;
-        } else if (imageUrl) {
-            await sql`
-                UPDATE users
-                SET name = ${name}, email = ${email}, image_url = ${imageUrl},
-                    updated_at = NOW()
-                WHERE id = ${userId}
-            `;
-        } else {
-            await sql`
-                UPDATE users
-                SET name = ${name}, email = ${email},
-                    updated_at = NOW()
+                SET password = ${hashedPassword}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
 
-        // Update optional columns individually
-        if (iban !== null) {
+        // Update optional columns individually (section-guarded)
+        if (inSection("morada") && iban !== null) {
             await sql`
                 UPDATE clubes SET iban = ${iban}, updated_at = NOW()
                 WHERE presidente_user_id = ${userId}
             `;
         }
-        if (hasCol("data_nascimento") && dataNascimento) {
+        if (
+            inSection("pessoais") &&
+            hasCol("data_nascimento") &&
+            dataNascimento
+        ) {
             await sql`
                 UPDATE users SET data_nascimento = ${dataNascimento}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("telefone")) {
+        if (inSection("morada") && hasCol("telefone")) {
             await sql`
                 UPDATE users SET telefone = ${telefone}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("sobrenome")) {
+        if (inSection("pessoais") && hasCol("sobrenome")) {
             await sql`
                 UPDATE users SET sobrenome = ${sobrenome}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("morada")) {
+        if (inSection("morada") && hasCol("morada")) {
             await sql`
                 UPDATE users SET morada = ${morada}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("peso_kg") && pesoKg !== null) {
+        if (inSection("desportivos") && pesoKg !== null) {
             await sql`
-                UPDATE users SET peso_kg = ${Number(pesoKg)}, updated_at = NOW()
-                WHERE id = ${userId}
+                UPDATE atletas SET peso_kg = ${Number(pesoKg)}, updated_at = NOW()
+                WHERE user_id = ${userId}
             `;
         }
-        if (hasCol("altura_cm") && alturaCm !== null) {
+        if (inSection("desportivos") && alturaCm !== null) {
             await sql`
-                UPDATE users SET altura_cm = ${Number(alturaCm)}, updated_at = NOW()
-                WHERE id = ${userId}
+                UPDATE atletas SET altura_cm = ${Number(alturaCm)}, updated_at = NOW()
+                WHERE user_id = ${userId}
             `;
         }
-        if (hasCol("nif")) {
+        if (inSection("morada") && hasCol("nif")) {
             await sql`
                 UPDATE users SET nif = ${nif}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("codigo_postal")) {
+        if (inSection("morada") && hasCol("codigo_postal")) {
             await sql`
                 UPDATE users SET codigo_postal = ${codigoPostal}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("cidade")) {
+        if (inSection("morada") && hasCol("cidade")) {
             await sql`
                 UPDATE users SET cidade = ${cidade}, updated_at = NOW()
                 WHERE id = ${userId}
             `;
         }
-        if (hasCol("pais")) {
+        if (inSection("morada") && hasCol("pais")) {
             await sql`
                 UPDATE users SET pais = ${pais}, updated_at = NOW()
                 WHERE id = ${userId}
@@ -564,17 +579,28 @@ export async function adminUpdateUserAction(
         }
 
         // --- Database: update atletas table ---
-        if (atletaId) {
+        if (inSection("desportivos") && atletaId) {
             const hasAtletas = await tableExists(sql, "atletas");
             if (hasAtletas) {
+                // Validar clube antes de permitir federado=true
+                let safeFederado = federado;
+                if (federado && currentUser.organization_id) {
+                    const clubeRows = await sql`
+                        SELECT id FROM clubes WHERE organization_id = ${currentUser.organization_id} LIMIT 1
+                    `;
+                    if (clubeRows.length === 0) safeFederado = false;
+                } else if (federado && !currentUser.organization_id) {
+                    safeFederado = false;
+                }
+
                 await sql`
                     UPDATE atletas
                     SET posicao = ${posicao},
                         numero_camisola = ${numeroCamisola ? Number(numeroCamisola) : null},
                         equipa_id = ${equipaId || null},
                         estado = ${estadoAtleta || "ativo"},
-                        federado = ${federado},
-                        numero_federado = ${federado ? numeroFederado : null},
+                        federado = ${safeFederado},
+                        numero_federado = ${safeFederado ? numeroFederado : null},
                         mao_dominante = ${maoDominante}
                     WHERE id = ${atletaId}
                 `;
@@ -582,7 +608,7 @@ export async function adminUpdateUserAction(
         }
 
         // --- Database: update staff table ---
-        if (staffId) {
+        if (inSection("staff") && staffId) {
             const hasStaff = await tableExists(sql, "staff");
             if (hasStaff) {
                 await sql`
@@ -595,7 +621,11 @@ export async function adminUpdateUserAction(
         }
 
         // --- Database: update organization name ---
-        if (organizationName && currentUser.organization_id) {
+        if (
+            inSection("seguranca") &&
+            organizationName &&
+            currentUser.organization_id
+        ) {
             await sql`
                 UPDATE organizations
                 SET name = ${organizationName}, updated_at = NOW()
@@ -613,6 +643,7 @@ export async function adminUpdateUserAction(
         await ensureAdminTables();
         const updateMetadata: JSONValue = JSON.parse(
             JSON.stringify({
+                section: section || "all",
                 name,
                 email,
                 organizationName: organizationName || null,

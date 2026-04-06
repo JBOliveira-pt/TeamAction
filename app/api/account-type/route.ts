@@ -69,6 +69,8 @@ type TrainerProfileInput = {
 type AthleteProfileInput = {
     alturaCm: number;
     pesoKg: number;
+    maoDominante: string;
+    modality: string;
     clubName: string | null;
     trainerName: string | null;
     teamName: string | null;
@@ -357,6 +359,8 @@ function parseAthleteProfile(
 } {
     const heightRaw = formData.get("altura_cm");
     const weightRaw = formData.get("peso_kg");
+    const maoDominanteRaw = getOptionalString(formData, "mao_dominante");
+    const athleteModalityRaw = getOptionalString(formData, "athlete_modality");
     const weightRawTrimmed =
         typeof weightRaw === "string" ? weightRaw.trim() : "";
     const alturaCm =
@@ -367,6 +371,28 @@ function parseAthleteProfile(
         typeof weightRaw === "string" && weightRaw.trim().length > 0
             ? Number(weightRaw)
             : null;
+
+    const VALID_MAO_DOMINANTE = ["direita", "esquerda", "ambidestro"];
+    if (!maoDominanteRaw || !VALID_MAO_DOMINANTE.includes(maoDominanteRaw)) {
+        return {
+            error: "Mão dominante é obrigatória (direita, esquerda ou ambidestro).",
+        };
+    }
+
+    if (
+        !athleteModalityRaw ||
+        !PRESIDENT_SPORT_OPTIONS.some((opt) => opt === athleteModalityRaw)
+    ) {
+        return {
+            error: "Modalidade é obrigatória para Atleta.",
+        };
+    }
+
+    if (!ENABLED_SPORTS.has(athleteModalityRaw)) {
+        return {
+            error: "Esta modalidade ainda não está disponível na plataforma.",
+        };
+    }
 
     if (
         alturaCm === null ||
@@ -420,6 +446,8 @@ function parseAthleteProfile(
         value: {
             alturaCm,
             pesoKg,
+            maoDominante: maoDominanteRaw,
+            modality: athleteModalityRaw,
             clubName: getOptionalString(formData, "athlete_club_name"),
             trainerName: getOptionalString(formData, "athlete_trainer_name"),
             teamName: getOptionalString(formData, "athlete_team_name"),
@@ -1166,22 +1194,6 @@ export async function POST(req: Request) {
                         `;
                     }
 
-                    if (hasAthleteColumn("peso_kg")) {
-                        await sql`
-                            UPDATE users
-                            SET peso_kg = ${athleteProfile.pesoKg}, updated_at = NOW()
-                            WHERE clerk_user_id = ${userId}
-                        `;
-                    }
-
-                    if (hasAthleteColumn("altura_cm")) {
-                        await sql`
-                            UPDATE users
-                            SET altura_cm = ${athleteProfile.alturaCm}, updated_at = NOW()
-                            WHERE clerk_user_id = ${userId}
-                        `;
-                    }
-
                     if (hasAthleteColumn("image_url")) {
                         await sql`
                             UPDATE users
@@ -1217,7 +1229,7 @@ export async function POST(req: Request) {
                     await sql`
                         INSERT INTO atletas (
                             id, nome, organization_id, user_id, estado,
-                            menor_idade, created_at, updated_at
+                            menor_idade, peso_kg, altura_cm, mao_dominante, modalidade, created_at, updated_at
                         ) VALUES (
                             gen_random_uuid(),
                             ${fullName},
@@ -1225,9 +1237,24 @@ export async function POST(req: Request) {
                             ${athleteDbId},
                             'ativo',
                             ${isMinor},
+                            ${athleteProfile.pesoKg},
+                            ${athleteProfile.alturaCm},
+                            ${athleteProfile.maoDominante},
+                            ${athleteProfile.modality},
                             NOW(),
                             NOW()
                         )
+                    `;
+                } else {
+                    // Atualizar peso/altura no registo existente
+                    await sql`
+                        UPDATE atletas
+                        SET peso_kg = ${athleteProfile.pesoKg},
+                            altura_cm = ${athleteProfile.alturaCm},
+                            mao_dominante = ${athleteProfile.maoDominante},
+                            modalidade = ${athleteProfile.modality},
+                            updated_at = NOW()
+                        WHERE user_id = ${athleteDbId}
                     `;
                 }
             }
@@ -1409,6 +1436,7 @@ export async function POST(req: Request) {
         }
 
         // When a "responsavel" completes signup, handle linking to minor athlete
+        let pendingValidation = false;
         if (accountType === "responsavel") {
             try {
                 const responsavelUserRows = await sql<{ id: string }[]>`
@@ -1419,57 +1447,52 @@ export async function POST(req: Request) {
                     formData.get("responsible_minor_email") || "",
                 ).trim();
 
-                if (responsavelDbId && responsibleMinorEmail) {
-                    // 1. For existing athlete-initiated links (minor signed up first),
-                    //    just store the responsible user_id but keep status 'pendente'
-                    //    so the minor can accept/reject.
+                if (responsavelDbId) {
+                    // 1. Always update existing athlete-initiated pending relations
+                    //    (minor signed up first), storing the responsible user_id.
                     const hasPendingTable = await hasTable(
                         "atleta_relacoes_pendentes",
                     );
                     if (hasPendingTable) {
-                        const pendingColumns = await sql<
-                            { column_name: string }[]
-                        >`
-                            SELECT column_name
-                            FROM information_schema.columns
-                            WHERE table_schema = 'public'
-                              AND table_name = 'atleta_relacoes_pendentes'
-                              AND column_name IN ('alvo_responsavel_user_id')
-                        `;
-                        const hasResponsavelUserIdColumn =
-                            pendingColumns.length > 0;
-
-                        if (hasResponsavelUserIdColumn) {
-                            await sql`
-                                UPDATE atleta_relacoes_pendentes
-                                SET alvo_responsavel_user_id = ${responsavelDbId},
-                                    updated_at = NOW()
-                                WHERE relation_kind = 'responsavel'
-                                  AND status = 'pendente'
-                                  AND LOWER(alvo_email) = LOWER(${currentEmail})
-                            `;
-                        }
+                        await sql`
+                            UPDATE atleta_relacoes_pendentes
+                            SET alvo_responsavel_user_id = ${responsavelDbId},
+                                updated_at = NOW()
+                            WHERE relation_kind = 'responsavel'
+                              AND status = 'pendente'
+                              AND LOWER(alvo_email) = LOWER(${currentEmail})
+                        `.catch(() => {});
                     }
 
-                    // 2. Check if the minor athlete exists in the platform
-                    const minorRows = await sql<
-                        {
-                            user_id: string;
-                            nome: string;
-                            menor_idade: boolean | null;
-                        }[]
-                    >`
-                        SELECT a.user_id, a.nome, a.menor_idade
-                        FROM atletas a
-                        INNER JOIN users u ON u.id = a.user_id
-                        WHERE LOWER(u.email) = LOWER(${responsibleMinorEmail})
-                          AND a.menor_idade = true
-                        LIMIT 1
-                    `;
+                    // 2. If minor email provided (self-initiated flow), validate + link
+                    if (responsibleMinorEmail) {
+                        const minorRows = await sql<
+                            {
+                                user_id: string;
+                                nome: string;
+                                menor_idade: boolean | null;
+                            }[]
+                        >`
+                            SELECT a.user_id, a.nome, a.menor_idade
+                            FROM atletas a
+                            INNER JOIN users u ON u.id = a.user_id
+                            WHERE LOWER(u.email) = LOWER(${responsibleMinorEmail})
+                              AND a.menor_idade = true
+                            LIMIT 1
+                        `;
 
-                    if (minorRows.length > 0) {
+                        if (minorRows.length === 0) {
+                            return Response.json(
+                                {
+                                    error:
+                                        "O atleta com o e-mail indicado não está cadastrado na plataforma como menor de idade. " +
+                                        "Verifique o e-mail e tente novamente.",
+                                },
+                                { status: 400 },
+                            );
+                        }
+
                         const minor = minorRows[0];
-                        // Minor exists — create linking request for them to accept
                         // Check if link already exists (from athlete-initiated flow)
                         const existingLink = await sql<{ id: string }[]>`
                             SELECT id FROM atleta_relacoes_pendentes
@@ -1523,33 +1546,31 @@ export async function POST(req: Request) {
                                 NOW()
                             )
                         `.catch(() => {});
-                    } else {
-                        // Minor does NOT exist — notify admin
-                        await sql`
-                            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
-                            VALUES (
-                                gen_random_uuid(),
-                                '00000000-0000-0000-0000-000000000000',
-                                'Responsável sem atleta — Ação necessária',
-                                ${`O responsável "${fullName}" (${currentEmail}) registou-se indicando o e-mail "${responsibleMinorEmail}" como atleta menor de idade, mas esse atleta ainda não existe na plataforma. É necessário enviar um convite ao atleta.`},
-                                'Aviso',
-                                false,
-                                NOW()
-                            )
-                        `.catch(() => {});
                     }
+
+                    // 3. Check if the responsável has any accepted relation
+                    const acceptedRows = await sql<{ id: string }[]>`
+                        SELECT id FROM atleta_relacoes_pendentes
+                        WHERE alvo_responsavel_user_id = ${responsavelDbId}
+                          AND relation_kind = 'responsavel'
+                          AND status = 'aceite'
+                        LIMIT 1
+                    `.catch(() => []);
+                    pendingValidation = acceptedRows.length === 0;
                 }
             } catch (linkError) {
                 console.error(
                     "[ACCOUNT_TYPE] Failed to handle responsavel linking:",
                     linkError,
                 );
+                pendingValidation = true;
             }
         }
 
         return Response.json({
             success: true,
             accountType,
+            pendingValidation,
             name: fullName,
             email: currentEmail,
             profilePhotoUrl: uploadedImageUrl || currentUser.imageUrl || null,

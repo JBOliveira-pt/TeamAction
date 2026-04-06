@@ -12,7 +12,7 @@ export function Providers({ children }: ProvidersProps) {
         <ClerkProvider
             signInUrl="/login"
             signUpUrl="/signup"
-            signInFallbackRedirectUrl="/signup"
+            signInFallbackRedirectUrl="/dashboard"
             signUpFallbackRedirectUrl="/dashboard"
         >
             {children}

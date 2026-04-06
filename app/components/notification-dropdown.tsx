@@ -15,9 +15,9 @@ interface Notificacao {
 }
 
 const tipoStyle: Record<string, { badge: string; icon: string }> = {
-    "Alerta": { badge: "bg-red-500/10 text-red-400",    icon: "🔴" },
-    "Aviso":  { badge: "bg-amber-500/10 text-amber-400", icon: "🟡" },
-    "Info":   { badge: "bg-cyan-500/10 text-cyan-400",  icon: "🔵" },
+    Alerta: { badge: "bg-red-500/10 text-red-400", icon: "🔴" },
+    Aviso: { badge: "bg-amber-500/10 text-amber-400", icon: "🟡" },
+    Info: { badge: "bg-cyan-500/10 text-cyan-400", icon: "🔵" },
 };
 
 export function NotificationDropdown() {
@@ -69,7 +69,8 @@ export function NotificationDropdown() {
         };
 
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
     }, [isOpen]);
 
     const handleToggle = () => {
@@ -80,7 +81,11 @@ export function NotificationDropdown() {
     const pathname = usePathname();
     const notifHref = pathname?.startsWith("/dashboard/treinador")
         ? "/dashboard/treinador/notificacoes"
-        : "/dashboard/presidente/notificacoes";
+        : pathname?.startsWith("/dashboard/atleta")
+          ? "/dashboard/atleta/notificacoes"
+          : pathname?.startsWith("/dashboard/responsavel")
+            ? "/dashboard/responsavel/notificacoes"
+            : "/dashboard/presidente/notificacoes";
 
     const handleVerTodas = () => {
         setIsOpen(false);
@@ -138,7 +143,9 @@ export function NotificationDropdown() {
                                                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                                                     {n.titulo}
                                                 </p>
-                                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle[n.tipo]?.badge ?? "bg-cyan-500/10 text-cyan-400"}`}>
+                                                <span
+                                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${tipoStyle[n.tipo]?.badge ?? "bg-cyan-500/10 text-cyan-400"}`}
+                                                >
                                                     {n.tipo}
                                                 </span>
                                             </div>
@@ -179,5 +186,3 @@ export function NotificationDropdown() {
         </div>
     );
 }
-
-

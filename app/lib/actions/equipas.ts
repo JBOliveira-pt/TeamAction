@@ -29,12 +29,19 @@ export async function criarEquipa(
     const desporto = formData.get("desporto") as string;
     const estado = formData.get("estado") as string;
 
-    // Treinador (real ou fake)
+    // Treinador Principal (real ou fake)
     const treinadorId = formData.get("treinador_id")?.toString().trim() || null;
     const treinadorNomeFake =
         formData.get("treinador_nome_fake")?.toString().trim() || null;
     const treinadorEmailFake =
         formData.get("treinador_email_fake")?.toString().trim() || null;
+
+    // Treinador Adjunto (real ou fake) — opcional
+    const adjuntoId = formData.get("adjunto_id")?.toString().trim() || null;
+    const adjuntoNomeFake =
+        formData.get("adjunto_nome_fake")?.toString().trim() || null;
+    const adjuntoEmailFake =
+        formData.get("adjunto_email_fake")?.toString().trim() || null;
 
     // Atletas JSON
     const atletasRaw = formData.get("atletas_json")?.toString() || "[]";
@@ -110,7 +117,7 @@ export async function criarEquipa(
         if (!treinadorId && treinadorNomeFake) {
             await sql`
                 INSERT INTO staff (id, organization_id, equipa_id, nome, funcao, created_at, updated_at)
-                VALUES (gen_random_uuid(), ${organizationId}, ${newEquipa.id}, ${treinadorNomeFake}, 'Treinador', NOW(), NOW())
+                VALUES (gen_random_uuid(), ${organizationId}, ${newEquipa.id}, ${treinadorNomeFake}, 'Treinador Principal', NOW(), NOW())
             `;
 
             // Se email fornecido, verificar se existe na plataforma
@@ -153,6 +160,75 @@ export async function criarEquipa(
                             ${organizationId},
                             'Treinador não encontrado na plataforma',
                             ${`O presidente tentou associar o treinador "${treinadorNomeFake}" (${treinadorEmailFake}) à equipa "${nome.trim()}", mas o email não está registado. É necessário enviar convite manualmente.`},
+                            'Alerta',
+                            NOW()
+                        )
+                    `;
+                }
+            }
+        }
+
+        // ===== Treinador Adjunto (opcional) =====
+        if (adjuntoId) {
+            // Adjunto real — validar existência
+            const [adjunto] = await sql<{ id: string }[]>`
+                SELECT id FROM users
+                WHERE id = ${adjuntoId}
+                  AND organization_id = ${organizationId}
+                  AND account_type = 'treinador'
+                LIMIT 1
+            `;
+            if (adjunto) {
+                await sql`
+                    INSERT INTO staff (id, organization_id, equipa_id, user_id, nome, funcao, created_at, updated_at)
+                    SELECT gen_random_uuid(), ${organizationId}, ${newEquipa.id}, ${adjunto.id}, u.name, 'Treinador Adjunto', NOW(), NOW()
+                    FROM users u WHERE u.id = ${adjunto.id}
+                `;
+            }
+        } else if (adjuntoNomeFake) {
+            // Adjunto fake
+            await sql`
+                INSERT INTO staff (id, organization_id, equipa_id, nome, funcao, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${organizationId}, ${newEquipa.id}, ${adjuntoNomeFake}, 'Treinador Adjunto', NOW(), NOW())
+            `;
+
+            if (adjuntoEmailFake) {
+                const [existingAdjunto] = await sql<
+                    { id: string; name: string; account_type: string | null }[]
+                >`
+                    SELECT id, name, account_type FROM users
+                    WHERE email = ${adjuntoEmailFake}
+                      AND account_type = 'treinador'
+                    LIMIT 1
+                `;
+
+                if (existingAdjunto) {
+                    await sql`
+                        INSERT INTO convites_clube (id, clube_id, clube_org_id, convidado_user_id, tipo, estado, created_at, updated_at)
+                        SELECT gen_random_uuid(), c.id, c.organization_id, ${existingAdjunto.id}, 'treinador', 'pendente', NOW(), NOW()
+                        FROM clubes c WHERE c.organization_id = ${organizationId} LIMIT 1
+                    `;
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (
+                            gen_random_uuid(),
+                            ${existingAdjunto.id},
+                            ${existingAdjunto.id},
+                            'Convite para clube',
+                            ${`Foste convidado para ser Treinador Adjunto da equipa "${nome.trim()}".`},
+                            'convite_clube',
+                            false,
+                            NOW()
+                        )
+                    `;
+                } else {
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+                        VALUES (
+                            gen_random_uuid(),
+                            ${organizationId},
+                            'Treinador Adjunto não encontrado na plataforma',
+                            ${`O presidente tentou associar o treinador adjunto "${adjuntoNomeFake}" (${adjuntoEmailFake}) à equipa "${nome.trim()}", mas o email não está registado. É necessário enviar convite manualmente.`},
                             'Alerta',
                             NOW()
                         )
@@ -228,8 +304,13 @@ export async function editarEquipa(
     const escalao = formData.get("escalao") as string;
     const estado = formData.get("estado") as string;
 
-    // Treinador
+    // Treinador Principal (real ou fake)
     const treinadorId = formData.get("treinador_id")?.toString().trim() || null;
+    const treinadorNomeFake =
+        formData.get("treinador_nome_fake")?.toString().trim() || null;
+    const treinadorEmailFake =
+        formData.get("treinador_email_fake")?.toString().trim() || null;
+    const treinadorMode = formData.get("treinador_mode")?.toString() || "real";
 
     // Atletas a remover (JSON array de ids)
     const atletasRemoverRaw =
@@ -241,9 +322,9 @@ export async function editarEquipa(
     if (!id || !nome?.trim() || !escalao?.trim() || !estado?.trim()) {
         return { error: "Preenche todos os campos obrigatórios." };
     }
-    if (!treinadorId) {
+    if (!treinadorId && !treinadorNomeFake) {
         return {
-            error: "\u00c9 obrigat\u00f3rio associar um treinador \u00e0 equipa.",
+            error: "É obrigatório associar um treinador principal à equipa (existente ou novo).",
         };
     }
     let atletasRemover: string[] = [];
@@ -267,7 +348,7 @@ export async function editarEquipa(
 
         // Validar treinador real se fornecido
         let resolvedTreinadorId: string | null = null;
-        if (treinadorId) {
+        if (treinadorMode === "real" && treinadorId) {
             const [treinador] = await sql<{ id: string }[]>`
                 SELECT id FROM users
                 WHERE id = ${treinadorId}
@@ -294,13 +375,58 @@ export async function editarEquipa(
             }
         }
 
-        // Atualizar equipa (incluindo treinador)
+        // Atualizar equipa (treinador_id só quando é real)
         await sql`
             UPDATE equipas
             SET nome = ${nome.trim()}, escalao = ${escalao.trim()}, estado = ${estado},
                 treinador_id = ${resolvedTreinadorId}, updated_at = NOW()
             WHERE id = ${id} AND organization_id = ${organizationId}
         `;
+
+        // Gerir staff de Treinador Principal fake
+        // Remover staff principal antigo se existia
+        await sql`
+            DELETE FROM staff
+            WHERE equipa_id = ${id} AND funcao = 'Treinador Principal' AND organization_id = ${organizationId}
+        `;
+        if (treinadorMode === "fake" && treinadorNomeFake) {
+            await sql`
+                INSERT INTO staff (id, organization_id, equipa_id, nome, funcao, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${organizationId}, ${id}, ${treinadorNomeFake}, 'Treinador Principal', NOW(), NOW())
+            `;
+
+            if (treinadorEmailFake) {
+                const [existingUser] = await sql<
+                    { id: string; name: string }[]
+                >`
+                    SELECT id, name FROM users
+                    WHERE email = ${treinadorEmailFake}
+                      AND account_type = 'treinador'
+                    LIMIT 1
+                `;
+                if (existingUser) {
+                    await sql`
+                        INSERT INTO convites_clube (id, clube_id, clube_org_id, convidado_user_id, tipo, estado, created_at, updated_at)
+                        SELECT gen_random_uuid(), c.id, c.organization_id, ${existingUser.id}, 'treinador', 'pendente', NOW(), NOW()
+                        FROM clubes c WHERE c.organization_id = ${organizationId} LIMIT 1
+                    `;
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (gen_random_uuid(), ${existingUser.id}, ${existingUser.id}, 'Convite para clube',
+                            ${`Foste convidado para ser Treinador Principal da equipa "${nome.trim()}".`},
+                            'convite_clube', false, NOW())
+                    `;
+                } else {
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+                        VALUES (gen_random_uuid(), ${organizationId},
+                            'Treinador não encontrado na plataforma',
+                            ${`O presidente tentou associar o treinador "${treinadorNomeFake}" (${treinadorEmailFake}) à equipa "${nome.trim()}", mas o email não está registado. É necessário enviar convite manualmente.`},
+                            'Alerta', NOW())
+                    `;
+                }
+            }
+        }
 
         // Remover atletas
         for (const atletaId of atletasRemover) {
@@ -412,16 +538,26 @@ export async function atribuirTreinadorEquipa(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const equipaId = formData.get("equipa_id")?.toString().trim();
     const treinadorId = formData.get("treinador_id")?.toString().trim() || null;
+    const treinadorMode = formData.get("treinador_mode")?.toString() || "real";
+    const treinadorNomeFake =
+        formData.get("treinador_nome_fake")?.toString().trim() || null;
+    const treinadorEmailFake =
+        formData.get("treinador_email_fake")?.toString().trim() || null;
 
     if (!equipaId) return { error: "Equipa inválida." };
-    if (!treinadorId)
-        return {
-            error: "\u00c9 obrigat\u00f3rio associar um treinador \u00e0 equipa.",
-        };
+    if (treinadorMode === "real" && !treinadorId) {
+        return { error: "É obrigatório selecionar um treinador existente." };
+    }
+    if (treinadorMode === "fake" && !treinadorNomeFake) {
+        return { error: "É obrigatório indicar o nome do treinador." };
+    }
+
     try {
         const organizationId = await getOrganizationId();
 
-        if (treinadorId) {
+        let resolvedTreinadorId: string | null = null;
+
+        if (treinadorMode === "real" && treinadorId) {
             const [treinador] = await sql<{ id: string }[]>`
                 SELECT id FROM users
                 WHERE id = ${treinadorId}
@@ -430,8 +566,8 @@ export async function atribuirTreinadorEquipa(
                 LIMIT 1
             `;
             if (!treinador) return { error: "Treinador não encontrado." };
+            resolvedTreinadorId = treinador.id;
 
-            // Verificar se o treinador já está noutra equipa (exceto a atual)
             const [jaTemEquipa] = await sql<{ id: string; nome: string }[]>`
                 SELECT id, nome FROM equipas
                 WHERE treinador_id = ${treinadorId}
@@ -448,14 +584,59 @@ export async function atribuirTreinadorEquipa(
 
         await sql`
             UPDATE equipas
-            SET treinador_id = ${treinadorId}, updated_at = NOW()
+            SET treinador_id = ${resolvedTreinadorId}, updated_at = NOW()
             WHERE id = ${equipaId} AND organization_id = ${organizationId}
         `;
+
+        // Gerir staff de Treinador Principal
+        await sql`
+            DELETE FROM staff
+            WHERE equipa_id = ${equipaId} AND funcao = 'Treinador Principal' AND organization_id = ${organizationId}
+        `;
+
+        if (treinadorMode === "fake" && treinadorNomeFake) {
+            await sql`
+                INSERT INTO staff (id, organization_id, equipa_id, nome, funcao, created_at, updated_at)
+                VALUES (gen_random_uuid(), ${organizationId}, ${equipaId}, ${treinadorNomeFake}, 'Treinador Principal', NOW(), NOW())
+            `;
+
+            if (treinadorEmailFake) {
+                const [existingUser] = await sql<
+                    { id: string; name: string }[]
+                >`
+                    SELECT id, name FROM users
+                    WHERE email = ${treinadorEmailFake} AND account_type = 'treinador'
+                    LIMIT 1
+                `;
+                if (existingUser) {
+                    await sql`
+                        INSERT INTO convites_clube (id, clube_id, clube_org_id, convidado_user_id, tipo, estado, created_at, updated_at)
+                        SELECT gen_random_uuid(), c.id, c.organization_id, ${existingUser.id}, 'treinador', 'pendente', NOW(), NOW()
+                        FROM clubes c WHERE c.organization_id = ${organizationId} LIMIT 1
+                    `;
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (gen_random_uuid(), ${existingUser.id}, ${existingUser.id}, 'Convite para clube',
+                            ${`Foste convidado para ser Treinador Principal.`},
+                            'convite_clube', false, NOW())
+                    `;
+                } else {
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+                        VALUES (gen_random_uuid(), ${organizationId},
+                            'Treinador não encontrado na plataforma',
+                            ${`O presidente tentou atribuir o treinador "${treinadorNomeFake}" (${treinadorEmailFake}), mas o email não está registado. É necessário enviar convite manualmente.`},
+                            'Alerta', NOW())
+                    `;
+                }
+            }
+        }
     } catch (error) {
         console.error(error);
         return { error: "Erro ao atribuir treinador." };
     }
 
     revalidatePath("/dashboard/presidente/equipas");
+    revalidatePath(`/dashboard/presidente/equipas/${equipaId}`);
     return { success: true };
 }

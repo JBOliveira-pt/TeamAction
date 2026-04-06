@@ -49,7 +49,7 @@ export function AdminAccountTypeChanger({
     };
 
     return (
-        <section className="max-w-2xl space-y-3 rounded-xl border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-800/50 dark:bg-amber-900/10">
+        <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-800/50 dark:bg-amber-900/10">
             <div className="flex items-center gap-2">
                 <RefreshCw
                     size={16}

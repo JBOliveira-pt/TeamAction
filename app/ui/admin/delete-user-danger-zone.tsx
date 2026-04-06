@@ -14,7 +14,7 @@ export function AdminDeleteUserDangerZone({
     const [confirmText, setConfirmText] = useState("");
 
     return (
-        <section className="max-w-2xl rounded-xl border border-rose-800 bg-rose-300 p-5 dark:border-rose-900 dark:bg-rose-900/80">
+        <section className="rounded-xl border border-rose-800 bg-rose-300 p-5 dark:border-rose-900 dark:bg-rose-900/80">
             <div className="flex items-start gap-3">
                 <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 text-rose-600 dark:text-rose-400" />
                 <div className="space-y-2">

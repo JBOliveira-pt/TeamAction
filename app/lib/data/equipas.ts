@@ -20,6 +20,7 @@ export async function fetchEquipas() {
                 treinador_id: string | null;
                 total_atletas: number;
                 nome_treinador: string | null;
+                staff_treinador_principal_nome: string | null;
             }[]
         >`
             SELECT
@@ -30,7 +31,8 @@ export async function fetchEquipas() {
                 equipas.desporto,
                 equipas.treinador_id,
                 COUNT(atletas.id) AS total_atletas,
-                users.name AS nome_treinador
+                users.name AS nome_treinador,
+                (SELECT s.nome FROM staff s WHERE s.equipa_id = equipas.id AND s.funcao = 'Treinador Principal' AND s.organization_id = ${organizationId} LIMIT 1) AS staff_treinador_principal_nome
             FROM equipas
             LEFT JOIN atletas ON atletas.equipa_id = equipas.id
             LEFT JOIN users ON users.id = equipas.treinador_id

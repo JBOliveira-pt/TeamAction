@@ -5,8 +5,15 @@ import { getOrganizationId } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
 
 // ========================================
-// NotificaÃ§Ãµes Actions
+// Notificações Actions
 // ========================================
+
+function revalidateNotificacoes() {
+    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidatePath("/dashboard/treinador/notificacoes");
+    revalidatePath("/dashboard/atleta/notificacoes");
+    revalidatePath("/dashboard/responsavel/notificacoes");
+}
 
 export async function marcarTodasComoLidas(
     prevState: { error?: string; success?: boolean } | null,
@@ -16,7 +23,7 @@ export async function marcarTodasComoLidas(
     try {
         organizationId = await getOrganizationId();
     } catch {
-        return { error: "NÃ£o foi possÃ­vel identificar a organizaÃ§Ã£o." };
+        return { error: "Não foi possível identificar a organização." };
     }
 
     try {
@@ -26,10 +33,10 @@ export async function marcarTodasComoLidas(
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao marcar notificaÃ§Ãµes." };
+        return { error: "Erro ao marcar notificações." };
     }
 
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidateNotificacoes();
     return { success: true };
 }
 
@@ -50,5 +57,28 @@ export async function marcarNotificacaoComoLida(id: string): Promise<void> {
         console.error(error);
     }
 
-    revalidatePath("/dashboard/presidente/notificacoes");
+    revalidateNotificacoes();
+}
+
+export async function toggleNotificacaoLida(
+    id: string,
+    atualmenteLida: boolean,
+): Promise<void> {
+    let organizationId: string;
+    try {
+        organizationId = await getOrganizationId();
+    } catch {
+        return;
+    }
+
+    try {
+        await sql`
+            UPDATE notificacoes SET lida = ${!atualmenteLida}
+            WHERE id = ${id} AND organization_id = ${organizationId}
+        `;
+    } catch (error) {
+        console.error(error);
+    }
+
+    revalidateNotificacoes();
 }
