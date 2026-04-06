@@ -55,3 +55,7 @@ export type { PerfilUtilizador } from "./perfil";
 export { fetchNotasCalendario } from "./notas-calendario";
 export { fetchDatasComNotas } from "./notas-calendario";
 export type { NotaCalendario } from "./notas-calendario";
+export { fetchCondicaoFisicaResponsavel } from "./responsavel";
+export { fetchRegistosMedicosResponsavel } from "./responsavel";
+export { fetchMensalidadesResponsavel } from "./responsavel";
+export { fetchComunicadosResponsavel } from "./responsavel";

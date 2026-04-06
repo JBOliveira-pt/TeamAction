@@ -1,7 +1,38 @@
 import { auth } from "@clerk/nextjs/server";
-import postgres from "postgres";
+import { sql } from "./_shared";
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+/**
+ * Helper: retorna o user_id e email do menor vinculado ao responsável autenticado.
+ */
+async function getMinorInfo(): Promise<{
+    guardianEmail: string;
+    minorUserId: string;
+    minorEmail: string;
+} | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return null;
+
+    const [guardian] = await sql<{ email: string }[]>`
+        SELECT email FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+    `;
+    if (!guardian) return null;
+
+    const [minor] = await sql<{ user_id: string; email: string }[]>`
+        SELECT a.user_id, u.email
+        FROM atletas a
+        INNER JOIN users u ON u.id = a.user_id
+        WHERE a.encarregado_educacao = ${guardian.email}
+          AND a.menor_idade = true
+        LIMIT 1
+    `;
+    if (!minor) return null;
+
+    return {
+        guardianEmail: guardian.email,
+        minorUserId: minor.user_id,
+        minorEmail: minor.email,
+    };
+}
 
 export type AprovacaoPendente = {
     id: string;
@@ -260,4 +291,153 @@ export async function fetchDadosEducando(): Promise<DadosEducando | null> {
         planoAtual: org?.plano ?? "rookie",
         pedidoPlanoPendente: pendente.length > 0,
     };
+}
+
+// ---------- CONDIÇÃO FÍSICA DO MENOR ----------
+
+export async function fetchCondicaoFisicaResponsavel(): Promise<
+    { id: string; altura: number; peso: number; data_registo: string }[]
+> {
+    try {
+        const info = await getMinorInfo();
+        if (!info) return [];
+
+        return await sql<
+            { id: string; altura: number; peso: number; data_registo: string }[]
+        >`
+            SELECT id, altura::float AS altura, peso::float AS peso, data_registo::text
+            FROM condicao_fisica
+            WHERE user_id = ${info.minorUserId}
+            ORDER BY data_registo ASC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+// ---------- REGISTOS MÉDICOS DO MENOR ----------
+
+export async function fetchRegistosMedicosResponsavel(): Promise<
+    {
+        id: string;
+        tipo: string;
+        descricao: string;
+        data_inicio: string;
+        data_prevista_retorno: string | null;
+        observacoes: string | null;
+        estado: string;
+        created_at: string;
+    }[]
+> {
+    try {
+        const info = await getMinorInfo();
+        if (!info) return [];
+
+        return await sql<
+            {
+                id: string;
+                tipo: string;
+                descricao: string;
+                data_inicio: string;
+                data_prevista_retorno: string | null;
+                observacoes: string | null;
+                estado: string;
+                created_at: string;
+            }[]
+        >`
+            SELECT id, tipo, descricao, data_inicio::text, data_prevista_retorno::text,
+                   observacoes, estado, created_at::text
+            FROM medico
+            WHERE email = ${info.minorEmail}
+            ORDER BY created_at DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+// ---------- MENSALIDADES DO MENOR ----------
+
+export async function fetchMensalidadesResponsavel(): Promise<
+    {
+        id: string;
+        mes: number;
+        ano: number;
+        valor: number;
+        estado: string;
+        data_pagamento: string | null;
+    }[]
+> {
+    try {
+        const info = await getMinorInfo();
+        if (!info) return [];
+
+        const [atleta] = await sql<{ id: string }[]>`
+            SELECT id FROM atletas WHERE user_id = ${info.minorUserId} LIMIT 1
+        `;
+        if (!atleta) return [];
+
+        return await sql<
+            {
+                id: string;
+                mes: number;
+                ano: number;
+                valor: number;
+                estado: string;
+                data_pagamento: string | null;
+            }[]
+        >`
+            SELECT id, mes, ano, valor::float AS valor, estado,
+                   data_pagamento::text
+            FROM mensalidades
+            WHERE atleta_id = ${atleta.id}
+            ORDER BY ano DESC, mes DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
+}
+
+// ---------- COMUNICADOS DO CLUBE ----------
+
+export async function fetchComunicadosResponsavel(): Promise<
+    {
+        id: string;
+        titulo: string;
+        conteudo: string;
+        destinatarios: string | null;
+        created_at: string;
+    }[]
+> {
+    try {
+        const info = await getMinorInfo();
+        if (!info) return [];
+
+        // O menor pertence a uma organização; buscar comunicados dessa org
+        const [org] = await sql<{ organization_id: string | null }[]>`
+            SELECT organization_id FROM users WHERE id = ${info.minorUserId} LIMIT 1
+        `;
+        if (!org?.organization_id) return [];
+
+        return await sql<
+            {
+                id: string;
+                titulo: string;
+                conteudo: string;
+                destinatarios: string | null;
+                created_at: string;
+            }[]
+        >`
+            SELECT id, titulo, conteudo, destinatarios, created_at::text
+            FROM comunicados
+            WHERE organization_id = ${org.organization_id}
+            ORDER BY created_at DESC
+        `;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return [];
+    }
 }

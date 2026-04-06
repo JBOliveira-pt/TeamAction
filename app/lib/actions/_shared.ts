@@ -110,3 +110,45 @@ export async function saveUserPhoto(
 ): Promise<string | null> {
     return persistPhotoToR2(file, "user", userId);
 }
+
+/**
+ * Bloqueia mutações de atletas menores de idade enquanto a validação
+ * do responsável estiver pendente.
+ */
+export async function getAthleteMinorPendingBlockError(
+    clerkUserId: string,
+): Promise<string | null> {
+    const [user] = await sql<{ id: string }[]>`
+        SELECT id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+    `;
+
+    if (!user) {
+        return "Utilizador não encontrado.";
+    }
+
+    const [atleta] = await sql<{ menor_idade: boolean | null }[]>`
+        SELECT menor_idade
+        FROM atletas
+        WHERE user_id = ${user.id}
+        LIMIT 1
+    `;
+
+    if (atleta?.menor_idade !== true) {
+        return null;
+    }
+
+    const pendente = await sql<{ id: string }[]>`
+        SELECT id
+        FROM atleta_relacoes_pendentes
+        WHERE atleta_user_id = ${user.id}
+          AND relation_kind = 'responsavel'
+          AND status IN ('pendente', 'pendente_responsavel')
+        LIMIT 1
+    `;
+
+    if (pendente.length > 0) {
+        return "Conta de atleta menor pendente de validação do responsável.";
+    }
+
+    return null;
+}

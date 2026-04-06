@@ -1,6 +1,6 @@
 "use server";
 
-import { sql } from "./_shared";
+import { getAthleteMinorPendingBlockError, sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -10,6 +10,9 @@ export async function criarNotaAtleta(
 ): Promise<{ error?: string } | null> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
+
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
 
     const titulo = formData.get("titulo")?.toString().trim();
     const conteudo = formData.get("conteudo")?.toString().trim();
@@ -42,6 +45,9 @@ export async function editarNotaAtleta(
 ): Promise<{ error?: string } | null> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
+
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
 
     const id = formData.get("id")?.toString().trim();
     const titulo = formData.get("titulo")?.toString().trim();
@@ -80,6 +86,9 @@ export async function registarMedidaCondicaoFisica(
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
 
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
+
     const alturaStr = formData.get("altura")?.toString().trim();
     const pesoStr = formData.get("peso")?.toString().trim();
     const dataRegisto = formData.get("data_registo")?.toString().trim() || null;
@@ -115,6 +124,9 @@ export async function apagarNotaAtleta(
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
 
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
+
     try {
         const [user] = await sql<{ id: string }[]>`
             SELECT id FROM users WHERE clerk_user_id = ${clerkUserId}
@@ -140,6 +152,9 @@ export async function adicionarLesaoAtleta(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
+
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
 
     const descricao = formData.get("descricao")?.toString().trim();
     const dataInicio = formData.get("data_inicio")?.toString().trim();
@@ -176,6 +191,9 @@ export async function adicionarDoencaAtleta(
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
 
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
+
     const descricao = formData.get("descricao")?.toString().trim();
     const dataInicio = formData.get("data_inicio")?.toString().trim();
     const dataPrevistaRetorno =
@@ -210,6 +228,9 @@ export async function editarRegistoMedico(
 ): Promise<{ error?: string; success?: boolean } | null> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
+
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
 
     const id = formData.get("id")?.toString().trim();
     const descricao = formData.get("descricao")?.toString().trim();
@@ -257,6 +278,9 @@ export async function apagarRegistoMedico(
 ): Promise<{ error?: string; success?: boolean }> {
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) return { error: "Não autenticado." };
+
+    const blockedReason = await getAthleteMinorPendingBlockError(clerkUserId);
+    if (blockedReason) return { error: blockedReason };
 
     try {
         const [user] = await sql<{ email: string }[]>`

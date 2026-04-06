@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { registarMedidaCondicaoFisica } from '@/app/lib/actions';
-import { Pencil } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { registarMedidaCondicaoFisica } from "@/app/lib/actions";
+import { Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import {
     CartesianGrid,
     Line,
@@ -12,7 +12,7 @@ import {
     Tooltip,
     XAxis,
     YAxis,
-} from 'recharts';
+} from "recharts";
 
 type Medida = {
     id: string;
@@ -27,27 +27,27 @@ function calcularImc(altura: number, peso: number): number {
 }
 
 function classificarImc(imc: number): string {
-    if (imc < 18.5) return 'Abaixo do peso';
-    if (imc < 25) return 'Peso normal';
-    if (imc < 30) return 'Excesso de peso';
-    return 'Obesidade';
+    if (imc < 18.5) return "Abaixo do peso";
+    if (imc < 25) return "Peso normal";
+    if (imc < 30) return "Excesso de peso";
+    return "Obesidade";
 }
 
 function formatData(data: string): string {
-    const [ano, mes] = data.split('-');
+    const [ano, mes] = data.split("-");
     const meses = [
-        'Jan',
-        'Fev',
-        'Mar',
-        'Abr',
-        'Mai',
-        'Jun',
-        'Jul',
-        'Ago',
-        'Set',
-        'Out',
-        'Nov',
-        'Dez',
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
     ];
     return `${meses[parseInt(mes) - 1]} ${ano}`;
 }
@@ -86,12 +86,12 @@ function ChartCard({
                         />
                         <XAxis
                             dataKey="label"
-                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                            tick={{ fontSize: 11, fill: "#9ca3af" }}
                             axisLine={false}
                             tickLine={false}
                         />
                         <YAxis
-                            tick={{ fontSize: 11, fill: '#9ca3af' }}
+                            tick={{ fontSize: 11, fill: "#9ca3af" }}
                             axisLine={false}
                             tickLine={false}
                             unit={unit}
@@ -99,9 +99,9 @@ function ChartCard({
                         <Tooltip
                             formatter={(v) => [`${v}${unit}`, title]}
                             contentStyle={{
-                                borderRadius: '8px',
-                                border: '1px solid #e5e7eb',
-                                fontSize: '12px',
+                                borderRadius: "8px",
+                                border: "1px solid #e5e7eb",
+                                fontSize: "12px",
                             }}
                         />
                         <Line
@@ -143,8 +143,14 @@ function StatCard({
 
 export default function CondicaoFisicaClient({
     medidas,
+    contaPendente,
+    alturaInicial,
+    pesoInicial,
 }: {
     medidas: Medida[];
+    contaPendente: boolean;
+    alturaInicial: number | null;
+    pesoInicial: number | null;
 }) {
     const [showModal, setShowModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -154,8 +160,8 @@ export default function CondicaoFisicaClient({
     const ultima = medidas[medidas.length - 1] ?? null;
     const primeira = medidas[0] ?? null;
 
-    const alturaAtual = ultima ? ultima.altura : null;
-    const pesoAtual = ultima ? ultima.peso : null;
+    const alturaAtual = ultima ? ultima.altura : alturaInicial;
+    const pesoAtual = ultima ? ultima.peso : pesoInicial;
     const imc =
         alturaAtual && pesoAtual ? calcularImc(alturaAtual, pesoAtual) : null;
     const variacaoPeso =
@@ -164,10 +170,10 @@ export default function CondicaoFisicaClient({
             : null;
 
     const dataAtualizado = ultima
-        ? new Date(ultima.data_registo).toLocaleDateString('pt-PT', {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
+        ? new Date(ultima.data_registo).toLocaleDateString("pt-PT", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
           })
         : null;
 
@@ -181,6 +187,13 @@ export default function CondicaoFisicaClient({
     }));
 
     function handleSave(formData: FormData) {
+        if (contaPendente) {
+            setError(
+                "Conta de atleta menor pendente de validação do responsável.",
+            );
+            return;
+        }
+
         setError(null);
         startTransition(async () => {
             const result = await registarMedidaCondicaoFisica(null, formData);
@@ -206,43 +219,56 @@ export default function CondicaoFisicaClient({
                 </div>
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    disabled={contaPendente}
+                    title={
+                        contaPendente
+                            ? "Conta pendente de validação do responsável"
+                            : undefined
+                    }
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Pencil size={14} />
                     Registar medidas
                 </button>
             </div>
 
+            {contaPendente && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                    Conta pendente: aguarda validação do responsável para
+                    registar ou alterar dados.
+                </p>
+            )}
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     label="Altura atual"
-                    value={alturaAtual ? `${alturaAtual} cm` : '—'}
+                    value={alturaAtual ? `${alturaAtual} cm` : "—"}
                     sub={
                         dataAtualizado
                             ? `Atualizado em ${dataAtualizado}`
-                            : 'Sem registos'
+                            : "Sem registos"
                     }
                 />
                 <StatCard
                     label="Peso atual"
-                    value={pesoAtual ? `${pesoAtual} kg` : '—'}
+                    value={pesoAtual ? `${pesoAtual} kg` : "—"}
                     sub={
                         dataAtualizado
                             ? `Atualizado em ${dataAtualizado}`
-                            : 'Sem registos'
+                            : "Sem registos"
                     }
                 />
                 <StatCard
                     label="IMC"
-                    value={imc ? `${imc}` : '—'}
-                    sub={imc ? classificarImc(imc) : 'Sem dados'}
+                    value={imc ? `${imc}` : "—"}
+                    sub={imc ? classificarImc(imc) : "Sem dados"}
                 />
                 <StatCard
                     label="Varia&ccedil;&atilde;o peso"
                     value={
                         variacaoPeso !== null
-                            ? `${variacaoPeso > 0 ? '+' : ''}${variacaoPeso} kg`
-                            : '—'
+                            ? `${variacaoPeso > 0 ? "+" : ""}${variacaoPeso} kg`
+                            : "—"
                     }
                     sub="Desde o primeiro registo"
                 />
@@ -264,7 +290,7 @@ export default function CondicaoFisicaClient({
             </div>
 
             {/* Modal */}
-            {showModal && (
+            {showModal && !contaPendente && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -282,7 +308,7 @@ export default function CondicaoFisicaClient({
                                     min="50"
                                     max="250"
                                     placeholder="ex: 172"
-                                    defaultValue={alturaAtual ?? ''}
+                                    defaultValue={alturaAtual ?? ""}
                                     required
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
@@ -298,7 +324,7 @@ export default function CondicaoFisicaClient({
                                     min="20"
                                     max="300"
                                     placeholder="ex: 64"
-                                    defaultValue={pesoAtual ?? ''}
+                                    defaultValue={pesoAtual ?? ""}
                                     required
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
@@ -311,7 +337,7 @@ export default function CondicaoFisicaClient({
                                     name="data_registo"
                                     type="date"
                                     defaultValue={
-                                        new Date().toISOString().split('T')[0]
+                                        new Date().toISOString().split("T")[0]
                                     }
                                     required
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -336,7 +362,7 @@ export default function CondicaoFisicaClient({
                                     disabled={isPending}
                                     className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
                                 >
-                                    {isPending ? 'A guardar…' : 'Guardar'}
+                                    {isPending ? "A guardar…" : "Guardar"}
                                 </button>
                             </div>
                         </form>

@@ -177,6 +177,11 @@ export async function fetchAtletaAtual() {
                 equipa_nome: string | null;
                 treinador_nome: string | null;
                 encarregado: string | null;
+                clube_nome: string | null;
+                responsavel_associado: boolean;
+                menor_idade: boolean;
+                peso_kg: number | null;
+                altura_cm: number | null;
             }[]
         >`
             SELECT
@@ -186,16 +191,45 @@ export async function fetchAtletaAtual() {
                 atletas.numero_camisola,
                 atletas.estado,
                 atletas.mao_dominante,
+                COALESCE(atletas.menor_idade, false) AS menor_idade,
+                atletas.peso_kg,
+                atletas.altura_cm,
                 equipas.nome AS equipa_nome,
                 treinador.name AS treinador_nome,
-                atletas.encarregado_educacao AS encarregado
+                atletas.encarregado_educacao AS encarregado,
+                o.name AS clube_nome,
+                CASE WHEN resp.id IS NOT NULL THEN true ELSE false END AS responsavel_associado
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
             LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
             LEFT JOIN users u ON u.id = atletas.user_id
+            LEFT JOIN organizations o ON o.id = atletas.organization_id
+            LEFT JOIN users resp ON resp.email = atletas.encarregado_educacao AND resp.account_type = 'responsavel'
             WHERE atletas.user_id = ${user.id}
             LIMIT 1
         `;
+
+        // Buscar relações pendentes do atleta (clube e responsável)
+        const pendentes = await sql<
+            {
+                relation_kind: string;
+                alvo_nome: string | null;
+                status: string;
+            }[]
+        >`
+            SELECT relation_kind, alvo_nome, status
+            FROM atleta_relacoes_pendentes
+            WHERE atleta_user_id = ${user.id}
+              AND status IN ('pendente', 'pendente_responsavel')
+            ORDER BY created_at DESC
+        `.catch(() => []);
+
+        const clubePendente = pendentes.find(
+            (p) => p.relation_kind === "clube",
+        );
+        const responsavelPendente = pendentes.find(
+            (p) => p.relation_kind === "responsavel",
+        );
 
         if (!atleta)
             return {
@@ -207,6 +241,13 @@ export async function fetchAtletaAtual() {
                 equipa_nome: null,
                 treinador_nome: null,
                 encarregado: null,
+                clube_nome: null,
+                clube_pendente: clubePendente?.alvo_nome ?? null,
+                responsavel_associado: false,
+                menor_idade: false,
+                responsavel_pendente: !!responsavelPendente,
+                peso_kg: null,
+                altura_cm: null,
                 estatisticas: null,
                 assiduidade: null,
             };
@@ -243,6 +284,8 @@ export async function fetchAtletaAtual() {
 
         return {
             ...atleta,
+            clube_pendente: clubePendente?.alvo_nome ?? null,
+            responsavel_pendente: !!responsavelPendente,
             estatisticas: estatisticas ?? null,
             assiduidade: assiduidade ?? null,
         };

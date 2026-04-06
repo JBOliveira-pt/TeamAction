@@ -49,8 +49,10 @@ function groupByDate(notas: Nota[]) {
 
 export default function NotasCalendarioClient({
     notas: initialNotas,
+    contaPendente = false,
 }: {
     notas: Nota[];
+    contaPendente?: boolean;
 }) {
     const [showModal, setShowModal] = useState(false);
     const [editando, setEditando] = useState<Nota | null>(null);
@@ -62,6 +64,13 @@ export default function NotasCalendarioClient({
     const editFormRef = useRef<HTMLFormElement>(null);
 
     function handleSave(formData: FormData) {
+        if (contaPendente) {
+            setError(
+                "Conta de atleta menor pendente de validação do responsável.",
+            );
+            return;
+        }
+
         setError(null);
         startTransition(async () => {
             const result = await criarNotaCalendario(null, formData);
@@ -76,6 +85,13 @@ export default function NotasCalendarioClient({
     }
 
     function handleEditSave(formData: FormData) {
+        if (contaPendente) {
+            setEditError(
+                "Conta de atleta menor pendente de validação do responsável.",
+            );
+            return;
+        }
+
         setEditError(null);
         startTransition(async () => {
             const result = await editarNotaCalendario(null, formData);
@@ -89,6 +105,7 @@ export default function NotasCalendarioClient({
     }
 
     async function handleDelete(id: string) {
+        if (contaPendente) return;
         if (!confirm("Tens a certeza que queres apagar esta nota?")) return;
         await apagarNotaCalendario(id);
         router.refresh();
@@ -114,12 +131,20 @@ export default function NotasCalendarioClient({
                         setShowModal(true);
                         setError(null);
                     }}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                    disabled={contaPendente}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Plus size={16} />
                     Nova nota
                 </button>
             </div>
+
+            {contaPendente && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                    Conta pendente: aguarda validação do responsável para criar
+                    ou editar notas.
+                </p>
+            )}
 
             {/* content */}
             {initialNotas.length === 0 ? (
@@ -170,8 +195,9 @@ export default function NotasCalendarioClient({
                                                     setEditando(n);
                                                     setEditError(null);
                                                 }}
+                                                disabled={contaPendente}
                                                 title="Editar"
-                                                className="p-1.5 rounded-md text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors cursor-pointer"
+                                                className="p-1.5 rounded-md text-gray-400 hover:text-violet-500 hover:bg-violet-50 dark:hover:bg-violet-950 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Pencil size={14} />
                                             </button>
@@ -179,8 +205,9 @@ export default function NotasCalendarioClient({
                                                 onClick={() =>
                                                     handleDelete(n.id)
                                                 }
+                                                disabled={contaPendente}
                                                 title="Apagar"
-                                                className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors cursor-pointer"
+                                                className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -194,7 +221,7 @@ export default function NotasCalendarioClient({
             )}
 
             {/* Modal Nova Nota */}
-            {showModal && (
+            {showModal && !contaPendente && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -257,7 +284,7 @@ export default function NotasCalendarioClient({
             )}
 
             {/* Modal Editar Nota */}
-            {editando && (
+            {editando && !contaPendente && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">

@@ -47,9 +47,10 @@ export async function fetchMensalidades() {
 
 export async function fetchPresidenteDashboard() {
     try {
-        const organizationId = await getOrganizationId();
+        const { organizationId, dbUserId } =
+            await requireAccountType("presidente");
 
-        const [equipas, atletas, jogos, mensalidades, epoca] =
+        const [equipas, atletas, jogos, mensalidades, epoca, presidente] =
             await Promise.all([
                 sql`SELECT COUNT(*) FROM equipas WHERE organization_id = ${organizationId}`,
                 sql`SELECT COUNT(*) FROM atletas WHERE organization_id = ${organizationId}`,
@@ -60,6 +61,11 @@ export async function fetchPresidenteDashboard() {
     WHERE organization_id = ${organizationId} AND ativa = true
     LIMIT 1
 `,
+                sql<{ name: string | null }[]>`
+    SELECT name FROM users
+    WHERE id = ${dbUserId}
+    LIMIT 1
+`,
             ]);
 
         return {
@@ -68,6 +74,7 @@ export async function fetchPresidenteDashboard() {
             jogosAgendados: Number(jogos[0].count),
             mensalidadesEmAtraso: Number(mensalidades[0].count),
             epocaNome: epoca[0]?.nome ?? null,
+            presidenteNome: presidente[0]?.name?.trim() || null,
         };
     } catch (error) {
         console.error("Database Error:", error);

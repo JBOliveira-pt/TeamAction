@@ -10,6 +10,21 @@ async function getUser(clerkUserId: string) {
     return rows[0] ?? null;
 }
 
+async function isMinorPending(dbUserId: string): Promise<boolean> {
+    const [atleta] = await sql<{ menor_idade: boolean | null }[]>`
+        SELECT menor_idade FROM atletas WHERE user_id = ${dbUserId} LIMIT 1
+    `;
+    if (atleta?.menor_idade !== true) return false;
+    const pendente = await sql<{ id: string }[]>`
+        SELECT id FROM atleta_relacoes_pendentes
+        WHERE atleta_user_id = ${dbUserId}
+          AND relation_kind = 'responsavel'
+          AND status IN ('pendente', 'pendente_responsavel')
+        LIMIT 1
+    `;
+    return pendente.length > 0;
+}
+
 export async function DELETE(
     _req: Request,
     { params }: { params: Promise<{ id: string }> },
@@ -19,6 +34,15 @@ export async function DELETE(
 
     const user = await getUser(userId);
     if (!user) return new Response("User not found", { status: 404 });
+
+    if (await isMinorPending(user.id)) {
+        return Response.json(
+            {
+                error: "Conta de atleta menor pendente de validação do responsável.",
+            },
+            { status: 403 },
+        );
+    }
 
     const { id } = await params;
 

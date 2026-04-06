@@ -1,9 +1,9 @@
-import { fetchJogosResponsavel } from "@/app/lib/data";
+import { fetchJogosAtleta } from "@/app/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function ResponsavelJogosPage() {
-    const jogos = await fetchJogosResponsavel();
+export default async function JogosAtletaPage() {
+    const jogos = await fetchJogosAtleta();
 
     const agora = new Date();
 
@@ -41,7 +41,7 @@ export default async function ResponsavelJogosPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {jogos.length > 0
                         ? `${proximosJogos.length} agendado${proximosJogos.length !== 1 ? "s" : ""} · ${jogosPassados.length} realizado${jogosPassados.length !== 1 ? "s" : ""}`
-                        : "Sem jogos registados para a equipa do educando."}
+                        : "Sem jogos registados para a tua equipa."}
                 </p>
             </div>
 
@@ -52,7 +52,7 @@ export default async function ResponsavelJogosPage() {
                         Sem jogos
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                        Ainda não existem jogos registados para a equipa do educando.
+                        Ainda não existem jogos registados para a tua equipa.
                     </p>
                 </div>
             ) : (
@@ -170,7 +170,9 @@ function JogoCard({
                     vs {jogo.adversario}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {dataFormatada} · {jogo.casa_fora === "casa" ? "Em Casa" : "Fora"} · {jogo.equipa_nome}
+                    {dataFormatada} ·{" "}
+                    {jogo.casa_fora === "casa" ? "Em Casa" : "Fora"} ·{" "}
+                    {jogo.equipa_nome}
                 </p>
             </div>
 

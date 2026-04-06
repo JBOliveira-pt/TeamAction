@@ -1,14 +1,14 @@
-﻿'use client';
+﻿"use client";
 
 import {
     adicionarDoencaAtleta,
     adicionarLesaoAtleta,
     apagarRegistoMedico,
     editarRegistoMedico,
-} from '@/app/lib/actions';
-import { Pencil, ShieldCheck, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useRef, useState, useTransition } from 'react';
+} from "@/app/lib/actions";
+import { Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
 
 type RegistoMedico = {
     id: string;
@@ -38,7 +38,7 @@ function StatCard({
                 {title}
             </span>
             <span
-                className={`text-2xl font-bold ${valueColor ?? 'text-gray-900 dark:text-white'}`}
+                className={`text-2xl font-bold ${valueColor ?? "text-gray-900 dark:text-white"}`}
             >
                 {value}
             </span>
@@ -56,10 +56,12 @@ function ModalForm({
     descricaoPlaceholder,
     onClose,
     action,
+    contaPendente,
 }: {
     title: string;
     descricaoPlaceholder: string;
     onClose: () => void;
+    contaPendente: boolean;
     action: (
         prev: { error?: string; success?: boolean } | null,
         fd: FormData,
@@ -71,6 +73,13 @@ function ModalForm({
     const formRef = useRef<HTMLFormElement>(null);
 
     function handleSave(formData: FormData) {
+        if (contaPendente) {
+            setError(
+                "Conta de atleta menor pendente de validação do responsável.",
+            );
+            return;
+        }
+
         setError(null);
         startTransition(async () => {
             const result = await action(null, formData);
@@ -154,7 +163,7 @@ function ModalForm({
                             disabled={isPending}
                             className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
                         >
-                            {isPending ? 'A guardar…' : 'Guardar'}
+                            {isPending ? "A guardar…" : "Guardar"}
                         </button>
                     </div>
                 </form>
@@ -166,15 +175,24 @@ function ModalForm({
 function EditModal({
     registo,
     onClose,
+    contaPendente,
 }: {
     registo: RegistoMedico;
     onClose: () => void;
+    contaPendente: boolean;
 }) {
     const [error, setError] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
     function handleSave(formData: FormData) {
+        if (contaPendente) {
+            setError(
+                "Conta de atleta menor pendente de validação do responsável.",
+            );
+            return;
+        }
+
         setError(null);
         startTransition(async () => {
             const result = await editarRegistoMedico(null, formData);
@@ -187,13 +205,13 @@ function EditModal({
         });
     }
 
-    const toInputDate = (val: string | null) => (val ? val.slice(0, 10) : '');
+    const toInputDate = (val: string | null) => (val ? val.slice(0, 10) : "");
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Editar {registo.tipo === 'lesao' ? 'lesão' : 'doença'}
+                    Editar {registo.tipo === "lesao" ? "lesão" : "doença"}
                 </h2>
                 <form action={handleSave} className="space-y-3">
                     <input type="hidden" name="id" value={registo.id} />
@@ -256,7 +274,7 @@ function EditModal({
                         <textarea
                             name="observacoes"
                             rows={3}
-                            defaultValue={registo.observacoes ?? ''}
+                            defaultValue={registo.observacoes ?? ""}
                             placeholder="Observações adicionais..."
                             className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                         />
@@ -278,7 +296,7 @@ function EditModal({
                             disabled={isPending}
                             className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
                         >
-                            {isPending ? 'A guardar…' : 'Guardar'}
+                            {isPending ? "A guardar…" : "Guardar"}
                         </button>
                     </div>
                 </form>
@@ -291,29 +309,32 @@ function RegistoCard({
     r,
     onEdit,
     onDelete,
+    contaPendente,
 }: {
     r: RegistoMedico;
     onEdit: (r: RegistoMedico) => void;
     onDelete: (id: string) => void;
+    contaPendente: boolean;
 }) {
     const fmtDate = (val: string | null) =>
-        val ? new Date(val).toLocaleDateString('pt-PT') : '—';
+        val ? new Date(val).toLocaleDateString("pt-PT") : "—";
 
     return (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
                 <span
                     className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        r.tipo === 'lesao'
-                            ? 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                        r.tipo === "lesao"
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
                     }`}
                 >
-                    {r.tipo === 'lesao' ? 'Lesão' : 'Doença'}
+                    {r.tipo === "lesao" ? "Lesão" : "Doença"}
                 </span>
                 <div className="flex items-center gap-1">
                     <button
                         onClick={() => onEdit(r)}
+                        disabled={contaPendente}
                         className="p-1 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         title="Editar"
                     >
@@ -321,6 +342,7 @@ function RegistoCard({
                     </button>
                     <button
                         onClick={() => onDelete(r.id)}
+                        disabled={contaPendente}
                         className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         title="Apagar"
                     >
@@ -360,8 +382,10 @@ function RegistoCard({
 
 export default function MedicoClientWrapper({
     registos,
+    contaPendente,
 }: {
     registos: RegistoMedico[];
+    contaPendente: boolean;
 }) {
     const [showLesaoModal, setShowLesaoModal] = useState(false);
     const [showDoencaModal, setShowDoencaModal] = useState(false);
@@ -369,36 +393,52 @@ export default function MedicoClientWrapper({
     const router = useRouter();
 
     async function handleDelete(id: string) {
-        if (!confirm('Tens a certeza que queres apagar este registo?')) return;
+        if (contaPendente) return;
+        if (!confirm("Tens a certeza que queres apagar este registo?")) return;
         await apagarRegistoMedico(id);
         router.refresh();
     }
 
-    const ativos = registos.filter((r) => r.estado === 'ativo');
-    const statusMedico = ativos.length === 0 ? 'Disponível' : 'Indisponível';
+    const ativos = registos.filter((r) => r.estado === "ativo");
+    const statusMedico = ativos.length === 0 ? "Disponível" : "Indisponível";
 
     return (
-        <main className="p-6 space-y-6 bg-gray-50 dark:bg-gray-950 min-h-screen">
+        <main className="p-6 space-y-6 bg-gray-50 dark:bg-gray-950 max-h-screen">
             {/* header */}
-            <div className="flex items-start justify-between gap-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Gere lesões, doenças e o teu histórico médico.
-                </p>
+
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                        Médico
+                    </h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        Gere lesões, doenças e o teu histórico médico.
+                    </p>
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={() => setShowLesaoModal(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        disabled={contaPendente}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         + Adicionar lesão
                     </button>
                     <button
                         onClick={() => setShowDoencaModal(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        disabled={contaPendente}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         + Adicionar doença
                     </button>
                 </div>
             </div>
+
+            {contaPendente && (
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                    Conta pendente: aguarda validação do responsável para gerir
+                    registos médicos.
+                </p>
+            )}
 
             {/* stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -407,8 +447,8 @@ export default function MedicoClientWrapper({
                     value={statusMedico}
                     valueColor={
                         ativos.length === 0
-                            ? 'text-emerald-500'
-                            : 'text-red-500'
+                            ? "text-emerald-500"
+                            : "text-red-500"
                     }
                 />
                 <StatCard
@@ -419,7 +459,7 @@ export default function MedicoClientWrapper({
                 <StatCard
                     title="Lesão mais comum"
                     value={
-                        registos.length > 0 ? registos[0].descricao : 'Nenhum'
+                        registos.length > 0 ? registos[0].descricao : "Nenhum"
                     }
                     sub={`${registos.length} em todas as temporadas`}
                 />
@@ -453,20 +493,6 @@ export default function MedicoClientWrapper({
                                 disponível para todas as atividades.
                             </p>
                         </div>
-                        <div className="flex items-center gap-6 mt-2">
-                            <button
-                                onClick={() => setShowLesaoModal(true)}
-                                className="text-sm text-blue-500 hover:text-blue-600 font-medium transition-colors"
-                            >
-                                + Adicionar nova lesão
-                            </button>
-                            <button
-                                onClick={() => setShowDoencaModal(true)}
-                                className="text-sm text-blue-500 hover:text-blue-600 font-medium transition-colors"
-                            >
-                                + Adicionar nova doença
-                            </button>
-                        </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -476,34 +502,38 @@ export default function MedicoClientWrapper({
                                 r={r}
                                 onEdit={setEditando}
                                 onDelete={handleDelete}
+                                contaPendente={contaPendente}
                             />
                         ))}
                     </div>
                 )}
             </div>
 
-            {showLesaoModal && (
+            {showLesaoModal && !contaPendente && (
                 <ModalForm
                     title="Adicionar lesão"
                     descricaoPlaceholder="Ex: Entorse do tornozelo"
                     onClose={() => setShowLesaoModal(false)}
                     action={adicionarLesaoAtleta}
+                    contaPendente={contaPendente}
                 />
             )}
 
-            {showDoencaModal && (
+            {showDoencaModal && !contaPendente && (
                 <ModalForm
                     title="Adicionar doença"
                     descricaoPlaceholder="Ex: Gripe"
                     onClose={() => setShowDoencaModal(false)}
                     action={adicionarDoencaAtleta}
+                    contaPendente={contaPendente}
                 />
             )}
 
-            {editando && (
+            {editando && !contaPendente && (
                 <EditModal
                     registo={editando}
                     onClose={() => setEditando(null)}
+                    contaPendente={contaPendente}
                 />
             )}
         </main>

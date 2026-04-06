@@ -49,12 +49,15 @@ export default async function PresidenteDashboard() {
                 jogosAgendados: 0,
                 mensalidadesEmAtraso: 0,
                 epocaNome: null as string | null,
+                presidenteNome: null as string | null,
             })),
             fetchUltimosJogos().catch(() => []),
             fetchProximosJogos().catch(() => []),
             fetchEquipas().catch(() => []),
             fetchNotificacoes().catch(() => []),
         ]);
+
+    const presidenteNome = dashboard.presidenteNome?.trim() || "Presidente";
 
     const naoLidas = notificacoes.filter((n) => !n.lida).length;
 
@@ -126,7 +129,7 @@ export default async function PresidenteDashboard() {
             <div className="flex items-start justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Bem-vindo 👋
+                        Bem-vindo, {presidenteNome} 👋
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {dashboard.epocaNome
@@ -173,7 +176,7 @@ export default async function PresidenteDashboard() {
                 ))}
             </div>
 
-            {/* Linha principal: Jogos + Notificações */}
+            {/* Linha principal: Jogos + Notificações + Equipas */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Últimos + Próximos Jogos — ocupa 2/3 */}
                 <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -275,111 +278,63 @@ export default async function PresidenteDashboard() {
                     </div>
                 </div>
 
-                {/* Notificações — ocupa 1/3 */}
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 flex flex-col">
+                {/* Equipas */}
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                            🔔 Notificações
+                            📋 Equipas
                         </h2>
-                        {naoLidas > 0 && (
-                            <span className="px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-bold">
-                                {naoLidas} nova{naoLidas > 1 ? "s" : ""}
-                            </span>
-                        )}
+                        <Link
+                            href="/dashboard/presidente/equipas"
+                            className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                        >
+                            Ver todas →
+                        </Link>
                     </div>
-
-                    {notificacoes.length === 0 ? (
-                        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6 flex-1">
-                            Nenhuma notificação.
+                    {equipas.length === 0 ? (
+                        <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">
+                            Nenhuma equipa registada ainda.
                         </p>
                     ) : (
-                        <div className="space-y-1 overflow-y-auto max-h-72 pr-1 flex-1">
-                            {notificacoes.map((n) => (
-                                <div
-                                    key={n.id}
-                                    className={`flex gap-3 items-start px-3 py-2.5 rounded-lg transition-colors ${
-                                        !n.lida
-                                            ? "bg-blue-500/5 border border-blue-500/10"
-                                            : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                                    }`}
-                                >
-                                    <span className="text-base mt-0.5 shrink-0">
-                                        {tipoNotificacaoIcon[n.tipo] ?? "🔔"}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                        <p
-                                            className={`text-xs font-semibold truncate ${!n.lida ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-300"}`}
-                                        >
-                                            {n.titulo}
-                                        </p>
-                                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
-                                            {n.descricao}
-                                        </p>
-                                    </div>
-                                    <span className="text-[10px] text-gray-400 dark:text-gray-600 shrink-0 mt-0.5">
-                                        {tempoRelativo(n.created_at)}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
+                                    <th className="text-left pb-3">Equipa</th>
+                                    <th className="text-left pb-3">Atletas</th>
+                                    <th className="text-left pb-3">
+                                        Treinador
+                                    </th>
+                                    <th className="text-left pb-3">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {equipas.map((e) => (
+                                    <tr
+                                        key={e.id}
+                                        className="border-b border-gray-100 dark:border-gray-800/50 last:border-0"
+                                    >
+                                        <td className="py-3 font-medium text-gray-900 dark:text-white">
+                                            {e.nome}
+                                        </td>
+                                        <td className="py-3 text-gray-500 dark:text-gray-400">
+                                            {Number(e.total_atletas)}
+                                        </td>
+                                        <td className="py-3 text-gray-500 dark:text-gray-400">
+                                            {e.nome_treinador ?? "—"}
+                                        </td>
+                                        <td className="py-3">
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400 border border-slate-500/20"}`}
+                                            >
+                                                {e.estado}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     )}
                 </div>
-            </div>
-
-            {/* Equipas */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                        📋 Equipas
-                    </h2>
-                    <Link
-                        href="/dashboard/presidente/equipas"
-                        className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                    >
-                        Ver todas →
-                    </Link>
-                </div>
-                {equipas.length === 0 ? (
-                    <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">
-                        Nenhuma equipa registada ainda.
-                    </p>
-                ) : (
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
-                                <th className="text-left pb-3">Equipa</th>
-                                <th className="text-left pb-3">Atletas</th>
-                                <th className="text-left pb-3">Treinador</th>
-                                <th className="text-left pb-3">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {equipas.map((e) => (
-                                <tr
-                                    key={e.id}
-                                    className="border-b border-gray-100 dark:border-gray-800/50 last:border-0"
-                                >
-                                    <td className="py-3 font-medium text-gray-900 dark:text-white">
-                                        {e.nome}
-                                    </td>
-                                    <td className="py-3 text-gray-500 dark:text-gray-400">
-                                        {Number(e.total_atletas)}
-                                    </td>
-                                    <td className="py-3 text-gray-500 dark:text-gray-400">
-                                        {e.nome_treinador ?? "—"}
-                                    </td>
-                                    <td className="py-3">
-                                        <span
-                                            className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[e.estado] ?? "bg-slate-500/10 text-slate-400 border border-slate-500/20"}`}
-                                        >
-                                            {e.estado}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
             </div>
         </div>
     );

@@ -28,7 +28,6 @@ import {
     TrendingUp,
     Trophy,
     User,
-    UserCheck,
     UserCog,
     Users,
     X,
@@ -518,7 +517,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 <NavItem
                                     icon={<Trophy size={20} />}
                                     label="Jogos"
-                                    href="/dashboard/responsavel/jogos"
+                                    href="/dashboard/atleta/jogos"
                                     onClick={() => setIsOpen(false)}
                                 />
                             </NavSection>
@@ -533,12 +532,6 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 </NavSection>
                             )}
                             <NavSection label="Clube">
-                                <NavItem
-                                    icon={<UserCheck size={20} />}
-                                    label="Vinculações"
-                                    href="/dashboard/atleta/vinculacoes"
-                                    onClick={() => setIsOpen(false)}
-                                />
                                 <NavItem
                                     icon={<Clipboard size={20} />}
                                     label="Comunicados"
