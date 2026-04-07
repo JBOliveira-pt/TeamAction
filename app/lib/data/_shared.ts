@@ -74,11 +74,24 @@ export async function maybeCreateMinorAthleteTemporaryProfileNotice(params: {
         return;
     }
 
+    // Se já tem vinculação aceite, não mostrar aviso
+    const acceptedRows = await sql<{ id: string }[]>`
+        SELECT id FROM atleta_relacoes_pendentes
+        WHERE atleta_user_id = ${params.dbUserId}
+          AND relation_kind = 'responsavel'
+          AND status = 'aceite'
+        LIMIT 1
+    `;
+    if (acceptedRows.length > 0) {
+        return;
+    }
+
     // Buscar email do responsável na tabela de relações pendentes
     const relRows = await sql<{ alvo_email: string | null }[]>`
         SELECT alvo_email FROM atleta_relacoes_pendentes
         WHERE atleta_user_id = ${params.dbUserId}
           AND relation_kind = 'responsavel'
+          AND status = 'pendente'
         ORDER BY created_at DESC
         LIMIT 1
     `;
@@ -102,6 +115,46 @@ export async function maybeCreateMinorAthleteTemporaryProfileNotice(params: {
             ${MINOR_ATHLETE_TEMP_PROFILE_TITLE},
             ${message},
             ${MINOR_ATHLETE_TEMP_PROFILE_TYPE},
+            false,
+            NOW()
+        )
+        ON CONFLICT (id) DO NOTHING
+    `;
+}
+
+export async function maybeCreateResponsavelWelcomeNotice(params: {
+    organizationId: string;
+    dbUserId: string;
+}) {
+    const userRows = await sql<{ account_type: string | null }[]>`
+        SELECT account_type FROM users WHERE id = ${params.dbUserId} LIMIT 1
+    `;
+
+    if (normalizeAccountType(userRows[0]?.account_type) !== "responsavel") {
+        return;
+    }
+
+    const notificationId = createDeterministicUuid(
+        `responsavel-welcome:${params.dbUserId}`,
+    );
+
+    const message =
+        "Bem-vindo(a) à plataforma! Para uma experiência completa, preencha as suas informações pessoais em:\n" +
+        "\n" +
+        "• O seu perfil: Painel do Responsável → Perfil (/dashboard/responsavel/perfil)\n" +
+        "• Dados do seu educando: Painel do Responsável → Dados do Educando (/dashboard/responsavel/dados-educando)\n" +
+        "\n" +
+        "Mantenha os dados sempre atualizados.";
+
+    await sql`
+        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+        VALUES (
+            ${notificationId},
+            ${params.organizationId},
+            ${params.dbUserId},
+            'Mensagem do Administrador',
+            ${message},
+            'Aviso',
             false,
             NOW()
         )

@@ -72,6 +72,18 @@ export async function PUT(
             SET estado = 'recusado', updated_at = NOW()
             WHERE id = ${id}
         `;
+
+        // Se treinador recusou, remover o staff row pendente
+        if (convite.tipo === "treinador") {
+            await sql`
+                DELETE FROM staff
+                WHERE organization_id = ${convite.clube_org_id}
+                  AND estado = 'pendente'
+                  AND (user_id = ${me.id} OR user_id IS NULL)
+                  AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+            `.catch(() => {});
+        }
+
         return Response.json({ ok: true, estado: "recusado" });
     }
 
@@ -162,6 +174,16 @@ export async function PUT(
             SET organization_id = ${convite.clube_org_id}, updated_at = NOW()
             WHERE id = ${me.id}
         `;
+
+        // Ativar staff row pendente (vincular user_id + mudar estado para 'ativo')
+        await sql`
+            UPDATE staff
+            SET user_id = ${me.id}, estado = 'ativo', updated_at = NOW()
+            WHERE organization_id = ${convite.clube_org_id}
+              AND estado = 'pendente'
+              AND (user_id = ${me.id} OR user_id IS NULL)
+              AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+        `.catch(() => {});
 
         // Update equipa in the trainer's old organization (remove trainer ref if any)
         await sql`

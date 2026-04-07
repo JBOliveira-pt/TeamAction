@@ -14,7 +14,7 @@ export default async function PaiCalendarioPage() {
         fetchDatasComNotas().catch(() => []),
     ]);
     return (
-        <main className="p-4">
+        <main className="p-3">
             <Calendario
                 jogos={jogos}
                 sessoes={sessoes}

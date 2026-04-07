@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
         equipa_id?: string | null;
         equipa_nome?: string | null;
         email?: string | null;
+        mao_dominante?: string | null;
     };
 
     if (!body.nome?.trim())
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
     const [novoAtleta] = await sql<{ id: string }[]>`
         INSERT INTO atletas (
             id, nome, posicao, numero_camisola,
-            equipa_id, estado, federado,
+            equipa_id, estado, federado, mao_dominante,
             organization_id, user_id, created_at, updated_at
         ) VALUES (
             gen_random_uuid(),
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
             ${body.equipa_id ?? null},
             ${estado},
             false,
+            ${body.mao_dominante ?? null},
             ${treinador.organization_id},
             ${linkedUserId},
             NOW(), NOW()

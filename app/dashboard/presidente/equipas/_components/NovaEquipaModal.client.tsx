@@ -2,27 +2,16 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { criarEquipa } from "@/app/lib/actions";
-import { X, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { X, UserPlus } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
 type Escalao = { id: number; nome: string };
 type Treinador = { id: string; name: string; email: string };
-type AtletaEntry = { nome: string; posicao: string; numero_camisola: string };
 
 const ESTADOS = [
     { value: "ativa", label: "Ativa" },
     { value: "periodo_off", label: "Período Off" },
     { value: "inativa", label: "Inativa" },
-];
-
-const POSICOES = [
-    "Guarda-Redes",
-    "Central",
-    "Lateral Esquerdo",
-    "Lateral Direito",
-    "Ponta Esquerdo",
-    "Ponta Direito",
-    "Pivot",
 ];
 
 export default function NovaEquipaModal({
@@ -42,67 +31,23 @@ export default function NovaEquipaModal({
     const formRef = useRef<HTMLFormElement>(null);
 
     // Treinador state
-    const [treinadorMode, setTreinadorMode] = useState<
-        "none" | "real" | "fake"
-    >("none");
     const [treinadorId, setTreinadorId] = useState("");
-    const [treinadorNomeFake, setTreinadorNomeFake] = useState("");
-    const [treinadorEmailFake, setTreinadorEmailFake] = useState("");
 
     // Adjunto state
-    const [adjuntoMode, setAdjuntoMode] = useState<"none" | "real" | "fake">(
-        "none",
-    );
     const [adjuntoId, setAdjuntoId] = useState("");
-    const [adjuntoNomeFake, setAdjuntoNomeFake] = useState("");
-    const [adjuntoEmailFake, setAdjuntoEmailFake] = useState("");
-
-    // Atletas state
-    const [atletas, setAtletas] = useState<AtletaEntry[]>([]);
-    const [novoAtleta, setNovoAtleta] = useState<AtletaEntry>({
-        nome: "",
-        posicao: "",
-        numero_camisola: "",
-    });
-
-    const addAtleta = () => {
-        if (!novoAtleta.nome.trim()) return;
-        setAtletas((prev) => [...prev, { ...novoAtleta }]);
-        setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
-    };
-
-    const removeAtleta = (index: number) => {
-        setAtletas((prev) => prev.filter((_, i) => i !== index));
-    };
 
     const resetAll = () => {
         formRef.current?.reset();
-        setTreinadorMode("none");
         setTreinadorId("");
-        setTreinadorNomeFake("");
-        setTreinadorEmailFake("");
-        setAdjuntoMode("none");
         setAdjuntoId("");
-        setAdjuntoNomeFake("");
-        setAdjuntoEmailFake("");
-        setAtletas([]);
-        setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
     };
 
     const [prevState, setPrevState] = useState(state);
     if (state !== prevState) {
         setPrevState(state);
         if (state?.success) {
-            setTreinadorMode("none");
             setTreinadorId("");
-            setTreinadorNomeFake("");
-            setTreinadorEmailFake("");
-            setAdjuntoMode("none");
             setAdjuntoId("");
-            setAdjuntoNomeFake("");
-            setAdjuntoEmailFake("");
-            setAtletas([]);
-            setNovoAtleta({ nome: "", posicao: "", numero_camisola: "" });
             setOpen(false);
         }
     }
@@ -175,57 +120,13 @@ export default function NovaEquipaModal({
                             <input
                                 type="hidden"
                                 name="treinador_id"
-                                value={
-                                    treinadorMode === "real" ? treinadorId : ""
-                                }
-                            />
-                            <input
-                                type="hidden"
-                                name="treinador_nome_fake"
-                                value={
-                                    treinadorMode === "fake"
-                                        ? treinadorNomeFake
-                                        : ""
-                                }
-                            />
-                            <input
-                                type="hidden"
-                                name="treinador_email_fake"
-                                value={
-                                    treinadorMode === "fake"
-                                        ? treinadorEmailFake
-                                        : ""
-                                }
+                                value={treinadorId}
                             />
                             <input
                                 type="hidden"
                                 name="adjunto_id"
-                                value={adjuntoMode === "real" ? adjuntoId : ""}
+                                value={adjuntoId}
                             />
-                            <input
-                                type="hidden"
-                                name="adjunto_nome_fake"
-                                value={
-                                    adjuntoMode === "fake"
-                                        ? adjuntoNomeFake
-                                        : ""
-                                }
-                            />
-                            <input
-                                type="hidden"
-                                name="adjunto_email_fake"
-                                value={
-                                    adjuntoMode === "fake"
-                                        ? adjuntoEmailFake
-                                        : ""
-                                }
-                            />
-                            <input
-                                type="hidden"
-                                name="atletas_json"
-                                value={JSON.stringify(atletas)}
-                            />
-
                             {/* === Dados da Equipa === */}
                             <div className="space-y-3">
                                 <div className="space-y-1">
@@ -307,107 +208,34 @@ export default function NovaEquipaModal({
                                     </span>
                                 </div>
 
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setTreinadorMode(
-                                                treinadorMode === "real"
-                                                    ? "none"
-                                                    : "real",
-                                            )
-                                        }
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                                            treinadorMode === "real"
-                                                ? "bg-violet-600 text-white border-violet-600"
-                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-violet-500"
-                                        }`}
-                                    >
-                                        Existente
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setTreinadorMode(
-                                                treinadorMode === "fake"
-                                                    ? "none"
-                                                    : "fake",
-                                            )
-                                        }
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                                            treinadorMode === "fake"
-                                                ? "bg-violet-600 text-white border-violet-600"
-                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-violet-500"
-                                        }`}
-                                    >
-                                        Novo (nome)
-                                    </button>
-                                </div>
-
-                                {treinadorMode === "real" && (
-                                    <div className="space-y-1">
-                                        {treinadores.length === 0 ? (
-                                            <p className="text-xs text-gray-400 py-2">
-                                                Nenhum treinador registado na
-                                                organização.
-                                            </p>
-                                        ) : (
-                                            <select
-                                                value={treinadorId}
-                                                onChange={(e) =>
-                                                    setTreinadorId(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className={inputClass}
-                                            >
-                                                <option value="">
-                                                    Seleciona treinador
-                                                </option>
-                                                {treinadores.map((t) => (
-                                                    <option
-                                                        key={t.id}
-                                                        value={t.id}
-                                                    >
-                                                        {t.name} — {t.email}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )}
-                                    </div>
-                                )}
-
-                                {treinadorMode === "fake" && (
-                                    <div className="space-y-1">
-                                        <input
-                                            type="text"
-                                            value={treinadorNomeFake}
-                                            onChange={(e) =>
-                                                setTreinadorNomeFake(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Nome do treinador"
-                                            className={inputClass}
-                                        />
-                                        <input
-                                            type="email"
-                                            value={treinadorEmailFake}
-                                            onChange={(e) =>
-                                                setTreinadorEmailFake(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Email do treinador (opcional)"
-                                            className={inputClass}
-                                        />
-                                        <p className="text-[10px] text-gray-400">
-                                            Se o email pertencer a um treinador
-                                            registado, será enviado um convite
-                                            de vinculação. Caso contrário, o
-                                            administrador será notificado.
+                                {treinadores.length === 0 ? (
+                                    <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                        <p className="text-xs text-amber-400 font-medium">
+                                            ⚠️ Nenhum treinador disponível.
+                                        </p>
+                                        <p className="text-xs text-amber-400/80 mt-1">
+                                            Adicione primeiro um treinador na
+                                            página <strong>Staff</strong> antes
+                                            de criar uma equipa.
                                         </p>
                                     </div>
+                                ) : (
+                                    <select
+                                        value={treinadorId}
+                                        onChange={(e) =>
+                                            setTreinadorId(e.target.value)
+                                        }
+                                        className={inputClass}
+                                    >
+                                        <option value="">
+                                            Seleciona treinador
+                                        </option>
+                                        {treinadores.map((t) => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.name} — {t.email}
+                                            </option>
+                                        ))}
+                                    </select>
                                 )}
                             </div>
 
@@ -426,252 +254,27 @@ export default function NovaEquipaModal({
                                     </span>
                                 </div>
 
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setAdjuntoMode(
-                                                adjuntoMode === "real"
-                                                    ? "none"
-                                                    : "real",
-                                            )
+                                {treinadores.length === 0 ? (
+                                    <p className="text-xs text-gray-400 py-2">
+                                        Nenhum treinador disponível.
+                                    </p>
+                                ) : (
+                                    <select
+                                        value={adjuntoId}
+                                        onChange={(e) =>
+                                            setAdjuntoId(e.target.value)
                                         }
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                                            adjuntoMode === "real"
-                                                ? "bg-blue-600 text-white border-blue-600"
-                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-blue-500"
-                                        }`}
+                                        className={inputClass}
                                     >
-                                        Existente
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setAdjuntoMode(
-                                                adjuntoMode === "fake"
-                                                    ? "none"
-                                                    : "fake",
-                                            )
-                                        }
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                                            adjuntoMode === "fake"
-                                                ? "bg-blue-600 text-white border-blue-600"
-                                                : "text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-blue-500"
-                                        }`}
-                                    >
-                                        Novo (nome)
-                                    </button>
-                                </div>
-
-                                {adjuntoMode === "real" && (
-                                    <div className="space-y-1">
-                                        {treinadores.length === 0 ? (
-                                            <p className="text-xs text-gray-400 py-2">
-                                                Nenhum treinador registado na
-                                                organização.
-                                            </p>
-                                        ) : (
-                                            <select
-                                                value={adjuntoId}
-                                                onChange={(e) =>
-                                                    setAdjuntoId(e.target.value)
-                                                }
-                                                className={inputClass}
-                                            >
-                                                <option value="">
-                                                    Seleciona treinador adjunto
-                                                </option>
-                                                {treinadores
-                                                    .filter(
-                                                        (t) =>
-                                                            t.id !==
-                                                            treinadorId,
-                                                    )
-                                                    .map((t) => (
-                                                        <option
-                                                            key={t.id}
-                                                            value={t.id}
-                                                        >
-                                                            {t.name} — {t.email}
-                                                        </option>
-                                                    ))}
-                                            </select>
-                                        )}
-                                    </div>
-                                )}
-
-                                {adjuntoMode === "fake" && (
-                                    <div className="space-y-1">
-                                        <input
-                                            type="text"
-                                            value={adjuntoNomeFake}
-                                            onChange={(e) =>
-                                                setAdjuntoNomeFake(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Nome do treinador adjunto"
-                                            className={inputClass}
-                                        />
-                                        <input
-                                            type="email"
-                                            value={adjuntoEmailFake}
-                                            onChange={(e) =>
-                                                setAdjuntoEmailFake(
-                                                    e.target.value,
-                                                )
-                                            }
-                                            placeholder="Email do treinador adjunto (opcional)"
-                                            className={inputClass}
-                                        />
-                                        <p className="text-[10px] text-gray-400">
-                                            Se o email pertencer a um treinador
-                                            registado, será enviado um convite
-                                            de vinculação. Caso contrário, o
-                                            administrador será notificado.
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* === Atletas === */}
-                            <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
-                                <div className="flex items-center gap-2">
-                                    <Users
-                                        size={16}
-                                        className="text-cyan-400"
-                                    />
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                        Atletas
-                                    </span>
-                                    <span className="text-xs text-gray-400">
-                                        (opcional)
-                                    </span>
-                                </div>
-
-                                {/* Lista de atletas já adicionados */}
-                                {atletas.length > 0 && (
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                                        {atletas.map((a, i) => (
-                                            <div
-                                                key={i}
-                                                className="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <span className="font-medium text-gray-900 dark:text-white truncate">
-                                                        {a.nome}
-                                                    </span>
-                                                    {a.posicao && (
-                                                        <span className="text-xs text-gray-400 shrink-0">
-                                                            {a.posicao}
-                                                        </span>
-                                                    )}
-                                                    {a.numero_camisola && (
-                                                        <span className="text-xs text-cyan-400 shrink-0">
-                                                            #{a.numero_camisola}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        removeAtleta(i)
-                                                    }
-                                                    className="p-1 text-gray-400 hover:text-red-400 transition-colors shrink-0"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Form inline para adicionar atleta */}
-                                <div className="flex gap-2 items-end">
-                                    <div className="flex-1 space-y-1">
-                                        <label className={labelClass}>
-                                            Nome
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={novoAtleta.nome}
-                                            onChange={(e) =>
-                                                setNovoAtleta((p) => ({
-                                                    ...p,
-                                                    nome: e.target.value,
-                                                }))
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                    addAtleta();
-                                                }
-                                            }}
-                                            placeholder="Nome do atleta"
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                    <div className="w-28 space-y-1">
-                                        <label className={labelClass}>
-                                            Posição
-                                        </label>
-                                        <select
-                                            value={novoAtleta.posicao}
-                                            onChange={(e) =>
-                                                setNovoAtleta((p) => ({
-                                                    ...p,
-                                                    posicao: e.target.value,
-                                                }))
-                                            }
-                                            className={inputClass}
-                                        >
-                                            <option value="">—</option>
-                                            {POSICOES.map((p) => (
-                                                <option key={p} value={p}>
-                                                    {p}
+                                        <option value="">Nenhum</option>
+                                        {treinadores
+                                            .filter((t) => t.id !== treinadorId)
+                                            .map((t) => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.name} — {t.email}
                                                 </option>
                                             ))}
-                                        </select>
-                                    </div>
-                                    <div className="w-16 space-y-1">
-                                        <label className={labelClass}>Nº</label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max="99"
-                                            value={novoAtleta.numero_camisola}
-                                            onChange={(e) =>
-                                                setNovoAtleta((p) => ({
-                                                    ...p,
-                                                    numero_camisola:
-                                                        e.target.value,
-                                                }))
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                    addAtleta();
-                                                }
-                                            }}
-                                            placeholder="—"
-                                            className={inputClass}
-                                        />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={addAtleta}
-                                        disabled={!novoAtleta.nome.trim()}
-                                        className="p-2 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors shrink-0"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
-                                </div>
-
-                                {atletas.length > 0 && (
-                                    <p className="text-xs text-gray-400">
-                                        {atletas.length} atleta(s) serão
-                                        adicionados
-                                    </p>
+                                    </select>
                                 )}
                             </div>
 

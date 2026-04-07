@@ -4,7 +4,10 @@ import Staff, { type StaffMembro } from "./staff";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
-async function fetchStaffData(): Promise<{ hasClub: boolean; staff: StaffMembro[] } | null> {
+async function fetchStaffData(): Promise<{
+    hasClub: boolean;
+    staff: StaffMembro[];
+} | null> {
     const { userId } = await auth();
     if (!userId) return null;
 
@@ -20,6 +23,7 @@ async function fetchStaffData(): Promise<{ hasClub: boolean; staff: StaffMembro[
         SELECT
             s.id, s.nome, s.funcao,
             s.equipa_id, e.nome AS equipa_nome, e.escalao AS equipa_escalao,
+            s.user_id,
             u.email AS user_email,
             s.created_at::text
         FROM staff s

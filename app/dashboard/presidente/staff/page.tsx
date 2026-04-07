@@ -1,5 +1,6 @@
 import { fetchStaff, fetchEquipas, fetchUsersForStaff } from "@/app/lib/data";
 import { AdicionarMembroModal } from "./_components/AdicionarMembroModal.client";
+import { AdicionarTreinadorModal } from "./_components/AdicionarTreinadorModal.client";
 import { EditarMembroModal } from "./_components/EditarMembroModal.client";
 import { RemoverMembroModal } from "./_components/RemoverMembroModal.client";
 
@@ -36,6 +37,7 @@ type StaffRow = {
     equipa_escalao: string | null;
     user_id: string | null;
     user_email: string | null;
+    estado: string;
     created_at: string;
 };
 
@@ -96,10 +98,10 @@ export default async function StaffPage() {
                             : "membros registados"}
                     </p>
                 </div>
-                <AdicionarMembroModal
-                    equipas={equipasProps}
-                    users={usersProps}
-                />
+                <div className="flex items-center gap-3">
+                    <AdicionarTreinadorModal />
+                    <AdicionarMembroModal equipas={equipasProps} />
+                </div>
             </div>
 
             {/* Cards resumo */}
@@ -155,6 +157,7 @@ export default async function StaffPage() {
                             <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
                                 <th className="text-left px-6 py-4">Nome</th>
                                 <th className="text-left px-6 py-4">Função</th>
+                                <th className="text-left px-6 py-4">Estado</th>
                                 <th className="text-left px-6 py-4">Equipa</th>
                                 <th className="text-left px-6 py-4">Entrada</th>
                                 <th className="text-left px-6 py-4"></th>
@@ -178,6 +181,11 @@ export default async function StaffPage() {
                                             <div>
                                                 <p className="font-semibold text-gray-900 dark:text-white">
                                                     {s.nome}
+                                                    {!s.user_id && (
+                                                        <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                            🤖 Fictício
+                                                        </span>
+                                                    )}
                                                 </p>
                                                 {s.user_email && (
                                                     <p className="text-xs text-gray-400">
@@ -192,6 +200,19 @@ export default async function StaffPage() {
                                             className={`px-2.5 py-1 rounded-full text-xs font-medium ${getFuncaoColor(s.funcao)}`}
                                         >
                                             {s.funcao}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span
+                                            className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                                s.estado === "ativo"
+                                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                    : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                            }`}
+                                        >
+                                            {s.estado === "ativo"
+                                                ? "Ativo"
+                                                : "Pendente"}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">

@@ -205,35 +205,6 @@ export default function AdicionarAtletaModal({
                                 </select>
                             </div>
 
-                            {/* Federado */}
-                            <div className="flex items-center gap-3 py-1">
-                                <input
-                                    id="federado"
-                                    name="federado"
-                                    type="checkbox"
-                                    className="w-4 h-4 rounded accent-blue-600"
-                                />
-                                <label
-                                    htmlFor="federado"
-                                    className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                                >
-                                    Atleta Federado
-                                </label>
-                            </div>
-
-                            {/* Nº Federado */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Nº Federado
-                                </label>
-                                <input
-                                    name="numero_federado"
-                                    type="text"
-                                    placeholder="Ex: FPF-12345"
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                />
-                            </div>
-
                             {/* Botões */}
                             <div className="flex justify-end gap-3 pt-2">
                                 <button

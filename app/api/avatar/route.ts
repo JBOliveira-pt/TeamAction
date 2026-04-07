@@ -15,6 +15,10 @@ export async function POST(request: Request) {
         );
     }
 
+    // Check if the responsável is uploading on behalf of a minor
+    const url = new URL(request.url);
+    const targetUserId = url.searchParams.get("targetUserId");
+
     try {
         const formData = await request.formData();
         const file = formData.get("avatar") as File | null;
@@ -40,6 +44,74 @@ export async function POST(request: Request) {
             );
         }
 
+        // ── Responsável uploading avatar for the minor ──
+        if (targetUserId) {
+            // Verify caller is a responsável
+            const [caller] = await sql<
+                { id: string; email: string; account_type: string }[]
+            >`
+                SELECT id, email, account_type FROM users
+                WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+            `;
+            if (!caller || caller.account_type !== "responsavel") {
+                return NextResponse.json(
+                    { error: "Sem permissão." },
+                    { status: 403 },
+                );
+            }
+
+            // Verify the target is a minor linked to this responsável
+            const [minor] = await sql<
+                { user_id: string; encarregado_educacao: string | null }[]
+            >`
+                SELECT user_id, encarregado_educacao FROM atletas
+                WHERE user_id = ${targetUserId}
+                  AND menor_idade = true
+                  AND LOWER(encarregado_educacao) = LOWER(${caller.email})
+                LIMIT 1
+            `;
+            if (!minor) {
+                return NextResponse.json(
+                    { error: "Atleta menor não encontrado ou não vinculado." },
+                    { status: 403 },
+                );
+            }
+
+            // Get current image to delete old one
+            const [targetUser] = await sql<
+                { id: string; image_url: string | null }[]
+            >`
+                SELECT id, image_url FROM users WHERE id = ${targetUserId} LIMIT 1
+            `;
+            if (!targetUser) {
+                return NextResponse.json(
+                    { error: "Utilizador não encontrado." },
+                    { status: 404 },
+                );
+            }
+
+            if (
+                targetUser.image_url &&
+                !targetUser.image_url.includes("img.clerk.com")
+            ) {
+                try {
+                    await deleteImageFromR2(targetUser.image_url);
+                } catch {
+                    // Ignore deletion errors
+                }
+            }
+
+            const imageUrl = await uploadImageToR2(file, "user", targetUser.id);
+            await sql`
+                UPDATE users SET image_url = ${imageUrl}, updated_at = NOW()
+                WHERE id = ${targetUserId}
+            `;
+
+            return NextResponse.json({ imageUrl });
+        }
+
+        // ── Normal self-upload flow ──
+
         // Fetch current user to get existing image_url
         const [user] = await sql<{ id: string; image_url: string | null }[]>`
             SELECT id, image_url FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
@@ -53,7 +125,10 @@ export async function POST(request: Request) {
 
         // Verificar se é atleta menor de idade
         const [atletaRow] = await sql<
-            { menor_idade: boolean | null; encarregado_educacao: string | null }[]
+            {
+                menor_idade: boolean | null;
+                encarregado_educacao: string | null;
+            }[]
         >`
             SELECT menor_idade, encarregado_educacao FROM atletas WHERE user_id = ${user.id} LIMIT 1
         `.catch(() => [{ menor_idade: null, encarregado_educacao: null }]);
@@ -61,7 +136,9 @@ export async function POST(request: Request) {
         if (atletaRow?.menor_idade === true) {
             if (!atletaRow.encarregado_educacao) {
                 return NextResponse.json(
-                    { error: "Não é possível alterar o avatar sem um responsável associado." },
+                    {
+                        error: "Não é possível alterar o avatar sem um responsável associado.",
+                    },
                     { status: 403 },
                 );
             }
@@ -79,7 +156,8 @@ export async function POST(request: Request) {
             const merged = {
                 ...(current?.dados_pendentes ?? {}),
                 users: {
-                    ...((current?.dados_pendentes as Record<string, unknown>)?.users as Record<string, unknown> ?? {}),
+                    ...(((current?.dados_pendentes as Record<string, unknown>)
+                        ?.users as Record<string, unknown>) ?? {}),
                     image_url: imageUrl,
                 },
                 data_pedido: new Date().toISOString(),
@@ -112,7 +190,10 @@ export async function POST(request: Request) {
                 `.catch(() => {});
             }
 
-            return NextResponse.json({ imageUrl: user.image_url, pendente: true });
+            return NextResponse.json({
+                imageUrl: user.image_url,
+                pendente: true,
+            });
         }
 
         // Adulto — salvar directamente

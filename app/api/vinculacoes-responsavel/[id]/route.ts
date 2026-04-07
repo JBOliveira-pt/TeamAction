@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
+import { sendResponsibleInviteEmail } from "@/app/lib/send-responsible-invite";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -22,7 +23,10 @@ export async function PUT(
     if (!me) return new Response("Utilizador não encontrado.", { status: 404 });
 
     const { id } = await params;
-    const body = (await req.json()) as { estado: "aceite" | "recusado" };
+    const body = (await req.json()) as {
+        estado: "aceite" | "recusado";
+        novoEmail?: string;
+    };
 
     if (!["aceite", "recusado"].includes(body.estado))
         return new Response("Estado inválido.", { status: 400 });
@@ -50,6 +54,20 @@ export async function PUT(
         return new Response("Pedido já respondido.", { status: 409 });
 
     if (body.estado === "recusado") {
+        // Novo email é OBRIGATÓRIO ao recusar
+        const novoEmail = body.novoEmail?.trim().toLowerCase();
+        if (!novoEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(novoEmail))
+            return new Response(
+                "É obrigatório indicar um novo e-mail de responsável válido.",
+                { status: 400 },
+            );
+
+        if (novoEmail === pedido.alvo_email.toLowerCase())
+            return new Response(
+                "O novo e-mail deve ser diferente do responsável recusado.",
+                { status: 400 },
+            );
+
         // Atualizar pedido para recusado
         await sql`
             UPDATE atleta_relacoes_pendentes
@@ -57,36 +75,56 @@ export async function PUT(
             WHERE id = ${id}
         `;
 
-        // R5: Perfil do menor fica suspenso
+        // Atualizar encarregado_educacao com o novo email
         await sql`
             UPDATE atletas
-            SET estado = 'Suspenso', updated_at = NOW()
+            SET encarregado_educacao = ${novoEmail}, updated_at = NOW()
             WHERE user_id = ${me.id}
         `.catch(() => {});
 
-        // Limpar encarregado_educacao
+        // Criar nova relação pendente para o novo responsável
         await sql`
-            UPDATE atletas
-            SET encarregado_educacao = NULL, updated_at = NOW()
-            WHERE user_id = ${me.id}
-              AND encarregado_educacao = ${pedido.alvo_email}
-        `.catch(() => {});
+            INSERT INTO atleta_relacoes_pendentes (
+                id, atleta_user_id, relation_kind, status,
+                alvo_email, created_at, updated_at
+            ) VALUES (
+                gen_random_uuid(), ${me.id}, 'responsavel', 'pendente',
+                ${novoEmail}, NOW(), NOW()
+            )
+            ON CONFLICT DO NOTHING
+        `;
 
-        // R5: Notificar admin sobre a recusa
+        // Obter nome do atleta para o email
+        const atletaRows = await sql<{ nome: string }[]>`
+            SELECT nome FROM atletas WHERE user_id = ${me.id} LIMIT 1
+        `.catch(() => []);
+        const atletaNome = atletaRows[0]?.nome ?? me.email;
+
+        // Enviar convite por email ao novo responsável
+        try {
+            await sendResponsibleInviteEmail(me.id, atletaNome, novoEmail);
+        } catch (inviteErr) {
+            console.error(
+                "[VINCULACAO] Erro ao enviar convite ao novo responsável:",
+                inviteErr,
+            );
+        }
+
+        // Notificar admin sobre a recusa + novo responsável indicado
         await sql`
             INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
             VALUES (
                 gen_random_uuid(),
                 ${me.organization_id ?? "00000000-0000-0000-0000-000000000000"},
                 'Atleta menor recusou responsável',
-                ${`O atleta "${me.email}" recusou a vinculação com o responsável "${pedido.alvo_email}". O perfil do atleta foi suspenso até que um responsável seja associado.`},
+                ${`O atleta "${me.email}" recusou a vinculação com "${pedido.alvo_email}" e indicou um novo responsável: "${novoEmail}". O perfil do atleta permanece limitado até o novo responsável criar sua conta.`},
                 'Alerta',
                 false,
                 NOW()
             )
         `.catch(() => {});
 
-        // Notificar o responsável sobre a recusa
+        // Notificar o responsável recusado
         if (pedido.alvo_responsavel_user_id) {
             await sql`
                 INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)

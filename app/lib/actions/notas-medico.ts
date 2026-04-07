@@ -98,6 +98,8 @@ export async function registarMedidaCondicaoFisica(
 
     if (isNaN(altura) || altura <= 0) return { error: "Altura inválida." };
     if (isNaN(peso) || peso <= 0) return { error: "Peso inválido." };
+    if (dataRegisto && dataRegisto > new Date().toISOString().split("T")[0])
+        return { error: "A data do registo não pode ser futura." };
 
     try {
         const [user] = await sql<{ id: string }[]>`

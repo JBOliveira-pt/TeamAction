@@ -339,6 +339,7 @@ export default function CondicaoFisicaClient({
                                     defaultValue={
                                         new Date().toISOString().split("T")[0]
                                     }
+                                    max={new Date().toISOString().split("T")[0]}
                                     required
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />

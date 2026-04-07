@@ -43,7 +43,7 @@ export default function AutorizacaoForm({ users }: { users: User[] }) {
                         required
                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
                     >
-                        <option value="">Seleciona o usuário</option>
+                        <option value="">Seleciona o utilizador</option>
                         {users.map((u) => (
                             <option key={u.id} value={u.id}>
                                 {u.name}

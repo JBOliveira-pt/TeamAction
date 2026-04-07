@@ -32,10 +32,11 @@ async function fetchData() {
                 estado: string;
                 equipa_id: string | null;
                 equipa_nome: string | null;
+                user_id: string | null;
             }[]
         >`
             SELECT a.id, a.nome, a.posicao, a.numero_camisola, a.estado,
-                   a.equipa_id, e.nome AS equipa_nome
+                   a.equipa_id, e.nome AS equipa_nome, a.user_id
             FROM atletas a
             LEFT JOIN equipas e ON e.id = a.equipa_id
             WHERE a.organization_id = ${orgId}

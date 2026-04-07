@@ -2,18 +2,21 @@ import {
     fetchPedidoPlano,
     fetchPlanoAtual,
     fetchIsMinor,
+    fetchIsResponsavel,
 } from "@/app/lib/actions/planos";
 import PlanoSelector from "./_components/PlanoSelector.client";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function DefinicoesPage() {
-    const [planoAtual, pedidoPendente, isMinor] = await Promise.all([
-        fetchPlanoAtual().catch(() => "rookie"),
-        fetchPedidoPlano().catch(() => null),
-        fetchIsMinor().catch(() => false),
-    ]);
+    const [planoAtual, pedidoPendente, isMinor, isResponsavel] =
+        await Promise.all([
+            fetchPlanoAtual().catch(() => "rookie"),
+            fetchPedidoPlano().catch(() => null),
+            fetchIsMinor().catch(() => false),
+            fetchIsResponsavel().catch(() => false),
+        ]);
 
     const planoLabels: Record<string, string> = {
         rookie: "Rookie",
@@ -29,9 +32,24 @@ export default async function DefinicoesPage() {
                     Definições
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Gere a tua conta e o teu plano na plataforma
+                    {isResponsavel
+                        ? "Gere o plano do teu educando na plataforma"
+                        : "Gere a tua conta e o teu plano na plataforma"}
                 </p>
             </div>
+
+            {isResponsavel && (
+                <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 p-4 flex items-start gap-3">
+                    <Info
+                        size={18}
+                        className="text-blue-500 mt-0.5 flex-shrink-0"
+                    />
+                    <p className="text-sm text-blue-700 dark:text-blue-400">
+                        Enquanto responsável, o plano que selecionares será
+                        partilhado com o teu educando.
+                    </p>
+                </div>
+            )}
 
             {isMinor ? (
                 <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 p-6 space-y-3">

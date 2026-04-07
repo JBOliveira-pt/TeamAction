@@ -12,10 +12,10 @@ export default async function DadosEducandoPage() {
         <div className="p-6 space-y-6 max-w-4xl mx-auto">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    Dados do Educando
+                    Dados do Atleta
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Gerir dados cadastrais e plano do atleta menor
+                    Gerir dados cadastrais e desportivos do atleta menor
                 </p>
             </div>
 

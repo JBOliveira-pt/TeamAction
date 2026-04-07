@@ -1,4 +1,9 @@
-import { sql, getOrganizationId, maybeCreateMinorAthleteTemporaryProfileNotice } from "./_shared";
+import {
+    sql,
+    getOrganizationId,
+    maybeCreateMinorAthleteTemporaryProfileNotice,
+    maybeCreateResponsavelWelcomeNotice,
+} from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { ensureRecipientUserIdColumn } from "../notification-schema";
 
@@ -40,17 +45,24 @@ export async function fetchAutorizacoes() {
         const data = await sql<
             {
                 id: string;
-                autorizado_a: string;
-                autorizado_por: string;
+                solicitante_nome: string | null;
+                solicitante_tipo: string | null;
                 tipo_acao: string;
                 notas: string | null;
+                status: string;
                 created_at: string;
+                resolved_at: string | null;
             }[]
         >`
-            SELECT id, autorizado_a, autorizado_por, tipo_acao, notas, created_at
-            FROM autorizacoes_log
-            WHERE organization_id = ${organizationId}
-            ORDER BY created_at DESC
+            SELECT al.id, al.tipo_acao, al.notas, al.status, al.created_at, al.resolved_at,
+                   u.name         AS solicitante_nome,
+                   u.account_type AS solicitante_tipo
+            FROM autorizacoes_log al
+            LEFT JOIN users u ON u.id = al.autorizado_a
+            WHERE al.organization_id = ${organizationId}
+            ORDER BY
+                CASE WHEN al.status = 'pendente' THEN 0 ELSE 1 END,
+                al.created_at DESC
         `;
 
         return data;
@@ -122,6 +134,18 @@ export async function fetchNotificacoes() {
             } catch (error) {
                 console.error(
                     "Failed to create temporary-profile notice for minor athlete:",
+                    error,
+                );
+            }
+
+            try {
+                await maybeCreateResponsavelWelcomeNotice({
+                    organizationId,
+                    dbUserId,
+                });
+            } catch (error) {
+                console.error(
+                    "Failed to create welcome notice for responsável:",
                     error,
                 );
             }

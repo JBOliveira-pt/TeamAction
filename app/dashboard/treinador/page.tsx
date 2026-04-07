@@ -92,10 +92,16 @@ async function fetchDashboardData() {
             : Promise.resolve([{ total: 0, presencas: 0 }]),
     ]).catch(() => [null, null, null, null, null]);
 
-    // Staff da equipa do treinador
     const staffResult = equipaId
-        ? await sql<{ id: string; nome: string; funcao: string }[]>`
-            SELECT id, nome, funcao FROM staff
+        ? await sql<
+              {
+                  id: string;
+                  nome: string;
+                  funcao: string;
+                  user_id: string | null;
+              }[]
+          >`
+            SELECT id, nome, funcao, user_id FROM staff
             WHERE equipa_id = ${equipaId}
             ORDER BY nome ASC
         `.catch(() => [])

@@ -6,6 +6,7 @@ export type StaffMembro = {
     id: string;
     nome: string;
     funcao: string;
+    user_id?: string | null;
 };
 
 export default function StaffPanel({ staff }: { staff: StaffMembro[] }) {
@@ -30,13 +31,21 @@ export default function StaffPanel({ staff }: { staff: StaffMembro[] }) {
                 ) : (
                     <ul className="space-y-2">
                         {staff.map((s) => (
-                            <li key={s.id} className="flex items-center gap-2 min-w-0">
+                            <li
+                                key={s.id}
+                                className="flex items-center gap-2 min-w-0"
+                            >
                                 <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xs font-bold flex-shrink-0">
                                     {s.nome.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate whitespace-nowrap">
                                         {s.nome}
+                                        {!s.user_id && (
+                                            <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                🤖
+                                            </span>
+                                        )}
                                     </p>
                                     <p className="text-xs text-gray-400 dark:text-gray-500 truncate whitespace-nowrap">
                                         {s.funcao}

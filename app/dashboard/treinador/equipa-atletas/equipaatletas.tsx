@@ -10,6 +10,7 @@ type Atleta = {
     estado: string;
     equipa_id: string | null;
     equipa_nome: string | null;
+    user_id: string | null;
 };
 
 type AtletaResultado = {
@@ -48,139 +49,6 @@ function Toast({ msg, tipo }: { msg: string; tipo: "ok" | "erro" }) {
             className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] px-5 py-3 rounded-2xl shadow-xl font-semibold text-sm flex items-center gap-2 ${tipo === "ok" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
         >
             {tipo === "ok" ? "✓" : "✕"} {msg}
-        </div>
-    );
-}
-
-/* ── Modal Convidar por Email ── */
-function ModalConvidarEmail({ onClose }: { onClose: () => void }) {
-    const [email, setEmail] = useState("");
-    const [verificando, setVerificando] = useState(false);
-    const [resultado, setResultado] = useState<{
-        existe: boolean;
-        nome?: string;
-    } | null>(null);
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        setResultado(null);
-        if (timer.current) clearTimeout(timer.current);
-        const emailTrimmed = email.trim().toLowerCase();
-        if (!emailTrimmed.includes("@") || emailTrimmed.length < 5) return;
-        timer.current = setTimeout(async () => {
-            setVerificando(true);
-            try {
-                const res = await fetch(
-                    `/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`,
-                );
-                if (res.ok) setResultado(await res.json());
-            } finally {
-                setVerificando(false);
-            }
-        }, 400);
-        return () => {
-            if (timer.current) clearTimeout(timer.current);
-        };
-    }, [email]);
-
-    return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-                    <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base">
-                            Convidar por Email
-                        </h3>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                            Verifica se o atleta já está registado na plataforma
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-                </div>
-                <div className="px-5 py-5 flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                            Email do atleta
-                        </label>
-                        <input
-                            autoFocus
-                            type="email"
-                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            placeholder="exemplo@email.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                        />
-                    </div>
-
-                    {verificando && (
-                        <p className="text-xs text-gray-400 text-center">
-                            A verificar...
-                        </p>
-                    )}
-
-                    {!verificando && resultado?.existe && (
-                        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 p-4 flex flex-col gap-2">
-                            <p className="text-sm font-bold text-yellow-800 dark:text-yellow-300">
-                                ⚠️ Atleta já registado na plataforma
-                            </p>
-                            {resultado.nome && (
-                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                    Encontrado:{" "}
-                                    <span className="font-semibold">
-                                        {resultado.nome}
-                                    </span>
-                                </p>
-                            )}
-                            <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                Este atleta já tem conta na plataforma. Para o
-                                adicionar à equipa, utiliza a opção{" "}
-                                <strong>&quot;Pesquisar Atleta&quot;</strong> e
-                                envia um convite de equipa.
-                            </p>
-                        </div>
-                    )}
-
-                    {!verificando && resultado && !resultado.existe && (
-                        <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 flex flex-col gap-2">
-                            <p className="text-sm font-bold text-blue-800 dark:text-blue-300">
-                                ℹ️ Atleta não encontrado na plataforma
-                            </p>
-                            <p className="text-xs text-blue-700 dark:text-blue-400">
-                                Não existe nenhum utilizador com este e-mail
-                                registado. Para adicionar um atleta externo,
-                                contacta o Presidente do clube para criar o
-                                perfil ou aguarda que o atleta se registe na
-                                plataforma.
-                            </p>
-                        </div>
-                    )}
-                </div>
-                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700">
-                    <button
-                        onClick={onClose}
-                        className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                    >
-                        Fechar
-                    </button>
-                </div>
-            </div>
         </div>
     );
 }
@@ -480,7 +348,7 @@ function ModalAdicionarAtleta({
                 <div className="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
                     {/* Campo de pesquisa */}
                     <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
                             Nome do atleta
                         </label>
                         <input
@@ -559,7 +427,7 @@ function ModalAdicionarAtleta({
 
                             {equipas.length > 0 && (
                                 <div className="flex flex-col gap-1">
-                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
                                         Equipa de destino
                                     </label>
                                     <select
@@ -614,7 +482,14 @@ function ModalAdicionarAtleta({
     );
 }
 
-/* ── Modal Criar Atleta (treinador independente) ── */
+/* ── Modal Criar Atleta (wizard multi-step) ── */
+type WizardStep =
+    | "choice"
+    | "fake-form"
+    | "email-check"
+    | "invite-internal"
+    | "invite-external";
+
 function ModalCriarAtleta({
     equipas,
     onClose,
@@ -624,43 +499,64 @@ function ModalCriarAtleta({
     onClose: () => void;
     onCriado: (nome: string, suspenso: boolean) => void;
 }) {
+    const [step, setStep] = useState<WizardStep>("choice");
+
+    // Fake athlete form
     const [nome, setNome] = useState("");
     const [posicao, setPosicao] = useState("");
     const [numeroCamisola, setNumeroCamisola] = useState("");
     const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
+    const [maoDominante, setMaoDominante] = useState("");
+
+    // Real athlete email check
     const [email, setEmail] = useState("");
-    const [avisoEmail, setAvisoEmail] = useState<{
+    const [verificando, setVerificando] = useState(false);
+    const [emailResult, setEmailResult] = useState<{
         existe: boolean;
         nome?: string;
-        temClube?: boolean;
+        account_type?: string | null;
+        menor_idade?: boolean;
+        responsavel_nome?: string | null;
+        responsavel_email?: string | null;
+        responsavel_ativo?: boolean;
     } | null>(null);
-    const [verificandoEmail, setVerificandoEmail] = useState(false);
+
+    // Shared
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
-    const timerEmail = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Auto-verify email
     useEffect(() => {
-        setAvisoEmail(null);
-        if (timerEmail.current) clearTimeout(timerEmail.current);
+        if (step !== "email-check") return;
+        setEmailResult(null);
+        if (timer.current) clearTimeout(timer.current);
         const emailTrimmed = email.trim().toLowerCase();
         if (!emailTrimmed.includes("@") || emailTrimmed.length < 5) return;
-        timerEmail.current = setTimeout(async () => {
-            setVerificandoEmail(true);
+        timer.current = setTimeout(async () => {
+            setVerificando(true);
             try {
                 const res = await fetch(
                     `/api/atletas/verificar-email?email=${encodeURIComponent(emailTrimmed)}`,
                 );
-                if (res.ok) setAvisoEmail(await res.json());
+                if (res.ok) setEmailResult(await res.json());
             } finally {
-                setVerificandoEmail(false);
+                setVerificando(false);
             }
         }, 400);
         return () => {
-            if (timerEmail.current) clearTimeout(timerEmail.current);
+            if (timer.current) clearTimeout(timer.current);
         };
-    }, [email]);
+    }, [email, step]);
 
-    const criar = async () => {
+    // Pre-fill name from verification when going to invite-internal
+    useEffect(() => {
+        if (step === "invite-internal" && emailResult?.nome && !nome) {
+            setNome(emailResult.nome);
+        }
+    }, [step, emailResult, nome]);
+
+    const criarAtleta = async (comEmail: boolean) => {
         if (!nome.trim()) {
             setErro("O nome é obrigatório.");
             return;
@@ -679,7 +575,8 @@ function ModalCriarAtleta({
                     : null,
                 equipa_id: equipaId || null,
                 equipa_nome: equipa?.nome ?? null,
-                email: email.trim() || null,
+                email: comEmail ? email.trim() : null,
+                mao_dominante: maoDominante || null,
             }),
         });
         setEnviando(false);
@@ -692,158 +589,744 @@ function ModalCriarAtleta({
         }
     };
 
+    const closeIcon = (
+        <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+        >
+            <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                />
+            </svg>
+        </button>
+    );
+
+    const backButton = (target: WizardStep) => (
+        <button
+            onClick={() => {
+                setErro("");
+                setStep(target);
+            }}
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+        >
+            ← Voltar
+        </button>
+    );
+
+    /* ── Step indicator ── */
+    const stepNumber =
+        step === "choice"
+            ? 1
+            : step === "fake-form" || step === "email-check"
+              ? 2
+              : 3;
+    const totalSteps = step === "fake-form" ? 2 : step === "choice" ? 1 : 3;
+
+    const stepIndicator = (
+        <div className="flex items-center gap-1.5 px-5 py-2 border-b border-gray-100 dark:border-gray-700">
+            {Array.from({ length: totalSteps > 1 ? totalSteps : 3 }).map(
+                (_, i) => (
+                    <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-colors ${i < stepNumber ? "bg-blue-500" : "bg-gray-200 dark:bg-gray-700"}`}
+                    />
+                ),
+            )}
+            <span className="text-[10px] text-gray-400 ml-2 shrink-0">
+                {stepNumber}/{totalSteps > 1 ? totalSteps : 3}
+            </span>
+        </div>
+    );
+
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-                    <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base">
-                            Criar Atleta
-                        </h3>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                            Adicionar novo atleta à tua equipa
-                        </p>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-                </div>
-                <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                            Nome *
-                        </label>
-                        <input
-                            autoFocus
-                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            placeholder="Nome completo"
-                            value={nome}
-                            onChange={(e) => setNome(e.target.value)}
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                Posição
-                            </label>
-                            <input
-                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                placeholder="Ex: Avançado"
-                                value={posicao}
-                                onChange={(e) => setPosicao(e.target.value)}
-                            />
+                {/* ═══════ STEP 1: CHOICE ═══════ */}
+                {step === "choice" && (
+                    <>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                                    Adicionar Atleta
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Que tipo de atleta queres adicionar?
+                                </p>
+                            </div>
+                            {closeIcon}
                         </div>
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                Nº Camisola
-                            </label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="99"
-                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                placeholder="—"
-                                value={numeroCamisola}
-                                onChange={(e) =>
-                                    setNumeroCamisola(e.target.value)
-                                }
-                            />
-                        </div>
-                    </div>
-                    {equipas.length > 0 && (
-                        <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                                Equipa
-                            </label>
-                            <select
-                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                value={equipaId}
-                                onChange={(e) => setEquipaId(e.target.value)}
+                        {stepIndicator}
+                        <div className="px-5 py-6 flex flex-col gap-3">
+                            <button
+                                onClick={() => setStep("email-check")}
+                                className="w-full p-4 rounded-xl border-2 border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500 transition-all text-left group"
                             >
-                                <option value="">Sem equipa</option>
-                                {equipas.map((e) => (
-                                    <option key={e.id} value={e.id}>
-                                        {e.nome}
-                                    </option>
-                                ))}
-                            </select>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">👤</span>
+                                    <div>
+                                        <p className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                            Atleta Real
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                            Verificar se já existe na plataforma
+                                            e enviar convite
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setStep("fake-form")}
+                                className="w-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 hover:border-gray-400 dark:hover:border-gray-500 transition-all text-left group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl">🤖</span>
+                                    <div>
+                                        <p className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+                                            Atleta Fictício
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                            Criar um perfil sem conta real
+                                            (treinos, testes, etc.)
+                                        </p>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                            Email (opcional)
-                        </label>
-                        <input
-                            type="email"
-                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                            placeholder="Para vincular a conta existente"
-                            value={email}
-                            onChange={(e) => {
-                                setEmail(e.target.value);
-                                setErro("");
-                            }}
-                        />
-                        {verificandoEmail && (
-                            <p className="text-xs text-gray-400">
-                                A verificar...
-                            </p>
-                        )}
-                    </div>
+                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700"></div>
+                    </>
+                )}
 
-                    {/* Aviso: email já existe na plataforma e tem clube */}
-                    {avisoEmail?.existe && (
-                        <div className="rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 p-3 flex flex-col gap-1">
-                            <p className="text-xs font-bold text-yellow-800 dark:text-yellow-300">
-                                ⚠️ Atleta já registado na plataforma
-                            </p>
-                            {avisoEmail.nome && (
-                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                    Conta encontrada:{" "}
-                                    <span className="font-semibold">
-                                        {avisoEmail.nome}
-                                    </span>
+                {/* ═══════ STEP 2A: FAKE FORM ═══════ */}
+                {step === "fake-form" && (
+                    <>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                                    Atleta Fictício
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Perfil sem vínculo a conta real
+                                </p>
+                            </div>
+                            {closeIcon}
+                        </div>
+                        {stepIndicator}
+                        <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Nome Completo{" "}
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    autoFocus
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    placeholder="Ex: João Silva"
+                                    value={nome}
+                                    onChange={(e) => setNome(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Posição
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        value={posicao}
+                                        onChange={(e) =>
+                                            setPosicao(e.target.value)
+                                        }
+                                    >
+                                        <option value="">Seleciona</option>
+                                        <option value="Guarda-Redes">Guarda-Redes</option>
+                                        <option value="Defesa Central">Defesa Central</option>
+                                        <option value="Defesa Esquerdo">Defesa Esquerdo</option>
+                                        <option value="Defesa Direito">Defesa Direito</option>
+                                        <option value="Médio Defensivo">Médio Defensivo</option>
+                                        <option value="Médio Centro">Médio Centro</option>
+                                        <option value="Médio Ofensivo">Médio Ofensivo</option>
+                                        <option value="Extremo Esquerdo">Extremo Esquerdo</option>
+                                        <option value="Extremo Direito">Extremo Direito</option>
+                                        <option value="Avançado Centro">Avançado Centro</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Nº Camisola
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="99"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder="—"
+                                        value={numeroCamisola}
+                                        onChange={(e) =>
+                                            setNumeroCamisola(e.target.value)
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            {equipas.length > 0 && (
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Equipa
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        value={equipaId}
+                                        onChange={(e) =>
+                                            setEquipaId(e.target.value)
+                                        }
+                                    >
+                                        <option value="">Sem equipa</option>
+                                        {equipas.map((e) => (
+                                            <option key={e.id} value={e.id}>
+                                                {e.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Mão Dominante
+                                </label>
+                                <select
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    value={maoDominante}
+                                    onChange={(e) =>
+                                        setMaoDominante(e.target.value)
+                                    }
+                                >
+                                    <option value="">Seleciona</option>
+                                    <option value="direita">Direita</option>
+                                    <option value="esquerda">Esquerda</option>
+                                    <option value="ambidestro">
+                                        Ambidestro
+                                    </option>
+                                </select>
+                            </div>
+                            <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 p-3">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    🤖 Este atleta será criado sem e-mail e sem
+                                    vínculo a nenhum perfil real da plataforma.
+                                </p>
+                            </div>
+                            {erro && (
+                                <p className="text-xs text-red-500">{erro}</p>
+                            )}
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                            {backButton("choice")}
+                            <button
+                                onClick={() => criarAtleta(false)}
+                                disabled={!nome.trim() || enviando}
+                                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow transition-all"
+                            >
+                                {enviando
+                                    ? "A criar..."
+                                    : "Criar Atleta Fictício"}
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                {/* ═══════ STEP 2B: EMAIL CHECK ═══════ */}
+                {step === "email-check" && (
+                    <>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                                    Verificar Atleta
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Introduz o e-mail do atleta para verificar
+                                </p>
+                            </div>
+                            {closeIcon}
+                        </div>
+                        {stepIndicator}
+                        <div className="px-5 py-5 flex flex-col gap-4">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    E-mail do atleta
+                                </label>
+                                <input
+                                    autoFocus
+                                    type="email"
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    placeholder="exemplo@email.com"
+                                    value={email}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        setErro("");
+                                    }}
+                                />
+                            </div>
+                            {verificando && (
+                                <p className="text-xs text-gray-400 text-center">
+                                    A verificar...
                                 </p>
                             )}
-                            <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                                Se este atleta já estiver vinculado a um clube,
-                                o perfil ficará <strong>suspenso</strong> até o
-                                administrador resolver a situação.
-                            </p>
+                            {!verificando &&
+                                emailResult?.existe &&
+                                emailResult.account_type &&
+                                emailResult.account_type !== "atleta" && (
+                                    <div className="rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 p-4 flex flex-col gap-2">
+                                        <p className="text-sm font-bold text-red-800 dark:text-red-300">
+                                            ✕ Não é possível adicionar como
+                                            atleta
+                                        </p>
+                                        {emailResult.nome && (
+                                            <p className="text-xs text-red-700 dark:text-red-400">
+                                                Nome:{" "}
+                                                <span className="font-semibold">
+                                                    {emailResult.nome}
+                                                </span>
+                                            </p>
+                                        )}
+                                        <p className="text-xs text-red-700 dark:text-red-400">
+                                            Este utilizador está registado como{" "}
+                                            <strong className="capitalize">
+                                                {emailResult.account_type}
+                                            </strong>
+                                            . Apenas contas do tipo{" "}
+                                            <strong>Atleta</strong> podem ser
+                                            adicionadas à equipa.
+                                        </p>
+                                    </div>
+                                )}
+                            {!verificando &&
+                                emailResult?.existe &&
+                                (!emailResult.account_type ||
+                                    emailResult.account_type === "atleta") && (
+                                    <div className="flex flex-col gap-3">
+                                        <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 p-4 flex flex-col gap-2">
+                                            <p className="text-sm font-bold text-green-800 dark:text-green-300">
+                                                ✓ Atleta encontrado na
+                                                plataforma
+                                            </p>
+                                            {emailResult.nome && (
+                                                <p className="text-xs text-green-700 dark:text-green-400">
+                                                    Nome:{" "}
+                                                    <span className="font-semibold">
+                                                        {emailResult.nome}
+                                                    </span>
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-green-700 dark:text-green-400">
+                                                Podes enviar um convite interno
+                                                para se juntar à tua equipa.
+                                            </p>
+                                        </div>
+                                        {/* Menor de idade com responsável ativo */}
+                                        {emailResult.menor_idade &&
+                                            emailResult.responsavel_ativo && (
+                                                <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 p-4 flex flex-col gap-2">
+                                                    <p className="text-sm font-bold text-blue-800 dark:text-blue-300">
+                                                        👶 Atleta menor de idade
+                                                    </p>
+                                                    <p className="text-xs text-blue-700 dark:text-blue-400">
+                                                        Responsável:{" "}
+                                                        <span className="font-semibold">
+                                                            {
+                                                                emailResult.responsavel_nome
+                                                            }
+                                                        </span>
+                                                        {emailResult.responsavel_email && (
+                                                            <span className="text-blue-500 dark:text-blue-400">
+                                                                {" "}
+                                                                (
+                                                                {
+                                                                    emailResult.responsavel_email
+                                                                }
+                                                                )
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-xs text-blue-700 dark:text-blue-400">
+                                                        O convite será enviado
+                                                        ao responsável para
+                                                        aprovação antes de o
+                                                        atleta ser adicionado à
+                                                        equipa.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        {/* Menor de idade SEM responsável ativo */}
+                                        {emailResult.menor_idade &&
+                                            !emailResult.responsavel_ativo && (
+                                                <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-700 p-4 flex flex-col gap-2">
+                                                    <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
+                                                        ⚠️ Responsável não
+                                                        encontrado
+                                                    </p>
+                                                    <p className="text-xs text-orange-700 dark:text-orange-400">
+                                                        Este atleta é menor de
+                                                        idade mas ainda não tem
+                                                        um responsável com
+                                                        perfil ativo na
+                                                        plataforma.
+                                                        {emailResult.responsavel_email && (
+                                                            <span>
+                                                                {" "}
+                                                                E-mail indicado:{" "}
+                                                                <strong>
+                                                                    {
+                                                                        emailResult.responsavel_email
+                                                                    }
+                                                                </strong>
+                                                                .
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-xs text-orange-700 dark:text-orange-400">
+                                                        O pedido ficará{" "}
+                                                        <strong>
+                                                            pendente
+                                                        </strong>{" "}
+                                                        até o responsável entrar
+                                                        na plataforma e dar
+                                                        andamento.
+                                                    </p>
+                                                </div>
+                                            )}
+                                    </div>
+                                )}
+                            {!verificando &&
+                                emailResult &&
+                                !emailResult.existe && (
+                                    <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 p-4 flex flex-col gap-2">
+                                        <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                                            ⚠️ Atleta não encontrado
+                                        </p>
+                                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                                            Não existe nenhum utilizador com
+                                            este e-mail. Podes enviar um convite
+                                            externo via Administrador.
+                                        </p>
+                                    </div>
+                                )}
                         </div>
-                    )}
+                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                            {!verificando &&
+                                emailResult?.existe &&
+                                (!emailResult.account_type ||
+                                    emailResult.account_type === "atleta") && (
+                                    <button
+                                        onClick={() =>
+                                            setStep("invite-internal")
+                                        }
+                                        className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow transition-all ${emailResult.menor_idade && !emailResult.responsavel_ativo ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}`}
+                                    >
+                                        {emailResult.menor_idade
+                                            ? emailResult.responsavel_ativo
+                                                ? "Convite via Responsável →"
+                                                : "Convite Pendente →"
+                                            : "Enviar Convite Interno →"}
+                                    </button>
+                                )}
+                            {!verificando &&
+                                emailResult &&
+                                !emailResult.existe && (
+                                    <button
+                                        onClick={() =>
+                                            setStep("invite-external")
+                                        }
+                                        className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 shadow transition-all"
+                                    >
+                                        Convite Externo →
+                                    </button>
+                                )}
+                            {backButton("choice")}
+                        </div>
+                    </>
+                )}
 
-                    {erro && <p className="text-xs text-red-500">{erro}</p>}
-                </div>
-                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
-                    <button
-                        onClick={criar}
-                        disabled={!nome.trim() || enviando}
-                        className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow transition-all"
-                    >
-                        {enviando ? "A criar..." : "Criar Atleta"}
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 transition-all"
-                    >
-                        Cancelar
-                    </button>
-                </div>
+                {/* ═══════ STEP 3A: INVITE INTERNAL ═══════ */}
+                {step === "invite-internal" && (
+                    <>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                                    Convite Interno
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Adicionar atleta e enviar convite de equipa
+                                </p>
+                            </div>
+                            {closeIcon}
+                        </div>
+                        {stepIndicator}
+                        <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
+                            <div className="rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 flex items-center gap-3">
+                                <span className="text-xl">✅</span>
+                                <div>
+                                    <p className="text-sm font-bold text-green-800 dark:text-green-300">
+                                        {emailResult?.nome ?? "Atleta"}
+                                    </p>
+                                    <p className="text-xs text-green-600 dark:text-green-400">
+                                        {email}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Nome *
+                                </label>
+                                <input
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    placeholder="Nome completo"
+                                    value={nome}
+                                    onChange={(e) => setNome(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Posição
+                                    </label>
+                                    <input
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder="Ex: Avançado"
+                                        value={posicao}
+                                        onChange={(e) =>
+                                            setPosicao(e.target.value)
+                                        }
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Nº Camisola
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="99"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder="—"
+                                        value={numeroCamisola}
+                                        onChange={(e) =>
+                                            setNumeroCamisola(e.target.value)
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            {equipas.length > 0 && (
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Equipa
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        value={equipaId}
+                                        onChange={(e) =>
+                                            setEquipaId(e.target.value)
+                                        }
+                                    >
+                                        <option value="">Sem equipa</option>
+                                        {equipas.map((e) => (
+                                            <option key={e.id} value={e.id}>
+                                                {e.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            {emailResult?.menor_idade &&
+                            emailResult.responsavel_ativo ? (
+                                <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 flex flex-col gap-1.5">
+                                    <p className="text-xs text-blue-700 dark:text-blue-400">
+                                        🔔 O convite será enviado ao responsável{" "}
+                                        <strong>
+                                            {emailResult.responsavel_nome}
+                                        </strong>{" "}
+                                        ({emailResult.responsavel_email}) para
+                                        aprovação.
+                                    </p>
+                                    <p className="text-xs text-blue-600 dark:text-blue-500">
+                                        Só após aprovação do responsável o
+                                        atleta será adicionado à equipa.
+                                    </p>
+                                </div>
+                            ) : emailResult?.menor_idade &&
+                              !emailResult?.responsavel_ativo ? (
+                                <div className="rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-3 flex flex-col gap-1.5">
+                                    <p className="text-xs text-orange-700 dark:text-orange-400">
+                                        ⏳ O pedido ficará pendente até o
+                                        responsável
+                                        {emailResult.responsavel_email
+                                            ? ` (${emailResult.responsavel_email})`
+                                            : ""}{" "}
+                                        se registar na plataforma.
+                                    </p>
+                                    <p className="text-xs text-orange-600 dark:text-orange-500">
+                                        Quando o responsável entrar, receberá o
+                                        pedido para aprovação.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3">
+                                    <p className="text-xs text-blue-700 dark:text-blue-400">
+                                        🔔 Será criado o perfil de atleta e
+                                        enviada uma notificação ao atleta para
+                                        aceitar o convite de equipa.
+                                    </p>
+                                </div>
+                            )}
+                            {erro && (
+                                <p className="text-xs text-red-500">{erro}</p>
+                            )}
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                            <button
+                                onClick={() => criarAtleta(true)}
+                                disabled={!nome.trim() || enviando}
+                                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed ${emailResult?.menor_idade && !emailResult?.responsavel_ativo ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}`}
+                            >
+                                {enviando
+                                    ? "A enviar..."
+                                    : emailResult?.menor_idade &&
+                                        emailResult?.responsavel_ativo
+                                      ? "Adicionar e Enviar ao Responsável"
+                                      : emailResult?.menor_idade &&
+                                          !emailResult?.responsavel_ativo
+                                        ? "Adicionar (Pendente de Responsável)"
+                                        : "Adicionar e Enviar Convite"}
+                            </button>
+                            {backButton("email-check")}
+                        </div>
+                    </>
+                )}
+
+                {/* ═══════ STEP 3B: INVITE EXTERNAL ═══════ */}
+                {step === "invite-external" && (
+                    <>
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                            <div>
+                                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                                    Convite Externo
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Adicionar atleta e notificar o Administrador
+                                </p>
+                            </div>
+                            {closeIcon}
+                        </div>
+                        {stepIndicator}
+                        <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
+                            <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 flex items-center gap-3">
+                                <span className="text-xl">✉️</span>
+                                <div>
+                                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                                        Email não registado
+                                    </p>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                                        {email}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Nome *
+                                </label>
+                                <input
+                                    autoFocus
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    placeholder="Nome completo do atleta"
+                                    value={nome}
+                                    onChange={(e) => setNome(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Posição
+                                    </label>
+                                    <input
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder="Ex: Avançado"
+                                        value={posicao}
+                                        onChange={(e) =>
+                                            setPosicao(e.target.value)
+                                        }
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Nº Camisola
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="99"
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        placeholder="—"
+                                        value={numeroCamisola}
+                                        onChange={(e) =>
+                                            setNumeroCamisola(e.target.value)
+                                        }
+                                    />
+                                </div>
+                            </div>
+                            {equipas.length > 0 && (
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                        Equipa
+                                    </label>
+                                    <select
+                                        className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                        value={equipaId}
+                                        onChange={(e) =>
+                                            setEquipaId(e.target.value)
+                                        }
+                                    >
+                                        <option value="">Sem equipa</option>
+                                        {equipas.map((e) => (
+                                            <option key={e.id} value={e.id}>
+                                                {e.nome}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                            <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3">
+                                <p className="text-xs text-amber-700 dark:text-amber-400">
+                                    📨 O atleta será criado e o Administrador
+                                    será notificado para enviar manualmente o
+                                    convite de adesão à plataforma (via e-mail
+                                    externo).
+                                </p>
+                            </div>
+                            {erro && (
+                                <p className="text-xs text-red-500">{erro}</p>
+                            )}
+                        </div>
+                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                            <button
+                                onClick={() => criarAtleta(true)}
+                                disabled={!nome.trim() || enviando}
+                                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed shadow transition-all"
+                            >
+                                {enviando
+                                    ? "A criar..."
+                                    : "Criar e Notificar Admin"}
+                            </button>
+                            {backButton("email-check")}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -863,7 +1346,6 @@ export default function EquipaAtletas({
     const [posicaoFiltro, setPosicaoFiltro] = useState("Todas");
     const [showAdicionar, setShowAdicionar] = useState(false);
     const [showTodos, setShowTodos] = useState(false);
-    const [showConvidarEmail, setShowConvidarEmail] = useState(false);
     const [showCriarAtleta, setShowCriarAtleta] = useState(false);
     const [atletaModal, setAtletaModal] = useState<Atleta | null>(null);
     const [convitesPendentes, setConvitesPendentes] = useState<
@@ -928,6 +1410,11 @@ export default function EquipaAtletas({
                                 <div>
                                     <h3 className="font-bold text-gray-900 dark:text-white text-base">
                                         {atletaModal.nome}
+                                        {!atletaModal.user_id && (
+                                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                🤖 Fictício
+                                            </span>
+                                        )}
                                     </h3>
                                     <p className="text-xs text-gray-400">
                                         {atletaModal.posicao ?? "—"}
@@ -984,7 +1471,7 @@ export default function EquipaAtletas({
                                         key={item.label}
                                         className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3"
                                     >
-                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                        <p className="text-[10px] font-semibold text-gray-400 tracking-wider">
                                             {item.label}
                                         </p>
                                         <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
@@ -1037,13 +1524,6 @@ export default function EquipaAtletas({
                 />
             )}
 
-            {/* Modal Convidar por Email */}
-            {showConvidarEmail && (
-                <ModalConvidarEmail
-                    onClose={() => setShowConvidarEmail(false)}
-                />
-            )}
-
             {/* Modal Criar Atleta (apenas treinadores sem clube) */}
             {showCriarAtleta && (
                 <ModalCriarAtleta
@@ -1079,9 +1559,25 @@ export default function EquipaAtletas({
                     {!temClube && (
                         <button
                             onClick={() => setShowCriarAtleta(true)}
-                            className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            ➕ Criar Atleta
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="lucide lucide-plus"
+                                aria-hidden="true"
+                            >
+                                <path d="M5 12h14"></path>
+                                <path d="M12 5v14"></path>
+                            </svg>
+                            Atleta
                         </button>
                     )}
                     {/* Treinador com clube: só pode convidar atletas do clube */}
@@ -1101,19 +1597,13 @@ export default function EquipaAtletas({
                             </button>
                         </>
                     )}
-                    <button
-                        onClick={() => setShowConvidarEmail(true)}
-                        className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
-                    >
-                        ✉️ Verificar Email
-                    </button>
                 </div>
             </div>
 
             {/* Convites pendentes */}
             {convitesPendentes.length > 0 && (
                 <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 flex flex-col gap-2">
-                    <p className="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-wide">
+                    <p className="text-xs font-bold text-yellow-700 dark:text-yellow-300 tracking-wide">
                         🕐 Convites pendentes ({convitesPendentes.length})
                     </p>
                     <div className="flex flex-col gap-1.5">
@@ -1168,7 +1658,7 @@ export default function EquipaAtletas({
                         key={s.label}
                         className={`bg-white dark:bg-gray-800 rounded-xl p-4 border ${s.border} shadow-sm flex flex-col`}
                     >
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
                             {s.label}
                         </span>
                         <span className={`text-3xl font-bold mt-1 ${s.color}`}>
@@ -1204,6 +1694,11 @@ export default function EquipaAtletas({
                                 <div className="min-w-0">
                                     <div className="font-bold text-sm text-gray-900 dark:text-white truncate">
                                         {atleta.nome}
+                                        {!atleta.user_id && (
+                                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                🤖
+                                            </span>
+                                        )}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                         {atleta.posicao ?? "—"}

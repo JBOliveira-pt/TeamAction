@@ -208,6 +208,7 @@ export type DadosEducando = {
     firstName: string;
     lastName: string;
     email: string;
+    imageUrl: string | null;
     telefone: string | null;
     morada: string | null;
     cidade: string | null;
@@ -215,6 +216,12 @@ export type DadosEducando = {
     pais: string | null;
     nif: string | null;
     dataNascimento: string | null;
+    alturaCm: number | null;
+    pesoKg: number | null;
+    maoDominante: string | null;
+    clubeNome: string | null;
+    equipaNome: string | null;
+    treinadorNome: string | null;
     planoAtual: string;
     pedidoPlanoPendente: boolean;
 };
@@ -237,6 +244,7 @@ export async function fetchDadosEducando(): Promise<DadosEducando | null> {
             id: string;
             name: string;
             email: string;
+            image_url: string | null;
             telefone: string | null;
             morada: string | null;
             cidade: string | null;
@@ -244,12 +252,27 @@ export async function fetchDadosEducando(): Promise<DadosEducando | null> {
             pais: string | null;
             nif: string | null;
             data_nascimento: string | null;
+            altura_cm: number | null;
+            peso_kg: number | null;
+            mao_dominante: string | null;
+            clube_nome: string | null;
+            equipa_nome: string | null;
+            treinador_nome: string | null;
         }[]
     >`
-        SELECT u.id, u.name, u.email, u.telefone, u.morada, u.cidade,
-               u.codigo_postal, u.pais, u.nif, u.data_nascimento::text
+        SELECT u.id, u.name, u.email, u.image_url, u.telefone, u.morada, u.cidade,
+               u.codigo_postal, u.pais, u.nif, u.data_nascimento::text,
+               a.altura_cm::float AS altura_cm, a.peso_kg::float AS peso_kg,
+               a.mao_dominante,
+               CASE WHEN pres.id IS NOT NULL THEN o.name ELSE NULL END AS clube_nome,
+               eq.nome AS equipa_nome,
+               treinador.name AS treinador_nome
         FROM users u
         INNER JOIN atletas a ON a.user_id = u.id
+        LEFT JOIN organizations o ON o.id = a.organization_id
+        LEFT JOIN users pres ON pres.organization_id = a.organization_id AND pres.account_type = 'presidente'
+        LEFT JOIN equipas eq ON eq.id = a.equipa_id
+        LEFT JOIN users treinador ON treinador.id = eq.treinador_id
         WHERE a.menor_idade = true
           AND a.encarregado_educacao = ${guardian.email}
         LIMIT 1
@@ -281,6 +304,7 @@ export async function fetchDadosEducando(): Promise<DadosEducando | null> {
         firstName,
         lastName,
         email: minor.email,
+        imageUrl: minor.image_url,
         telefone: minor.telefone,
         morada: minor.morada,
         cidade: minor.cidade,
@@ -288,6 +312,12 @@ export async function fetchDadosEducando(): Promise<DadosEducando | null> {
         pais: minor.pais,
         nif: minor.nif,
         dataNascimento: minor.data_nascimento,
+        alturaCm: minor.altura_cm,
+        pesoKg: minor.peso_kg,
+        maoDominante: minor.mao_dominante,
+        clubeNome: minor.clube_nome,
+        equipaNome: minor.equipa_nome,
+        treinadorNome: minor.treinador_nome,
         planoAtual: org?.plano ?? "rookie",
         pedidoPlanoPendente: pendente.length > 0,
     };
@@ -359,6 +389,22 @@ export async function fetchRegistosMedicosResponsavel(): Promise<
 }
 
 // ---------- MENSALIDADES DO MENOR ----------
+
+export async function fetchEducandoFederado(): Promise<boolean> {
+    const info = await getMinorInfo();
+    if (!info) return false;
+    const rows = await sql<{ federado: boolean }[]>`
+        SELECT EXISTS(
+            SELECT 1
+            FROM atletas a
+            INNER JOIN users pres
+                ON pres.organization_id = a.organization_id
+               AND pres.account_type = 'presidente'
+            WHERE a.user_id = ${info.minorUserId}
+        ) AS federado
+    `;
+    return rows[0]?.federado === true;
+}
 
 export async function fetchMensalidadesResponsavel(): Promise<
     {

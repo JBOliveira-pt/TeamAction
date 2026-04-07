@@ -252,7 +252,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                     />
                 </div>
 
-                <nav className="flex-1 space-y-0.5 overflow-y-auto pr-8">
+                <nav className="flex-1 space-y-0.5 overflow-y-auto pr-2">
                     {isCreatingProfile && (
                         <div className="flex flex-col items-center justify-center h-full gap-4 px-2 text-center">
                             <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full">
@@ -510,7 +510,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                             <NavSection label="Desempenho">
                                 <NavItem
                                     icon={<TrendingUp size={20} />}
-                                    label="Estatísticas de treino"
+                                    label="Estatísticas"
                                     href="/dashboard/atleta/estatisticas"
                                     onClick={() => setIsOpen(false)}
                                 />
@@ -526,7 +526,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     <NavItem
                                         icon={<Receipt size={20} />}
                                         label="Mensalidades"
-                                        href="/dashboard/responsavel/mensalidades"
+                                        href="/dashboard/atleta/mensalidades"
                                         onClick={() => setIsOpen(false)}
                                     />
                                 </NavSection>
@@ -535,15 +535,17 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 <NavItem
                                     icon={<Clipboard size={20} />}
                                     label="Comunicados"
-                                    href="/dashboard/responsavel/comunicados"
+                                    href="/dashboard/atleta/comunicados"
                                     onClick={() => setIsOpen(false)}
                                 />
-                                <NavItem
-                                    icon={<ShieldCheck size={20} />}
-                                    label="Autorizações"
-                                    href="/dashboard/responsavel/autorizacoes"
-                                    onClick={() => setIsOpen(false)}
-                                />
+                                {!dbUser?.menorIdade && (
+                                    <NavItem
+                                        icon={<ShieldCheck size={20} />}
+                                        label="Autorizações"
+                                        href="/dashboard/atleta/autorizacoes"
+                                        onClick={() => setIsOpen(false)}
+                                    />
+                                )}
                             </NavSection>
                         </>
                     )}
@@ -570,14 +572,8 @@ export default function SideNav({ accountType }: SideNavProps) {
                                         onClick={() => setIsOpen(false)}
                                     />
                                     <NavItem
-                                        icon={<User size={20} />}
-                                        label="Perfil"
-                                        href="/dashboard/responsavel/perfil"
-                                        onClick={() => setIsOpen(false)}
-                                    />
-                                    <NavItem
                                         icon={<UserCog size={20} />}
-                                        label="Dados do Educando"
+                                        label="Dados do Atleta"
                                         href="/dashboard/responsavel/dados-educando"
                                         onClick={() => setIsOpen(false)}
                                     />
@@ -599,7 +595,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 <NavSection label="Desempenho">
                                     <NavItem
                                         icon={<BarChart2 size={20} />}
-                                        label="Estatísticas de treino"
+                                        label="Estatísticas"
                                         href="/dashboard/responsavel/estatisticas"
                                         onClick={() => setIsOpen(false)}
                                     />
@@ -610,15 +606,13 @@ export default function SideNav({ accountType }: SideNavProps) {
                                         onClick={() => setIsOpen(false)}
                                     />
                                 </NavSection>
-                                <NavSection label="Financeiro">
+                                <NavSection label="Clube">
                                     <NavItem
                                         icon={<Receipt size={20} />}
                                         label="Mensalidades"
                                         href="/dashboard/responsavel/mensalidades"
                                         onClick={() => setIsOpen(false)}
                                     />
-                                </NavSection>
-                                <NavSection label="Clube">
                                     <NavItem
                                         icon={<Bell size={20} />}
                                         label="Comunicados"
@@ -683,7 +677,7 @@ function NavSection({
         <div>
             <button
                 onClick={() => setOpen((o) => !o)}
-                className="flex items-center justify-between w-full px-3 pt-4 pb-1 group"
+                className="flex items-center justify-left w-full px-3 gap-2 pt-4 pb-1 group"
             >
                 <span className="text-[10px] font-bold tracking-widest text-gray-400 dark:text-gray-600 uppercase">
                     {label}

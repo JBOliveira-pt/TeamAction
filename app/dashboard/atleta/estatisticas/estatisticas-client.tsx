@@ -74,7 +74,7 @@ export default function EstatisticasTreinoClient({
         <main className="p-6 space-y-6 bg-gray-50 dark:bg-gray-950 min-h-screen">
             <div>
                 <h1 className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Estatísticas de treino
+                    Estatísticas
                 </h1>
             </div>
 

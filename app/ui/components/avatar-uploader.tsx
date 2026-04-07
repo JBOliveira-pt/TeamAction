@@ -8,9 +8,14 @@ import { useRouter } from "next/navigation";
 interface Props {
     currentImageUrl: string | null;
     userName: string;
+    disabled?: boolean;
 }
 
-export default function AvatarUploader({ currentImageUrl, userName }: Props) {
+export default function AvatarUploader({
+    currentImageUrl,
+    userName,
+    disabled,
+}: Props) {
     const [preview, setPreview] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -67,10 +72,14 @@ export default function AvatarUploader({ currentImageUrl, userName }: Props) {
         <div className="flex flex-col items-center gap-2">
             <button
                 type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={uploading}
-                className="relative group cursor-pointer"
-                title="Alterar foto de perfil"
+                onClick={() => !disabled && inputRef.current?.click()}
+                disabled={uploading || disabled}
+                className={`relative group ${disabled ? "cursor-default" : "cursor-pointer"}`}
+                title={
+                    disabled
+                        ? "Apenas o responsável pode alterar a foto"
+                        : "Alterar foto de perfil"
+                }
             >
                 <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-4 border-white dark:border-gray-900 shadow-md">
                     {displayUrl ? (
@@ -90,16 +99,18 @@ export default function AvatarUploader({ currentImageUrl, userName }: Props) {
                 </div>
 
                 {/* Overlay on hover */}
-                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    {uploading ? (
-                        <Loader2
-                            size={20}
-                            className="text-white animate-spin"
-                        />
-                    ) : (
-                        <Camera size={20} className="text-white" />
-                    )}
-                </div>
+                {!disabled && (
+                    <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        {uploading ? (
+                            <Loader2
+                                size={20}
+                                className="text-white animate-spin"
+                            />
+                        ) : (
+                            <Camera size={20} className="text-white" />
+                        )}
+                    </div>
+                )}
 
                 {/* Status indicator */}
                 <span className="absolute bottom-0 right-0 bg-green-500 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-900" />
@@ -113,14 +124,16 @@ export default function AvatarUploader({ currentImageUrl, userName }: Props) {
                 className="hidden"
             />
 
-            <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={uploading}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium cursor-pointer disabled:opacity-50"
-            >
-                {uploading ? "A enviar..." : "Alterar foto"}
-            </button>
+            {!disabled && (
+                <button
+                    type="button"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium cursor-pointer disabled:opacity-50"
+                >
+                    {uploading ? "A enviar..." : "Alterar foto"}
+                </button>
+            )}
 
             {error && (
                 <p className="text-xs text-red-500 text-center max-w-[200px]">

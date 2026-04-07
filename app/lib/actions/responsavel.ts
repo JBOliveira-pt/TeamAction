@@ -421,21 +421,39 @@ export async function editarDadosCadastraisEducando(
 
     const firstName = formData.get("firstName")?.toString().trim();
     const lastName = formData.get("lastName")?.toString().trim();
-    const telefone = formData.get("telefone")?.toString().trim() || null;
+    const telefoneRaw = formData.get("telefone")?.toString().trim() || null;
     const morada = formData.get("morada")?.toString().trim() || null;
     const cidade = formData.get("cidade")?.toString().trim() || null;
     const codigoPostal =
         formData.get("codigo_postal")?.toString().trim() || null;
     const pais = formData.get("pais")?.toString().trim() || null;
-    const nif = formData.get("nif")?.toString().trim() || null;
+    const nifRaw = formData.get("nif")?.toString().trim() || null;
+
+    // Normalizar telefone: guardar apenas os 9 dígitos
+    const telefone = telefoneRaw
+        ? telefoneRaw.replace(/\D/g, "").replace(/^351/, "").slice(0, 9) || null
+        : null;
+
+    // Normalizar NIF: guardar apenas os 9 dígitos
+    const nif = nifRaw ? nifRaw.replace(/\D/g, "").slice(0, 9) || null : null;
 
     if (!firstName) return { error: "Nome é obrigatório." };
     if (!lastName) return { error: "Apelido é obrigatório." };
 
+    if (telefone && telefone.length !== 9) {
+        return { error: "Telefone deve ter 9 dígitos." };
+    }
+    if (nif && nif.length !== 9) {
+        return { error: "NIF deve ter 9 dígitos." };
+    }
+    if (codigoPostal && !/^\d{4}-\d{3}$/.test(codigoPostal)) {
+        return { error: "Código postal deve ter o formato 0000-000." };
+    }
+
     const fullName = `${firstName} ${lastName}`.trim();
 
     try {
-        // Atualizar dados na BD
+        // Atualizar dados pessoais na BD
         await sql`
             UPDATE users
             SET name = ${fullName},
@@ -471,7 +489,70 @@ export async function editarDadosCadastraisEducando(
         }
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao atualizar dados do educando." };
+        return { error: "Erro ao atualizar dados do atleta." };
+    }
+
+    revalidatePath("/dashboard/responsavel/dados-educando");
+    revalidatePath("/dashboard/atleta/perfil");
+    return { success: true };
+}
+
+export async function editarInfoDesportivaEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const guardianEmail = await getGuardianEmail();
+    if (!guardianEmail) return { error: "Não autenticado." };
+
+    const [minor] = await sql<{ user_id: string }[]>`
+        SELECT a.user_id
+        FROM atletas a
+        WHERE a.menor_idade = true
+          AND a.encarregado_educacao = ${guardianEmail}
+        LIMIT 1
+    `;
+    if (!minor) return { error: "Nenhum atleta menor vinculado à sua conta." };
+
+    const alturaRaw = formData.get("altura_cm")?.toString().trim() || "";
+    const pesoRaw = formData.get("peso_kg")?.toString().trim() || "";
+    const maoDominante =
+        formData.get("mao_dominante")?.toString().trim() || null;
+
+    let alturaCm: number | null = null;
+    if (alturaRaw) {
+        alturaCm = parseInt(alturaRaw, 10);
+        if (isNaN(alturaCm) || alturaCm < 100 || alturaCm > 300) {
+            return { error: "Altura deve estar entre 100 e 300 cm." };
+        }
+    }
+
+    let pesoKg: number | null = null;
+    if (pesoRaw) {
+        pesoKg = parseFloat(pesoRaw);
+        if (isNaN(pesoKg) || pesoKg < 10 || pesoKg > 300) {
+            return { error: "Peso deve estar entre 10 e 300 kg." };
+        }
+    }
+
+    if (
+        maoDominante &&
+        !["direita", "esquerda", "ambidestro"].includes(maoDominante)
+    ) {
+        return { error: "Mão dominante inválida." };
+    }
+
+    try {
+        await sql`
+            UPDATE atletas
+            SET altura_cm = ${alturaCm},
+                peso_kg = ${pesoKg},
+                mao_dominante = ${maoDominante},
+                updated_at = NOW()
+            WHERE user_id = ${minor.user_id}
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao atualizar informações desportivas." };
     }
 
     revalidatePath("/dashboard/responsavel/dados-educando");
@@ -549,5 +630,274 @@ export async function solicitarTrocaPlanoEducando(
     `.catch(() => {});
 
     revalidatePath("/dashboard/responsavel/dados-educando");
+    return { success: true };
+}
+
+// ---------- MÉDICO DO EDUCANDO ----------
+
+/**
+ * Retorna o email do menor vinculado ao responsável autenticado.
+ */
+async function getMinorEmail(): Promise<string | null> {
+    const guardianEmail = await getGuardianEmail();
+    if (!guardianEmail) return null;
+
+    const [minor] = await sql<{ email: string }[]>`
+        SELECT u.email
+        FROM atletas a
+        INNER JOIN users u ON u.id = a.user_id
+        WHERE a.menor_idade = true
+          AND a.encarregado_educacao = ${guardianEmail}
+        LIMIT 1
+    `;
+    return minor?.email ?? null;
+}
+
+/**
+ * Retorna o user_id do menor vinculado ao responsável autenticado.
+ */
+async function getMinorUserId(): Promise<string | null> {
+    const guardianEmail = await getGuardianEmail();
+    if (!guardianEmail) return null;
+
+    const [minor] = await sql<{ user_id: string }[]>`
+        SELECT a.user_id
+        FROM atletas a
+        WHERE a.menor_idade = true
+          AND a.encarregado_educacao = ${guardianEmail}
+        LIMIT 1
+    `;
+    return minor?.user_id ?? null;
+}
+
+export async function editarRegistoMedicoEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const minorEmail = await getMinorEmail();
+    if (!minorEmail)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    const id = formData.get("id")?.toString().trim();
+    const descricao = formData.get("descricao")?.toString().trim();
+    const dataInicio = formData.get("data_inicio")?.toString().trim();
+    const dataPrevistaRetorno =
+        formData.get("data_prevista_retorno")?.toString().trim() || null;
+    const observacoes = formData.get("observacoes")?.toString().trim() || null;
+    const estado = formData.get("estado")?.toString().trim();
+
+    if (!id) return { error: "ID inválido." };
+    if (!descricao) return { error: "Descrição é obrigatória." };
+    if (!dataInicio) return { error: "Data de início é obrigatória." };
+    if (estado !== "ativo" && estado !== "resolvido")
+        return { error: "Estado inválido." };
+
+    try {
+        const updated = await sql`
+            UPDATE medico
+            SET descricao             = ${descricao},
+                data_inicio           = ${dataInicio},
+                data_prevista_retorno = ${dataPrevistaRetorno},
+                observacoes           = ${observacoes},
+                estado                = ${estado}
+            WHERE id    = ${id}
+              AND email = ${minorEmail}
+            RETURNING id
+        `;
+        if (updated.length === 0) return { error: "Registo não encontrado." };
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao atualizar registo médico." };
+    }
+
+    revalidatePath("/dashboard/responsavel/medico");
+    return { success: true };
+}
+
+export async function apagarRegistoMedicoEducando(
+    id: string,
+): Promise<{ error?: string; success?: boolean }> {
+    const minorEmail = await getMinorEmail();
+    if (!minorEmail)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    try {
+        const deleted = await sql`
+            DELETE FROM medico
+            WHERE id    = ${id}
+              AND email = ${minorEmail}
+            RETURNING id
+        `;
+        if (deleted.length === 0) return { error: "Registo não encontrado." };
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao apagar registo médico." };
+    }
+
+    revalidatePath("/dashboard/responsavel/medico");
+    return { success: true };
+}
+
+// ---------- CONDIÇÃO FÍSICA DO EDUCANDO ----------
+
+export async function editarMedidaCondicaoFisicaEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const minorUserId = await getMinorUserId();
+    if (!minorUserId)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    const id = formData.get("id")?.toString().trim();
+    const alturaStr = formData.get("altura")?.toString().trim();
+    const pesoStr = formData.get("peso")?.toString().trim();
+    const dataRegisto = formData.get("data_registo")?.toString().trim();
+
+    if (!id) return { error: "ID inválido." };
+
+    const altura = alturaStr ? parseFloat(alturaStr) : NaN;
+    const peso = pesoStr ? parseFloat(pesoStr) : NaN;
+
+    if (isNaN(altura) || altura <= 0) return { error: "Altura inválida." };
+    if (isNaN(peso) || peso <= 0) return { error: "Peso inválido." };
+    if (!dataRegisto) return { error: "Data do registo é obrigatória." };
+
+    try {
+        const updated = await sql`
+            UPDATE condicao_fisica
+            SET altura       = ${altura},
+                peso         = ${peso},
+                data_registo = ${dataRegisto}::date
+            WHERE id      = ${id}
+              AND user_id  = ${minorUserId}
+            RETURNING id
+        `;
+        if (updated.length === 0) return { error: "Registo não encontrado." };
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao atualizar medida." };
+    }
+
+    revalidatePath("/dashboard/responsavel/condicao-fisica");
+    return { success: true };
+}
+
+export async function apagarMedidaCondicaoFisicaEducando(
+    id: string,
+): Promise<{ error?: string; success?: boolean }> {
+    const minorUserId = await getMinorUserId();
+    if (!minorUserId)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    try {
+        const deleted = await sql`
+            DELETE FROM condicao_fisica
+            WHERE id      = ${id}
+              AND user_id  = ${minorUserId}
+            RETURNING id
+        `;
+        if (deleted.length === 0) return { error: "Registo não encontrado." };
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao apagar medida." };
+    }
+
+    revalidatePath("/dashboard/responsavel/condicao-fisica");
+    return { success: true };
+}
+
+export async function adicionarLesaoEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const minorEmail = await getMinorEmail();
+    if (!minorEmail)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    const descricao = formData.get("descricao")?.toString().trim();
+    const dataInicio = formData.get("data_inicio")?.toString().trim();
+    const dataPrevistaRetorno =
+        formData.get("data_prevista_retorno")?.toString().trim() || null;
+    const observacoes = formData.get("observacoes")?.toString().trim() || null;
+
+    if (!descricao) return { error: "Descrição é obrigatória." };
+    if (!dataInicio) return { error: "Data de início é obrigatória." };
+
+    try {
+        await sql`
+            INSERT INTO medico (email, tipo, descricao, data_inicio, data_prevista_retorno, observacoes, estado)
+            VALUES (${minorEmail}, 'lesao', ${descricao}, ${dataInicio}, ${dataPrevistaRetorno}, ${observacoes}, 'ativo')
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao registar lesão." };
+    }
+
+    revalidatePath("/dashboard/responsavel/medico");
+    return { success: true };
+}
+
+export async function adicionarDoencaEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const minorEmail = await getMinorEmail();
+    if (!minorEmail)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    const descricao = formData.get("descricao")?.toString().trim();
+    const dataInicio = formData.get("data_inicio")?.toString().trim();
+    const dataPrevistaRetorno =
+        formData.get("data_prevista_retorno")?.toString().trim() || null;
+    const observacoes = formData.get("observacoes")?.toString().trim() || null;
+
+    if (!descricao) return { error: "Descrição é obrigatória." };
+    if (!dataInicio) return { error: "Data de início é obrigatória." };
+
+    try {
+        await sql`
+            INSERT INTO medico (email, tipo, descricao, data_inicio, data_prevista_retorno, observacoes, estado)
+            VALUES (${minorEmail}, 'doenca', ${descricao}, ${dataInicio}, ${dataPrevistaRetorno}, ${observacoes}, 'ativo')
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao registar doença." };
+    }
+
+    revalidatePath("/dashboard/responsavel/medico");
+    return { success: true };
+}
+
+export async function registarMedidaCondicaoFisicaEducando(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const minorUserId = await getMinorUserId();
+    if (!minorUserId)
+        return { error: "Não autenticado ou sem menor vinculado." };
+
+    const alturaStr = formData.get("altura")?.toString().trim();
+    const pesoStr = formData.get("peso")?.toString().trim();
+    const dataRegisto = formData.get("data_registo")?.toString().trim() || null;
+
+    const altura = alturaStr ? parseFloat(alturaStr) : NaN;
+    const peso = pesoStr ? parseFloat(pesoStr) : NaN;
+
+    if (isNaN(altura) || altura <= 0) return { error: "Altura inválida." };
+    if (isNaN(peso) || peso <= 0) return { error: "Peso inválido." };
+    if (dataRegisto && dataRegisto > new Date().toISOString().split("T")[0])
+        return { error: "A data do registo não pode ser futura." };
+
+    try {
+        await sql`
+            INSERT INTO condicao_fisica (user_id, altura, peso, data_registo)
+            VALUES (${minorUserId}, ${altura}, ${peso}, ${dataRegisto ?? "CURRENT_DATE"}::date)
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao guardar medida." };
+    }
+
+    revalidatePath("/dashboard/responsavel/condicao-fisica");
     return { success: true };
 }

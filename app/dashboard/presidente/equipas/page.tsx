@@ -4,7 +4,6 @@ import {
     fetchEscaloes,
     fetchDesportoOrg,
     fetchTreinadoresOrg,
-    fetchAtletasByEquipa,
 } from "@/app/lib/data";
 import NovaEquipaModal from "./_components/NovaEquipaModal.client";
 import EditarEquipaModal from "./_components/EditarEquipaModal.client";
@@ -31,15 +30,6 @@ export default async function EquipasPage() {
         fetchDesportoOrg(),
         fetchTreinadoresOrg(),
     ]);
-
-    // Buscar atletas de todas as equipas em paralelo
-    const atletasPorEquipa = Object.fromEntries(
-        await Promise.all(
-            equipas.map(
-                async (e) => [e.id, await fetchAtletasByEquipa(e.id)] as const,
-            ),
-        ),
-    );
 
     const totalAtletas = equipas.reduce(
         (acc, e) => acc + Number(e.total_atletas),
@@ -161,19 +151,11 @@ export default async function EquipasPage() {
                                                     estado: e.estado,
                                                     treinador_id:
                                                         e.treinador_id,
+                                                    adjunto_user_id:
+                                                        e.adjunto_user_id,
                                                 }}
                                                 escaloes={escaloes}
                                                 treinadores={treinadores}
-                                                atletasIniciais={
-                                                    atletasPorEquipa[e.id] ?? []
-                                                }
-                                                staffTreinadorPrincipal={
-                                                    e.staff_treinador_principal_nome
-                                                        ? {
-                                                              nome: e.staff_treinador_principal_nome,
-                                                          }
-                                                        : null
-                                                }
                                             />
                                             <EliminarEquipaModal
                                                 equipaId={e.id}

@@ -21,6 +21,7 @@ export async function fetchEquipas() {
                 total_atletas: number;
                 nome_treinador: string | null;
                 staff_treinador_principal_nome: string | null;
+                adjunto_user_id: string | null;
             }[]
         >`
             SELECT
@@ -32,7 +33,8 @@ export async function fetchEquipas() {
                 equipas.treinador_id,
                 COUNT(atletas.id) AS total_atletas,
                 users.name AS nome_treinador,
-                (SELECT s.nome FROM staff s WHERE s.equipa_id = equipas.id AND s.funcao = 'Treinador Principal' AND s.organization_id = ${organizationId} LIMIT 1) AS staff_treinador_principal_nome
+                (SELECT s.nome FROM staff s WHERE s.equipa_id = equipas.id AND s.funcao = 'Treinador Principal' AND s.organization_id = ${organizationId} LIMIT 1) AS staff_treinador_principal_nome,
+                (SELECT s.user_id FROM staff s WHERE s.equipa_id = equipas.id AND s.funcao = 'Treinador Adjunto' AND s.organization_id = ${organizationId} LIMIT 1) AS adjunto_user_id
             FROM equipas
             LEFT JOIN atletas ON atletas.equipa_id = equipas.id
             LEFT JOIN users ON users.id = equipas.treinador_id
@@ -99,9 +101,10 @@ export async function fetchEquipaById(id: string) {
                 posicao: string | null;
                 numero_camisola: number | null;
                 estado: string;
+                user_id: string | null;
             }[]
         >`
-            SELECT id, nome, posicao, numero_camisola, estado
+            SELECT id, nome, posicao, numero_camisola, estado, user_id
             FROM atletas
             WHERE equipa_id = ${id} AND organization_id = ${organizationId}
             ORDER BY nome ASC
@@ -112,9 +115,10 @@ export async function fetchEquipaById(id: string) {
                 id: string;
                 nome: string;
                 funcao: string;
+                user_id: string | null;
             }[]
         >`
-            SELECT id, nome, funcao
+            SELECT id, nome, funcao, user_id
             FROM staff
             WHERE equipa_id = ${id} AND organization_id = ${organizationId}
             ORDER BY funcao ASC

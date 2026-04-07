@@ -1,32 +1,36 @@
 import Link from "next/link";
-import { fetchAtletas, fetchEquipas, fetchConvitesPendentes } from "@/app/lib/data";
+import {
+    fetchAtletas,
+    fetchEquipas,
+    fetchConvitesPendentes,
+} from "@/app/lib/data";
 import ConvidarAtletaModal from "./_components/ConvidarAtletaModal.client";
 import EditarAtletaModal from "./_components/EditarAtletaModal.client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const estadoStyle: Record<string, string> = {
-    "ativo":     "bg-emerald-500/10 text-emerald-400",
-    "suspenso":  "bg-red-500/10 text-red-400",
-    "inativo":   "bg-slate-500/10 text-slate-400",
+    ativo: "bg-emerald-500/10 text-emerald-400",
+    suspenso: "bg-red-500/10 text-red-400",
+    inativo: "bg-slate-500/10 text-slate-400",
 };
 
 const mensalidadeStyle: Record<string, string> = {
-    "pago":      "text-emerald-400",
-    "em_atraso": "text-red-400",
-    "pendente":  "text-amber-400",
+    pago: "text-emerald-400",
+    em_atraso: "text-red-400",
+    pendente: "text-amber-400",
 };
 
 const mensalidadeLabel: Record<string, string> = {
-    "pago":      "Pago",
-    "em_atraso": "Em Atraso",
-    "pendente":  "Pendente",
+    pago: "Pago",
+    em_atraso: "Em Atraso",
+    pendente: "Pendente",
 };
 
 const conviteStatusStyle: Record<string, string> = {
-    "pendente":  "bg-amber-500/10 text-amber-400",
-    "aceite":    "bg-emerald-500/10 text-emerald-400",
-    "recusado":  "bg-red-500/10 text-red-400",
+    pendente: "bg-amber-500/10 text-amber-400",
+    aceite: "bg-emerald-500/10 text-emerald-400",
+    recusado: "bg-red-500/10 text-red-400",
 };
 
 export default async function AtletasPage() {
@@ -36,39 +40,69 @@ export default async function AtletasPage() {
         fetchConvitesPendentes(),
     ]);
 
-    const ativos    = atletas.filter(a => a.estado === "ativo").length;
-    const suspensos = atletas.filter(a => a.estado === "suspenso").length;
-    const emAtraso  = atletas.filter(a => a.mensalidade_estado === "em_atraso").length;
-    const convitesPendentes = convites.filter(c => c.status === "pendente").length;
+    const ativos = atletas.filter((a) => a.estado === "ativo").length;
+    const suspensos = atletas.filter((a) => a.estado === "suspenso").length;
+    const emAtraso = atletas.filter(
+        (a) => a.mensalidade_estado === "em_atraso",
+    ).length;
+    const convitesPendentes = convites.filter(
+        (c) => c.status === "pendente",
+    ).length;
 
     return (
         <div className="p-6 space-y-6">
             {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Atletas</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{atletas.length} atletas federados</p>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Atletas
+                    </h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {atletas.length} atletas federados
+                    </p>
                 </div>
-                <ConvidarAtletaModal equipas={equipas.map(e => ({ id: e.id, nome: e.nome }))} />
+                <ConvidarAtletaModal
+                    equipas={equipas.map((e) => ({
+                        id: e.id,
+                        nome: e.nome,
+                        escalao: e.escalao,
+                    }))}
+                />
             </div>
 
             {/* Cards resumo */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-900 border border-cyan-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total</p>
-                    <p className="text-3xl font-bold text-cyan-400 mt-2">{atletas.length}</p>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        Total
+                    </p>
+                    <p className="text-3xl font-bold text-cyan-400 mt-2">
+                        {atletas.length}
+                    </p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-emerald-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Ativos</p>
-                    <p className="text-3xl font-bold text-emerald-400 mt-2">{ativos}</p>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        Ativos
+                    </p>
+                    <p className="text-3xl font-bold text-emerald-400 mt-2">
+                        {ativos}
+                    </p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-red-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Suspensos</p>
-                    <p className="text-3xl font-bold text-red-400 mt-2">{suspensos}</p>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        Suspensos
+                    </p>
+                    <p className="text-3xl font-bold text-red-400 mt-2">
+                        {suspensos}
+                    </p>
                 </div>
                 <div className="bg-white dark:bg-gray-900 border border-amber-500/30 rounded-xl p-5">
-                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Mensalidades em Atraso</p>
-                    <p className="text-3xl font-bold text-amber-400 mt-2">{emAtraso}</p>
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        Mensalidades em Atraso
+                    </p>
+                    <p className="text-3xl font-bold text-amber-400 mt-2">
+                        {emAtraso}
+                    </p>
                 </div>
             </div>
 
@@ -76,10 +110,13 @@ export default async function AtletasPage() {
             {convites.length > 0 && (
                 <div className="bg-white dark:bg-gray-900 border border-amber-500/20 rounded-xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-                        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Convites Enviados</h2>
+                        <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                            Convites Enviados
+                        </h2>
                         {convitesPendentes > 0 && (
                             <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full">
-                                {convitesPendentes} pendente{convitesPendentes > 1 ? "s" : ""}
+                                {convitesPendentes} pendente
+                                {convitesPendentes > 1 ? "s" : ""}
                             </span>
                         )}
                     </div>
@@ -94,16 +131,27 @@ export default async function AtletasPage() {
                         </thead>
                         <tbody>
                             {convites.map((c) => (
-                                <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0">
-                                    <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">{c.user_name}</td>
-                                    <td className="px-6 py-3 text-gray-500 dark:text-gray-400">{c.user_email}</td>
+                                <tr
+                                    key={c.id}
+                                    className="border-b border-gray-100 dark:border-gray-800/50 last:border-0"
+                                >
+                                    <td className="px-6 py-3 font-medium text-gray-900 dark:text-white">
+                                        {c.user_name}
+                                    </td>
+                                    <td className="px-6 py-3 text-gray-500 dark:text-gray-400">
+                                        {c.user_email}
+                                    </td>
                                     <td className="px-6 py-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${conviteStatusStyle[c.status] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-xs font-medium ${conviteStatusStyle[c.status] ?? "bg-slate-500/10 text-slate-400"}`}
+                                        >
                                             {c.status}
                                         </span>
                                     </td>
                                     <td className="px-6 py-3 text-gray-500 dark:text-gray-400 text-xs">
-                                        {new Date(c.created_at).toLocaleDateString("pt-PT")}
+                                        {new Date(
+                                            c.created_at,
+                                        ).toLocaleDateString("pt-PT")}
                                     </td>
                                 </tr>
                             ))}
@@ -115,7 +163,9 @@ export default async function AtletasPage() {
             {/* Tabela de atletas federados */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-                    <h2 className="text-sm font-bold text-gray-900 dark:text-white">Atletas Federados</h2>
+                    <h2 className="text-sm font-bold text-gray-900 dark:text-white">
+                        Atletas Federados
+                    </h2>
                 </div>
                 {atletas.length === 0 ? (
                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
@@ -129,30 +179,59 @@ export default async function AtletasPage() {
                                 <th className="text-left px-6 py-4">Nº</th>
                                 <th className="text-left px-6 py-4">Posição</th>
                                 <th className="text-left px-6 py-4">Equipa</th>
-                                <th className="text-left px-6 py-4">Mensalidade</th>
+                                <th className="text-left px-6 py-4">
+                                    Mensalidade
+                                </th>
                                 <th className="text-left px-6 py-4">Estado</th>
                                 <th className="text-left px-6 py-4"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {atletas.map((a) => (
-                                <tr key={a.id} className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-                                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{a.nome}</td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                                        {a.numero_camisola != null ? `#${a.numero_camisola}` : "—"}
+                                <tr
+                                    key={a.id}
+                                    className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                                >
+                                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                                        <div className="flex items-center gap-2">
+                                            {a.nome}
+                                            {!a.user_id && (
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                    🤖 Fictício
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{a.posicao ?? "—"}</td>
-                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{a.equipa_nome ?? "—"}</td>
-                                    <td className={`px-6 py-4 font-medium ${mensalidadeStyle[a.mensalidade_estado ?? ""] ?? "text-gray-400"}`}>
-                                        {mensalidadeLabel[a.mensalidade_estado ?? ""] ?? "—"}
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                                        {a.numero_camisola != null
+                                            ? `#${a.numero_camisola}`
+                                            : "—"}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                                        {a.posicao ?? "—"}
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                                        {a.equipa_nome ?? "—"}
+                                    </td>
+                                    <td
+                                        className={`px-6 py-4 font-medium ${mensalidadeStyle[a.mensalidade_estado ?? ""] ?? "text-gray-400"}`}
+                                    >
+                                        {mensalidadeLabel[
+                                            a.mensalidade_estado ?? ""
+                                        ] ?? "—"}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[a.estado] ?? "bg-slate-500/10 text-slate-400"}`}>
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[a.estado] ?? "bg-slate-500/10 text-slate-400"}`}
+                                        >
                                             {a.estado}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Link href={`/dashboard/presidente/atletas/${a.id}`} className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors">
+                                        <Link
+                                            href={`/dashboard/presidente/atletas/${a.id}`}
+                                            className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
+                                        >
                                             Ver perfil →
                                         </Link>
                                     </td>
@@ -165,6 +244,3 @@ export default async function AtletasPage() {
         </div>
     );
 }
-
-
-

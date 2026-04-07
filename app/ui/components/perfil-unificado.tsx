@@ -54,6 +54,8 @@ export default async function PerfilUnificadoPage() {
             ? await fetchPerfilAtletaGeral()
             : null;
 
+    const isMinorAthlete = !!atletaData?.user?.menor_idade;
+
     return (
         <div className="p-6 space-y-5 max-w-5xl mx-auto">
             {/* Header card compacto: avatar + info lado a lado */}
@@ -62,6 +64,7 @@ export default async function PerfilUnificadoPage() {
                     <AvatarUploader
                         currentImageUrl={avatarUrl}
                         userName={nome}
+                        disabled={isMinorAthlete}
                     />
 
                     <div className="flex-1 text-center sm:text-left">
@@ -134,7 +137,7 @@ export default async function PerfilUnificadoPage() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {atletaData.user.status ? (
+                                        {atletaData.responsavelAceite ? (
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                                                 <ShieldCheck size={14} />
                                                 Conta autorizada

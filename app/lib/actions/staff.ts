@@ -69,9 +69,18 @@ export async function adicionarMembro(
         const resolvedUserId =
             isTreinador && treinadorMode === "real" ? userIdStaff : null;
 
+        // Estado: treinadores reais (convite interno) e fake com email (convite externo) = 'pendente'
+        // Treinadores fictícios puros (sem email) e não-treinadores = 'ativo'
+        const estado =
+            isTreinador && treinadorMode === "real"
+                ? "pendente"
+                : isTreinador && treinadorMode === "fake" && treinadorEmailFake
+                  ? "pendente"
+                  : "ativo";
+
         await sql`
-            INSERT INTO staff (id, nome, funcao, equipa_id, user_id, organization_id, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${resolvedUserId}, ${organizationId}, NOW(), NOW())
+            INSERT INTO staff (id, nome, funcao, equipa_id, user_id, organization_id, estado, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${resolvedUserId}, ${organizationId}, ${estado}, NOW(), NOW())
         `;
 
         // Se treinador fake com email, verificar existência e criar convite/notificação
@@ -92,6 +101,19 @@ export async function adicionarMembro(
                     SELECT gen_random_uuid(), c.id, c.organization_id, ${existingUser.id}, 'treinador', 'pendente', NOW(), NOW()
                     FROM clubes c WHERE c.organization_id = ${organizationId} LIMIT 1
                 `;
+
+                // Vincular user_id no staff row para uso posterior na aceitação
+                await sql`
+                    UPDATE staff
+                    SET user_id = ${existingUser.id}, updated_at = NOW()
+                    WHERE organization_id = ${organizationId}
+                      AND nome = ${nome}
+                      AND funcao = ${funcao}
+                      AND estado = 'pendente'
+                      AND user_id IS NULL
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                `.catch(() => {});
                 await sql`
                     INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                     VALUES (

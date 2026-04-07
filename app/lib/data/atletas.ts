@@ -20,6 +20,7 @@ export async function fetchAtletas() {
                 federado: boolean;
                 numero_federado: string | null;
                 mao_dominante: string | null;
+                user_id: string | null;
             }[]
         >`
             SELECT
@@ -31,6 +32,7 @@ export async function fetchAtletas() {
                 atletas.federado,
                 atletas.numero_federado,
                 atletas.mao_dominante,
+                atletas.user_id,
                 equipas.nome AS equipa_nome,
                 equipas.id   AS equipa_id,
                 mensalidades.estado AS mensalidade_estado
@@ -66,6 +68,7 @@ export async function fetchAtletaById(id: string) {
                 mao_dominante: string | null;
                 equipa_id: string | null;
                 equipa_nome: string | null;
+                user_id: string | null;
                 user_email: string | null;
                 user_telefone: string | null;
                 user_data_nascimento: string | null;
@@ -81,6 +84,7 @@ export async function fetchAtletaById(id: string) {
                 atletas.numero_federado,
                 atletas.mao_dominante,
                 atletas.equipa_id,
+                atletas.user_id,
                 equipas.nome AS equipa_nome,
                 users.email AS user_email,
                 users.telefone AS user_telefone,
@@ -197,13 +201,17 @@ export async function fetchAtletaAtual() {
                 equipas.nome AS equipa_nome,
                 treinador.name AS treinador_nome,
                 atletas.encarregado_educacao AS encarregado,
-                o.name AS clube_nome,
+                CASE
+                    WHEN pres.id IS NOT NULL THEN o.name
+                    ELSE NULL
+                END AS clube_nome,
                 CASE WHEN resp.id IS NOT NULL THEN true ELSE false END AS responsavel_associado
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
             LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
             LEFT JOIN users u ON u.id = atletas.user_id
             LEFT JOIN organizations o ON o.id = atletas.organization_id
+            LEFT JOIN users pres ON pres.organization_id = atletas.organization_id AND pres.account_type = 'presidente'
             LEFT JOIN users resp ON resp.email = atletas.encarregado_educacao AND resp.account_type = 'responsavel'
             WHERE atletas.user_id = ${user.id}
             LIMIT 1
@@ -361,6 +369,7 @@ export async function fetchPerfilAtletaGeral() {
             email: string;
             image_url: string | null;
         } | null = null;
+        let responsavelAceite = false;
         if (atleta?.menor_idade && atleta?.encarregado_educacao) {
             const [g] = await sql<
                 { name: string; email: string; image_url: string | null }[]
@@ -370,6 +379,16 @@ export async function fetchPerfilAtletaGeral() {
                 LIMIT 1
             `;
             guardian = g ?? null;
+
+            // Verificar se a vinculação foi aceite
+            const [rel] = await sql<{ status: string }[]>`
+                SELECT status FROM atleta_relacoes_pendentes
+                WHERE atleta_user_id = ${user.id}
+                  AND relation_kind = 'responsavel'
+                  AND status = 'aceite'
+                LIMIT 1
+            `.catch(() => []);
+            responsavelAceite = !!rel;
         }
 
         return {
@@ -382,6 +401,7 @@ export async function fetchPerfilAtletaGeral() {
             },
             atleta: atleta ?? null,
             guardian,
+            responsavelAceite,
         };
     } catch (error) {
         console.error("Database Error:", error);
@@ -443,6 +463,8 @@ export async function fetchAtletaDoResponsavel() {
                 estado: string;
                 mao_dominante: string | null;
                 equipa_nome: string | null;
+                treinador_nome: string | null;
+                clube_nome: string | null;
             }[]
         >`
             SELECT
@@ -452,9 +474,17 @@ export async function fetchAtletaDoResponsavel() {
                 atletas.numero_camisola,
                 atletas.estado,
                 atletas.mao_dominante,
-                equipas.nome AS equipa_nome
+                equipas.nome AS equipa_nome,
+                treinador.name AS treinador_nome,
+                CASE
+                    WHEN pres.id IS NOT NULL THEN o.name
+                    ELSE NULL
+                END AS clube_nome
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
+            LEFT JOIN organizations o ON o.id = atletas.organization_id
+            LEFT JOIN users pres ON pres.organization_id = atletas.organization_id AND pres.account_type = 'presidente'
             WHERE atletas.user_id = ${minorUser.id}
             LIMIT 1
         `;

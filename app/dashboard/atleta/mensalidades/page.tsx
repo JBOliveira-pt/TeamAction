@@ -1,8 +1,5 @@
-import {
-    fetchMensalidadesResponsavel,
-    fetchEducandoFederado,
-} from "@/app/lib/data";
-import { Receipt } from "lucide-react";
+import { fetchMensalidadesAtleta, fetchAtletaFederado } from "@/app/lib/data";
+import { Receipt, ShieldAlert } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +19,8 @@ const mesesNomes = [
     "Dezembro",
 ];
 
-export default async function ResponsavelMensalidadesPage() {
-    const federado = await fetchEducandoFederado();
+export default async function AtletaMensalidadesPage() {
+    const federado = await fetchAtletaFederado();
 
     if (!federado) {
         return (
@@ -38,15 +35,15 @@ export default async function ResponsavelMensalidadesPage() {
                 </div>
                 <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-16 flex flex-col items-center gap-4 text-center">
                     <div className="p-3 rounded-full bg-gray-100 dark:bg-gray-800">
-                        <Receipt size={28} className="text-gray-400" />
+                        <ShieldAlert size={28} className="text-gray-400" />
                     </div>
                     <div className="space-y-1">
                         <p className="font-semibold text-gray-900 dark:text-white">
-                            Ainda não está federado
+                            Ainda não estás federado
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            As mensalidades ficam disponíveis assim que o
-                            educando for associado a um clube na plataforma.
+                            As mensalidades ficam disponíveis assim que fores
+                            associado a um clube na plataforma.
                         </p>
                     </div>
                 </div>
@@ -54,7 +51,7 @@ export default async function ResponsavelMensalidadesPage() {
         );
     }
 
-    const mensalidades = await fetchMensalidadesResponsavel();
+    const mensalidades = await fetchMensalidadesAtleta();
 
     const total = mensalidades.length;
     const pagas = mensalidades.filter((m) => m.estado === "pago").length;

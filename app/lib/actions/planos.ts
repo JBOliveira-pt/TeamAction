@@ -4,6 +4,60 @@ import { auth } from "@clerk/nextjs/server";
 import { sql, logAction } from "./_shared";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Detect if the authenticated user is a responsável and, if so, return
+ * the minor's user_id and organization_id so that plan functions operate
+ * on the correct org.
+ */
+async function resolveOrgContext(clerkUserId: string): Promise<{
+    dbUserId: string;
+    orgId: string;
+    userName: string;
+    isResponsavel: boolean;
+} | null> {
+    const [user] = await sql<
+        {
+            id: string;
+            organization_id: string | null;
+            account_type: string | null;
+            name: string;
+            email: string;
+        }[]
+    >`
+        SELECT id, organization_id, account_type, name, email
+        FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+    `;
+    if (!user) return null;
+
+    if (user.account_type === "responsavel") {
+        // Get the minor's organization
+        const [minorOrg] = await sql<{ organization_id: string }[]>`
+            SELECT u.organization_id
+            FROM atletas a
+            INNER JOIN users u ON u.id = a.user_id
+            WHERE a.encarregado_educacao = ${user.email}
+              AND a.menor_idade = true
+              AND u.organization_id IS NOT NULL
+            LIMIT 1
+        `;
+        if (!minorOrg?.organization_id) return null;
+        return {
+            dbUserId: user.id,
+            orgId: minorOrg.organization_id,
+            userName: user.name,
+            isResponsavel: true,
+        };
+    }
+
+    if (!user.organization_id) return null;
+    return {
+        dbUserId: user.id,
+        orgId: user.organization_id,
+        userName: user.name,
+        isResponsavel: false,
+    };
+}
+
 export type PlanoPedido = {
     id: string;
     plano_solicitado: string;
@@ -31,16 +85,13 @@ export async function fetchPedidoPlano(): Promise<PlanoPedido | null> {
 
     await ensurePedidosPlanoTable();
 
-    const rows = await sql<{ id: string }[]>`
-        SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
-    `;
-    if (!rows.length) return null;
-    const dbUserId = rows[0].id;
+    const ctx = await resolveOrgContext(userId);
+    if (!ctx) return null;
 
     const pedidos = await sql<PlanoPedido[]>`
         SELECT id, plano_solicitado, status, created_at
         FROM pedidos_plano
-        WHERE user_id = ${dbUserId}
+        WHERE user_id = ${ctx.dbUserId}
           AND status = 'pendente'
         ORDER BY created_at DESC
         LIMIT 1
@@ -53,12 +104,11 @@ export async function fetchPlanoAtual(): Promise<string> {
     const { userId } = await auth();
     if (!userId) throw new Error("Not authenticated");
 
+    const ctx = await resolveOrgContext(userId);
+    if (!ctx) return "rookie";
+
     const rows = await sql<{ plano: string | null }[]>`
-        SELECT o.plano
-        FROM users u
-        JOIN organizations o ON o.id = u.organization_id
-        WHERE u.clerk_user_id = ${userId}
-        LIMIT 1
+        SELECT plano FROM organizations WHERE id = ${ctx.orgId} LIMIT 1
     `;
 
     return rows[0]?.plano ?? "rookie";
@@ -77,6 +127,15 @@ export async function fetchIsMinor(): Promise<boolean> {
     return rows[0]?.menor_idade === true;
 }
 
+export async function fetchIsResponsavel(): Promise<boolean> {
+    const { userId } = await auth();
+    if (!userId) return false;
+    const rows = await sql<{ account_type: string | null }[]>`
+        SELECT account_type FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+    `.catch(() => []);
+    return rows[0]?.account_type === "responsavel";
+}
+
 export async function solicitarTrocaPlano(
     _prevState: { error?: string; success?: boolean } | null,
     formData: FormData,
@@ -90,31 +149,36 @@ export async function solicitarTrocaPlano(
         return { error: "Plano inválido." };
     }
 
-    const userRows = await sql<
-        { id: string; organization_id: string; name: string }[]
-    >`
-        SELECT id, organization_id, name FROM users WHERE clerk_user_id = ${userId} LIMIT 1
-    `;
-    if (!userRows.length) return { error: "Utilizador não encontrado." };
+    const ctx = await resolveOrgContext(userId);
+    if (!ctx) return { error: "Utilizador não encontrado." };
 
     const {
         id: dbUserId,
-        organization_id: orgId,
-        name: userName,
-    } = userRows[0];
+        orgId,
+        userName,
+    } = {
+        id: ctx.dbUserId,
+        orgId: ctx.orgId,
+        userName: ctx.userName,
+    };
 
     // Verificar se é atleta menor de idade — menores não podem alterar plano
-    const atletaRows = await sql<
-        { menor_idade: boolean | null; encarregado_educacao: string | null }[]
-    >`
-        SELECT menor_idade, encarregado_educacao FROM atletas WHERE user_id = ${dbUserId} LIMIT 1
-    `.catch(() => []);
-    const isMinor = atletaRows[0]?.menor_idade === true;
+    if (!ctx.isResponsavel) {
+        const atletaRows = await sql<
+            {
+                menor_idade: boolean | null;
+                encarregado_educacao: string | null;
+            }[]
+        >`
+            SELECT menor_idade, encarregado_educacao FROM atletas WHERE user_id = ${dbUserId} LIMIT 1
+        `.catch(() => []);
+        const isMinor = atletaRows[0]?.menor_idade === true;
 
-    if (isMinor) {
-        return {
-            error: "Como atleta menor de idade, a alteração de plano só pode ser solicitada pelo teu encarregado de educação.",
-        };
+        if (isMinor) {
+            return {
+                error: "Como atleta menor de idade, a alteração de plano só pode ser solicitada pelo teu encarregado de educação.",
+            };
+        }
     }
 
     // Check if there's already a pending request

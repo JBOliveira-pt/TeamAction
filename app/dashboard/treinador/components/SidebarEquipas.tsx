@@ -5,6 +5,7 @@ export type Atleta = {
     id: number;
     nome: string;
     posicao: string;
+    user_id?: string | null;
     [key: string]: unknown;
 };
 
@@ -12,6 +13,7 @@ export type Staff = {
     id: number;
     nome: string;
     funcao: string;
+    user_id?: string | null;
     [key: string]: unknown;
 };
 
@@ -51,6 +53,11 @@ export default function SidebarEquipas({
                                 <span className="text-gray-800 dark:text-gray-200 font-medium">
                                     {a.nome}
                                 </span>
+                                {!a.user_id && (
+                                    <span className="px-1 py-0.5 rounded text-[9px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                        🤖
+                                    </span>
+                                )}
                             </div>
                             <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 text-right">
                                 {a.posicao}
@@ -74,6 +81,11 @@ export default function SidebarEquipas({
                                 <span className="text-gray-800 dark:text-gray-200 font-medium">
                                     {s.nome}
                                 </span>
+                                {!s.user_id && (
+                                    <span className="px-1 py-0.5 rounded text-[9px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                        🤖
+                                    </span>
+                                )}
                             </div>
                             <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 text-right">
                                 {s.funcao}

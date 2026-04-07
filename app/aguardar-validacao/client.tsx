@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export function AguardarValidacaoClient() {
     const router = useRouter();
@@ -35,6 +36,12 @@ export function AguardarValidacaoClient() {
             <p className="text-xs text-slate-500">
                 Clique para verificar se o atleta já aceitou o pedido.
             </p>
+            <Link
+                href="/"
+                className="inline-flex items-center justify-center text-sm text-slate-400 hover:text-white transition-colors"
+            >
+                ← Voltar à página inicial
+            </Link>
         </div>
     );
 }
