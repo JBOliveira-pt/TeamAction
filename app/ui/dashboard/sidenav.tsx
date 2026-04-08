@@ -80,10 +80,11 @@ export default function SideNav({ accountType }: SideNavProps) {
                   : null;
 
     const selectedProfile = forcedProfile || activeProfile;
+    const clerkImageUrl = clerkUser?.imageUrl;
 
     useEffect(() => {
         async function fetchUserData() {
-            if (!isLoaded || !clerkUser) return;
+            if (!isLoaded || !clerkUser?.id) return;
 
             try {
                 const response = await fetch("/api/debug/user", {
@@ -94,7 +95,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                     if (data.user) {
                         setDbUser({
                             name: data.user.name,
-                            foto: data.user.image_url || clerkUser.imageUrl,
+                            foto: data.user.image_url || clerkImageUrl,
                             menorIdade: data.user.menor_idade === true,
                         });
                     }
@@ -105,7 +106,7 @@ export default function SideNav({ accountType }: SideNavProps) {
         }
 
         fetchUserData();
-    }, [isLoaded, clerkUser, pathname]);
+    }, [isLoaded, clerkUser?.id, clerkImageUrl, pathname]);
 
     const isCreatingProfile = pathname.startsWith(
         "/dashboard/utilizador/perfil/criar",
