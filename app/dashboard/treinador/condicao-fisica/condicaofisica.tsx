@@ -279,7 +279,7 @@ export default function CondicaoFisica({
                         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Atleta *
+                                    Atleta <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     value={form.atleta_id}
@@ -299,10 +299,11 @@ export default function CondicaoFisica({
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Data *
+                                    Data <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
+                                    max={new Date().toISOString().split("T")[0]}
                                     value={form.data}
                                     onChange={(e) =>
                                         setForm((f) => ({ ...f, data: e.target.value }))
@@ -310,16 +311,18 @@ export default function CondicaoFisica({
                                     required
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
                                 />
+                                <p className="text-xs text-gray-400 mt-1">Não pode ser uma data futura.</p>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Velocidade 30m (s)
+                                        Velocidade 30m (s) <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="number"
                                         step="0.01"
-                                        min={0}
+                                        min={2.5}
+                                        max={10}
                                         value={form.velocidade_30m}
                                         onChange={(e) =>
                                             setForm((f) => ({
@@ -328,16 +331,19 @@ export default function CondicaoFisica({
                                             }))
                                         }
                                         placeholder="ex: 4.20"
+                                        required
                                         className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
                                     />
+                                    <p className="text-xs text-gray-400 mt-1">2.50 – 10.00 s</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Impulsão Vertical (cm)
+                                        Impulsão Vertical (cm) <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="number"
-                                        min={0}
+                                        min={10}
+                                        max={150}
                                         value={form.impulsao_vertical}
                                         onChange={(e) =>
                                             setForm((f) => ({
@@ -346,45 +352,53 @@ export default function CondicaoFisica({
                                             }))
                                         }
                                         placeholder="ex: 52"
+                                        required
                                         className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
                                     />
+                                    <p className="text-xs text-gray-400 mt-1">10 – 150 cm</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        VO2max
+                                        VO2max <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="number"
                                         step="0.1"
-                                        min={0}
+                                        min={10}
+                                        max={90}
                                         value={form.vo2max}
                                         onChange={(e) =>
                                             setForm((f) => ({ ...f, vo2max: e.target.value }))
                                         }
                                         placeholder="ex: 54.3"
+                                        required
                                         className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
                                     />
+                                    <p className="text-xs text-gray-400 mt-1">10 – 90 ml/kg/min</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Força Press (kg)
+                                        Força Press (kg) <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="number"
                                         step="0.5"
-                                        min={0}
+                                        min={10}
+                                        max={300}
                                         value={form.forca_kg}
                                         onChange={(e) =>
                                             setForm((f) => ({ ...f, forca_kg: e.target.value }))
                                         }
                                         placeholder="ex: 98"
+                                        required
                                         className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
                                     />
+                                    <p className="text-xs text-gray-400 mt-1">10 – 300 kg</p>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Observações
+                                    Observações <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     value={form.observacoes}
@@ -392,9 +406,12 @@ export default function CondicaoFisica({
                                         setForm((f) => ({ ...f, observacoes: e.target.value }))
                                     }
                                     rows={2}
+                                    maxLength={500}
                                     placeholder="Notas sobre o desempenho ou condição do atleta..."
+                                    required
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm resize-none text-gray-900 dark:text-gray-100"
                                 />
+                                <p className="text-xs text-gray-400 mt-1 text-right">{form.observacoes.length}/500</p>
                             </div>
                             <div className="flex gap-3 pt-1">
                                 <button
