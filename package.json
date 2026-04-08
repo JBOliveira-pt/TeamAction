@@ -3,7 +3,7 @@
     "scripts": {
         "build": "next build",
         "db:migrate": "node scripts/migrate.mjs",
-        "dev": "next dev",
+        "dev": "next dev --no-turbopack",
         "start": "next start",
         "lint": "eslint .",
         "test": "jest --passWithNoTests",

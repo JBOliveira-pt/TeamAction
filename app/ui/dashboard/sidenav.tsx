@@ -81,10 +81,11 @@ export default function SideNav({ accountType }: SideNavProps) {
 
     const selectedProfile = forcedProfile || activeProfile;
     const clerkImageUrl = clerkUser?.imageUrl;
+    const clerkUserId = clerkUser?.id;
 
     useEffect(() => {
         async function fetchUserData() {
-            if (!isLoaded || !clerkUser?.id) return;
+            if (!isLoaded || !clerkUserId) return;
 
             try {
                 const response = await fetch("/api/debug/user", {
@@ -106,7 +107,8 @@ export default function SideNav({ accountType }: SideNavProps) {
         }
 
         fetchUserData();
-    }, [isLoaded, clerkUser?.id, clerkImageUrl, pathname]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoaded, clerkUserId]);
 
     const isCreatingProfile = pathname.startsWith(
         "/dashboard/utilizador/perfil/criar",
