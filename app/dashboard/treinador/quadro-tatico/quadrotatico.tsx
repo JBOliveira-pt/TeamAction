@@ -502,7 +502,7 @@ export default function QuadroTatico() {
     }
 
     return (
-        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 md:p-6 flex flex-col lg:flex-row gap-6">
+        <div className="w-full h-full overflow-hidden bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 md:p-6 flex flex-col lg:flex-row gap-4">
 
             {/* ── TOAST ─────────────────────────────────────────────────── */}
             {toast && <Toast msg={toast.msg} tipo={toast.tipo} />}
@@ -592,15 +592,10 @@ export default function QuadroTatico() {
             )}
 
             {/* ── ÁREA PRINCIPAL ────────────────────────────────────────── */}
-            <div className="flex-1 flex flex-col">
-                <div className="mb-4">
-                    <h2 className="text-2xl font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-3">
-                        <span>📋</span> Quadro Tático
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Editor de jogadas e sistemas defensivos
-                    </p>
-                </div>
+            <div className="flex-1 flex flex-col min-h-0">
+                <h2 className="text-lg font-bold text-indigo-700 dark:text-indigo-400 flex items-center gap-2 mb-2">
+                    <span>📋</span> Quadro Tático
+                </h2>
 
                 {/* Barra única: sistemas + ferramentas */}
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -660,12 +655,12 @@ export default function QuadroTatico() {
                 {/* Campo de andebol */}
                 <div
                     ref={fieldRef}
-                    className={`relative mb-4 rounded-2xl border-2 overflow-hidden w-full shadow-lg select-none ${
+                    className={`relative flex-1 min-h-0 rounded-2xl border-2 overflow-hidden w-full shadow-lg select-none mb-2 ${
                         mode === "arrow"
                             ? "border-amber-400 dark:border-amber-500 cursor-crosshair"
                             : "border-green-700 dark:border-green-800"
                     }`}
-                    style={{ aspectRatio: "400 / 220", background: "#1a4731" }}
+                    style={{ background: "#1a4731" }}
                     onMouseDown={onFieldMouseDown}
                     onMouseMove={onMouseMove}
                     onMouseUp={onMouseUp}
@@ -675,7 +670,7 @@ export default function QuadroTatico() {
                     onTouchEnd={onTouchEnd}
                 >
                     {/* Campo de andebol + Setas SVG */}
-                    <svg viewBox="0 0 400 220" className="absolute inset-0 w-full h-full pointer-events-none">
+                    <svg viewBox="0 0 400 220" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
                         <defs>
                             <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
                                 <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" />
@@ -816,7 +811,7 @@ export default function QuadroTatico() {
             </div>
 
             {/* ── PAINEL LATERAL ────────────────────────────────────────── */}
-            <div className="w-full lg:w-72 flex flex-col gap-3">
+            <div className="w-full lg:w-72 flex flex-col gap-3 min-h-0">
                 <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 flex-1 shadow-sm">
                     <div className="font-bold text-gray-900 dark:text-white mb-3 flex items-center justify-between">
                         <span className="flex items-center gap-2 text-base"><span>📑</span> Jogadas</span>
