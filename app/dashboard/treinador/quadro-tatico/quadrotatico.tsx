@@ -234,7 +234,7 @@ export default function QuadroTatico() {
     // Modais
     const [modalNovaJogada, setModalNovaJogada] = useState(false);
     const [novoNome, setNovoNome] = useState("");
-    const [novoTipo, setNovoTipo] = useState<string>("Personalizada");
+    const [novoTipo, setNovoTipo] = useState<string>("");
     const [novaDescricao, setNovaDescricao] = useState("");
     const [savingNova, setSavingNova] = useState(false);
 
@@ -380,7 +380,7 @@ export default function QuadroTatico() {
     async function guardar() {
         if (!jogadaSelecionada) {
             setNovoNome("");
-            setNovoTipo("Personalizada");
+            setNovoTipo("");
             setNovaDescricao("");
             setModalNovaJogada(true);
             return;
@@ -404,6 +404,7 @@ export default function QuadroTatico() {
     // Criar nova jogada
     async function criarJogada() {
         if (!novoNome.trim() || novoNome.trim().length < 2) return;
+        if (!novoTipo) return;
         if (!novaDescricao.trim()) return;
         setSavingNova(true);
         const res = await fetch("/api/jogadas-taticas", {
@@ -418,7 +419,7 @@ export default function QuadroTatico() {
             setJogadaSelecionada(nova.id);
             setModalNovaJogada(false);
             setNovoNome("");
-            setNovoTipo("Personalizada");
+            setNovoTipo("");
             setNovaDescricao("");
             showToast("Jogada criada!");
         } else {
@@ -539,6 +540,7 @@ export default function QuadroTatico() {
                                 value={novoTipo}
                                 onChange={(e) => setNovoTipo(e.target.value)}
                             >
+                                <option value="">— Seleciona —</option>
                                 {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                         </div>
@@ -557,7 +559,7 @@ export default function QuadroTatico() {
                         <div className="flex gap-2">
                             <button
                                 onClick={criarJogada}
-                                disabled={savingNova || novoNome.trim().length < 2 || !novaDescricao.trim()}
+                                disabled={savingNova || novoNome.trim().length < 2 || !novoTipo || !novaDescricao.trim()}
                                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-all"
                             >
                                 {savingNova ? "A guardar..." : "Guardar Jogada"}
