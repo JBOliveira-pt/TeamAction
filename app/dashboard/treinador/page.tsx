@@ -40,7 +40,7 @@ async function fetchDashboardData() {
                 WHERE organization_id = ${orgId} AND equipa_id = ${equipaId} AND estado = 'Ativo'
             `
             : Promise.resolve([{ total: 0 }]),
-        // Próxima sessão da equipa
+        // Próximas sessões da equipa (usamos até 3 para os eventos)
         equipaId
             ? sql<
                   {
@@ -52,10 +52,10 @@ async function fetchDashboardData() {
               >`
                 SELECT id, data::text, tipo, duracao_min FROM sessoes
                 WHERE treinador_id = ${user.id} AND data >= ${hoje}::date
-                ORDER BY data ASC LIMIT 1
+                ORDER BY data ASC LIMIT 3
             `
             : Promise.resolve([]),
-        // Próximo jogo da equipa
+        // Próximos jogos da equipa (usamos até 3 para os eventos)
         equipaId
             ? sql<
                   {
@@ -67,7 +67,7 @@ async function fetchDashboardData() {
               >`
                 SELECT id, adversario, data::text, casa_fora FROM jogos
                 WHERE equipa_id = ${equipaId} AND estado = 'agendado' AND data >= ${hoje}::date
-                ORDER BY data ASC LIMIT 1
+                ORDER BY data ASC LIMIT 3
             `
             : Promise.resolve([]),
         // Últimas 3 sessões da equipa
@@ -124,8 +124,14 @@ async function fetchDashboardData() {
         : [];
 
     const totalAtletas = atletasResult?.[0]?.total ?? 0;
-    const proximaSessao = proximaSessaoResult?.[0] ?? null;
-    const proximoJogo = proximoJogoResult?.[0] ?? null;
+    const proximasSessoes = (proximaSessaoResult ?? []) as {
+        id: string; data: string; tipo: string; duracao_min: number;
+    }[];
+    const proximosJogos = (proximoJogoResult ?? []) as {
+        id: string; adversario: string; data: string; casa_fora: string;
+    }[];
+    const proximaSessao = proximasSessoes[0] ?? null;
+    const proximoJogo = proximosJogos[0] ?? null;
     const ultimasSessoes = ultimasSessoesResult ?? [];
     const totalRegistos = assiduidadeResult?.[0]?.total ?? 0;
     const totalPresencas = assiduidadeResult?.[0]?.presencas ?? 0;
@@ -135,6 +141,26 @@ async function fetchDashboardData() {
             : null;
     const atletaDestaque = atletaDestaqueResult?.[0] ?? null;
 
+    // Mistura sessões e jogos futuros, ordena por data, retém os 3 mais próximos
+    const proximosEventos = [
+        ...proximasSessoes.map((s) => ({
+            id: s.id,
+            data: s.data,
+            tipo: "sessao" as const,
+            titulo: s.tipo,
+            subtitulo: `${s.duracao_min} min`,
+        })),
+        ...proximosJogos.map((j) => ({
+            id: j.id,
+            data: j.data,
+            tipo: "jogo" as const,
+            titulo: `vs ${j.adversario}`,
+            subtitulo: j.casa_fora === "casa" ? "Casa" : "Fora",
+        })),
+    ]
+        .sort((a, b) => a.data.localeCompare(b.data))
+        .slice(0, 3);
+
     return {
         nome: user.name,
         totalAtletas,
@@ -143,6 +169,7 @@ async function fetchDashboardData() {
         ultimasSessoes,
         pctAssiduidade,
         atletaDestaque,
+        proximosEventos,
         staff: staffResult,
         hasEquipa: equipaId !== null,
     };
@@ -289,8 +316,8 @@ export default async function TreinadorDashboard() {
                     </div>
                 </div>
 
-                {/* ── Últimas sessões + Atalhos ── */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* ── Últimas sessões + Próximos Eventos + Plantel ── */}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                     {/* Últimas sessões */}
                     <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex flex-col gap-3">
                         <div className="flex items-center justify-between">
@@ -327,53 +354,84 @@ export default async function TreinadorDashboard() {
                         )}
                     </div>
 
-                    {/* Atalhos rápidos */}
+                    {/* Próximos Eventos */}
                     <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex flex-col gap-3">
-                        <h3 className="font-bold text-base text-gray-900 dark:text-white">
-                            Atalhos Rápidos
-                        </h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            {[
-                                {
-                                    label: "Calendário",
-                                    href: "/dashboard/treinador/calendario",
-                                    emoji: "📅",
-                                },
-                                {
-                                    label: "Exercícios",
-                                    href: "/dashboard/treinador/exercicios",
-                                    emoji: "📋",
-                                },
-                                {
-                                    label: "Quadro Tático",
-                                    href: "/dashboard/treinador/quadro-tatico",
-                                    emoji: "🗺️",
-                                },
-                                {
-                                    label: "Jogos",
-                                    href: "/dashboard/treinador/jogos",
-                                    emoji: "🏆",
-                                },
-                                {
-                                    label: "Equipa",
-                                    href: "/dashboard/treinador/equipa-atletas",
-                                    emoji: "👥",
-                                },
-                                {
-                                    label: "Biblioteca",
-                                    href: "/dashboard/treinador/biblioteca",
-                                    emoji: "📚",
-                                },
-                            ].map(({ label, href, emoji }) => (
-                                <Link
-                                    key={href}
-                                    href={href}
-                                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 transition-all text-sm font-medium text-gray-700 dark:text-gray-300"
-                                >
-                                    <span>{emoji}</span> {label}
-                                </Link>
-                            ))}
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                                Próximos Eventos
+                            </h3>
+                            <Link
+                                href="/dashboard/treinador/calendario"
+                                className="text-xs text-blue-500 hover:underline"
+                            >
+                                Ver calendário →
+                            </Link>
                         </div>
+                        {data?.proximosEventos?.length ? (
+                            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {data.proximosEventos.map((ev) => (
+                                    <li
+                                        key={`${ev.tipo}-${ev.id}`}
+                                        className="flex items-center gap-3 py-2.5"
+                                    >
+                                        <span className="text-xl flex-shrink-0">
+                                            {ev.tipo === "sessao" ? "🏋️" : "🏆"}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                                                {ev.titulo}
+                                            </p>
+                                            <p className="text-xs text-gray-400">
+                                                {ev.subtitulo}
+                                            </p>
+                                        </div>
+                                        <span className="text-xs text-gray-400 flex-shrink-0">
+                                            {formatData(ev.data)}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-gray-400">
+                                Sem eventos agendados.
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Plantel */}
+                    <div className="rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-5 shadow-sm flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                                Plantel
+                            </h3>
+                            <Link
+                                href="/dashboard/treinador/equipa-atletas"
+                                className="text-xs text-blue-500 hover:underline"
+                            >
+                                Ver equipa →
+                            </Link>
+                        </div>
+                        {data?.hasEquipa ? (
+                            <div className="flex items-center gap-4 py-2">
+                                <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 flex-shrink-0">
+                                    <span className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">
+                                        {data.totalAtletas}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        atletas ativos
+                                    </p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                        na equipa atual
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-400">
+                                Sem equipa atribuída.
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>
