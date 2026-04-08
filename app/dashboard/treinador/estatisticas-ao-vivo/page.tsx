@@ -19,10 +19,11 @@ async function fetchData() {
             id: string;
             adversario: string;
             data: string;
+            hora_inicio: string | null;
             equipa_nome: string | null;
             estado: string;
         }[]>`
-            SELECT j.id, j.adversario, j.data::text, e.nome AS equipa_nome, j.estado
+            SELECT j.id, j.adversario, j.data::text, j.hora_inicio::text, e.nome AS equipa_nome, j.estado
             FROM jogos j
             LEFT JOIN equipas e ON e.id = j.equipa_id
             WHERE j.organization_id = ${orgId}

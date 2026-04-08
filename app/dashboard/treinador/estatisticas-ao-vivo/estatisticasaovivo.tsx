@@ -6,9 +6,23 @@ type Jogo = {
     id: string;
     adversario: string;
     data: string;
+    hora_inicio: string | null;
     equipa_nome: string | null;
     estado: string;
 };
+
+function jogoJaComecou(jogo: Jogo): boolean {
+    // Se tem hora_inicio, usa data+hora para comparar; caso contrário basta o dia ter chegado
+    if (jogo.hora_inicio) {
+        const inicio = new Date(`${jogo.data.slice(0, 10)}T${jogo.hora_inicio.slice(0, 5)}`);
+        return Date.now() >= inicio.getTime();
+    }
+    const dia = new Date(jogo.data.slice(0, 10));
+    dia.setHours(0, 0, 0, 0);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return dia <= hoje;
+}
 
 type Atleta = {
     id: string;
@@ -70,6 +84,7 @@ export default function EstatisticasAoVivo({
     });
 
     const jogoSelecionado = jogos.find((j) => j.id === jogoId);
+    const podeRegistar = jogoSelecionado ? jogoJaComecou(jogoSelecionado) : false;
 
     useEffect(() => {
         if (!jogoId) {
@@ -152,7 +167,7 @@ export default function EstatisticasAoVivo({
                 </div>
                 <button
                     onClick={() => setShowModal(true)}
-                    disabled={!jogoId}
+                    disabled={!jogoId || !podeRegistar}
                     className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
                 >
                     <Plus size={18} /> Registar Evento
@@ -181,6 +196,15 @@ export default function EstatisticasAoVivo({
                             </option>
                         ))}
                     </select>
+                )}
+                {jogoSelecionado && !podeRegistar && (
+                    <div className="mt-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300 text-xs font-medium">
+                        ⏳ Este jogo ainda não começou. O registo de eventos estará disponível a partir de{" "}
+                        <strong>
+                            {new Date(jogoSelecionado.data.slice(0, 10)).toLocaleDateString("pt-PT")}
+                            {jogoSelecionado.hora_inicio ? ` às ${jogoSelecionado.hora_inicio.slice(0, 5)}` : ""}
+                        </strong>.
+                    </div>
                 )}
                 {jogoSelecionado && (
                     <div className="mt-3 flex flex-wrap gap-2">
