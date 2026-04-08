@@ -47,6 +47,13 @@ function hojeISO() {
     return new Date().toISOString().slice(0, 10);
 }
 
+function sessaoJaTerminou(s: Sessao): boolean {
+    if (!s.hora) return false;
+    const inicio = new Date(`${s.data}T${s.hora}`);
+    const fim = new Date(inicio.getTime() + s.duracao_min * 60_000);
+    return Date.now() >= fim.getTime();
+}
+
 const FORM_VAZIO = {
     data: hojeISO(),
     hora: "",
@@ -415,15 +422,27 @@ export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: E
 
                         {/* Tabs */}
                         <div className="flex border-b border-gray-100 dark:border-gray-800 shrink-0">
-                            {(["detalhes", "editar", "assiduidade"] as Tab[]).map((t) => (
-                                <button
-                                    key={t}
-                                    onClick={() => setTab(t)}
-                                    className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wide transition-all border-b-2 ${tab === t ? "border-cyan-500 text-cyan-600 dark:text-cyan-400" : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"}`}
-                                >
-                                    {t === "detalhes" ? "Detalhes" : t === "editar" ? "Editar" : "Assiduidade"}
-                                </button>
-                            ))}
+                            {(["detalhes", "editar", "assiduidade"] as Tab[]).map((t) => {
+                                const bloqueada = t === "assiduidade" && !sessaoJaTerminou(sessaoAberta);
+                                return (
+                                    <button
+                                        key={t}
+                                        onClick={() => !bloqueada && setTab(t)}
+                                        disabled={bloqueada}
+                                        title={bloqueada ? "Disponível após o término da sessão" : undefined}
+                                        className={`flex-1 py-2.5 text-xs font-bold uppercase tracking-wide transition-all border-b-2 ${
+                                            bloqueada
+                                                ? "border-transparent text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                                : tab === t
+                                                  ? "border-cyan-500 text-cyan-600 dark:text-cyan-400"
+                                                  : "border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        }`}
+                                    >
+                                        {t === "detalhes" ? "Detalhes" : t === "editar" ? "Editar" : "Assiduidade"}
+                                        {bloqueada && <span className="ml-1">🔒</span>}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* Tab: Detalhes */}
@@ -465,12 +484,6 @@ export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: E
                                     <p className="text-xs text-gray-400">Criado por {sessaoAberta.criado_por_nome}</p>
                                 )}
                                 <div className="flex gap-2 pt-1">
-                                    <button
-                                        onClick={() => setTab("editar")}
-                                        className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2.5 rounded-xl transition-all text-sm"
-                                    >
-                                        Editar Sessão
-                                    </button>
                                     <button
                                         onClick={() => eliminarSessao(sessaoAberta.id)}
                                         className="flex-1 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl transition-all text-sm border border-red-200 dark:border-red-800"
