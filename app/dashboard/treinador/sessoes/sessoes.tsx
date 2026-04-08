@@ -57,6 +57,71 @@ const FORM_VAZIO = {
     equipa_id: "",
 };
 
+/* ── Campos de formulário (reutilizável) ── */
+function FormCampos({
+    f, setF, errs, equipas, disabled = false,
+}: {
+    f: typeof FORM_VAZIO;
+    setF: (fn: (v: typeof FORM_VAZIO) => typeof FORM_VAZIO) => void;
+    errs: Record<string, string>;
+    equipas: Equipa[];
+    disabled?: boolean;
+}) {
+    const inputCls = (campo: string) =>
+        `w-full rounded-xl border px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-cyan-400 focus:outline-none ${errs[campo] ? "border-red-400" : "border-gray-300 dark:border-gray-700"}`;
+
+    return (
+        <>
+            {errs.geral && (
+                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2">{errs.geral}</p>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Data <span className="text-red-500">*</span></label>
+                    <input type="date" disabled={disabled} className={inputCls("data")} value={f.data} onChange={(e) => setF((v) => ({ ...v, data: e.target.value }))} />
+                    {errs.data && <p className="text-xs text-red-500">{errs.data}</p>}
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Hora <span className="text-red-500">*</span></label>
+                    <input type="time" disabled={disabled} className={inputCls("hora")} value={f.hora} onChange={(e) => setF((v) => ({ ...v, hora: e.target.value }))} />
+                    {errs.hora && <p className="text-xs text-red-500">{errs.hora}</p>}
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Tipo <span className="text-red-500">*</span></label>
+                    <select disabled={disabled} className={inputCls("tipo")} value={f.tipo} onChange={(e) => setF((v) => ({ ...v, tipo: e.target.value as Tipo }))}>
+                        {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Duração (min) <span className="text-red-500">*</span></label>
+                    <input type="number" min={15} max={300} placeholder="90" disabled={disabled} className={inputCls("duracao_min")} value={f.duracao_min} onChange={(e) => setF((v) => ({ ...v, duracao_min: e.target.value }))} />
+                    {errs.duracao_min && <p className="text-xs text-red-500">{errs.duracao_min}</p>}
+                </div>
+            </div>
+            <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Local <span className="text-gray-400 font-normal normal-case">(opcional)</span></label>
+                <input type="text" placeholder="Ex: Pavilhão Municipal" disabled={disabled} className={inputCls("local")} value={f.local} onChange={(e) => setF((v) => ({ ...v, local: e.target.value }))} maxLength={200} />
+            </div>
+            {equipas.length > 0 && (
+                <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Equipa <span className="text-gray-400 font-normal normal-case">(opcional)</span></label>
+                    <select disabled={disabled} className={inputCls("equipa_id")} value={f.equipa_id} onChange={(e) => setF((v) => ({ ...v, equipa_id: e.target.value }))}>
+                        <option value="">— Sem equipa —</option>
+                        {equipas.map((eq) => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
+                    </select>
+                </div>
+            )}
+            <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Notas <span className="text-gray-400 font-normal normal-case">(opcional)</span></label>
+                <textarea rows={3} disabled={disabled} placeholder="Ex: Foco na transição defensiva" className={`${inputCls("notas")} resize-none`} value={f.notas} onChange={(e) => setF((v) => ({ ...v, notas: e.target.value }))} maxLength={500} />
+                <p className="text-xs text-gray-400 text-right">{f.notas.length}/500</p>
+            </div>
+        </>
+    );
+}
+
 export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: Equipa[]; autoOpenModal?: boolean }) {
     const [sessoes, setSessoes] = useState<Sessao[]>([]);
     const [loading, setLoading] = useState(true);
@@ -286,70 +351,6 @@ export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: E
         showToast("Sessão eliminada.");
     }
 
-    // ── Campos de formulário (reutilizável) ──
-    function FormCampos({
-        f, setF, errs, disabled = false,
-    }: {
-        f: typeof FORM_VAZIO;
-        setF: (fn: (v: typeof FORM_VAZIO) => typeof FORM_VAZIO) => void;
-        errs: Record<string, string>;
-        disabled?: boolean;
-    }) {
-        const inputCls = (campo: string) =>
-            `w-full rounded-xl border px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-cyan-400 focus:outline-none ${errs[campo] ? "border-red-400" : "border-gray-300 dark:border-gray-700"}`;
-
-        return (
-            <>
-                {errs.geral && (
-                    <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2">{errs.geral}</p>
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Data <span className="text-red-500">*</span></label>
-                        <input type="date" disabled={disabled} className={inputCls("data")} value={f.data} onChange={(e) => setF((v) => ({ ...v, data: e.target.value }))} />
-                        {errs.data && <p className="text-xs text-red-500">{errs.data}</p>}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Hora <span className="text-red-500">*</span></label>
-                        <input type="time" disabled={disabled} className={inputCls("hora")} value={f.hora} onChange={(e) => setF((v) => ({ ...v, hora: e.target.value }))} />
-                        {errs.hora && <p className="text-xs text-red-500">{errs.hora}</p>}
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Tipo <span className="text-red-500">*</span></label>
-                        <select disabled={disabled} className={inputCls("tipo")} value={f.tipo} onChange={(e) => setF((v) => ({ ...v, tipo: e.target.value as Tipo }))}>
-                            {TIPOS.map((t) => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Duração (min) <span className="text-red-500">*</span></label>
-                        <input type="number" min={15} max={300} placeholder="90" disabled={disabled} className={inputCls("duracao_min")} value={f.duracao_min} onChange={(e) => setF((v) => ({ ...v, duracao_min: e.target.value }))} />
-                        {errs.duracao_min && <p className="text-xs text-red-500">{errs.duracao_min}</p>}
-                    </div>
-                </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Local <span className="text-gray-400 font-normal normal-case">(opcional)</span></label>
-                    <input type="text" placeholder="Ex: Pavilhão Municipal" disabled={disabled} className={inputCls("local")} value={f.local} onChange={(e) => setF((v) => ({ ...v, local: e.target.value }))} maxLength={200} />
-                </div>
-                {equipas.length > 0 && (
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Equipa <span className="text-gray-400 font-normal normal-case">(opcional)</span></label>
-                        <select disabled={disabled} className={inputCls("equipa_id")} value={f.equipa_id} onChange={(e) => setF((v) => ({ ...v, equipa_id: e.target.value }))}>
-                            <option value="">— Sem equipa —</option>
-                            {equipas.map((eq) => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
-                        </select>
-                    </div>
-                )}
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Notas <span className="text-gray-400 font-normal normal-case">(opcional)</span></label>
-                    <textarea rows={3} disabled={disabled} placeholder="Ex: Foco na transição defensiva" className={`${inputCls("notas")} resize-none`} value={f.notas} onChange={(e) => setF((v) => ({ ...v, notas: e.target.value }))} maxLength={500} />
-                    <p className="text-xs text-gray-400 text-right">{f.notas.length}/500</p>
-                </div>
-            </>
-        );
-    }
-
     return (
         <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6">
 
@@ -375,7 +376,7 @@ export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: E
                             <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 text-xl font-bold">×</button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
-                            <FormCampos f={form} setF={setForm} errs={erros} />
+                            <FormCampos f={form} setF={setForm} errs={erros} equipas={equipas} />
                             <div className="flex gap-2 pt-1">
                                 <button type="submit" disabled={saving} className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
                                     {saving ? "A guardar..." : "Criar Sessão"}
@@ -479,7 +480,7 @@ export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: E
                         {/* Tab: Editar */}
                         {tab === "editar" && (
                             <form onSubmit={handleEdit} className="p-5 flex flex-col gap-4 overflow-y-auto">
-                                <FormCampos f={editForm} setF={setEditForm} errs={editErros} />
+                                <FormCampos f={editForm} setF={setEditForm} errs={editErros} equipas={equipas} />
                                 <div className="flex gap-2 pt-1">
                                     <button type="submit" disabled={editSaving} className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
                                         {editSaving ? "A guardar..." : "Guardar Alterações"}
