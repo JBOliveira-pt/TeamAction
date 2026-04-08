@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { EditarMembroModal } from "./EditarMembroModal.client";
 import { RemoverMembroModal } from "./RemoverMembroModal.client";
 import { getEscaloesPermitidos } from "@/app/lib/grau-escalao-compat";
-import { ChevronDown } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 
 type StaffRow = {
     id: string;
@@ -51,8 +51,15 @@ function getFuncaoColor(funcao: string) {
     );
 }
 
-const selectClass =
-    "bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 transition-colors";
+type SortField = "funcao" | "estado" | "equipa" | "curso" | "";
+
+/** Resumo legível dos escalões permitidos por grau. */
+function getEscalaoResumo(grauId: number): string {
+    const permitidos = getEscaloesPermitidos(grauId);
+    if (permitidos.length === 0) return "";
+    if (permitidos.length === 9) return "Todos";
+    return `até ${permitidos[permitidos.length - 1]}`;
+}
 
 export default function StaffTable({
     staff,
@@ -63,48 +70,37 @@ export default function StaffTable({
     equipas: EquipaProp[];
     users: UserProp[];
 }) {
-    const [filtroFuncao, setFiltroFuncao] = useState("");
-    const [filtroEstado, setFiltroEstado] = useState("");
-    const [filtroEquipa, setFiltroEquipa] = useState("");
+    const [sort, setSort] = useState<SortField>("");
 
-    // Valores únicos para filtros
-    const funcoes = useMemo(
-        () => [...new Set(staff.map((s) => s.funcao))].sort(),
-        [staff],
-    );
-    const estados = useMemo(
-        () => [...new Set(staff.map((s) => s.estado))].sort(),
-        [staff],
-    );
-    const equipasUnicas = useMemo(() => {
-        const nomes = staff
-            .filter((s) => s.equipa_nome)
-            .map((s) => ({ id: s.equipa_id!, nome: s.equipa_nome! }));
-        const map = new Map(nomes.map((n) => [n.id, n.nome]));
-        return [...map.entries()]
-            .map(([id, nome]) => ({ id, nome }))
-            .sort((a, b) => a.nome.localeCompare(b.nome));
-    }, [staff]);
+    const toggleSort = (field: SortField) =>
+        setSort((prev) => (prev === field ? "" : field));
 
-    const filtrados = useMemo(() => {
-        return staff.filter((s) => {
-            if (filtroFuncao && s.funcao !== filtroFuncao) return false;
-            if (filtroEstado && s.estado !== filtroEstado) return false;
-            if (filtroEquipa === "__sem__" && s.equipa_id) return false;
-            if (
-                filtroEquipa &&
-                filtroEquipa !== "__sem__" &&
-                s.equipa_id !== filtroEquipa
-            )
-                return false;
-            return true;
+    const sorted = useMemo(() => {
+        if (!sort) return staff;
+        return [...staff].sort((a, b) => {
+            switch (sort) {
+                case "funcao":
+                    return a.funcao.localeCompare(b.funcao, "pt");
+                case "estado":
+                    return a.estado.localeCompare(b.estado, "pt");
+                case "equipa": {
+                    const na = a.equipa_nome ?? "\uffff";
+                    const nb = b.equipa_nome ?? "\uffff";
+                    return na.localeCompare(nb, "pt");
+                }
+                case "curso": {
+                    const ga = a.grau_id ?? 0;
+                    const gb = b.grau_id ?? 0;
+                    return gb - ga; // maior grau primeiro
+                }
+                default:
+                    return 0;
+            }
         });
-    }, [staff, filtroFuncao, filtroEstado, filtroEquipa]);
+    }, [staff, sort]);
 
     const isTreinador = (funcao: string) =>
         funcao === "Treinador Principal" || funcao === "Treinador Adjunto";
-
-    const temFiltros = filtroFuncao || filtroEstado || filtroEquipa;
 
     return (
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
@@ -123,84 +119,60 @@ export default function StaffTable({
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="text-xs text-gray-400 dark:text-gray-500 uppercase border-b border-gray-200 dark:border-gray-800">
-                                    <th className="text-left px-6 py-4">
+                                    <th className="text-left px-6 py-4 min-w-[220px]">
                                         Nome
                                     </th>
                                     <th className="text-left px-6 py-4">
-                                        <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => toggleSort("funcao")}
+                                            className={`inline-flex items-center gap-1 uppercase text-xs font-semibold transition-colors ${
+                                                sort === "funcao"
+                                                    ? "text-blue-600 dark:text-blue-400"
+                                                    : "text-gray-400 dark:text-gray-500"
+                                            }`}
+                                        >
                                             Função
-                                            <select
-                                                value={filtroFuncao}
-                                                onChange={(e) =>
-                                                    setFiltroFuncao(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className={selectClass}
-                                            >
-                                                <option value="">Todas</option>
-                                                {funcoes.map((f) => (
-                                                    <option key={f} value={f}>
-                                                        {f}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                            <ArrowUpDown size={14} />
+                                        </button>
                                     </th>
                                     <th className="text-left px-6 py-4">
-                                        Curso
+                                        <button
+                                            onClick={() => toggleSort("curso")}
+                                            className={`inline-flex items-center gap-1 uppercase text-xs font-semibold transition-colors ${
+                                                sort === "curso"
+                                                    ? "text-blue-600 dark:text-blue-400"
+                                                    : "text-gray-400 dark:text-gray-500"
+                                            }`}
+                                        >
+                                            Curso
+                                            <ArrowUpDown size={14} />
+                                        </button>
                                     </th>
                                     <th className="text-left px-6 py-4">
-                                        <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => toggleSort("estado")}
+                                            className={`inline-flex items-center gap-1 uppercase text-xs font-semibold transition-colors ${
+                                                sort === "estado"
+                                                    ? "text-blue-600 dark:text-blue-400"
+                                                    : "text-gray-400 dark:text-gray-500"
+                                            }`}
+                                        >
                                             Estado
-                                            <select
-                                                value={filtroEstado}
-                                                onChange={(e) =>
-                                                    setFiltroEstado(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className={selectClass}
-                                            >
-                                                <option value="">Todos</option>
-                                                {estados.map((e) => (
-                                                    <option key={e} value={e}>
-                                                        {e === "ativo"
-                                                            ? "Ativo"
-                                                            : e === "suspenso"
-                                                              ? "Suspenso"
-                                                              : "Pendente"}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                            <ArrowUpDown size={14} />
+                                        </button>
                                     </th>
                                     <th className="text-left px-6 py-4">
-                                        <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => toggleSort("equipa")}
+                                            className={`inline-flex items-center gap-1 uppercase text-xs font-semibold transition-colors ${
+                                                sort === "equipa"
+                                                    ? "text-blue-600 dark:text-blue-400"
+                                                    : "text-gray-400 dark:text-gray-500"
+                                            }`}
+                                        >
                                             Equipa
-                                            <select
-                                                value={filtroEquipa}
-                                                onChange={(e) =>
-                                                    setFiltroEquipa(
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className={selectClass}
-                                            >
-                                                <option value="">Todas</option>
-                                                <option value="__sem__">
-                                                    Sem equipa
-                                                </option>
-                                                {equipasUnicas.map((eq) => (
-                                                    <option
-                                                        key={eq.id}
-                                                        value={eq.id}
-                                                    >
-                                                        {eq.nome}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                            <ArrowUpDown size={14} />
+                                        </button>
                                     </th>
                                     <th className="text-left px-6 py-4">
                                         Entrada
@@ -209,13 +181,13 @@ export default function StaffTable({
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtrados.map((s) => (
+                                {sorted.map((s) => (
                                     <tr
                                         key={s.id}
                                         className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
                                     >
                                         {/* Nome */}
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 min-w-[220px]">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
                                                     <span className="text-xs font-bold text-violet-400">
@@ -224,21 +196,21 @@ export default function StaffTable({
                                                             .toUpperCase()}
                                                     </span>
                                                 </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-900 dark:text-white">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-gray-900 dark:text-white truncate">
                                                         {s.nome}
-                                                        {!s.user_id && (
-                                                            <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                                                                🤖 Fictício
-                                                            </span>
-                                                        )}
                                                     </p>
-                                                    {s.user_email && (
-                                                        <p className="text-xs text-gray-400">
-                                                            {s.user_email}
-                                                        </p>
+                                                    {!s.user_id && (
+                                                        <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                            🤖 Fictício
+                                                        </span>
                                                     )}
                                                 </div>
+                                                {s.user_email && (
+                                                    <p className="text-xs text-gray-400">
+                                                        {s.user_email}
+                                                    </p>
+                                                )}
                                             </div>
                                         </td>
 
@@ -260,9 +232,9 @@ export default function StaffTable({
                                                         {s.grau_nome}
                                                     </p>
                                                     <p className="text-[10px] text-gray-400 mt-0.5">
-                                                        {getEscaloesPermitidos(
+                                                        {getEscalaoResumo(
                                                             s.grau_id,
-                                                        ).join(", ")}
+                                                        )}
                                                     </p>
                                                 </div>
                                             ) : isTreinador(s.funcao) ? (
@@ -348,37 +320,19 @@ export default function StaffTable({
                                         </td>
                                     </tr>
                                 ))}
-                                {filtrados.length === 0 && (
+                                {sorted.length === 0 && (
                                     <tr>
                                         <td
                                             colSpan={7}
                                             className="px-6 py-10 text-center text-sm text-gray-400"
                                         >
-                                            Nenhum resultado para os filtros
-                                            selecionados.
+                                            Nenhum membro de staff encontrado.
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
-                    {temFiltros && (
-                        <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                            <p className="text-xs text-gray-400">
-                                {filtrados.length} de {staff.length} membros
-                            </p>
-                            <button
-                                onClick={() => {
-                                    setFiltroFuncao("");
-                                    setFiltroEstado("");
-                                    setFiltroEquipa("");
-                                }}
-                                className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                            >
-                                Limpar filtros
-                            </button>
-                        </div>
-                    )}
                 </>
             )}
         </div>
