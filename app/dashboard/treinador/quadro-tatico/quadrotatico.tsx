@@ -602,13 +602,13 @@ export default function QuadroTatico() {
                     </p>
                 </div>
 
-                {/* Botões de sistema */}
-                <div className="flex flex-wrap gap-2 mb-3">
+                {/* Barra única: sistemas + ferramentas */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                     {SISTEMAS.map((s) => (
                         <button
                             key={s}
                             onClick={() => mudarSistema(s)}
-                            className={`px-4 py-2 rounded-xl font-bold text-sm border-2 transition-all shadow-sm ${
+                            className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all shadow-sm ${
                                 sistema === s
                                     ? "bg-indigo-600 text-white border-indigo-600"
                                     : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
@@ -618,10 +618,7 @@ export default function QuadroTatico() {
                             🧩 {s}
                         </button>
                     ))}
-                </div>
-
-                {/* Barra de ferramentas do campo */}
-                <div className="flex items-center gap-2 mb-3">
+                    <span className="flex-1" />
                     <button
                         onClick={() => setMode("move")}
                         className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
