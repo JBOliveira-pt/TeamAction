@@ -186,10 +186,10 @@ export default async function TreinadorDashboard() {
                             Nova Sessão
                         </Link>
                         <Link
-                            href="/dashboard/treinador/assiduidade"
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm shadow hover:bg-green-700 transition-all"
+                            href="/dashboard/treinador/jogos?novo=1"
+                            className="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold text-sm shadow hover:bg-amber-700 transition-all"
                         >
-                            Registar Presença
+                            + Novo Jogo
                         </Link>
                     </div>
                 </div>

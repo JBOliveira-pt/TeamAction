@@ -21,7 +21,13 @@ async function fetchEquipas() {
     `;
 }
 
-export default async function JogosPage() {
+export default async function JogosPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ novo?: string }>;
+}) {
     const equipas = await fetchEquipas().catch(() => []);
-    return <Jogos equipas={equipas} />;
+    const params = await searchParams;
+    const autoOpenModal = params.novo === "1";
+    return <Jogos equipas={equipas} autoOpenModal={autoOpenModal} />;
 }

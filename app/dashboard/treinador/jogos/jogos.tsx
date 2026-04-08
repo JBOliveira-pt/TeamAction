@@ -591,10 +591,10 @@ function ModalNovoJogo({
 }
 
 /* ── Componente principal ─────────────────────────────────────────────── */
-export default function Jogos({ equipas }: { equipas: Equipa[] }) {
+export default function Jogos({ equipas, autoOpenModal = false }: { equipas: Equipa[]; autoOpenModal?: boolean }) {
     const [jogos, setJogos] = useState<Jogo[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showNovoJogo, setShowNovoJogo] = useState(false);
+    const [showNovoJogo, setShowNovoJogo] = useState(autoOpenModal);
     const [modalResultado, setModalResultado] = useState<Jogo | null>(null);
     const [toast, setToast] = useState<{
         msg: string;
