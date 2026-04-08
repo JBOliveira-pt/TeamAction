@@ -200,6 +200,8 @@ function ModalNovoJogo({
         casa_fora: string;
         local: string;
         equipa_id: string;
+        hora_inicio: string;
+        hora_fim: string;
     }) => Promise<void>;
     onClose: () => void;
 }) {
@@ -227,7 +229,9 @@ function ModalNovoJogo({
     const [dataJogo, setDataJogo] = useState("");
     const [casaFora, setCasaFora] = useState("casa");
     const [local, setLocal] = useState("");
-    const [equipaId, setEquipaId] = useState("");
+    const [horaInicio, setHoraInicio] = useState("");
+    const [horaFim, setHoraFim] = useState("");
+    const equipaId = equipas[0]?.id ?? "";
     const [saving, setSaving] = useState(false);
     const [erroData, setErroData] = useState("");
 
@@ -274,10 +278,6 @@ function ModalNovoJogo({
             return;
         }
         setErroData("");
-        if (!equipaId) {
-            setErroData("Seleciona uma equipa.");
-            return;
-        }
         setSaving(true);
         await onCreate({
             adversario: adversarioFinal,
@@ -285,6 +285,8 @@ function ModalNovoJogo({
             casa_fora: casaFora,
             local,
             equipa_id: equipaId,
+            hora_inicio: horaInicio,
+            hora_fim: horaFim,
         });
         setSaving(false);
     };
@@ -510,45 +512,47 @@ function ModalNovoJogo({
                                 )}
                             </div>
 
+                            <div className="flex flex-col gap-1">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                    Casa / Fora{" "}
+                                    <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                    value={casaFora}
+                                    onChange={(e) => setCasaFora(e.target.value)}
+                                >
+                                    <option value="casa">Casa</option>
+                                    <option value="fora">Fora</option>
+                                </select>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                        Casa / Fora{" "}
+                                        Hora de início{" "}
                                         <span className="text-red-500">*</span>
                                     </label>
-                                    <select
+                                    <input
+                                        type="time"
                                         className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                                        value={casaFora}
-                                        onChange={(e) =>
-                                            setCasaFora(e.target.value)
-                                        }
-                                    >
-                                        <option value="casa">Casa</option>
-                                        <option value="fora">Fora</option>
-                                    </select>
+                                        value={horaInicio}
+                                        onChange={(e) => setHoraInicio(e.target.value)}
+                                        required
+                                    />
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                        Equipa{" "}
+                                        Hora de término{" "}
                                         <span className="text-red-500">*</span>
                                     </label>
-                                    <select
+                                    <input
+                                        type="time"
                                         className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                                        value={equipaId}
-                                        onChange={(e) =>
-                                            setEquipaId(e.target.value)
-                                        }
+                                        value={horaFim}
+                                        onChange={(e) => setHoraFim(e.target.value)}
                                         required
-                                    >
-                                        <option value="">
-                                            Selecionar equipa
-                                        </option>
-                                        {equipas.map((eq) => (
-                                            <option key={eq.id} value={eq.id}>
-                                                {eq.nome}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
                             </div>
 
@@ -638,6 +642,8 @@ export default function Jogos({ equipas, autoOpenModal = false }: { equipas: Equ
         casa_fora: string;
         local: string;
         equipa_id: string;
+        hora_inicio: string;
+        hora_fim: string;
     }) => {
         const res = await fetch("/api/jogos", {
             method: "POST",

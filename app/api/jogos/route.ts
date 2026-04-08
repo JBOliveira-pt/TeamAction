@@ -69,6 +69,8 @@ export async function POST(req: NextRequest) {
         casa_fora?: string;
         local?: string;
         equipa_id?: string;
+        hora_inicio?: string;
+        hora_fim?: string;
     };
 
     if (!body.adversario?.trim() || body.adversario.trim().length < 2)
@@ -109,6 +111,8 @@ export async function POST(req: NextRequest) {
     const casaFora = body.casa_fora === "fora" ? "fora" : "casa";
     const local = body.local?.trim() || null;
     const equipaId = body.equipa_id;
+    const horaInicio = body.hora_inicio || null;
+    const horaFim = body.hora_fim || null;
 
     try {
         const rows = await sql<
@@ -124,7 +128,7 @@ export async function POST(req: NextRequest) {
                 equipa_id: string | null;
             }[]
         >`
-            INSERT INTO jogos (id, adversario, data, equipa_id, casa_fora, local, estado, visibilidade_publica, organization_id)
+            INSERT INTO jogos (id, adversario, data, equipa_id, casa_fora, local, hora_inicio, hora_fim, estado, visibilidade_publica, organization_id)
             VALUES (
                 gen_random_uuid(),
                 ${body.adversario.trim()},
@@ -132,6 +136,8 @@ export async function POST(req: NextRequest) {
                 ${equipaId},
                 ${casaFora},
                 ${local},
+                ${horaInicio},
+                ${horaFim},
                 'agendado',
                 false,
                 ${user.organization_id}
