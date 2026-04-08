@@ -180,7 +180,7 @@ export default async function TreinadorDashboard() {
                     </div>
                     <div className="flex gap-2 flex-wrap">
                         <Link
-                            href="/dashboard/treinador/sessoes"
+                            href="/dashboard/treinador/sessoes?nova=1"
                             className="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold text-sm shadow hover:bg-purple-700 transition-all"
                         >
                             Nova Sessão

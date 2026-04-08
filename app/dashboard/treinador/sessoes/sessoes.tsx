@@ -57,13 +57,13 @@ const FORM_VAZIO = {
     equipa_id: "",
 };
 
-export default function Sessoes({ equipas }: { equipas: Equipa[] }) {
+export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: Equipa[]; autoOpenModal?: boolean }) {
     const [sessoes, setSessoes] = useState<Sessao[]>([]);
     const [loading, setLoading] = useState(true);
     const [filtroTipo, setFiltroTipo] = useState<"Todas" | Tipo>("Todas");
 
     // ── Modal Nova Sessão ──
-    const [showModal, setShowModal] = useState(false);
+    const [showModal, setShowModal] = useState(autoOpenModal);
     const [saving, setSaving] = useState(false);
     const [erros, setErros] = useState<Record<string, string>>({});
     const [form, setForm] = useState(FORM_VAZIO);
