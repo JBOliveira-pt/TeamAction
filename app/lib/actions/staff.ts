@@ -3,6 +3,7 @@
 import { sql, logAction } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { isEscalaoPermitido } from "@/app/lib/grau-escalao-compat";
 
 // ========================================
 // Staff Actions (Modal)
@@ -65,6 +66,32 @@ export async function adicionarMembro(
         }
     }
 
+    // Validação: compatibilidade grau técnico ↔ escalão da equipa (treinadores reais)
+    if (isTreinador && treinadorMode === "real" && userIdStaff && equipaId) {
+        const [grauRow] = await sql<{ grau_id: number }[]>`
+            SELECT gt.id AS grau_id
+            FROM user_cursos uc
+            JOIN cursos c ON c.id = uc.curso_id
+            JOIN graus_tecnicos gt ON gt.id = c.level_id
+            WHERE uc.user_id = ${userIdStaff}
+            ORDER BY gt.id DESC
+            LIMIT 1
+        `;
+        if (grauRow) {
+            const [equipaRow] = await sql<{ escalao: string }[]>`
+                SELECT escalao FROM equipas WHERE id = ${equipaId}
+            `;
+            if (
+                equipaRow &&
+                !isEscalaoPermitido(grauRow.grau_id, equipaRow.escalao)
+            ) {
+                return {
+                    error: `O grau técnico deste treinador não permite treinar no escalão ${equipaRow.escalao}.`,
+                };
+            }
+        }
+    }
+
     try {
         const resolvedUserId =
             isTreinador && treinadorMode === "real" ? userIdStaff : null;
@@ -78,9 +105,18 @@ export async function adicionarMembro(
                   ? "pendente"
                   : "ativo";
 
+        // grau_tecnico_id — apenas para treinadores fictícios
+        const grauTecnicoId =
+            isTreinador && treinadorMode === "fake"
+                ? parseInt(
+                      formData.get("grau_tecnico_id")?.toString() ?? "",
+                      10,
+                  ) || null
+                : null;
+
         await sql`
-            INSERT INTO staff (id, nome, funcao, equipa_id, user_id, organization_id, estado, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${resolvedUserId}, ${organizationId}, ${estado}, NOW(), NOW())
+            INSERT INTO staff (id, nome, funcao, equipa_id, user_id, organization_id, estado, grau_tecnico_id, created_at, updated_at)
+            VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${resolvedUserId}, ${organizationId}, ${estado}, ${grauTecnicoId}, NOW(), NOW())
         `;
 
         // Se treinador fake com email, verificar existência e criar convite/notificação
@@ -229,13 +265,21 @@ export async function editarMembro(
 
     const resolvedUserId = isTreinador ? userIdStaff : null;
 
+    // grau_tecnico_id — apenas para treinadores fictícios (sem user_id)
+    const grauTecnicoId =
+        isTreinador && !resolvedUserId
+            ? parseInt(formData.get("grau_tecnico_id")?.toString() ?? "", 10) ||
+              null
+            : null;
+
     try {
         await sql`
             UPDATE staff SET
                 nome      = ${nome},
                 funcao    = ${funcao},
                 equipa_id = ${equipaId},
-                user_id   = ${resolvedUserId}
+                user_id   = ${resolvedUserId},
+                grau_tecnico_id = ${grauTecnicoId}
             WHERE id = ${id}
             AND organization_id = ${organizationId}
         `;
@@ -263,11 +307,85 @@ export async function removerMembro(id: string): Promise<void> {
     if (!organizationId) throw new Error("Organização não encontrada.");
 
     try {
+        // Buscar dados do membro antes de remover (para notificar)
+        const [membro] = await sql<
+            { nome: string; funcao: string; user_id: string | null }[]
+        >`SELECT nome, funcao, user_id FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`;
+
         await sql`DELETE FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`;
+
+        // Notificar o treinador real (com user_id) que foi excluído
+        if (membro?.user_id) {
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${membro.user_id},
+                    ${membro.user_id},
+                    'Exclusão do clube',
+                    ${`Foste removido da posição de ${membro.funcao} pelo presidente do clube.`},
+                    'Alerta',
+                    false,
+                    NOW()
+                )
+            `;
+        }
     } catch (error) {
         console.error(error);
         throw new Error("Erro ao remover membro.");
     }
 
+    revalidatePath("/dashboard/presidente/staff");
+}
+
+export async function suspenderMembro(id: string): Promise<void> {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Não autenticado.");
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<{ organization_id: string }[]>`
+            SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
+        `;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        throw new Error("Erro ao obter organização.");
+    }
+    if (!organizationId) throw new Error("Organização não encontrada.");
+
+    try {
+        const [membro] = await sql<
+            { nome: string; funcao: string; user_id: string | null }[]
+        >`SELECT nome, funcao, user_id FROM staff WHERE id = ${id} AND organization_id = ${organizationId}`;
+
+        await sql`
+            UPDATE staff SET estado = 'suspenso', updated_at = NOW()
+            WHERE id = ${id} AND organization_id = ${organizationId}
+        `;
+
+        // Notificar o treinador real que foi suspenso
+        if (membro?.user_id) {
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${membro.user_id},
+                    ${membro.user_id},
+                    'Suspensão do clube',
+                    ${`Foste suspenso da posição de ${membro.funcao} pelo presidente do clube.`},
+                    'Alerta',
+                    false,
+                    NOW()
+                )
+            `;
+        }
+    } catch (error) {
+        console.error(error);
+        throw new Error("Erro ao suspender membro.");
+    }
+
+    await logAction(userId, "staff_suspend", "/dashboard/presidente/staff", {
+        id,
+    });
     revalidatePath("/dashboard/presidente/staff");
 }

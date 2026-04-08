@@ -29,23 +29,25 @@ export async function criarEquipa(
     const desporto = formData.get("desporto") as string;
     const estado = formData.get("estado") as string;
 
-    // Treinador Principal (real, obrigatório)
-    const treinadorId = formData.get("treinador_id")?.toString().trim() || null;
+    // Treinador Principal (staff_id, obrigatório)
+    const treinadorStaffId =
+        formData.get("treinador_staff_id")?.toString().trim() || null;
 
-    // Treinador Adjunto (real, opcional)
-    const adjuntoId = formData.get("adjunto_id")?.toString().trim() || null;
+    // Treinador Adjunto (staff_id, opcional)
+    const adjuntoStaffId =
+        formData.get("adjunto_staff_id")?.toString().trim() || null;
 
     if (!nome?.trim() || !escalao?.trim() || !estado?.trim()) {
         return { error: "Preenche todos os campos obrigatórios." };
     }
 
-    if (!treinadorId) {
+    if (!treinadorStaffId) {
         return {
             error: "É obrigatório associar um treinador principal à equipa.",
         };
     }
 
-    if (adjuntoId && adjuntoId === treinadorId) {
+    if (adjuntoStaffId && adjuntoStaffId === treinadorStaffId) {
         return {
             error: "O treinador adjunto não pode ser o mesmo que o principal.",
         };
@@ -59,108 +61,107 @@ export async function criarEquipa(
         `;
         const epocaId = epocas[0]?.id ?? null;
 
-        // Validar treinador principal
-        const [treinador] = await sql<{ id: string }[]>`
-            SELECT id FROM users
-            WHERE id = ${treinadorId}
+        // Validar treinador principal (staff entry)
+        const [treinadorStaff] = await sql<
+            { id: string; user_id: string | null; nome: string }[]
+        >`
+            SELECT id, user_id, nome FROM staff
+            WHERE id = ${treinadorStaffId}
               AND organization_id = ${organizationId}
-              AND account_type = 'treinador'
+              AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+              AND estado = 'ativo'
             LIMIT 1
         `;
-        if (!treinador)
+        if (!treinadorStaff)
             return { error: "Treinador principal selecionado não encontrado." };
 
-        // Verificar se o treinador principal já está noutra equipa como Principal
-        const [jaTemEquipaPrincipal] = await sql<
-            { id: string; nome: string }[]
-        >`
-            SELECT id, nome FROM equipas
-            WHERE treinador_id = ${treinadorId}
-              AND organization_id = ${organizationId}
-            LIMIT 1
-        `;
-        if (jaTemEquipaPrincipal) {
-            return {
-                error: `Este treinador já é Principal na equipa "${jaTemEquipaPrincipal.nome}".`,
-            };
+        // Verificar se já está noutra equipa
+        if (treinadorStaff.user_id) {
+            // Verificar via equipas.treinador_id (real)
+            const [jaTemEquipaPrincipal] = await sql<
+                { id: string; nome: string }[]
+            >`
+                SELECT id, nome FROM equipas
+                WHERE treinador_id = ${treinadorStaff.user_id}
+                  AND organization_id = ${organizationId}
+                LIMIT 1
+            `;
+            if (jaTemEquipaPrincipal) {
+                return {
+                    error: `Este treinador já é Principal na equipa "${jaTemEquipaPrincipal.nome}".`,
+                };
+            }
         }
 
-        // Verificar se o treinador principal já está noutra equipa como Adjunto
-        const [jaEAdjunto] = await sql<{ equipa_nome: string }[]>`
+        // Verificar se o staff entry já está associado a outra equipa
+        const [staffJaTemEquipa] = await sql<{ equipa_nome: string }[]>`
             SELECT e.nome AS equipa_nome FROM staff s
             JOIN equipas e ON e.id = s.equipa_id
-            WHERE s.user_id = ${treinadorId}
-              AND s.funcao = 'Treinador Adjunto'
-              AND s.organization_id = ${organizationId}
+            WHERE s.id = ${treinadorStaffId}
+              AND s.equipa_id IS NOT NULL
             LIMIT 1
         `;
-        if (jaEAdjunto) {
+        if (staffJaTemEquipa) {
             return {
-                error: `Este treinador já é Adjunto na equipa "${jaEAdjunto.equipa_nome}". Um treinador só pode estar associado a uma equipa.`,
+                error: `Este treinador já está associado à equipa "${staffJaTemEquipa.equipa_nome}".`,
             };
         }
 
         // Validar adjunto se fornecido
-        if (adjuntoId) {
-            const [adjunto] = await sql<{ id: string }[]>`
-                SELECT id FROM users
-                WHERE id = ${adjuntoId}
+        if (adjuntoStaffId) {
+            const [adjuntoStaff] = await sql<
+                { id: string; user_id: string | null; nome: string }[]
+            >`
+                SELECT id, user_id, nome FROM staff
+                WHERE id = ${adjuntoStaffId}
                   AND organization_id = ${organizationId}
-                  AND account_type = 'treinador'
+                  AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+                  AND estado = 'ativo'
                 LIMIT 1
             `;
-            if (!adjunto)
+            if (!adjuntoStaff)
                 return {
                     error: "Treinador adjunto selecionado não encontrado.",
                 };
 
-            // Verificar se o adjunto já é Principal noutra equipa
-            const [adjuntoJaPrincipal] = await sql<
-                { id: string; nome: string }[]
-            >`
-                SELECT id, nome FROM equipas
-                WHERE treinador_id = ${adjuntoId}
-                  AND organization_id = ${organizationId}
-                LIMIT 1
-            `;
-            if (adjuntoJaPrincipal) {
-                return {
-                    error: `O treinador adjunto selecionado já é Principal na equipa "${adjuntoJaPrincipal.nome}".`,
-                };
-            }
-
-            // Verificar se o adjunto já é Adjunto noutra equipa
-            const [adjuntoJaAdjunto] = await sql<{ equipa_nome: string }[]>`
+            const [adjuntoJaTemEquipa] = await sql<{ equipa_nome: string }[]>`
                 SELECT e.nome AS equipa_nome FROM staff s
                 JOIN equipas e ON e.id = s.equipa_id
-                WHERE s.user_id = ${adjuntoId}
-                  AND s.funcao = 'Treinador Adjunto'
-                  AND s.organization_id = ${organizationId}
+                WHERE s.id = ${adjuntoStaffId}
+                  AND s.equipa_id IS NOT NULL
                 LIMIT 1
             `;
-            if (adjuntoJaAdjunto) {
+            if (adjuntoJaTemEquipa) {
                 return {
-                    error: `O treinador adjunto selecionado já é Adjunto na equipa "${adjuntoJaAdjunto.equipa_nome}".`,
+                    error: `O treinador adjunto já está associado à equipa "${adjuntoJaTemEquipa.equipa_nome}".`,
                 };
             }
         }
+
+        // treinador_id na equipa: user_id do staff (null se for fictício)
+        const treinadorUserId = treinadorStaff.user_id;
 
         // Criar equipa
         const [newEquipa] = await sql<{ id: string }[]>`
             INSERT INTO equipas (nome, escalao, desporto, estado, epoca_id, organization_id, treinador_id, created_at, updated_at)
             VALUES (
                 ${nome.trim()}, ${escalao.trim()}, ${desporto.trim()},
-                ${estado}, ${epocaId}, ${organizationId}, ${treinadorId}, NOW(), NOW()
+                ${estado}, ${epocaId}, ${organizationId}, ${treinadorUserId}, NOW(), NOW()
             )
             RETURNING id
         `;
 
-        // Criar staff entry para adjunto se fornecido
-        if (adjuntoId) {
+        // Associar o staff do treinador principal à equipa + actualizar função
+        await sql`
+            UPDATE staff SET equipa_id = ${newEquipa.id}, funcao = 'Treinador Principal', updated_at = NOW()
+            WHERE id = ${treinadorStaffId}
+        `;
+
+        // Associar o staff do adjunto à equipa se fornecido
+        if (adjuntoStaffId) {
             await sql`
-                INSERT INTO staff (id, organization_id, equipa_id, user_id, nome, funcao, estado, created_at, updated_at)
-                SELECT gen_random_uuid(), ${organizationId}, ${newEquipa.id}, ${adjuntoId}, u.name, 'Treinador Adjunto', 'ativo', NOW(), NOW()
-                FROM users u WHERE u.id = ${adjuntoId}
+                UPDATE staff SET equipa_id = ${newEquipa.id}, funcao = 'Treinador Adjunto', updated_at = NOW()
+                WHERE id = ${adjuntoStaffId}
             `;
         }
 
@@ -185,8 +186,8 @@ export async function criarEquipa(
                 escalao: escalao.trim(),
                 desporto: desporto.trim(),
                 estado,
-                treinadorId,
-                adjuntoId,
+                treinadorStaffId,
+                adjuntoStaffId,
             },
         );
         revalidatePath("/dashboard/presidente/equipas");
@@ -215,21 +216,23 @@ export async function editarEquipa(
     const escalao = formData.get("escalao") as string;
     const estado = formData.get("estado") as string;
 
-    // Treinador Principal (real, obrigatório)
-    const treinadorId = formData.get("treinador_id")?.toString().trim() || null;
+    // Treinador Principal (staff_id, obrigatório)
+    const treinadorStaffId =
+        formData.get("treinador_staff_id")?.toString().trim() || null;
 
-    // Treinador Adjunto (real, opcional)
-    const adjuntoId = formData.get("adjunto_id")?.toString().trim() || null;
+    // Treinador Adjunto (staff_id, opcional)
+    const adjuntoStaffId =
+        formData.get("adjunto_staff_id")?.toString().trim() || null;
 
     if (!id || !nome?.trim() || !escalao?.trim() || !estado?.trim()) {
         return { error: "Preenche todos os campos obrigatórios." };
     }
-    if (!treinadorId) {
+    if (!treinadorStaffId) {
         return {
             error: "É obrigatório associar um treinador principal à equipa.",
         };
     }
-    if (adjuntoId && adjuntoId === treinadorId) {
+    if (adjuntoStaffId && adjuntoStaffId === treinadorStaffId) {
         return {
             error: "O treinador adjunto não pode ser o mesmo que o principal.",
         };
@@ -241,115 +244,97 @@ export async function editarEquipa(
         `;
         if (rows.length === 0) return { error: "Equipa não encontrada." };
 
-        // Validar treinador principal
-        const [treinador] = await sql<{ id: string }[]>`
-            SELECT id FROM users
-            WHERE id = ${treinadorId}
+        // Validar treinador principal (staff entry)
+        const [treinadorStaff] = await sql<
+            { id: string; user_id: string | null; nome: string }[]
+        >`
+            SELECT id, user_id, nome FROM staff
+            WHERE id = ${treinadorStaffId}
               AND organization_id = ${organizationId}
-              AND account_type = 'treinador'
+              AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+              AND estado = 'ativo'
             LIMIT 1
         `;
-        if (!treinador)
+        if (!treinadorStaff)
             return { error: "Treinador principal selecionado não encontrado." };
 
-        // Verificar se o treinador principal já é Principal noutra equipa (exceto a atual)
-        const [jaTemEquipaPrincipal] = await sql<
-            { id: string; nome: string }[]
-        >`
-            SELECT id, nome FROM equipas
-            WHERE treinador_id = ${treinadorId}
-              AND organization_id = ${organizationId}
-              AND id != ${id}
-            LIMIT 1
-        `;
-        if (jaTemEquipaPrincipal) {
-            return {
-                error: `Este treinador já é Principal na equipa "${jaTemEquipaPrincipal.nome}".`,
-            };
-        }
-
-        // Verificar se o treinador principal já é Adjunto noutra equipa
-        const [jaEAdjunto] = await sql<{ equipa_nome: string }[]>`
+        // Verificar se o staff entry já está associado a outra equipa (exceto a atual)
+        const [staffJaTemEquipa] = await sql<{ equipa_nome: string }[]>`
             SELECT e.nome AS equipa_nome FROM staff s
             JOIN equipas e ON e.id = s.equipa_id
-            WHERE s.user_id = ${treinadorId}
-              AND s.funcao = 'Treinador Adjunto'
-              AND s.organization_id = ${organizationId}
+            WHERE s.id = ${treinadorStaffId}
+              AND s.equipa_id IS NOT NULL
               AND s.equipa_id != ${id}
             LIMIT 1
         `;
-        if (jaEAdjunto) {
+        if (staffJaTemEquipa) {
             return {
-                error: `Este treinador já é Adjunto na equipa "${jaEAdjunto.equipa_nome}". Um treinador só pode estar associado a uma equipa.`,
+                error: `Este treinador já está associado à equipa "${staffJaTemEquipa.equipa_nome}".`,
             };
         }
 
         // Validar adjunto se fornecido
-        if (adjuntoId) {
-            const [adjunto] = await sql<{ id: string }[]>`
-                SELECT id FROM users
-                WHERE id = ${adjuntoId}
+        if (adjuntoStaffId) {
+            const [adjuntoStaff] = await sql<
+                { id: string; user_id: string | null; nome: string }[]
+            >`
+                SELECT id, user_id, nome FROM staff
+                WHERE id = ${adjuntoStaffId}
                   AND organization_id = ${organizationId}
-                  AND account_type = 'treinador'
+                  AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+                  AND estado = 'ativo'
                 LIMIT 1
             `;
-            if (!adjunto)
+            if (!adjuntoStaff)
                 return {
                     error: "Treinador adjunto selecionado não encontrado.",
                 };
 
-            // Verificar se o adjunto já é Principal noutra equipa
-            const [adjuntoJaPrincipal] = await sql<
-                { id: string; nome: string }[]
-            >`
-                SELECT id, nome FROM equipas
-                WHERE treinador_id = ${adjuntoId}
-                  AND organization_id = ${organizationId}
-                LIMIT 1
-            `;
-            if (adjuntoJaPrincipal) {
-                return {
-                    error: `O treinador adjunto selecionado já é Principal na equipa "${adjuntoJaPrincipal.nome}".`,
-                };
-            }
-
-            // Verificar se o adjunto já é Adjunto noutra equipa (exceto a atual)
-            const [adjuntoJaAdjunto] = await sql<{ equipa_nome: string }[]>`
+            const [adjuntoJaTemEquipa] = await sql<{ equipa_nome: string }[]>`
                 SELECT e.nome AS equipa_nome FROM staff s
                 JOIN equipas e ON e.id = s.equipa_id
-                WHERE s.user_id = ${adjuntoId}
-                  AND s.funcao = 'Treinador Adjunto'
-                  AND s.organization_id = ${organizationId}
+                WHERE s.id = ${adjuntoStaffId}
+                  AND s.equipa_id IS NOT NULL
                   AND s.equipa_id != ${id}
                 LIMIT 1
             `;
-            if (adjuntoJaAdjunto) {
+            if (adjuntoJaTemEquipa) {
                 return {
-                    error: `O treinador adjunto selecionado já é Adjunto na equipa "${adjuntoJaAdjunto.equipa_nome}".`,
+                    error: `O treinador adjunto já está associado à equipa "${adjuntoJaTemEquipa.equipa_nome}".`,
                 };
             }
         }
+
+        // treinador_id na equipa: user_id do staff (null se for fictício)
+        const treinadorUserId = treinadorStaff.user_id;
 
         // Atualizar equipa
         await sql`
             UPDATE equipas
             SET nome = ${nome.trim()}, escalao = ${escalao.trim()}, estado = ${estado},
-                treinador_id = ${treinadorId}, updated_at = NOW()
+                treinador_id = ${treinadorUserId}, updated_at = NOW()
             WHERE id = ${id} AND organization_id = ${organizationId}
         `;
 
-        // Gerir staff de Treinador Adjunto
-        // Remover adjunto antigo desta equipa
+        // Desassociar staff anteriores desta equipa
         await sql`
-            DELETE FROM staff
-            WHERE equipa_id = ${id} AND funcao = 'Treinador Adjunto' AND organization_id = ${organizationId}
+            UPDATE staff SET equipa_id = NULL, updated_at = NOW()
+            WHERE equipa_id = ${id}
+              AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+              AND organization_id = ${organizationId}
         `;
-        // Inserir novo adjunto se fornecido
-        if (adjuntoId) {
+
+        // Associar novo treinador principal
+        await sql`
+            UPDATE staff SET equipa_id = ${id}, funcao = 'Treinador Principal', updated_at = NOW()
+            WHERE id = ${treinadorStaffId}
+        `;
+
+        // Associar novo adjunto se fornecido
+        if (adjuntoStaffId) {
             await sql`
-                INSERT INTO staff (id, organization_id, equipa_id, user_id, nome, funcao, estado, created_at, updated_at)
-                SELECT gen_random_uuid(), ${organizationId}, ${id}, ${adjuntoId}, u.name, 'Treinador Adjunto', 'ativo', NOW(), NOW()
-                FROM users u WHERE u.id = ${adjuntoId}
+                UPDATE staff SET equipa_id = ${id}, funcao = 'Treinador Adjunto', updated_at = NOW()
+                WHERE id = ${adjuntoStaffId}
             `;
         }
 
@@ -362,8 +347,8 @@ export async function editarEquipa(
                 nome: nome.trim(),
                 escalao: escalao.trim(),
                 estado,
-                treinadorId,
-                adjuntoId,
+                treinadorStaffId,
+                adjuntoStaffId,
             },
         );
 

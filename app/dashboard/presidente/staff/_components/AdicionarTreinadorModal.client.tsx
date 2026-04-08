@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { adicionarMembro, getEscaloesByUserAction } from "@/app/lib/actions";
+import {
+    GRAUS_TECNICOS,
+    getEscaloesPermitidos,
+} from "@/app/lib/grau-escalao-compat";
 import { X, Loader2 } from "lucide-react";
 
 type WizardStep =
@@ -16,13 +20,17 @@ const FUNCOES_TREINADOR = [
     { value: "Treinador Adjunto", label: "Treinador Adjunto" },
 ];
 
-export function AdicionarTreinadorModal() {
+type Equipa = { id: string; nome: string; escalao: string };
+
+export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<WizardStep>("choice");
 
     // Shared fields
     const [funcao, setFuncao] = useState("Treinador Principal");
     const [nome, setNome] = useState("");
+    const [equipaId, setEquipaId] = useState("");
+    const [grauId, setGrauId] = useState<number>(0);
 
     // Email check
     const [email, setEmail] = useState("");
@@ -43,11 +51,27 @@ export function AdicionarTreinadorModal() {
     const [erro, setErro] = useState("");
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Equipas filtradas pelo grau técnico (fake) ou escalões do treinador (real)
+    const equipasFiltradas = useMemo(() => {
+        // Para treinadores fictícios: filtrar por grau selecionado
+        if (grauId > 0) {
+            const permitidos = getEscaloesPermitidos(grauId);
+            return equipas.filter((e) => permitidos.includes(e.escalao));
+        }
+        // Para treinadores reais: filtrar pelos escalões do curso
+        if (escaloesTreinador.length > 0) {
+            return equipas.filter((e) => escaloesTreinador.includes(e.escalao));
+        }
+        return equipas;
+    }, [equipas, grauId, escaloesTreinador]);
+
     function handleClose() {
         setOpen(false);
         setStep("choice");
         setFuncao("Treinador Principal");
         setNome("");
+        setEquipaId("");
+        setGrauId(0);
         setEmail("");
         setEmailResult(null);
         setEscaloesTreinador([]);
@@ -108,7 +132,9 @@ export function AdicionarTreinadorModal() {
         const formData = new FormData();
         formData.append("nome", nome.trim());
         formData.append("funcao", funcao);
+        formData.append("equipa_id", equipaId);
         formData.append("treinador_mode", "fake");
+        if (grauId) formData.append("grau_tecnico_id", String(grauId));
 
         const result = await adicionarMembro(null, formData);
         setEnviando(false);
@@ -130,6 +156,7 @@ export function AdicionarTreinadorModal() {
         const formData = new FormData();
         formData.append("nome", emailResult.nome ?? "");
         formData.append("funcao", funcao);
+        formData.append("equipa_id", equipaId);
         formData.append("treinador_mode", "real");
         formData.append("userid", emailResult.user_id);
 
@@ -153,8 +180,10 @@ export function AdicionarTreinadorModal() {
         const formData = new FormData();
         formData.append("nome", nome.trim());
         formData.append("funcao", funcao);
+        formData.append("equipa_id", equipaId);
         formData.append("treinador_mode", "fake");
         formData.append("treinador_email_fake", email.trim());
+        if (grauId) formData.append("grau_tecnico_id", String(grauId));
 
         const result = await adicionarMembro(null, formData);
         setEnviando(false);
@@ -345,6 +374,82 @@ export function AdicionarTreinadorModal() {
                                         />
                                     </div>
 
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Grau Técnico{" "}
+                                            <span className="text-red-400">
+                                                *
+                                            </span>
+                                        </label>
+                                        <select
+                                            value={grauId}
+                                            onChange={(e) => {
+                                                setGrauId(
+                                                    Number(e.target.value),
+                                                );
+                                                setEquipaId("");
+                                            }}
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        >
+                                            <option value={0}>
+                                                Selecionar grau...
+                                            </option>
+                                            {GRAUS_TECNICOS.map((g) => (
+                                                <option key={g.id} value={g.id}>
+                                                    {g.name} — {g.description}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {grauId > 0 && (
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                Equipa{" "}
+                                                <span className="text-red-400">
+                                                    *
+                                                </span>
+                                            </label>
+                                            {equipasFiltradas.length === 0 ? (
+                                                <p className="text-xs text-amber-400 px-1">
+                                                    ⚠️ Nenhuma equipa compatível
+                                                    com este grau técnico.
+                                                </p>
+                                            ) : (
+                                                <select
+                                                    value={equipaId}
+                                                    onChange={(e) =>
+                                                        setEquipaId(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                                >
+                                                    <option value="">
+                                                        Selecionar equipa...
+                                                    </option>
+                                                    {equipasFiltradas.map(
+                                                        (eq) => (
+                                                            <option
+                                                                key={eq.id}
+                                                                value={eq.id}
+                                                            >
+                                                                {eq.nome} (
+                                                                {eq.escalao})
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            )}
+                                            <p className="text-[10px] text-gray-400 px-1">
+                                                Escalões permitidos:{" "}
+                                                {getEscaloesPermitidos(
+                                                    grauId,
+                                                ).join(", ")}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     <div className="px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-500 dark:text-gray-400">
                                         🤖 Este treinador será criado sem e-mail
                                         e sem vínculo a nenhum perfil real da
@@ -527,6 +632,76 @@ export function AdicionarTreinadorModal() {
                                                         )}
                                                     </div>
                                                 )}
+
+                                                {/* Equipa selector — filtrada por curso */}
+                                                {!loadingEscaloes &&
+                                                    escaloesTreinador.length >
+                                                        0 && (
+                                                        <div className="space-y-1">
+                                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                                Equipa{" "}
+                                                                <span className="text-red-400">
+                                                                    *
+                                                                </span>
+                                                            </label>
+                                                            {equipasFiltradas.length ===
+                                                            0 ? (
+                                                                <p className="text-xs text-amber-400 px-1">
+                                                                    ⚠️ Nenhuma
+                                                                    equipa
+                                                                    compatível
+                                                                    com o curso
+                                                                    deste
+                                                                    treinador.
+                                                                </p>
+                                                            ) : (
+                                                                <select
+                                                                    value={
+                                                                        equipaId
+                                                                    }
+                                                                    onChange={(
+                                                                        e,
+                                                                    ) =>
+                                                                        setEquipaId(
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                                                >
+                                                                    <option value="">
+                                                                        Selecionar
+                                                                        equipa...
+                                                                    </option>
+                                                                    {equipasFiltradas.map(
+                                                                        (
+                                                                            eq,
+                                                                        ) => (
+                                                                            <option
+                                                                                key={
+                                                                                    eq.id
+                                                                                }
+                                                                                value={
+                                                                                    eq.id
+                                                                                }
+                                                                            >
+                                                                                {
+                                                                                    eq.nome
+                                                                                }{" "}
+                                                                                (
+                                                                                {
+                                                                                    eq.escalao
+                                                                                }
+
+                                                                                )
+                                                                            </option>
+                                                                        ),
+                                                                    )}
+                                                                </select>
+                                                            )}
+                                                        </div>
+                                                    )}
                                             </div>
                                         )}
 
@@ -636,6 +811,82 @@ export function AdicionarTreinadorModal() {
                                             className={inputClass}
                                         />
                                     </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Grau Técnico{" "}
+                                            <span className="text-red-400">
+                                                *
+                                            </span>
+                                        </label>
+                                        <select
+                                            value={grauId}
+                                            onChange={(e) => {
+                                                setGrauId(
+                                                    Number(e.target.value),
+                                                );
+                                                setEquipaId("");
+                                            }}
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        >
+                                            <option value={0}>
+                                                Selecionar grau...
+                                            </option>
+                                            {GRAUS_TECNICOS.map((g) => (
+                                                <option key={g.id} value={g.id}>
+                                                    {g.name} — {g.description}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {grauId > 0 && (
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                Equipa{" "}
+                                                <span className="text-red-400">
+                                                    *
+                                                </span>
+                                            </label>
+                                            {equipasFiltradas.length === 0 ? (
+                                                <p className="text-xs text-amber-400 px-1">
+                                                    ⚠️ Nenhuma equipa compatível
+                                                    com este grau técnico.
+                                                </p>
+                                            ) : (
+                                                <select
+                                                    value={equipaId}
+                                                    onChange={(e) =>
+                                                        setEquipaId(
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                                >
+                                                    <option value="">
+                                                        Selecionar equipa...
+                                                    </option>
+                                                    {equipasFiltradas.map(
+                                                        (eq) => (
+                                                            <option
+                                                                key={eq.id}
+                                                                value={eq.id}
+                                                            >
+                                                                {eq.nome} (
+                                                                {eq.escalao})
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            )}
+                                            <p className="text-[10px] text-gray-400 px-1">
+                                                Escalões permitidos:{" "}
+                                                {getEscaloesPermitidos(
+                                                    grauId,
+                                                ).join(", ")}
+                                            </p>
+                                        </div>
+                                    )}
 
                                     <div className="px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-500 dark:text-gray-400">
                                         📋 Será criado um perfil sem conta e o

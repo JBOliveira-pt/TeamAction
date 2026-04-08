@@ -6,7 +6,15 @@ import { Pencil, X, UserPlus } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
 type Escalao = { id: number; nome: string };
-type Treinador = { id: string; name: string; email: string };
+type Treinador = {
+    staff_id: string;
+    user_id: string | null;
+    name: string;
+    email: string | null;
+    funcao: string;
+    is_fake: boolean;
+    equipa_id: string | null;
+};
 
 const ESTADOS = [
     { value: "ativa", label: "Ativa" },
@@ -24,12 +32,16 @@ export default function EditarEquipaModal({
         nome: string;
         escalao: string;
         estado: string;
-        treinador_id: string | null;
-        adjunto_user_id: string | null;
+        staff_treinador_principal_id: string | null;
+        staff_adjunto_id: string | null;
     };
     escaloes: Escalao[];
     treinadores: Treinador[];
 }) {
+    // Treinadores sem equipa + os já atribuídos a esta equipa
+    const disponiveis = treinadores.filter(
+        (t) => !t.equipa_id || t.equipa_id === equipa.id,
+    );
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         editarEquipa,
@@ -37,13 +49,15 @@ export default function EditarEquipaModal({
     );
     const formRef = useRef<HTMLFormElement>(null);
 
-    const [treinadorId, setTreinadorId] = useState(equipa.treinador_id ?? "");
-    const [adjuntoId, setAdjuntoId] = useState(equipa.adjunto_user_id ?? "");
+    const [treinadorId, setTreinadorId] = useState(
+        equipa.staff_treinador_principal_id ?? "",
+    );
+    const [adjuntoId, setAdjuntoId] = useState(equipa.staff_adjunto_id ?? "");
 
     const resetState = useCallback(() => {
-        setTreinadorId(equipa.treinador_id ?? "");
-        setAdjuntoId(equipa.adjunto_user_id ?? "");
-    }, [equipa.treinador_id, equipa.adjunto_user_id]);
+        setTreinadorId(equipa.staff_treinador_principal_id ?? "");
+        setAdjuntoId(equipa.staff_adjunto_id ?? "");
+    }, [equipa.staff_treinador_principal_id, equipa.staff_adjunto_id]);
 
     const handleOpen = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -107,12 +121,12 @@ export default function EditarEquipaModal({
                             <input type="hidden" name="id" value={equipa.id} />
                             <input
                                 type="hidden"
-                                name="treinador_id"
+                                name="treinador_staff_id"
                                 value={treinadorId}
                             />
                             <input
                                 type="hidden"
-                                name="adjunto_id"
+                                name="adjunto_staff_id"
                                 value={adjuntoId}
                             />
 
@@ -198,7 +212,7 @@ export default function EditarEquipaModal({
                                     </span>
                                 </div>
 
-                                {treinadores.length === 0 ? (
+                                {disponiveis.length === 0 ? (
                                     <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                                         <p className="text-xs text-amber-400 font-medium">
                                             ⚠️ Nenhum treinador disponível.
@@ -219,9 +233,14 @@ export default function EditarEquipaModal({
                                         <option value="">
                                             Seleciona treinador
                                         </option>
-                                        {treinadores.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name} — {t.email}
+                                        {disponiveis.map((t) => (
+                                            <option
+                                                key={t.staff_id}
+                                                value={t.staff_id}
+                                            >
+                                                {t.name}
+                                                {t.is_fake ? " (fictício)" : ""}
+                                                {t.email ? ` — ${t.email}` : ""}
                                             </option>
                                         ))}
                                     </select>
@@ -243,7 +262,7 @@ export default function EditarEquipaModal({
                                     </span>
                                 </div>
 
-                                {treinadores.length === 0 ? (
+                                {disponiveis.length === 0 ? (
                                     <p className="text-xs text-gray-400 py-2">
                                         Nenhum treinador disponível.
                                     </p>
@@ -256,11 +275,23 @@ export default function EditarEquipaModal({
                                         className={inputClass}
                                     >
                                         <option value="">Nenhum</option>
-                                        {treinadores
-                                            .filter((t) => t.id !== treinadorId)
+                                        {disponiveis
+                                            .filter(
+                                                (t) =>
+                                                    t.staff_id !== treinadorId,
+                                            )
                                             .map((t) => (
-                                                <option key={t.id} value={t.id}>
-                                                    {t.name} — {t.email}
+                                                <option
+                                                    key={t.staff_id}
+                                                    value={t.staff_id}
+                                                >
+                                                    {t.name}
+                                                    {t.is_fake
+                                                        ? " (fictício)"
+                                                        : ""}
+                                                    {t.email
+                                                        ? ` — ${t.email}`
+                                                        : ""}
                                                 </option>
                                             ))}
                                     </select>

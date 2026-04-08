@@ -98,6 +98,8 @@ export async function fetchStaff() {
             user_email: string | null;
             estado: string;
             created_at: string;
+            grau_id: number | null;
+            grau_nome: string | null;
         }[]
     >`
     SELECT
@@ -105,7 +107,24 @@ export async function fetchStaff() {
       s.equipa_id, e.nome AS equipa_nome, e.escalao AS equipa_escalao,
       s.user_id, u.email AS user_email,
       s.estado,
-      s.created_at
+      s.created_at,
+      COALESCE(
+        s.grau_tecnico_id,
+        (SELECT gt.id FROM user_cursos uc
+         JOIN cursos c ON c.id = uc.curso_id
+         JOIN graus_tecnicos gt ON gt.id = c.level_id
+         WHERE uc.user_id = s.user_id
+         ORDER BY gt.id DESC LIMIT 1)
+      ) AS grau_id,
+      (SELECT gt2.name FROM graus_tecnicos gt2
+       WHERE gt2.id = COALESCE(
+         s.grau_tecnico_id,
+         (SELECT gt3.id FROM user_cursos uc2
+          JOIN cursos c2 ON c2.id = uc2.curso_id
+          JOIN graus_tecnicos gt3 ON gt3.id = c2.level_id
+          WHERE uc2.user_id = s.user_id
+          ORDER BY gt3.id DESC LIMIT 1)
+       )) AS grau_nome
     FROM staff s
     LEFT JOIN equipas e ON s.equipa_id = e.id
     LEFT JOIN users u ON s.user_id = u.id

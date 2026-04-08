@@ -6,7 +6,15 @@ import { X, UserPlus } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
 type Escalao = { id: number; nome: string };
-type Treinador = { id: string; name: string; email: string };
+type Treinador = {
+    staff_id: string;
+    user_id: string | null;
+    name: string;
+    email: string | null;
+    funcao: string;
+    is_fake: boolean;
+    equipa_id: string | null;
+};
 
 const ESTADOS = [
     { value: "ativa", label: "Ativa" },
@@ -23,6 +31,8 @@ export default function NovaEquipaModal({
     desporto: string;
     treinadores: Treinador[];
 }) {
+    // Só treinadores sem equipa atribuída
+    const disponiveis = treinadores.filter((t) => !t.equipa_id);
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         criarEquipa,
@@ -119,12 +129,12 @@ export default function NovaEquipaModal({
                             />
                             <input
                                 type="hidden"
-                                name="treinador_id"
+                                name="treinador_staff_id"
                                 value={treinadorId}
                             />
                             <input
                                 type="hidden"
-                                name="adjunto_id"
+                                name="adjunto_staff_id"
                                 value={adjuntoId}
                             />
                             {/* === Dados da Equipa === */}
@@ -208,7 +218,7 @@ export default function NovaEquipaModal({
                                     </span>
                                 </div>
 
-                                {treinadores.length === 0 ? (
+                                {disponiveis.length === 0 ? (
                                     <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                                         <p className="text-xs text-amber-400 font-medium">
                                             ⚠️ Nenhum treinador disponível.
@@ -230,9 +240,14 @@ export default function NovaEquipaModal({
                                         <option value="">
                                             Seleciona treinador
                                         </option>
-                                        {treinadores.map((t) => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name} — {t.email}
+                                        {disponiveis.map((t) => (
+                                            <option
+                                                key={t.staff_id}
+                                                value={t.staff_id}
+                                            >
+                                                {t.name}
+                                                {t.is_fake ? " (fictício)" : ""}
+                                                {t.email ? ` — ${t.email}` : ""}
                                             </option>
                                         ))}
                                     </select>
@@ -254,7 +269,7 @@ export default function NovaEquipaModal({
                                     </span>
                                 </div>
 
-                                {treinadores.length === 0 ? (
+                                {disponiveis.length === 0 ? (
                                     <p className="text-xs text-gray-400 py-2">
                                         Nenhum treinador disponível.
                                     </p>
@@ -267,11 +282,23 @@ export default function NovaEquipaModal({
                                         className={inputClass}
                                     >
                                         <option value="">Nenhum</option>
-                                        {treinadores
-                                            .filter((t) => t.id !== treinadorId)
+                                        {disponiveis
+                                            .filter(
+                                                (t) =>
+                                                    t.staff_id !== treinadorId,
+                                            )
                                             .map((t) => (
-                                                <option key={t.id} value={t.id}>
-                                                    {t.name} — {t.email}
+                                                <option
+                                                    key={t.staff_id}
+                                                    value={t.staff_id}
+                                                >
+                                                    {t.name}
+                                                    {t.is_fake
+                                                        ? " (fictício)"
+                                                        : ""}
+                                                    {t.email
+                                                        ? ` — ${t.email}`
+                                                        : ""}
                                                 </option>
                                             ))}
                                     </select>

@@ -44,6 +44,7 @@ export { gerarRelatorioStaff } from "./relatorios";
 export { registarResultado } from "./jogos";
 export { editarMembro } from "./staff";
 export { removerMembro } from "./staff";
+export { suspenderMembro } from "./staff";
 export { marcarNotificacaoComoLida } from "./notificacoes";
 export { toggleNotificacaoLida } from "./notificacoes";
 export { criarNotaCalendario } from "./notas-calendario";

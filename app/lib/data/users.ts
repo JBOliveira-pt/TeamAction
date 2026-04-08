@@ -24,17 +24,38 @@ export async function fetchUsers() {
     }
 }
 
-export async function fetchTreinadoresOrg(): Promise<
-    { id: string; name: string; email: string }[]
-> {
+export type TreinadorStaff = {
+    staff_id: string;
+    user_id: string | null;
+    name: string;
+    email: string | null;
+    funcao: string;
+    is_fake: boolean;
+    equipa_id: string | null;
+};
+
+/**
+ * Retorna todos os treinadores ativos da organização.
+ * Inclui equipa_id para filtragem no cliente.
+ */
+export async function fetchTreinadoresOrg(): Promise<TreinadorStaff[]> {
     try {
         const organizationId = await getOrganizationId();
-        return await sql<{ id: string; name: string; email: string }[]>`
-            SELECT id, name, email
-            FROM users
-            WHERE organization_id = ${organizationId}
-              AND account_type = 'treinador'
-            ORDER BY name ASC
+        return await sql<TreinadorStaff[]>`
+            SELECT
+                s.id AS staff_id,
+                s.user_id,
+                s.nome AS name,
+                u.email,
+                s.funcao,
+                (s.user_id IS NULL) AS is_fake,
+                s.equipa_id
+            FROM staff s
+            LEFT JOIN users u ON u.id = s.user_id
+            WHERE s.organization_id = ${organizationId}
+              AND s.funcao IN ('Treinador Principal', 'Treinador Adjunto')
+              AND s.estado = 'ativo'
+            ORDER BY s.nome ASC
         `;
     } catch (error) {
         console.error("Database Error:", error);

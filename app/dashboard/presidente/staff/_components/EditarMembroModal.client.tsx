@@ -1,8 +1,18 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+    useActionState,
+    useEffect,
+    useRef,
+    useState,
+    useTransition,
+} from "react";
 import { editarMembro, getEscaloesByUserAction } from "@/app/lib/actions";
-import { X, Search, UserCheck, Loader2 } from "lucide-react";
+import {
+    GRAUS_TECNICOS,
+    getEscaloesPermitidos,
+} from "@/app/lib/grau-escalao-compat";
+import { X, UserCheck, Loader2 } from "lucide-react";
 
 type Equipa = { id: string; nome: string; escalao: string };
 type UserPlataforma = {
@@ -50,7 +60,9 @@ export function EditarMembroModal({
     const [funcao, setFuncao] = useState(membro.funcao);
     const isTreinador = FUNCOES_TREINADOR.includes(funcao);
 
-    // Determinar modo inicial baseado no membro existente
+    // Determinar modo baseado no membro existente
+    const isRealEdit = isTreinador && !!membro.userid;
+    const isFakeEdit = isTreinador && !membro.userid;
     const initialMode = isTreinador
         ? membro.userid
             ? "real"
@@ -63,34 +75,32 @@ export function EditarMembroModal({
     const [selectedUser, setSelectedUser] = useState<UserPlataforma | null>(
         currentUser,
     );
-    const [userSearch, setUserSearch] = useState(currentUser?.name ?? "");
-    const [showDropdown, setShowDropdown] = useState(false);
     const [escaloesTreinador, setEscaloesTreinador] = useState<string[]>([]);
-    const [loadingEscaloes, setLoadingEscaloes] = useState(false);
+    const [loadingEscaloes, startLoadEscaloes] = useTransition();
 
     // Fake trainer fields
     const [fakeNome, setFakeNome] = useState(
         !membro.userid && isTreinador ? membro.nome : "",
     );
-    const [fakeEmail, setFakeEmail] = useState("");
+    const [grauId, setGrauId] = useState<number | null>(null);
 
-    const equipasFiltradas =
-        isTreinador && treinadorMode === "real" && escaloesTreinador.length > 0
-            ? equipas.filter((e) => escaloesTreinador.includes(e.escalao))
-            : equipas;
-
-    const filteredUsers = users.filter(
-        (u) =>
-            u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-            u.email.toLowerCase().includes(userSearch.toLowerCase()),
-    );
+    const equipasFiltradas = (() => {
+        if (isRealEdit && escaloesTreinador.length > 0) {
+            return equipas.filter((e) => escaloesTreinador.includes(e.escalao));
+        }
+        if (isFakeEdit && grauId) {
+            const permitidos = getEscaloesPermitidos(grauId);
+            return equipas.filter((e) => permitidos.includes(e.escalao));
+        }
+        return equipas;
+    })();
 
     useEffect(() => {
         if (open && isTreinador && currentUser) {
-            setLoadingEscaloes(true);
-            getEscaloesByUserAction(currentUser.id)
-                .then(setEscaloesTreinador)
-                .finally(() => setLoadingEscaloes(false));
+            startLoadEscaloes(async () => {
+                const result = await getEscaloesByUserAction(currentUser.id);
+                setEscaloesTreinador(result);
+            });
         }
     }, [open, isTreinador, currentUser]);
 
@@ -105,25 +115,10 @@ export function EditarMembroModal({
         if (!FUNCOES_TREINADOR.includes(val)) {
             setTreinadorMode("none");
             setSelectedUser(null);
-            setUserSearch("");
             setEscaloesTreinador([]);
             setFakeNome("");
-            setFakeEmail("");
-        } else {
-            setTreinadorMode("real");
-        }
-    }
-
-    async function handleSelectUser(u: UserPlataforma) {
-        setSelectedUser(u);
-        setUserSearch(u.name);
-        setShowDropdown(false);
-        setLoadingEscaloes(true);
-        try {
-            const escaloes = await getEscaloesByUserAction(u.id);
-            setEscaloesTreinador(escaloes);
-        } finally {
-            setLoadingEscaloes(false);
+        } else if (!isRealEdit) {
+            setTreinadorMode("fake");
         }
     }
 
@@ -167,6 +162,13 @@ export function EditarMembroModal({
                             className="space-y-4"
                         >
                             <input type="hidden" name="id" value={membro.id} />
+                            {isFakeEdit && grauId && (
+                                <input
+                                    type="hidden"
+                                    name="grau_tecnico_id"
+                                    value={String(grauId)}
+                                />
+                            )}
 
                             {/* Função */}
                             <div className="space-y-1">
@@ -174,277 +176,186 @@ export function EditarMembroModal({
                                     Função{" "}
                                     <span className="text-red-400">*</span>
                                 </label>
-                                <select
-                                    name="funcao"
-                                    required
-                                    value={funcao}
-                                    onChange={(e) =>
-                                        handleFuncaoChange(e.target.value)
-                                    }
-                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                >
-                                    {FUNCOES.map((f) => (
-                                        <option key={f} value={f}>
-                                            {f}
-                                        </option>
-                                    ))}
-                                </select>
+                                {isRealEdit ? (
+                                    <>
+                                        <select
+                                            name="funcao"
+                                            required
+                                            value={funcao}
+                                            onChange={(e) =>
+                                                setFuncao(e.target.value)
+                                            }
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        >
+                                            {FUNCOES_TREINADOR.map((f) => (
+                                                <option key={f} value={f}>
+                                                    {f}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <input
+                                            type="hidden"
+                                            name="treinador_mode"
+                                            value="real"
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="userid"
+                                            value={membro.userid ?? ""}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="nome"
+                                            value={membro.nome}
+                                        />
+                                    </>
+                                ) : (
+                                    <select
+                                        name="funcao"
+                                        required
+                                        value={funcao}
+                                        onChange={(e) =>
+                                            handleFuncaoChange(e.target.value)
+                                        }
+                                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                    >
+                                        {FUNCOES.map((f) => (
+                                            <option key={f} value={f}>
+                                                {f}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
 
-                            {/* Treinador → modo real/fake */}
-                            {isTreinador && (
-                                <div className="space-y-3">
-                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Tipo de treinador
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setTreinadorMode("real");
-                                                setFakeNome("");
-                                                setFakeEmail("");
-                                            }}
-                                            className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
-                                                treinadorMode === "real"
-                                                    ? "bg-blue-600 text-white border-blue-600"
-                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-blue-500"
-                                            }`}
-                                        >
-                                            Utilizador da plataforma
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setTreinadorMode("fake");
-                                                setSelectedUser(null);
-                                                setUserSearch("");
-                                                setEscaloesTreinador([]);
-                                            }}
-                                            className={`flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
-                                                treinadorMode === "fake"
-                                                    ? "bg-blue-600 text-white border-blue-600"
-                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-blue-500"
-                                            }`}
-                                        >
-                                            Registar manualmente
-                                        </button>
+                            {/* Treinador real — info read-only do utilizador */}
+                            {isRealEdit && currentUser && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                        <UserCheck
+                                            size={14}
+                                            className="text-emerald-400 flex-shrink-0"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-emerald-400">
+                                                {currentUser.name}
+                                            </p>
+                                            <p className="text-xs text-gray-400">
+                                                {currentUser.email}
+                                            </p>
+                                        </div>
+                                        {loadingEscaloes && (
+                                            <Loader2
+                                                size={14}
+                                                className="text-gray-400 animate-spin"
+                                            />
+                                        )}
                                     </div>
+                                    {!loadingEscaloes && (
+                                        <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                                                Escalões cobertos:
+                                            </p>
+                                            {escaloesTreinador.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {escaloesTreinador.map(
+                                                        (e) => (
+                                                            <span
+                                                                key={e}
+                                                                className="px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs rounded-full"
+                                                            >
+                                                                {e}
+                                                            </span>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-red-400">
+                                                    ⚠️ Sem cursos registados na
+                                                    plataforma.
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
+                            {/* Treinador fake → modo fake (nome + curso) */}
+                            {isTreinador && !isRealEdit && (
+                                <div className="space-y-3">
                                     <input
                                         type="hidden"
                                         name="treinador_mode"
-                                        value={treinadorMode}
+                                        value="fake"
                                     />
 
-                                    {/* Modo real: pesquisar utilizador */}
-                                    {treinadorMode === "real" && (
-                                        <div className="space-y-2">
-                                            <div className="relative">
-                                                <Search
-                                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                                                    size={14}
-                                                />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Pesquisar por nome ou email..."
-                                                    value={userSearch}
-                                                    onChange={(e) => {
-                                                        setUserSearch(
-                                                            e.target.value,
-                                                        );
-                                                        setShowDropdown(true);
-                                                        if (
-                                                            selectedUser &&
-                                                            e.target.value !==
-                                                                selectedUser.name
-                                                        ) {
-                                                            setSelectedUser(
-                                                                null,
-                                                            );
-                                                            setEscaloesTreinador(
-                                                                [],
-                                                            );
-                                                        }
-                                                    }}
-                                                    onFocus={() =>
-                                                        setShowDropdown(true)
-                                                    }
-                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg pl-8 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                                />
-                                                {showDropdown &&
-                                                    userSearch.length > 0 && (
-                                                        <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                                                            {filteredUsers.length >
-                                                            0 ? (
-                                                                filteredUsers.map(
-                                                                    (u) => (
-                                                                        <button
-                                                                            key={
-                                                                                u.id
-                                                                            }
-                                                                            type="button"
-                                                                            onClick={() =>
-                                                                                handleSelectUser(
-                                                                                    u,
-                                                                                )
-                                                                            }
-                                                                            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3"
-                                                                        >
-                                                                            <div className="w-7 h-7 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-                                                                                <span className="text-xs font-bold text-blue-400">
-                                                                                    {u.name
-                                                                                        .charAt(
-                                                                                            0,
-                                                                                        )
-                                                                                        .toUpperCase()}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div>
-                                                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                                                    {
-                                                                                        u.name
-                                                                                    }
-                                                                                </p>
-                                                                                <p className="text-xs text-gray-400">
-                                                                                    {
-                                                                                        u.email
-                                                                                    }
-                                                                                </p>
-                                                                            </div>
-                                                                        </button>
-                                                                    ),
-                                                                )
-                                                            ) : (
-                                                                <p className="px-4 py-3 text-sm text-gray-400 text-center">
-                                                                    Nenhum
-                                                                    utilizador
-                                                                    encontrado.
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                            </div>
-
-                                            <input
-                                                type="hidden"
-                                                name="userid"
-                                                value={selectedUser?.id ?? ""}
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name="nome"
-                                                value={
-                                                    selectedUser?.name ??
-                                                    membro.nome
-                                                }
-                                            />
-
-                                            {selectedUser && (
-                                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-                                                    <UserCheck
-                                                        size={14}
-                                                        className="text-emerald-400 flex-shrink-0"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-medium text-emerald-400">
-                                                            {selectedUser.name}
-                                                        </p>
-                                                        <p className="text-xs text-gray-400">
-                                                            {selectedUser.email}
-                                                        </p>
-                                                    </div>
-                                                    {loadingEscaloes && (
-                                                        <Loader2
-                                                            size={14}
-                                                            className="text-gray-400 animate-spin"
-                                                        />
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {selectedUser &&
-                                                !loadingEscaloes && (
-                                                    <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                                                            Escalões cobertos:
-                                                        </p>
-                                                        {escaloesTreinador.length >
-                                                        0 ? (
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {escaloesTreinador.map(
-                                                                    (e) => (
-                                                                        <span
-                                                                            key={
-                                                                                e
-                                                                            }
-                                                                            className="px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs rounded-full"
-                                                                        >
-                                                                            {e}
-                                                                        </span>
-                                                                    ),
-                                                                )}
-                                                            </div>
-                                                        ) : (
-                                                            <p className="text-xs text-red-400">
-                                                                ⚠️ Sem cursos
-                                                                registados na
-                                                                plataforma.
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                )}
-                                        </div>
-                                    )}
-
-                                    {/* Modo fake: nome + email opcional */}
-                                    {treinadorMode === "fake" && (
-                                        <div className="space-y-3">
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                    Nome do Treinador{" "}
-                                                    <span className="text-red-400">
-                                                        *
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Nome do Treinador{" "}
+                                            <span className="text-red-400">
+                                                *
+                                            </span>
+                                        </label>
+                                        <input
+                                            name="nome"
+                                            type="text"
+                                            required
+                                            value={fakeNome}
+                                            onChange={(e) =>
+                                                setFakeNome(e.target.value)
+                                            }
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Curso (Grau Técnico)
+                                        </label>
+                                        <select
+                                            value={grauId ?? ""}
+                                            onChange={(e) =>
+                                                setGrauId(
+                                                    e.target.value
+                                                        ? Number(e.target.value)
+                                                        : null,
+                                                )
+                                            }
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        >
+                                            <option value="">
+                                                Selecionar grau...
+                                            </option>
+                                            {GRAUS_TECNICOS.map((g) => (
+                                                <option key={g.id} value={g.id}>
+                                                    {g.name} — {g.description}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    {grauId && (
+                                        <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
+                                                Escalões cobertos:
+                                            </p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {getEscaloesPermitidos(
+                                                    grauId,
+                                                ).map((e) => (
+                                                    <span
+                                                        key={e}
+                                                        className="px-2 py-0.5 bg-violet-500/10 border border-violet-500/20 text-violet-400 text-xs rounded-full"
+                                                    >
+                                                        {e}
                                                     </span>
-                                                </label>
-                                                <input
-                                                    name="nome"
-                                                    type="text"
-                                                    required
-                                                    value={fakeNome}
-                                                    onChange={(e) =>
-                                                        setFakeNome(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                                />
+                                                ))}
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                    Email (opcional — para
-                                                    procurar na plataforma)
-                                                </label>
-                                                <input
-                                                    name="treinador_email_fake"
-                                                    type="email"
-                                                    value={fakeEmail}
-                                                    onChange={(e) =>
-                                                        setFakeEmail(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    placeholder="email@dominio.pt"
-                                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                                />
-                                            </div>
-                                            <input
-                                                type="hidden"
-                                                name="userid"
-                                                value=""
-                                            />
                                         </div>
                                     )}
+                                    <input
+                                        type="hidden"
+                                        name="userid"
+                                        value=""
+                                    />
                                 </div>
                             )}
 
@@ -471,7 +382,7 @@ export function EditarMembroModal({
                                     Equipa
                                 </label>
                                 <select
-                                    name="equipaid"
+                                    name="equipa_id"
                                     defaultValue={membro.equipaid ?? ""}
                                     className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                 >
@@ -484,7 +395,7 @@ export function EditarMembroModal({
                                     ))}
                                 </select>
                                 {isTreinador &&
-                                    escaloesTreinador.length > 0 &&
+                                    (escaloesTreinador.length > 0 || grauId) &&
                                     equipasFiltradas.length <
                                         equipas.length && (
                                         <p className="text-xs text-gray-400">
@@ -506,12 +417,7 @@ export function EditarMembroModal({
                                     type="submit"
                                     disabled={
                                         isPending ||
-                                        (isTreinador &&
-                                            treinadorMode === "real" &&
-                                            !selectedUser) ||
-                                        (isTreinador &&
-                                            treinadorMode === "fake" &&
-                                            !fakeNome.trim())
+                                        (isFakeEdit && !fakeNome.trim())
                                     }
                                     className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                 >

@@ -176,14 +176,18 @@ export async function getEscaloesByUserAction(
     userId: string,
 ): Promise<string[]> {
     try {
-        const result = await sql<{ escalao: string }[]>`
-      SELECT DISTINCT e.nome AS escalao
-      FROM user_cursos uc
-      INNER JOIN cursos c ON uc.curso_id = c.id
-      INNER JOIN escaloes e ON c.level_id = e.id
-      WHERE uc.user_id = ${userId}
-    `;
-        return result.map((r: { escalao: string }) => r.escalao);
+        const { getEscaloesPermitidos } =
+            await import("@/app/lib/grau-escalao-compat");
+        const result = await sql<{ grau_id: number }[]>`
+            SELECT DISTINCT g.id AS grau_id
+            FROM user_cursos uc
+            INNER JOIN cursos c ON uc.curso_id = c.id
+            INNER JOIN graus_tecnicos g ON c.level_id = g.id
+            WHERE uc.user_id = ${userId}
+        `;
+        const maxGrau = Math.max(0, ...result.map((r) => r.grau_id));
+        if (maxGrau === 0) return [];
+        return getEscaloesPermitidos(maxGrau);
     } catch {
         return [];
     }

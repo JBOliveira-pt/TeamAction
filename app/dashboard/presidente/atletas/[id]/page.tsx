@@ -120,7 +120,7 @@ export default async function AtletaDetailPage({
                         >
                             {atleta.estado}
                         </span>
-                        {mensalidadeAtual && (
+                        {atleta.user_id && mensalidadeAtual && (
                             <span
                                 className={`px-3 py-1.5 rounded-full text-xs font-semibold ${mensalidadeStyle[mensalidadeAtual.estado] ?? "bg-slate-500/10 text-slate-400"}`}
                             >
@@ -197,41 +197,35 @@ export default async function AtletaDetailPage({
                                         : "Não"}
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">
-                                    Mão Dominante
-                                </p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 capitalize">
-                                    {atleta.mao_dominante ?? "—"}
-                                </p>
-                            </div>
                         </div>
                     </div>
 
-                    {/* Contacto */}
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
-                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                            Contacto
-                        </h2>
-                        <div className="space-y-3">
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">
-                                    Email
-                                </p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
-                                    {atleta.user_email ?? "—"}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">
-                                    Telemóvel
-                                </p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
-                                    {atleta.user_telefone ?? "—"}
-                                </p>
+                    {/* Contacto — apenas para atletas reais */}
+                    {atleta.user_id && (
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                                Contacto
+                            </h2>
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                                        Email
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                        {atleta.user_email ?? "—"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                                        Telemóvel
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
+                                        {atleta.user_telefone ?? "—"}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Informações desportivas */}
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-4">
@@ -275,6 +269,14 @@ export default async function AtletaDetailPage({
                                     {atleta.estado}
                                 </span>
                             </div>
+                            <div>
+                                <p className="text-xs text-gray-400 dark:text-gray-500">
+                                    Mão Dominante
+                                </p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 capitalize">
+                                    {atleta.mao_dominante ?? "—"}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -307,46 +309,49 @@ export default async function AtletaDetailPage({
                         </p>
                     </div>
 
-                    {/* Mensalidades */}
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                                Mensalidades
-                            </h2>
-                            <RegistarPagamentoModal atletaId={atleta.id} />
-                        </div>
-                        {mensalidades.length === 0 ? (
-                            <p className="text-sm text-gray-400 dark:text-gray-500">
-                                Nenhuma mensalidade registada.
-                            </p>
-                        ) : (
-                            <div className="space-y-2">
-                                {mensalidades.map((m) => (
-                                    <div
-                                        key={m.id}
-                                        className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0"
-                                    >
-                                        <span className="text-sm text-gray-900 dark:text-white">
-                                            {mesesNomes[m.mes]} {m.ano}
-                                        </span>
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                                {m.valor != null
-                                                    ? `€${Number(m.valor).toFixed(2)}`
-                                                    : "—"}
-                                            </span>
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${mensalidadeStyle[m.estado] ?? "bg-slate-500/10 text-slate-400"}`}
-                                            >
-                                                {mensalidadeLabel[m.estado] ??
-                                                    m.estado}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                    {/* Mensalidades — apenas para atletas reais */}
+                    {atleta.user_id && (
+                        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                                    Mensalidades
+                                </h2>
+                                <RegistarPagamentoModal atletaId={atleta.id} />
                             </div>
-                        )}
-                    </div>
+                            {mensalidades.length === 0 ? (
+                                <p className="text-sm text-gray-400 dark:text-gray-500">
+                                    Nenhuma mensalidade registada.
+                                </p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {mensalidades.map((m) => (
+                                        <div
+                                            key={m.id}
+                                            className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-800/50 last:border-0"
+                                        >
+                                            <span className="text-sm text-gray-900 dark:text-white">
+                                                {mesesNomes[m.mes]} {m.ano}
+                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                    {m.valor != null
+                                                        ? `€${Number(m.valor).toFixed(2)}`
+                                                        : "—"}
+                                                </span>
+                                                <span
+                                                    className={`px-2 py-1 rounded-full text-xs font-medium ${mensalidadeStyle[m.estado] ?? "bg-slate-500/10 text-slate-400"}`}
+                                                >
+                                                    {mensalidadeLabel[
+                                                        m.estado
+                                                    ] ?? m.estado}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

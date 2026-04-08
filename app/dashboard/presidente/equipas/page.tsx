@@ -149,10 +149,10 @@ export default async function EquipasPage() {
                                                     nome: e.nome,
                                                     escalao: e.escalao,
                                                     estado: e.estado,
-                                                    treinador_id:
-                                                        e.treinador_id,
-                                                    adjunto_user_id:
-                                                        e.adjunto_user_id,
+                                                    staff_treinador_principal_id:
+                                                        e.staff_treinador_principal_id,
+                                                    staff_adjunto_id:
+                                                        e.staff_adjunto_id,
                                                 }}
                                                 escaloes={escaloes}
                                                 treinadores={treinadores}
