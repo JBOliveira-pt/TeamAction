@@ -97,8 +97,11 @@ function FormCampos({
                 </div>
                 <div className="flex flex-col gap-1">
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Duração (min) <span className="text-red-500">*</span></label>
-                    <input type="number" min={15} max={300} placeholder="90" disabled={disabled} className={inputCls("duracao_min")} value={f.duracao_min} onChange={(e) => setF((v) => ({ ...v, duracao_min: e.target.value }))} />
-                    {errs.duracao_min && <p className="text-xs text-red-500">{errs.duracao_min}</p>}
+                    <input type="number" min={15} max={300} placeholder="Ex: 90" disabled={disabled} className={inputCls("duracao_min")} value={f.duracao_min} onChange={(e) => setF((v) => ({ ...v, duracao_min: e.target.value }))} />
+                    {errs.duracao_min
+                        ? <p className="text-xs text-red-500">{errs.duracao_min}</p>
+                        : <p className="text-xs text-gray-400">Mín. 15 min · Máx. 300 min</p>
+                    }
                 </div>
             </div>
             <div className="flex flex-col gap-1">
