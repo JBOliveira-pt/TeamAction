@@ -80,6 +80,116 @@ const INPUT_CLASS =
 const INPUT_ERRO = "border-red-400";
 const INPUT_OK   = "border-gray-300 dark:border-gray-700";
 
+function FormExercicio({
+    form,
+    setForm,
+    erros,
+    saving,
+    onSubmit,
+    onCancel,
+    labelSubmit,
+}: {
+    form: FormState;
+    setForm: React.Dispatch<React.SetStateAction<FormState>>;
+    erros: Record<string, string>;
+    saving: boolean;
+    onSubmit: (e: React.FormEvent) => void;
+    onCancel: () => void;
+    labelSubmit: string;
+}) {
+    return (
+        <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4">
+            {erros.geral && (
+                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2">
+                    {erros.geral}
+                </p>
+            )}
+
+            <CampoTexto label="Nome" obrigatorio erro={erros.nome}>
+                <input
+                    type="text"
+                    maxLength={100}
+                    placeholder="Ex: Remate em Suspensão"
+                    className={`${INPUT_CLASS} ${erros.nome ? INPUT_ERRO : INPUT_OK}`}
+                    value={form.nome}
+                    onChange={(e) => setForm((v) => ({ ...v, nome: e.target.value }))}
+                />
+                <p className="text-xs text-gray-400 text-right">{form.nome.length}/100</p>
+            </CampoTexto>
+
+            <CampoTexto label="Descrição" obrigatorio erro={erros.descricao}>
+                <textarea
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Descreva o objectivo e como executar o exercício"
+                    className={`${INPUT_CLASS} resize-none ${erros.descricao ? INPUT_ERRO : INPUT_OK}`}
+                    value={form.descricao}
+                    onChange={(e) => setForm((v) => ({ ...v, descricao: e.target.value }))}
+                />
+                <p className="text-xs text-gray-400 text-right">{form.descricao.length}/500</p>
+            </CampoTexto>
+
+            <div className="grid grid-cols-2 gap-3">
+                <CampoTexto label="Categoria" obrigatorio erro={erros.categoria}>
+                    <select
+                        className={`${INPUT_CLASS} ${erros.categoria ? INPUT_ERRO : INPUT_OK}`}
+                        value={form.categoria}
+                        onChange={(e) => setForm((v) => ({ ...v, categoria: e.target.value as Categoria }))}
+                    >
+                        {CATEGORIAS.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+                </CampoTexto>
+
+                <CampoTexto label="Nível" obrigatorio erro={erros.nivel}>
+                    <select
+                        className={`${INPUT_CLASS} ${erros.nivel ? INPUT_ERRO : INPUT_OK}`}
+                        value={form.nivel}
+                        onChange={(e) => setForm((v) => ({ ...v, nivel: e.target.value as Nivel }))}
+                    >
+                        {NIVEIS.map((n) => (
+                            <option key={n} value={n}>{n}</option>
+                        ))}
+                    </select>
+                </CampoTexto>
+            </div>
+
+            <CampoTexto label="Duração (minutos)" obrigatorio erro={erros.duracao_min}>
+                <input
+                    type="number"
+                    min={5}
+                    max={120}
+                    placeholder="Ex: 15"
+                    className={`${INPUT_CLASS} ${erros.duracao_min ? INPUT_ERRO : INPUT_OK}`}
+                    value={form.duracao_min}
+                    onChange={(e) => setForm((v) => ({ ...v, duracao_min: e.target.value }))}
+                />
+                {!erros.duracao_min && (
+                    <p className="text-xs text-gray-400">Entre 5 e 120 minutos</p>
+                )}
+            </CampoTexto>
+
+            <div className="flex gap-2 pt-2">
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all"
+                >
+                    {saving ? "A guardar..." : labelSubmit}
+                </button>
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
+                >
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    );
+}
+
 export default function Exercicios() {
     const [exercicios, setExercicios] = useState<Exercicio[]>([]);
     const [loading, setLoading] = useState(true);
@@ -208,117 +318,6 @@ export default function Exercicios() {
         await fetch(`/api/exercicios/${id}`, { method: "DELETE" });
         setExercicios((prev) => prev.filter((ex) => ex.id !== id));
         setExercicioEdit(null);
-    }
-
-    // Formulário reutilizável
-    function FormExercicio({
-        form,
-        setForm,
-        erros,
-        saving,
-        onSubmit,
-        onCancel,
-        labelSubmit,
-    }: {
-        form: FormState;
-        setForm: React.Dispatch<React.SetStateAction<FormState>>;
-        erros: Record<string, string>;
-        saving: boolean;
-        onSubmit: (e: React.FormEvent) => void;
-        onCancel: () => void;
-        labelSubmit: string;
-    }) {
-        return (
-            <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4">
-                {erros.geral && (
-                    <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl px-4 py-2">
-                        {erros.geral}
-                    </p>
-                )}
-
-                <CampoTexto label="Nome" obrigatorio erro={erros.nome}>
-                    <input
-                        type="text"
-                        maxLength={100}
-                        placeholder="Ex: Remate em Suspensão"
-                        className={`${INPUT_CLASS} ${erros.nome ? INPUT_ERRO : INPUT_OK}`}
-                        value={form.nome}
-                        onChange={(e) => setForm((v) => ({ ...v, nome: e.target.value }))}
-                    />
-                    <p className="text-xs text-gray-400 text-right">{form.nome.length}/100</p>
-                </CampoTexto>
-
-                <CampoTexto label="Descrição" obrigatorio erro={erros.descricao}>
-                    <textarea
-                        rows={3}
-                        maxLength={500}
-                        placeholder="Descreva o objectivo e como executar o exercício"
-                        className={`${INPUT_CLASS} resize-none ${erros.descricao ? INPUT_ERRO : INPUT_OK}`}
-                        value={form.descricao}
-                        onChange={(e) => setForm((v) => ({ ...v, descricao: e.target.value }))}
-                    />
-                    <p className="text-xs text-gray-400 text-right">{form.descricao.length}/500</p>
-                </CampoTexto>
-
-                <div className="grid grid-cols-2 gap-3">
-                    <CampoTexto label="Categoria" obrigatorio erro={erros.categoria}>
-                        <select
-                            className={`${INPUT_CLASS} ${erros.categoria ? INPUT_ERRO : INPUT_OK}`}
-                            value={form.categoria}
-                            onChange={(e) => setForm((v) => ({ ...v, categoria: e.target.value as Categoria }))}
-                        >
-                            {CATEGORIAS.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </select>
-                    </CampoTexto>
-
-                    <CampoTexto label="Nível" obrigatorio erro={erros.nivel}>
-                        <select
-                            className={`${INPUT_CLASS} ${erros.nivel ? INPUT_ERRO : INPUT_OK}`}
-                            value={form.nivel}
-                            onChange={(e) => setForm((v) => ({ ...v, nivel: e.target.value as Nivel }))}
-                        >
-                            {NIVEIS.map((n) => (
-                                <option key={n} value={n}>{n}</option>
-                            ))}
-                        </select>
-                    </CampoTexto>
-                </div>
-
-                <CampoTexto label="Duração (minutos)" obrigatorio erro={erros.duracao_min}>
-                    <input
-                        type="number"
-                        min={5}
-                        max={120}
-                        placeholder="Ex: 15"
-                        className={`${INPUT_CLASS} ${erros.duracao_min ? INPUT_ERRO : INPUT_OK}`}
-                        value={form.duracao_min}
-                        onChange={(e) => setForm((v) => ({ ...v, duracao_min: e.target.value }))}
-                    />
-                    {!erros.duracao_min && (
-                        <p className="text-xs text-gray-400">Entre 5 e 120 minutos</p>
-                    )}
-                </CampoTexto>
-
-                <div className="flex gap-2 pt-2">
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all"
-                    >
-                        {saving ? "A guardar..." : labelSubmit}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
-                    >
-                        Cancelar
-                    </button>
-                </div>
-            </form>
-        );
     }
 
     return (
