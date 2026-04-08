@@ -16,7 +16,7 @@ export default function StaffPanel({ staff }: { staff: StaffMembro[] }) {
         <div className="relative flex-shrink-0 flex items-stretch">
             {/* Painel */}
             <div
-                className={`bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
+                className={`bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
                     open ? "w-56 px-4 py-5" : "w-0 px-0 py-0"
                 }`}
             >
@@ -61,9 +61,9 @@ export default function StaffPanel({ staff }: { staff: StaffMembro[] }) {
             <button
                 onClick={() => setOpen((o) => !o)}
                 title={open ? "Fechar painel" : "Abrir painel"}
-                className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-6 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full shadow-md flex items-center justify-center text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
+                className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 w-6 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full shadow-md flex items-center justify-center text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-600 transition-all"
             >
-                {open ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
+                {open ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
             </button>
         </div>
     );

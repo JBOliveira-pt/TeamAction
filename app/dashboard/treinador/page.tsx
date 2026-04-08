@@ -144,6 +144,7 @@ async function fetchDashboardData() {
         pctAssiduidade,
         atletaDestaque,
         staff: staffResult,
+        hasEquipa: equipaId !== null,
     };
 }
 
@@ -162,7 +163,6 @@ export default async function TreinadorDashboard() {
 
     return (
         <div className="flex w-full min-h-screen">
-            <StaffPanel staff={data?.staff ?? []} />
             <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-8">
                 {/* ── Cabeçalho ── */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -377,6 +377,9 @@ export default async function TreinadorDashboard() {
                     </div>
                 </div>
             </div>
+            {data?.hasEquipa && (
+                <StaffPanel staff={data.staff ?? []} />
+            )}
         </div>
     );
 }
