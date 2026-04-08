@@ -59,13 +59,14 @@ const FORM_VAZIO = {
 
 /* ── Campos de formulário (reutilizável) ── */
 function FormCampos({
-    f, setF, errs, equipas, disabled = false,
+    f, setF, errs, equipas, disabled = false, minData = "",
 }: {
     f: typeof FORM_VAZIO;
     setF: (fn: (v: typeof FORM_VAZIO) => typeof FORM_VAZIO) => void;
     errs: Record<string, string>;
     equipas: Equipa[];
     disabled?: boolean;
+    minData?: string;
 }) {
     const inputCls = (campo: string) =>
         `w-full rounded-xl border px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-cyan-400 focus:outline-none ${errs[campo] ? "border-red-400" : "border-gray-300 dark:border-gray-700"}`;
@@ -78,7 +79,7 @@ function FormCampos({
             <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase">Data <span className="text-red-500">*</span></label>
-                    <input type="date" disabled={disabled} className={inputCls("data")} value={f.data} onChange={(e) => setF((v) => ({ ...v, data: e.target.value }))} />
+                    <input type="date" disabled={disabled} min={minData || undefined} className={inputCls("data")} value={f.data} onChange={(e) => setF((v) => ({ ...v, data: e.target.value }))} />
                     {errs.data && <p className="text-xs text-red-500">{errs.data}</p>}
                 </div>
                 <div className="flex flex-col gap-1">
@@ -376,7 +377,7 @@ export default function Sessoes({ equipas, autoOpenModal = false }: { equipas: E
                             <button onClick={() => setShowModal(false)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 text-xl font-bold">×</button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
-                            <FormCampos f={form} setF={setForm} errs={erros} equipas={equipas} />
+                            <FormCampos f={form} setF={setForm} errs={erros} equipas={equipas} minData={hojeISO()} />
                             <div className="flex gap-2 pt-1">
                                 <button type="submit" disabled={saving} className="flex-1 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-60 text-white font-bold py-2.5 rounded-xl transition-all text-sm">
                                     {saving ? "A guardar..." : "Criar Sessão"}
