@@ -331,7 +331,7 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Descrição
+                                    Descrição <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     value={form.descricao}
@@ -340,12 +340,14 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                                     }
                                     rows={2}
                                     placeholder="Breve descrição do plano..."
+                                    required
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm resize-none text-gray-900 dark:text-gray-100"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Observações
+                                    Observações{" "}
+                                    <span className="text-gray-400 font-normal">(opcional)</span>
                                 </label>
                                 <textarea
                                     value={form.observacoes}
