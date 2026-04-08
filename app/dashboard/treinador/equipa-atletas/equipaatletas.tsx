@@ -1332,6 +1332,167 @@ function ModalCriarAtleta({
     );
 }
 
+/* ── Modal Editar Atleta Fictício ── */
+function ModalEditarAtletaFake({
+    atleta,
+    equipas,
+    onClose,
+    onEditado,
+}: {
+    atleta: Atleta;
+    equipas: Equipa[];
+    onClose: () => void;
+    onEditado: () => void;
+}) {
+    const [nome, setNome] = useState(atleta.nome);
+    const [posicao, setPosicao] = useState(atleta.posicao ?? "");
+    const [numeroCamisola, setNumeroCamisola] = useState(
+        atleta.numero_camisola?.toString() ?? "",
+    );
+    const [estado, setEstado] = useState(atleta.estado);
+    const [equipaId, setEquipaId] = useState(atleta.equipa_id ?? "");
+    const [saving, setSaving] = useState(false);
+    const [erro, setErro] = useState("");
+
+    const guardar = async () => {
+        if (!nome.trim()) { setErro("O nome é obrigatório."); return; }
+        setErro("");
+        setSaving(true);
+        const res = await fetch("/api/treinador/editar-atleta-fake", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                atleta_id: atleta.id,
+                nome: nome.trim(),
+                posicao: posicao || null,
+                numero_camisola: numeroCamisola ? parseInt(numeroCamisola) : null,
+                estado,
+                equipa_id: equipaId || null,
+            }),
+        });
+        setSaving(false);
+        if (res.ok) { onEditado(); onClose(); }
+        else setErro(await res.text());
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base flex items-center gap-2">
+                            <span>🤖</span> Editar Atleta Fictício
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">{atleta.nome}</p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                            Nome Completo <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                            autoFocus
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            value={nome}
+                            onChange={(e) => setNome(e.target.value)}
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Posição</label>
+                            <select
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                value={posicao}
+                                onChange={(e) => setPosicao(e.target.value)}
+                            >
+                                <option value="">Seleciona</option>
+                                <option value="Guarda-Redes">Guarda-Redes</option>
+                                <option value="Defesa Central">Defesa Central</option>
+                                <option value="Defesa Esquerdo">Defesa Esquerdo</option>
+                                <option value="Defesa Direito">Defesa Direito</option>
+                                <option value="Médio Defensivo">Médio Defensivo</option>
+                                <option value="Médio Centro">Médio Centro</option>
+                                <option value="Médio Ofensivo">Médio Ofensivo</option>
+                                <option value="Extremo Esquerdo">Extremo Esquerdo</option>
+                                <option value="Extremo Direito">Extremo Direito</option>
+                                <option value="Avançado Centro">Avançado Centro</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Nº Camisola</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="99"
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                placeholder="—"
+                                value={numeroCamisola}
+                                onChange={(e) => setNumeroCamisola(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Estado</label>
+                        <select
+                            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            value={estado}
+                            onChange={(e) => setEstado(e.target.value)}
+                        >
+                            <option value="Ativo">Ativo</option>
+                            <option value="Lesionado">Lesionado</option>
+                            <option value="Suspenso">Suspenso</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                    {equipas.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Equipa</label>
+                            <select
+                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                value={equipaId}
+                                onChange={(e) => setEquipaId(e.target.value)}
+                            >
+                                <option value="">Sem equipa</option>
+                                {equipas.map((e) => (
+                                    <option key={e.id} value={e.id}>{e.nome}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    {erro && <p className="text-xs text-red-500">{erro}</p>}
+                </div>
+
+                <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                    <button
+                        onClick={guardar}
+                        disabled={!nome.trim() || saving}
+                        className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow transition-all"
+                    >
+                        {saving ? "A guardar..." : "Guardar alterações"}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 /* ── Componente principal ── */
 export default function EquipaAtletas({
     atletas: atletasIniciais,
@@ -1348,6 +1509,7 @@ export default function EquipaAtletas({
     const [showTodos, setShowTodos] = useState(false);
     const [showCriarAtleta, setShowCriarAtleta] = useState(false);
     const [atletaModal, setAtletaModal] = useState<Atleta | null>(null);
+    const [atletaEditar, setAtletaEditar] = useState<Atleta | null>(null);
     const [convitesPendentes, setConvitesPendentes] = useState<
         ConvitePendente[]
     >([]);
@@ -1397,6 +1559,16 @@ export default function EquipaAtletas({
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col">
             {toast && <Toast msg={toast.msg} tipo={toast.tipo} />}
+
+            {/* Modal editar atleta fictício */}
+            {atletaEditar && (
+                <ModalEditarAtletaFake
+                    atleta={atletaEditar}
+                    equipas={equipas}
+                    onClose={() => setAtletaEditar(null)}
+                    onEditado={() => window.location.reload()}
+                />
+            )}
 
             {/* Modal ver atleta */}
             {atletaModal && (
@@ -1481,10 +1653,21 @@ export default function EquipaAtletas({
                                 ))}
                             </div>
                         </div>
-                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+                        <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                            {!atletaModal.user_id && (
+                                <button
+                                    onClick={() => {
+                                        setAtletaEditar(atletaModal);
+                                        setAtletaModal(null);
+                                    }}
+                                    className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all"
+                                >
+                                    Editar
+                                </button>
+                            )}
                             <button
                                 onClick={() => setAtletaModal(null)}
-                                className="w-full px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                                className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                             >
                                 Fechar
                             </button>
