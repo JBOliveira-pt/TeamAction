@@ -379,7 +379,10 @@ export default function QuadroTatico() {
     // Guardar jogada seleccionada
     async function guardar() {
         if (!jogadaSelecionada) {
-            showToast("Selecione ou crie uma jogada primeiro.", "erro");
+            setNovoNome("");
+            setNovoTipo("Personalizada");
+            setNovaDescricao("");
+            setModalNovaJogada(true);
             return;
         }
         const jogada = jogadas.find((j) => j.id === jogadaSelecionada);
@@ -401,6 +404,7 @@ export default function QuadroTatico() {
     // Criar nova jogada
     async function criarJogada() {
         if (!novoNome.trim() || novoNome.trim().length < 2) return;
+        if (!novaDescricao.trim()) return;
         setSavingNova(true);
         const res = await fetch("/api/jogadas-taticas", {
             method: "POST",
@@ -475,13 +479,14 @@ export default function QuadroTatico() {
         setArrows(setas);
     }
 
-    // Desfazer → repor posições iniciais do sistema actual
+    // Repor → limpa o campo e desseleciona a jogada (nova tática em branco)
     function desfazer() {
         const azuis = JOGADORES_ATAQUE_INICIAL;
         const vermelhos = FORMACOES[sistema] ?? FORMACOES["6-0"];
         setPlayers([...azuis, ...vermelhos]);
         setArrows([]);
-        showToast("Posições repostas.");
+        setJogadaSelecionada(null);
+        showToast("Campo reposto. Desenha a nova tática e clica em Guardar.");
     }
 
     // Limpar todas as jogadas do Neon
@@ -528,7 +533,7 @@ export default function QuadroTatico() {
                             <p className="text-xs text-gray-400 text-right">{novoNome.length}/80</p>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Tipo</label>
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Tipo <span className="text-red-500">*</span></label>
                             <select
                                 className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                                 value={novoTipo}
@@ -538,7 +543,7 @@ export default function QuadroTatico() {
                             </select>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Descrição</label>
+                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">Descrição <span className="text-red-500">*</span></label>
                             <textarea
                                 className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-indigo-400 focus:outline-none resize-none text-sm"
                                 placeholder="Descreve a jogada, objetivos, movimentos chave..."
@@ -552,10 +557,10 @@ export default function QuadroTatico() {
                         <div className="flex gap-2">
                             <button
                                 onClick={criarJogada}
-                                disabled={savingNova || novoNome.trim().length < 2}
+                                disabled={savingNova || novoNome.trim().length < 2 || !novaDescricao.trim()}
                                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2.5 rounded-xl transition-all"
                             >
-                                {savingNova ? "A guardar..." : "Criar"}
+                                {savingNova ? "A guardar..." : "Guardar Jogada"}
                             </button>
                             <button onClick={() => setModalNovaJogada(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all">Cancelar</button>
                         </div>
@@ -614,42 +619,46 @@ export default function QuadroTatico() {
                         </button>
                     ))}
                     <span className="flex-1" />
-                    <button
-                        onClick={() => setMode("move")}
-                        className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
-                            mode === "move"
-                                ? "bg-indigo-600 text-white border-indigo-600"
-                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-indigo-50"
-                        }`}
-                        title="Mover jogadores"
-                    >
-                        🖐 Mover
-                    </button>
-                    <button
-                        onClick={() => setMode("arrow")}
-                        className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
-                            mode === "arrow"
-                                ? "bg-amber-500 text-white border-amber-500"
-                                : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-amber-50"
-                        }`}
-                        title="Desenhar seta de movimento"
-                    >
-                        ➡️ Seta
-                    </button>
-                    {arrows.length > 0 && (
-                        <button
-                            onClick={() => setArrows([])}
-                            className="px-3 py-1.5 rounded-lg font-bold text-sm border-2 border-red-200 bg-white dark:bg-gray-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center gap-1.5"
-                            title="Apagar todas as setas"
-                        >
-                            🗑 Setas
-                        </button>
-                    )}
-                    {mode === "arrow" && (
-                        <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold ml-1">
-                            Clica e arrasta no campo para desenhar setas
-                        </span>
-                    )}
+                    <div className="relative flex flex-col items-end">
+                        {mode === "arrow" && (
+                            <p className="absolute -top-5 right-0 text-xs text-amber-600 dark:text-amber-400 font-semibold whitespace-nowrap">
+                                Clica e arrasta no campo para desenhar setas
+                            </p>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setMode("move")}
+                                className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
+                                    mode === "move"
+                                        ? "bg-indigo-600 text-white border-indigo-600"
+                                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-indigo-50"
+                                }`}
+                                title="Mover jogadores"
+                            >
+                                🖐 Mover
+                            </button>
+                            <button
+                                onClick={() => setMode("arrow")}
+                                className={`px-3 py-1.5 rounded-lg font-bold text-sm border-2 transition-all flex items-center gap-1.5 ${
+                                    mode === "arrow"
+                                        ? "bg-amber-500 text-white border-amber-500"
+                                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-amber-50"
+                                }`}
+                                title="Desenhar seta de movimento"
+                            >
+                                ➡️ Seta
+                            </button>
+                            {arrows.length > 0 && (
+                                <button
+                                    onClick={() => setArrows((prev) => prev.slice(0, -1))}
+                                    className="px-3 py-1.5 rounded-lg font-bold text-sm border-2 border-red-200 bg-white dark:bg-gray-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center gap-1.5"
+                                    title="Remover última seta"
+                                >
+                                    🗑 Remover Seta
+                                </button>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Campo de andebol */}
@@ -800,12 +809,6 @@ export default function QuadroTatico() {
                         className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 font-bold flex items-center justify-center gap-2 transition-all text-sm shadow"
                     >
                         <span>💾</span> Guardar
-                    </button>
-                    <button
-                        onClick={() => { setNovoNome(""); setNovoTipo("Personalizada"); setModalNovaJogada(true); }}
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2.5 font-bold flex items-center justify-center gap-2 transition-all text-sm shadow"
-                    >
-                        <span>＋</span> Nova
                     </button>
                 </div>
             </div>
