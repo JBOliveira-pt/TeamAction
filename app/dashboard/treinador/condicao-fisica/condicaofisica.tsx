@@ -31,6 +31,7 @@ export default function CondicaoFisica({
 }) {
     const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>(initialAvaliacoes);
     const [showModal, setShowModal] = useState(false);
+    const [viewingAv, setViewingAv] = useState<Avaliacao | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState<Avaliacao | null>(null);
@@ -275,7 +276,7 @@ export default function CondicaoFisica({
                                 {avaliacoes.map((av) => (
                                     <tr
                                         key={av.id}
-                                        onClick={() => openEdit(av)}
+                                        onClick={() => setViewingAv(av)}
                                         className="border-t border-gray-100 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-orange-900/10 cursor-pointer transition-colors"
                                     >
                                         <td className="p-3 font-medium text-gray-900 dark:text-white">{av.atleta_nome}</td>
@@ -299,11 +300,11 @@ export default function CondicaoFisica({
                                         </td>
                                         <td className="p-3">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setConfirmDelete(av); }}
-                                                className="text-red-400 hover:text-red-600 transition-colors"
-                                                title="Eliminar"
+                                                onClick={(e) => { e.stopPropagation(); setViewingAv(av); }}
+                                                className="text-orange-400 hover:text-orange-600 transition-colors text-xs font-semibold"
+                                                title="Ver detalhes"
                                             >
-                                                🗑️
+                                                Ver
                                             </button>
                                         </td>
                                     </tr>
@@ -313,6 +314,74 @@ export default function CondicaoFisica({
                     </div>
                 )}
             </div>
+
+            {/* Modal Preview */}
+            {viewingAv && !showModal && !confirmDelete && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                Avaliação — {viewingAv.atleta_nome}
+                            </h3>
+                            <button onClick={() => setViewingAv(null)} className="text-gray-400 hover:text-gray-600">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-5 flex flex-col gap-4">
+                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                <span>📅</span>
+                                <span>{new Date(viewingAv.data).toLocaleDateString("pt-PT", { day: "numeric", month: "long", year: "numeric" })}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 text-center">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Velocidade 30m</p>
+                                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                        {viewingAv.velocidade_30m != null ? `${viewingAv.velocidade_30m}s` : "—"}
+                                    </p>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 text-center">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Impulsão Vertical</p>
+                                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                        {viewingAv.impulsao_vertical != null ? `${viewingAv.impulsao_vertical}cm` : "—"}
+                                    </p>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 text-center">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">VO2max</p>
+                                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                        {viewingAv.vo2max != null ? `${viewingAv.vo2max}` : "—"}
+                                    </p>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 text-center">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Força Press</p>
+                                    <p className="text-xl font-bold text-gray-900 dark:text-white">
+                                        {viewingAv.forca_kg != null ? `${viewingAv.forca_kg}kg` : "—"}
+                                    </p>
+                                </div>
+                            </div>
+                            {viewingAv.observacoes && (
+                                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
+                                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Observações</p>
+                                    <p className="text-sm text-gray-700 dark:text-gray-300">{viewingAv.observacoes}</p>
+                                </div>
+                            )}
+                            <div className="flex gap-2 pt-1 border-t border-gray-100 dark:border-gray-700">
+                                <button
+                                    onClick={() => { openEdit(viewingAv); setViewingAv(null); }}
+                                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-all"
+                                >
+                                    ✏️ Editar
+                                </button>
+                                <button
+                                    onClick={() => { setConfirmDelete(viewingAv); setViewingAv(null); }}
+                                    className="flex-1 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-semibold py-2.5 rounded-xl text-sm transition-all"
+                                >
+                                    🗑️ Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Nova / Editar Avaliação */}
             {showModal && (
