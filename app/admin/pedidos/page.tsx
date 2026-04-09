@@ -50,7 +50,7 @@ function getAlertFromParams(searchParams?: SearchParams) {
 }
 
 const CAMPO_LABELS: Record<string, string> = {
-    email: "Email",
+    email: "E-mail",
     data_nascimento: "Data de Nascimento",
 };
 
@@ -71,7 +71,7 @@ export default async function AdminPedidosPage({
                     Pedidos de Alteração de Perfil
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Aprovar ou rejeitar alterações de dados pessoais (email,
+                    Aprovar ou rejeitar alterações de dados pessoais (e-mail,
                     data de nascimento, etc.).
                 </p>
             </header>

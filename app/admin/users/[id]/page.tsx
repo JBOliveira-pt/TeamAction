@@ -157,7 +157,7 @@ export default async function AdminUserDetailPage({
             return {
                 kind: "success" as const,
                 message:
-                    "Dados atualizados. O novo email foi adicionado ao Clerk — o utilizador precisa verificá-lo para fazer login.",
+                    "Dados atualizados. O novo e-mail foi adicionado ao Clerk — o utilizador precisa verificá-lo para fazer login.",
             };
         }
 

@@ -57,7 +57,7 @@ function getProfileBadge(accountType: AccountType | null) {
     }
 
     return {
-        label: "Usuário",
+        label: "Utilizador",
         className:
             "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200",
     };
@@ -222,7 +222,7 @@ export default async function AdminUsersPage({
                                     className="px-4 py-6 text-gray-500 dark:text-gray-400"
                                     colSpan={5}
                                 >
-                                    Nenhum usuário encontrado.
+                                    Nenhum utilizador encontrado.
                                 </td>
                             </tr>
                         )}

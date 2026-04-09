@@ -112,6 +112,14 @@ export default async function AdminLogsPage({
             );
             return dir === "desc" ? -cmp : cmp;
         });
+    } else if (sort === "affected") {
+        sortedLogs.sort((a, b) => {
+            const cmp = (a.affected_user_name || "").localeCompare(
+                b.affected_user_name || "",
+                "pt",
+            );
+            return dir === "desc" ? -cmp : cmp;
+        });
     } else if (sort === "path") {
         sortedLogs.sort((a, b) => {
             const cmp = a.path.localeCompare(b.path, "pt");
@@ -237,6 +245,15 @@ export default async function AdminLogsPage({
                             </th>
                             <th className="text-left px-4 py-3">
                                 <Link
+                                    href={buildSortHref("affected")}
+                                    className={sortLinkClass("affected")}
+                                >
+                                    Utilizador Afetado
+                                    <ArrowUpDown size={14} />
+                                </Link>
+                            </th>
+                            <th className="text-left px-4 py-3">
+                                <Link
                                     href={buildSortHref("type")}
                                     className={sortLinkClass("type")}
                                 >
@@ -272,6 +289,20 @@ export default async function AdminLogsPage({
                                         {log.user_email}
                                     </div>
                                 </td>
+                                <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                                    {log.affected_user_name ? (
+                                        <>
+                                            <div>{log.affected_user_name}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                {log.affected_user_email}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-gray-300 dark:text-gray-700">
+                                            —
+                                        </span>
+                                    )}
+                                </td>
                                 <td className="px-4 py-3">
                                     {(() => {
                                         const badge = getLogTypeBadge(
@@ -295,7 +326,7 @@ export default async function AdminLogsPage({
                             <tr>
                                 <td
                                     className="px-4 py-6 text-gray-500 dark:text-gray-400"
-                                    colSpan={4}
+                                    colSpan={5}
                                 >
                                     Nenhum log encontrado para os filtros
                                     aplicados.

@@ -754,7 +754,7 @@ export async function POST(req: Request) {
 
         if (!currentEmail) {
             return Response.json(
-                { error: "Nao foi possivel validar o email do usuário." },
+                { error: "Nao foi possivel validar o e-mail do utilizador." },
                 { status: 400 },
             );
         }

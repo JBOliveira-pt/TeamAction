@@ -117,7 +117,7 @@ export function DashboardHeader({
                     >
                         <div className="text-right hidden md:block">
                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {user?.name || "Usuário"}
+                                {user?.name || "Utilizador"}
                             </p>
                             <p className="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase">
                                 {user?.role || "Conta"}

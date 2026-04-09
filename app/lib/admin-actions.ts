@@ -190,7 +190,8 @@ export async function cascadeDeleteUser(
         "recipient_user_id",
         userId,
     );
-    await deleteByColumnIfExists(tx, "user_action_logs", "user_id", userId);
+    // Manter user_action_logs — logs são histórico e não devem ser apagados com o user
+    await nullifyColumnIfExists(tx, "user_action_logs", "user_id", userId);
     await deleteByColumnIfExists(
         tx,
         "pedidos_alteracao_perfil",
@@ -755,11 +756,11 @@ export async function adminDeleteUserAction(
         } catch (error) {
             if (isClerkNotFoundError(error)) {
                 console.info(
-                    "Usuário ja nao existia no Clerk durante exclusao:",
+                    "Utilizador ja nao existia no Clerk durante exclusao:",
                     targetUser.clerk_user_id,
                 );
             } else {
-                console.error("Falha ao remover usuário no Clerk:", error);
+                console.error("Falha ao remover utilizador no Clerk:", error);
                 clerkDeletionWarning = true;
             }
         }
@@ -786,7 +787,10 @@ export async function adminDeleteUserAction(
             )
         `;
     } catch (error) {
-        console.error("Falha ao registar log de exclusao de usuário:", error);
+        console.error(
+            "Falha ao registar log de exclusao de utilizador:",
+            error,
+        );
     }
 
     revalidatePath("/admin/users");

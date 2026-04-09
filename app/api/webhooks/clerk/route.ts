@@ -79,7 +79,7 @@ export async function POST(req: Request) {
                 unsafe_metadata?.accountType ?? public_metadata?.accountType,
             );
             console.log(
-                `[WEBHOOK] Tentando criar usuário: ${email} (id: ${id})`,
+                `[WEBHOOK] Tentando criar utilizador: ${email} (id: ${id})`,
             );
 
             // Usamos uma transação para garantir integridade
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
 
                     console.log(`[WEBHOOK] ✅ Organização criada: ${org.id}`);
 
-                    // 2. Criar Usuário vinculado à Org criada acima
+                    // 2. Criar Utilizador vinculado à Org criada acima
                     const placeholderPassword = `clerk_managed_${crypto.randomUUID()}`;
                     await tx`
             INSERT INTO users (id, name, email, password, clerk_user_id, organization_id, image_url, created_at, updated_at)
@@ -105,16 +105,16 @@ export async function POST(req: Request) {
           `;
 
                     console.log(
-                        `[WEBHOOK] ✅ Usuário criado com sucesso: ${email}`,
+                        `[WEBHOOK] ✅ Utilizador criado com sucesso: ${email}`,
                     );
                 });
             } catch (dbError: any) {
-                // Se falhar pela falta da tabela organizations, criar usuário com org padrão
+                // Se falhar pela falta da tabela organizations, criar utilizador com org padrão
                 console.warn(
                     `[WEBHOOK] ⚠️ Falha ao criar organização/transação: ${dbError.message}`,
                 );
                 console.warn(
-                    `[WEBHOOK] Criando usuário com organização padrão...`,
+                    `[WEBHOOK] Criando utilizador com organização padrão...`,
                 );
 
                 const fallbackPassword = `clerk_managed_${crypto.randomUUID()}`;
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
         `;
 
                 console.log(
-                    `[WEBHOOK] ✅ Usuário criado com org padrão: ${email}`,
+                    `[WEBHOOK] ✅ Utilizador criado com org padrão: ${email}`,
                 );
             }
 

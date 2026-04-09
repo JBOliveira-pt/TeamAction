@@ -279,7 +279,7 @@ export default async function AdminConvitesPage({
                                         </p>
                                         {r.alvo_email && (
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                Email do responsável:{" "}
+                                                E-mail do responsável:{" "}
                                                 <span className="font-medium text-gray-700 dark:text-gray-300">
                                                     {r.alvo_email}
                                                 </span>

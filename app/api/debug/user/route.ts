@@ -23,7 +23,7 @@ export async function GET() {
             );
         }
 
-        // Buscar usuário no banco pelo clerk_user_id
+        // Buscar Utilizador no banco pelo clerk_user_id
         const user = await sql`
             SELECT u.id, u.name, u.email, u.clerk_user_id, u.organization_id, u.image_url,
                    COALESCE(a.menor_idade, false) AS menor_idade
@@ -63,7 +63,7 @@ export async function GET() {
         return Response.json({
             success: true,
             user: userData,
-            message: "Usuário configurado corretamente",
+            message: "Utilizador configurado corretamente",
         });
     } catch (error) {
         console.error("Debug error:", error);

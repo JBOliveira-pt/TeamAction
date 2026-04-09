@@ -61,6 +61,8 @@ export type UserActionLogRow = {
     interaction_type: string;
     path: string;
     metadata: unknown;
+    affected_user_name: string | null;
+    affected_user_email: string | null;
     created_at: string;
 };
 
@@ -132,6 +134,8 @@ export async function ensureAdminTables() {
             interaction_type TEXT NOT NULL,
             path TEXT NOT NULL,
             metadata JSONB NULL,
+            affected_user_name TEXT NULL,
+            affected_user_email TEXT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `;
@@ -292,6 +296,8 @@ export async function fetchUserActionLogs(filters: UserActionLogFilters) {
                 interaction_type,
                 path,
                 metadata,
+                affected_user_name,
+                affected_user_email,
                 created_at
             FROM user_action_logs
             ${whereClause}

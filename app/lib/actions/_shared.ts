@@ -18,6 +18,7 @@ export async function logAction(
     interactionType: string,
     path: string,
     metadata?: Record<string, unknown>,
+    affectedUser?: { name: string; email: string } | null,
 ): Promise<void> {
     if (!clerkUserId) return;
     try {
@@ -30,8 +31,8 @@ export async function logAction(
             ? JSON.parse(JSON.stringify(metadata))
             : null;
         await sql`
-            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
-            VALUES (${dbUserId}, ${name}, ${email}, ${interactionType}, ${path}, ${sql.json(serializedMetadata)})
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata, affected_user_name, affected_user_email)
+            VALUES (${dbUserId}, ${name}, ${email}, ${interactionType}, ${path}, ${sql.json(serializedMetadata)}, ${affectedUser?.name ?? null}, ${affectedUser?.email ?? null})
         `;
     } catch (err) {
         console.error("[logAction] Failed to log action:", err);
