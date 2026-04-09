@@ -8,18 +8,14 @@ const ITEMS_PER_PAGE = 6;
 
 async function requireOrganizationId(): Promise<string> {
     const { userId } = await auth();
-    if (!userId) {
-        throw new Error("User not authenticated");
-    }
+    if (!userId) throw new Error("User not authenticated");
 
     const user = await sql<{ organization_id: string }[]>`
         SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
     `;
 
     const orgId = user[0]?.organization_id;
-    if (!orgId) {
-        throw new Error("No organization found for user");
-    }
+    if (!orgId) throw new Error("No organization found for user");
 
     return orgId;
 }
@@ -132,9 +128,7 @@ export async function fetchReciboById(reciboId: string): Promise<Recibo> {
         WHERE id = ${reciboId} AND organization_id = ${organizationId}
     `;
 
-    if (!data[0]) {
-        throw new Error("Recibo nao encontrado");
-    }
+    if (!data[0]) throw new Error("Recibo nao encontrado");
 
     return data[0];
 }
@@ -142,26 +136,24 @@ export async function fetchReciboById(reciboId: string): Promise<Recibo> {
 export async function fetchReciboDetail(reciboId: string) {
     const organizationId = await requireOrganizationId();
 
-    const data = await sql<
-        {
-            recibo_id: string;
-            recibo_number: number;
-            status: "pendente_envio" | "enviado_atleta";
-            received_date: string;
-            amount: number;
-            pdf_url: string | null;
-            recibo_created_by: string | null;
-            mensalidade_id: string;
-            mensalidade_mes: number;
-            mensalidade_ano: number;
-            data_pagamento: string | null;
-            atleta_id: string;
-            atleta_nome: string;
-            sent_at: string | null;
-            sent_by_user_name: string | null;
-            issuer_iban: string;
-        }[]
-    >`
+    const data = await sql<{
+        recibo_id: string;
+        recibo_number: number;
+        status: "pendente_envio" | "enviado_atleta";
+        received_date: string;
+        amount: number;
+        pdf_url: string | null;
+        recibo_created_by: string | null;
+        mensalidade_id: string;
+        mensalidade_mes: number;
+        mensalidade_ano: number;
+        data_pagamento: string | null;
+        atleta_id: string;
+        atleta_nome: string;
+        sent_at: string | null;
+        sent_by_user_name: string | null;
+        issuer_iban: string;
+    }[]>`
         SELECT
             recibos.id AS recibo_id,
             recibos.recibo_number,
@@ -186,9 +178,7 @@ export async function fetchReciboDetail(reciboId: string) {
         WHERE recibos.id = ${reciboId} AND recibos.organization_id = ${organizationId}
     `;
 
-    if (!data[0]) {
-        throw new Error("Recibo nao encontrado");
-    }
+    if (!data[0]) throw new Error("Recibo nao encontrado");
 
     return data[0];
 }
@@ -200,6 +190,21 @@ export async function fetchReciboAtletas() {
         FROM atletas
         WHERE atletas.organization_id = ${organizationId}
         ORDER BY atletas.nome ASC
+    `;
+
+    return data;
+}
+
+// ← NOVO
+export async function fetchMensalidades() {
+    const organizationId = await requireOrganizationId();
+    const data = await sql<{ id: string; descricao: string }[]>`
+        SELECT
+            id,
+            CONCAT('Mensalidade ', mes, '/', ano) AS descricao
+        FROM mensalidades
+        WHERE organization_id = ${organizationId}
+        ORDER BY ano DESC, mes DESC
     `;
 
     return data;

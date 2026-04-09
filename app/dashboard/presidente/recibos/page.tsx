@@ -6,9 +6,11 @@ import Search from "@/app/ui/receipts/search";
 import {
     fetchReciboAtletas,
     fetchRecibosPages,
+    fetchMensalidades,
     ReciboFilters,
 } from "@/app/lib/receipts-data";
 import { Metadata } from "next";
+import ReciboUploadModal from "./_components/ReciboUploadModal.client";
 
 export const metadata: Metadata = {
     title: "Recibos | TeamAction Dashboard",
@@ -95,40 +97,12 @@ function RecibosTableSkeleton() {
                     <table className="hidden min-w-full text-gray-900 dark:text-gray-100 md:table">
                         <thead className="rounded-lg text-left text-sm font-normal">
                             <tr>
-                                <th
-                                    scope="col"
-                                    className="px-4 py-5 text-xs font-medium text-gray-600 dark:text-gray-400 sm:pl-6"
-                                >
-                                    CLIENTE
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
-                                >
-                                    EMAIL
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
-                                >
-                                    VALOR
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
-                                >
-                                    DATA
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400"
-                                >
-                                    STATUS
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="relative pb-4 pl-3 pr-6 pt-2 sm:pr-6"
-                                >
+                                <th scope="col" className="px-4 py-5 text-xs font-medium text-gray-600 dark:text-gray-400 sm:pl-6">CLIENTE</th>
+                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">EMAIL</th>
+                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">VALOR</th>
+                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">DATA</th>
+                                <th scope="col" className="px-3 py-5 text-xs font-medium text-gray-600 dark:text-gray-400">STATUS</th>
+                                <th scope="col" className="relative pb-4 pl-3 pr-6 pt-2 sm:pr-6">
                                     <span className="sr-only">Edit</span>
                                 </th>
                             </tr>
@@ -167,20 +141,26 @@ export default async function Page(props: {
 
     const currentPage = Number(searchParams?.page) || 1;
 
-    const [atletas, totalPages] = await Promise.all([
+    // ← ALTERADO: adicionado fetchMensalidades
+    const [atletas, mensalidades, totalPages] = await Promise.all([
         fetchReciboAtletas(),
+        fetchMensalidades(),
         fetchRecibosPages(filters),
     ]);
 
     return (
         <div className="w-full min-h-screen p-6 bg-gray-50 dark:bg-gray-950">
-            <div className="flex flex-col w-full justify-between">
-                <h1 className="text-xl text-center lg:text-start md:text-3xl font-bold text-gray-900 dark:text-white">
-                    Recibos
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center lg:text-start">
-                    Pesquisa e envio de recibos de mensalidades
-                </p>
+            <div className="flex items-center justify-between w-full">
+                <div>
+                    <h1 className="text-xl text-center lg:text-start md:text-3xl font-bold text-gray-900 dark:text-white">
+                        Recibos
+                    </h1>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center lg:text-start">
+                        Pesquisa e envio de recibos de mensalidades
+                    </p>
+                </div>
+                {/* ← ALTERADO: passa atletas e mensalidades */}
+                <ReciboUploadModal atletas={atletas} mensalidades={mensalidades} />
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-2 md:mt-8">
