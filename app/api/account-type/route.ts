@@ -1312,7 +1312,7 @@ export async function POST(req: Request) {
                         DELETE FROM atleta_relacoes_pendentes
                         WHERE atleta_user_id = ${athleteUserId}
                           AND status = 'pendente'
-                    `;
+                    `.catch(() => {});
 
                     if (
                         athleteProfile.clubPendingApproval &&
@@ -1350,7 +1350,7 @@ export async function POST(req: Request) {
                                 NOW()
                             )
                             ON CONFLICT DO NOTHING
-                        `;
+                        `.catch(() => {});
                     }
 
                     if (
@@ -1384,7 +1384,7 @@ export async function POST(req: Request) {
                                 NOW()
                             )
                             ON CONFLICT DO NOTHING
-                        `;
+                        `.catch(() => {});
                     }
 
                     if (
@@ -1423,7 +1423,7 @@ export async function POST(req: Request) {
                                 NOW()
                             )
                             ON CONFLICT DO NOTHING
-                        `;
+                        `.catch(() => {});
                     }
 
                     if (
@@ -1470,7 +1470,7 @@ export async function POST(req: Request) {
                                 NOW()
                             )
                             ON CONFLICT DO NOTHING
-                        `;
+                        `.catch(() => {});
 
                         // Send invitation email only if the responsible
                         // has NOT completed their account yet
