@@ -64,3 +64,4 @@ export { fetchRegistosMedicosResponsavel } from "./responsavel";
 export { fetchMensalidadesResponsavel } from "./responsavel";
 export { fetchEducandoFederado } from "./responsavel";
 export { fetchComunicadosResponsavel } from "./responsavel";
+export * from "./relatorios";

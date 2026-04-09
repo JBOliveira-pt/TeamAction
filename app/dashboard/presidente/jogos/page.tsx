@@ -8,16 +8,23 @@ import AgendarJogoModal from "./_components/AgendarJogoModal.client";
 
 export const dynamic = "force-dynamic";
 
-export default async function JogosPage() {
+export default async function JogosPage({
+    searchParams,
+}: {
+    searchParams?: Promise<{ new?: string; data?: string }>;
+}) {
+    const params = await searchParams;
     const [jogos, equipas, dashboard] = await Promise.all([
         fetchJogos(),
         fetchEquipas(),
         fetchPresidenteDashboard(),
     ]);
 
+    const abrirModal = params?.new === "true";
+    const dataInicial = params?.data ?? "";
+
     return (
         <div className="p-6 space-y-6">
-            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -32,6 +39,9 @@ export default async function JogosPage() {
                 </div>
                 <AgendarJogoModal
                     equipas={equipas.map((e) => ({ id: e.id, nome: e.nome }))}
+                    meuClubeId={dashboard.organizationId}
+                    defaultOpen={abrirModal}
+                    defaultData={dataInicial}
                 />
             </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { criarComunicado } from "@/app/lib/actions";
+import { ChevronDown } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
 
@@ -14,81 +15,119 @@ const DESTINATARIOS = [
 ];
 
 export default function ComunicadoForm() {
+    const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         criarComunicado,
-        null
+        null,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
     useEffect(() => {
-        if (state?.success) formRef.current?.reset();
-    }, [state]);
+    if (!state?.success) return;
+    formRef.current?.reset();
+    const t = setTimeout(() => setOpen(false), 0);
+    return () => clearTimeout(t);
+}, [state]);
 
     return (
-        <form ref={formRef} action={action} className="space-y-4">
-            {state?.error && (
-                <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-                    {state.error}
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+            {/* Header com toggle */}
+            <button
+                type="button"
+                onClick={() => setOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            >
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    ✉️ Novo Comunicado
+                </span>
+                <ChevronDown
+                    size={16}
+                    className={`text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                />
+            </button>
+
+            {/* Formulário colapsável */}
+            {open && (
+                <div className="px-6 pb-6 border-t border-gray-100 dark:border-gray-800">
+                    <form ref={formRef} action={action} className="space-y-4 pt-5">
+                        {state?.error && (
+                            <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+                                {state.error}
+                            </div>
+                        )}
+                        {state?.success && (
+                            <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-400">
+                                Comunicado enviado com sucesso!
+                            </div>
+                        )}
+
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                Título <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                                name="titulo"
+                                type="text"
+                                placeholder="Ex: Convocatória para treino"
+                                required
+                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                Destinatários{" "}
+                                <span className="text-red-400">*</span>
+                            </label>
+                            <select
+                                name="destinatarios"
+                                required
+                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
+                            >
+                                <option value="">
+                                    Seleciona os destinatários
+                                </option>
+                                {DESTINATARIOS.map((d) => (
+                                    <option key={d.value} value={d.value}>
+                                        {d.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                Conteúdo <span className="text-red-400">*</span>
+                            </label>
+                            <textarea
+                                name="conteudo"
+                                rows={5}
+                                placeholder="Escreve a mensagem do comunicado..."
+                                required
+                                className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors resize-none"
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isPending}
+                                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+                            >
+                                {isPending ? "A enviar..." : "Enviar Comunicado"}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             )}
-            {state?.success && (
-                <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-400">
-                    Comunicado enviado com sucesso!
-                </div>
-            )}
-
-            <div className="space-y-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    Título <span className="text-red-400">*</span>
-                </label>
-                <input
-                    name="titulo"
-                    type="text"
-                    placeholder="Ex: Convocatória para treino"
-                    required
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors"
-                />
-            </div>
-
-            <div className="space-y-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    Destinatários <span className="text-red-400">*</span>
-                </label>
-                <select
-                    name="destinatarios"
-                    required
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-violet-500 transition-colors"
-                >
-                    <option value="">Seleciona os destinatários</option>
-                    {DESTINATARIOS.map((d) => (
-                        <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="space-y-1">
-                <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                    Conteúdo <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                    name="conteudo"
-                    rows={5}
-                    placeholder="Escreve a mensagem do comunicado..."
-                    required
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-violet-500 transition-colors resize-none"
-                />
-            </div>
-
-            <div className="flex justify-end">
-                <button
-                    type="submit"
-                    disabled={isPending}
-                    className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
-                >
-                    {isPending ? "A enviar..." : "Enviar Comunicado"}
-                </button>
-            </div>
-        </form>
+        </div>
     );
 }
 

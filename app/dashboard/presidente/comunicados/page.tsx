@@ -35,13 +35,8 @@ export default async function ComunicadosPage() {
                 </p>
             </div>
 
-            {/* Formulário */}
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6">
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
-                    Novo Comunicado
-                </h2>
-                <ComunicadoForm />
-            </div>
+            {/* Formulário — agora com toggle interno */}
+            <ComunicadoForm />
 
             {/* Lista */}
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">

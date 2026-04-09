@@ -33,12 +33,20 @@ const conviteStatusStyle: Record<string, string> = {
     recusado: "bg-red-500/10 text-red-400",
 };
 
-export default async function AtletasPage() {
+export default async function AtletasPage({
+    searchParams,
+}: {
+    searchParams?: Promise<{ new?: string }>;
+}) {
+    const params = await searchParams;
+
     const [atletas, equipas, convites] = await Promise.all([
         fetchAtletas(),
         fetchEquipas(),
         fetchConvitesPendentes(),
     ]);
+
+    const abrirModal = params?.new === "true";
 
     const ativos = atletas.filter((a) => a.estado === "ativo").length;
     const suspensos = atletas.filter((a) => a.estado === "suspenso").length;
@@ -67,6 +75,7 @@ export default async function AtletasPage() {
                         nome: e.nome,
                         escalao: e.escalao,
                     }))}
+                    defaultOpen={abrirModal}
                 />
             </div>
 

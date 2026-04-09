@@ -57,15 +57,15 @@ export async function fetchPresidenteDashboard() {
                 sql`SELECT COUNT(*) FROM jogos WHERE organization_id = ${organizationId} AND estado = 'agendado'`,
                 sql`SELECT COUNT(*) FROM mensalidades WHERE organization_id = ${organizationId} AND estado = 'em_atraso'`,
                 sql<{ nome: string }[]>`
-    SELECT nome FROM epocas
-    WHERE organization_id = ${organizationId} AND ativa = true
-    LIMIT 1
-`,
+                    SELECT nome FROM epocas
+                    WHERE organization_id = ${organizationId} AND ativa = true
+                    LIMIT 1
+                `,
                 sql<{ name: string | null }[]>`
-    SELECT name FROM users
-    WHERE id = ${dbUserId}
-    LIMIT 1
-`,
+                    SELECT name FROM users
+                    WHERE id = ${dbUserId}
+                    LIMIT 1
+                `,
             ]);
 
         return {
@@ -75,6 +75,7 @@ export async function fetchPresidenteDashboard() {
             mensalidadesEmAtraso: Number(mensalidades[0].count),
             epocaNome: epoca[0]?.nome ?? null,
             presidenteNome: presidente[0]?.name?.trim() || null,
+            organizationId, // ← CAMPO ADICIONADO
         };
     } catch (error) {
         console.error("Database Error:", error);

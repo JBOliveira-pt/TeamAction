@@ -101,30 +101,30 @@ export default async function PresidenteDashboard() {
     ];
 
     const atalhos = [
-        {
-            label: "Convidar Atleta",
-            href: "/dashboard/presidente/atletas",
-            icon: "➕",
-        },
-        {
-            label: "Agendar Jogo",
-            href: "/dashboard/presidente/jogos",
-            icon: "⚽",
-        },
-        {
-            label: "Nova Equipa",
-            href: "/dashboard/presidente/equipas",
-            icon: "🏅",
-        },
-        {
-            label: "Relatórios",
-            href: "/dashboard/presidente/relatorios",
-            icon: "📄",
-        },
-    ];
+    {
+        label: "Convidar Atleta",
+        href: "/dashboard/presidente/atletas?new=true",  // ✅
+        icon: "➕",
+    },
+    {
+        label: "Agendar Jogo",
+        href: "/dashboard/presidente/jogos?new=true",    // ✅ já implementado
+        icon: "⚽",
+    },
+    {
+        label: "Nova Equipa",
+        href: "/dashboard/presidente/equipas?new=true",  // ✅
+        icon: "🏅",
+    },
+    {
+        label: "Relatórios",
+        href: "/dashboard/presidente/relatorios",        // sem alteração
+        icon: "📄",
+    },
+];
 
     return (
-        <div className="p-6 space-y-6 max-w-screen-xl mx-auto">
+        <div className="p-6 space-y-6 max-w-7xl mx-auto">
             {/* Cabeçalho */}
             <div className="flex items-start justify-between gap-4">
                 <div>

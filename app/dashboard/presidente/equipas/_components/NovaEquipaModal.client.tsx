@@ -26,24 +26,22 @@ export default function NovaEquipaModal({
     escaloes,
     desporto,
     treinadores,
+    defaultOpen = false,  // ✅ novo prop
 }: {
     escaloes: Escalao[];
     desporto: string;
     treinadores: Treinador[];
+    defaultOpen?: boolean;  // ✅ novo prop
 }) {
-    // Só treinadores sem equipa atribuída
     const disponiveis = treinadores.filter((t) => !t.equipa_id);
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(defaultOpen);  // ✅ alterado
     const [state, action, isPending] = useActionState<State, FormData>(
         criarEquipa,
         null,
     );
     const formRef = useRef<HTMLFormElement>(null);
 
-    // Treinador state
     const [treinadorId, setTreinadorId] = useState("");
-
-    // Adjunto state
     const [adjuntoId, setAdjuntoId] = useState("");
 
     const resetAll = () => {
@@ -86,7 +84,6 @@ export default function NovaEquipaModal({
                     />
 
                     <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
-                        {/* Header */}
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                                 Nova Equipa
@@ -99,7 +96,6 @@ export default function NovaEquipaModal({
                             </button>
                         </div>
 
-                        {/* Desporto */}
                         {desporto && (
                             <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-500/10 border border-violet-500/20 rounded-lg">
                                 <span className="text-xs text-violet-400 font-medium">
@@ -137,7 +133,7 @@ export default function NovaEquipaModal({
                                 name="adjunto_staff_id"
                                 value={adjuntoId}
                             />
-                            {/* === Dados da Equipa === */}
+
                             <div className="space-y-3">
                                 <div className="space-y-1">
                                     <label className={labelClass}>
@@ -203,7 +199,6 @@ export default function NovaEquipaModal({
                                 </div>
                             </div>
 
-                            {/* === Treinador === */}
                             <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
                                 <div className="flex items-center gap-2">
                                     <UserPlus
@@ -254,7 +249,6 @@ export default function NovaEquipaModal({
                                 )}
                             </div>
 
-                            {/* === Treinador Adjunto (opcional) === */}
                             <div className="space-y-3 border-t border-gray-200 dark:border-gray-800 pt-4">
                                 <div className="flex items-center gap-2">
                                     <UserPlus
@@ -305,7 +299,6 @@ export default function NovaEquipaModal({
                                 )}
                             </div>
 
-                            {/* Botões */}
                             <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
                                 <button
                                     type="button"

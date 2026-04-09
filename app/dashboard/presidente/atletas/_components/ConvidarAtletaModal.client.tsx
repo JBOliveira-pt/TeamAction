@@ -13,7 +13,6 @@ type WizardStep =
 
 type Equipa = { id: string; nome: string; escalao: string };
 
-/** Extrai a idade máxima permitida a partir do nome do escalão */
 function getIdadeLimiteEscalao(escalao: string): number | null {
     const lower = escalao.toLowerCase().trim();
     const subMatch = lower.match(/sub[- ]?(\d+)/);
@@ -24,7 +23,6 @@ function getIdadeLimiteEscalao(escalao: string): number | null {
     return null;
 }
 
-/** Calcula a idade a partir da data de nascimento */
 function calcularIdade(dataNascimento: string): number {
     const birth = new Date(dataNascimento);
     const today = new Date();
@@ -62,13 +60,14 @@ const MAOS = [
 
 export default function ConvidarAtletaModal({
     equipas,
+    defaultOpen = false,  // ✅ novo prop
 }: {
     equipas: Equipa[];
+    defaultOpen?: boolean;  // ✅ novo prop
 }) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(defaultOpen);  // ✅ alterado
     const [step, setStep] = useState<WizardStep>("choice");
 
-    // Fake athlete / external form fields
     const [nome, setNome] = useState("");
     const [posicao, setPosicao] = useState("");
     const [numeroCamisola, setNumeroCamisola] = useState("");
@@ -76,7 +75,6 @@ export default function ConvidarAtletaModal({
     const [estado, setEstado] = useState("ativo");
     const [maoDominante, setMaoDominante] = useState("");
 
-    // Email check
     const [email, setEmail] = useState("");
     const [verificando, setVerificando] = useState(false);
     const [emailResult, setEmailResult] = useState<{
@@ -91,10 +89,8 @@ export default function ConvidarAtletaModal({
         responsavel_ativo?: boolean;
     } | null>(null);
 
-    // Internal invite equipa
     const [conviteEquipaId, setConviteEquipaId] = useState("");
 
-    // Shared
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -114,7 +110,6 @@ export default function ConvidarAtletaModal({
         setErro("");
     }
 
-    // Auto-verify email
     useEffect(() => {
         if (step !== "email-check") return;
         setEmailResult(null);
@@ -137,7 +132,6 @@ export default function ConvidarAtletaModal({
         };
     }, [email, step]);
 
-    // Create fictitious or external athlete via adicionarAtleta server action
     const criarAtleta = async () => {
         if (!nome.trim()) {
             setErro("O nome é obrigatório.");
@@ -166,7 +160,6 @@ export default function ConvidarAtletaModal({
         }
     };
 
-    // Send club invitation via convidarAtleta server action
     const enviarConviteClube = async () => {
         if (!emailResult?.user_id) {
             setErro("Utilizador não encontrado.");
@@ -214,7 +207,6 @@ export default function ConvidarAtletaModal({
         </button>
     );
 
-    // Step indicator
     const stepNumber =
         step === "choice"
             ? 1
@@ -239,10 +231,8 @@ export default function ConvidarAtletaModal({
         </div>
     );
 
-    // Shared form fields for fake-form and external invite
     const atletaFormFields = (
         <>
-            {/* Nome */}
             <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
                     Nome Completo <span className="text-red-400">*</span>
@@ -256,7 +246,6 @@ export default function ConvidarAtletaModal({
                 />
             </div>
 
-            {/* Equipa + Estado */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -294,7 +283,6 @@ export default function ConvidarAtletaModal({
                 </div>
             </div>
 
-            {/* Posição + Nº Camisola */}
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -329,7 +317,6 @@ export default function ConvidarAtletaModal({
                 </div>
             </div>
 
-            {/* Mão Dominante */}
             <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
                     Mão Dominante
@@ -507,7 +494,6 @@ export default function ConvidarAtletaModal({
                                         </p>
                                     )}
 
-                                    {/* Not an athlete */}
                                     {!verificando &&
                                         emailResult?.existe &&
                                         emailResult.account_type &&
@@ -542,7 +528,6 @@ export default function ConvidarAtletaModal({
                                             </div>
                                         )}
 
-                                    {/* Found athlete */}
                                     {!verificando &&
                                         emailResult?.existe &&
                                         (!emailResult.account_type ||
@@ -571,7 +556,6 @@ export default function ConvidarAtletaModal({
                                                     </p>
                                                 </div>
 
-                                                {/* Minor with active guardian */}
                                                 {emailResult.menor_idade &&
                                                     emailResult.responsavel_ativo && (
                                                         <div className="px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex flex-col gap-2">
@@ -609,7 +593,6 @@ export default function ConvidarAtletaModal({
                                                         </div>
                                                     )}
 
-                                                {/* Minor without active guardian */}
                                                 {emailResult.menor_idade &&
                                                     !emailResult.responsavel_ativo && (
                                                         <div className="px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex flex-col gap-2">
@@ -655,7 +638,6 @@ export default function ConvidarAtletaModal({
                                             </div>
                                         )}
 
-                                    {/* Not found */}
                                     {!verificando &&
                                         emailResult &&
                                         !emailResult.existe && (
@@ -730,7 +712,6 @@ export default function ConvidarAtletaModal({
                                 </div>
                                 {stepIndicator}
                                 <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-                                    {/* Found user banner */}
                                     <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-3">
                                         <span className="text-xl">✅</span>
                                         <div>
@@ -743,7 +724,6 @@ export default function ConvidarAtletaModal({
                                         </div>
                                     </div>
 
-                                    {/* Equipa (obrigatória para federação) */}
                                     <div className="space-y-1">
                                         <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                             Equipa{" "}
@@ -774,7 +754,6 @@ export default function ConvidarAtletaModal({
                                         </select>
                                     </div>
 
-                                    {/* Age vs escalão warning */}
                                     {(() => {
                                         if (
                                             !conviteEquipaId ||
@@ -820,7 +799,6 @@ export default function ConvidarAtletaModal({
                                         return null;
                                     })()}
 
-                                    {/* Minor athlete info */}
                                     {emailResult?.menor_idade &&
                                     emailResult.responsavel_ativo ? (
                                         <div className="px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex flex-col gap-1.5">

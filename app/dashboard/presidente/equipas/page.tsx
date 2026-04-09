@@ -23,13 +23,20 @@ const estadoLabel: Record<string, string> = {
     inativa: "Inativa",
 };
 
-export default async function EquipasPage() {
+export default async function EquipasPage({
+    searchParams,
+}: {
+    searchParams?: Promise<{ new?: string }>;
+}) {
+    const params = await searchParams;
     const [equipas, escaloes, desporto, treinadores] = await Promise.all([
         fetchEquipas(),
         fetchEscaloes(),
         fetchDesportoOrg(),
         fetchTreinadoresOrg(),
     ]);
+
+    const abrirModal = params?.new === "true";
 
     const totalAtletas = equipas.reduce(
         (acc, e) => acc + Number(e.total_atletas),
@@ -57,6 +64,7 @@ export default async function EquipasPage() {
                     escaloes={escaloes}
                     desporto={desporto}
                     treinadores={treinadores}
+                    defaultOpen={abrirModal}
                 />
             </div>
 

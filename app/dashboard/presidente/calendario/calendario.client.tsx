@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type JogoDB = {
     id: string;
@@ -41,18 +42,8 @@ type SessaoDB = {
 const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const MONTHS = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
 function dateKey(y: number, m: number, d: number) {
@@ -76,15 +67,7 @@ function buildGrid(year: number, month: number): (number | null)[][] {
 function formatFullDate(key: string) {
     const [y, m, d] = key.split("-");
     const date = new Date(+y, +m - 1, +d);
-    const weekday = [
-        "Domingo",
-        "Segunda",
-        "Terça",
-        "Quarta",
-        "Quinta",
-        "Sexta",
-        "Sábado",
-    ][date.getDay()];
+    const weekday = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"][date.getDay()];
     return { weekday, day: parseInt(d), month: MONTHS[+m - 1], year: y };
 }
 
@@ -109,26 +92,21 @@ export default function CalendarioPresidente({
     sessoes: SessaoDB[];
     datasComNotas: string[];
 }) {
+    const router = useRouter();
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayKey = dateKey(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-    );
+    const todayKey = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
 
     const [year, setYear] = useState(today.getFullYear());
     const [month, setMonth] = useState(today.getMonth());
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-    // Notes state
     const [notes, setNotes] = useState<CalendarNote[]>([]);
     const [notesLoading, setNotesLoading] = useState(false);
     const [newNota, setNewNota] = useState("");
     const [savingNota, setSavingNota] = useState(false);
-    const [noteDatesSet, setNoteDatesSet] = useState(
-        () => new Set(datasComNotas),
-    );
+    const [noteDatesSet, setNoteDatesSet] = useState(() => new Set(datasComNotas));
 
     const jogosByDate = useMemo(() => {
         const map: Record<string, JogoDB[]> = {};
@@ -150,38 +128,27 @@ export default function CalendarioPresidente({
         return map;
     }, [sessoes]);
 
-    const epocaInicioKey = epoca?.data_inicio
-        ? eventDateKey(epoca.data_inicio)
-        : null;
+    const epocaInicioKey = epoca?.data_inicio ? eventDateKey(epoca.data_inicio) : null;
     const epocaFimKey = epoca?.data_fim ? eventDateKey(epoca.data_fim) : null;
 
     const monthStats = useMemo(() => {
         const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-        const nJogos = jogos.filter((j) =>
-            eventDateKey(j.data).startsWith(prefix),
-        ).length;
-        const nSessoes = sessoes.filter((s) =>
-            eventDateKey(s.data).startsWith(prefix),
-        ).length;
+        const nJogos = jogos.filter((j) => eventDateKey(j.data).startsWith(prefix)).length;
+        const nSessoes = sessoes.filter((s) => eventDateKey(s.data).startsWith(prefix)).length;
         return { jogos: nJogos, sessoes: nSessoes };
     }, [jogos, sessoes, year, month]);
 
     const grid = buildGrid(year, month);
 
     const prevMonth = () => {
-        if (month === 0) {
-            setMonth(11);
-            setYear((y) => y - 1);
-        } else setMonth((m) => m - 1);
+        if (month === 0) { setMonth(11); setYear((y) => y - 1); }
+        else setMonth((m) => m - 1);
     };
     const nextMonth = () => {
-        if (month === 11) {
-            setMonth(0);
-            setYear((y) => y + 1);
-        } else setMonth((m) => m + 1);
+        if (month === 11) { setMonth(0); setYear((y) => y + 1); }
+        else setMonth((m) => m + 1);
     };
 
-    // Fetch notes when date changes
     const fetchNotes = useCallback(async (date: string) => {
         setNotesLoading(true);
         try {
@@ -196,18 +163,11 @@ export default function CalendarioPresidente({
     }, []);
 
     useEffect(() => {
-        if (selectedDate) {
-            fetchNotes(selectedDate);
-            setNewNota("");
-        }
+        if (selectedDate) { fetchNotes(selectedDate); setNewNota(""); }
     }, [selectedDate, fetchNotes]);
 
     const openDay = (d: number) => setSelectedDate(dateKey(year, month, d));
-    const closeModal = () => {
-        setSelectedDate(null);
-        setNotes([]);
-        setNewNota("");
-    };
+    const closeModal = () => { setSelectedDate(null); setNotes([]); setNewNota(""); };
 
     const addNota = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -244,17 +204,11 @@ export default function CalendarioPresidente({
                 }
                 return remaining;
             });
-        } catch {
-            /* ignore */
-        }
+        } catch { /* ignore */ }
     };
 
-    const selectedDayJogos = selectedDate
-        ? jogosByDate[selectedDate] || []
-        : [];
-    const selectedDaySessoes = selectedDate
-        ? sessoesByDate[selectedDate] || []
-        : [];
+    const selectedDayJogos = selectedDate ? jogosByDate[selectedDate] || [] : [];
+    const selectedDaySessoes = selectedDate ? sessoesByDate[selectedDate] || [] : [];
     const selDate = selectedDate ? formatFullDate(selectedDate) : null;
 
     const isEpocaStart = selectedDate === epocaInicioKey;
@@ -262,7 +216,9 @@ export default function CalendarioPresidente({
     const selectedIsPast = selectedDate ? selectedDate < todayKey : false;
 
     return (
-        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col gap-6">
+        // ✅ h-[100dvh] + overflow-hidden: ocupa tela toda sem ultrapassar altura
+        <div className="h-full flex flex-col gap-3 p-4 bg-gray-100 dark:bg-gray-900 overflow-hidden">
+
             {/* ── MODAL ──────────────────────────────────────── */}
             {selectedDate && selDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -272,12 +228,9 @@ export default function CalendarioPresidente({
                                 <span className="text-3xl">📅</span>
                                 <div>
                                     <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
-                                        {selDate.weekday}, {selDate.day} de{" "}
-                                        {selDate.month}
+                                        {selDate.weekday}, {selDate.day} de {selDate.month}
                                     </h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {selDate.year}
-                                    </p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{selDate.year}</p>
                                 </div>
                             </div>
                             <button
@@ -292,34 +245,40 @@ export default function CalendarioPresidente({
                         <div className="p-6 flex flex-col gap-6">
                             {/* Época markers */}
                             {(isEpocaStart || isEpocaEnd) && (
-                                <div
-                                    className={`flex items-center gap-3 p-3 rounded-xl border ${
-                                        isEpocaStart
-                                            ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800"
-                                            : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
-                                    }`}
-                                >
-                                    <span className="text-xl shrink-0">
-                                        {isEpocaStart ? "🏁" : "🔚"}
-                                    </span>
+                                <div className={`flex items-center gap-3 p-3 rounded-xl border ${
+                                    isEpocaStart
+                                        ? "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800"
+                                        : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                                }`}>
+                                    <span className="text-xl shrink-0">{isEpocaStart ? "🏁" : "🔚"}</span>
                                     <div>
                                         <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                            {isEpocaStart
-                                                ? "Início da Época"
-                                                : "Fim da Época"}
+                                            {isEpocaStart ? "Início da Época" : "Fim da Época"}
                                         </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {epoca?.nome}
-                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{epoca?.nome}</p>
                                     </div>
                                 </div>
                             )}
 
                             {/* Jogos */}
                             <div>
-                                <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
-                                    Jogos
-                                </h4>
+                                {/* ✅ Header do bloco com botão "Marcar Jogo" */}
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+                                        Jogos
+                                    </h4>
+                                    <button
+                                        onClick={() => {
+                                            closeModal();
+                                            router.push(
+                                                `/dashboard/presidente/jogos?new=true&data=${selectedDate}`,
+                                            );
+                                        }}
+                                        className="text-xs text-rose-500 hover:text-rose-400 font-semibold border border-rose-500/30 hover:border-rose-400/50 px-2.5 py-1 rounded-lg transition-colors"
+                                    >
+                                        ➕ Marcar Jogo
+                                    </button>
+                                </div>
                                 {selectedDayJogos.length === 0 ? (
                                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
                                         Sem jogos neste dia.
@@ -327,40 +286,24 @@ export default function CalendarioPresidente({
                                 ) : (
                                     <div className="flex flex-col gap-2">
                                         {selectedDayJogos.map((j) => (
-                                            <div
-                                                key={j.id}
-                                                className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800"
-                                            >
-                                                <span className="text-xl shrink-0">
-                                                    🤾
-                                                </span>
+                                            <div key={j.id} className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800">
+                                                <span className="text-xl shrink-0">🤾</span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
                                                         vs {j.adversario}
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        {j.casa_fora === "casa"
-                                                            ? "Em Casa"
-                                                            : "Fora"}{" "}
-                                                        · {j.equipa_nome}
+                                                        {j.casa_fora === "casa" ? "Em Casa" : "Fora"} · {j.equipa_nome}
                                                     </p>
                                                 </div>
-                                                <span
-                                                    className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                                                        j.estado === "agendado"
-                                                            ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
-                                                            : j.estado ===
-                                                                "realizado"
-                                                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                                                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                                                    }`}
-                                                >
-                                                    {j.estado === "agendado"
-                                                        ? "Agendado"
-                                                        : j.estado ===
-                                                            "realizado"
-                                                          ? "Realizado"
-                                                          : j.estado}
+                                                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                                                    j.estado === "agendado"
+                                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                        : j.estado === "realizado"
+                                                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                                                          : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                                                }`}>
+                                                    {j.estado === "agendado" ? "Agendado" : j.estado === "realizado" ? "Realizado" : j.estado}
                                                 </span>
                                             </div>
                                         ))}
@@ -368,7 +311,7 @@ export default function CalendarioPresidente({
                                 )}
                             </div>
 
-                            {/* Treinos / Sessões */}
+                            {/* Treinos */}
                             <div>
                                 <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
                                     Treinos
@@ -380,29 +323,16 @@ export default function CalendarioPresidente({
                                 ) : (
                                     <div className="flex flex-col gap-2">
                                         {selectedDaySessoes.map((s) => (
-                                            <div
-                                                key={s.id}
-                                                className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800"
-                                            >
-                                                <span className="text-xl shrink-0">
-                                                    🏋️
-                                                </span>
+                                            <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800">
+                                                <span className="text-xl shrink-0">🏋️</span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                                        {s.tipo}
-                                                        {s.hora
-                                                            ? ` · ${s.hora.slice(0, 5)}`
-                                                            : ""}
+                                                        {s.tipo}{s.hora ? ` · ${s.hora.slice(0, 5)}` : ""}
                                                     </p>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        {s.equipa_nome ??
-                                                            "Sem equipa"}
-                                                        {s.duracao_min
-                                                            ? ` · ${s.duracao_min} min`
-                                                            : ""}
-                                                        {s.local
-                                                            ? ` · ${s.local}`
-                                                            : ""}
+                                                        {s.equipa_nome ?? "Sem equipa"}
+                                                        {s.duracao_min ? ` · ${s.duracao_min} min` : ""}
+                                                        {s.local ? ` · ${s.local}` : ""}
                                                     </p>
                                                 </div>
                                             </div>
@@ -411,15 +341,13 @@ export default function CalendarioPresidente({
                                 )}
                             </div>
 
-                            {/* Anotações pessoais */}
+                            {/* Anotações */}
                             <div>
                                 <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
                                     Anotações pessoais
                                 </h4>
                                 {notesLoading ? (
-                                    <p className="text-sm text-gray-400 text-center py-3">
-                                        A carregar...
-                                    </p>
+                                    <p className="text-sm text-gray-400 text-center py-3">A carregar...</p>
                                 ) : notes.length === 0 ? (
                                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
                                         Sem anotações para este dia.
@@ -427,21 +355,12 @@ export default function CalendarioPresidente({
                                 ) : (
                                     <div className="flex flex-col gap-2 mb-3">
                                         {notes.map((n) => (
-                                            <div
-                                                key={n.id}
-                                                className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
-                                            >
-                                                <span className="text-lg shrink-0 mt-0.5">
-                                                    📝
-                                                </span>
-                                                <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
-                                                    {n.nota}
-                                                </p>
+                                            <div key={n.id} className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800">
+                                                <span className="text-lg shrink-0 mt-0.5">📝</span>
+                                                <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-relaxed">{n.nota}</p>
                                                 {!selectedIsPast && (
                                                     <button
-                                                        onClick={() =>
-                                                            deleteNota(n.id)
-                                                        }
+                                                        onClick={() => deleteNota(n.id)}
                                                         className="shrink-0 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none"
                                                         aria-label="Eliminar anotação"
                                                     >
@@ -452,28 +371,19 @@ export default function CalendarioPresidente({
                                         ))}
                                     </div>
                                 )}
-
-                                {/* Add note form (only for future/today) */}
                                 {!selectedIsPast && (
-                                    <form
-                                        onSubmit={addNota}
-                                        className="flex gap-2 mt-2"
-                                    >
+                                    <form onSubmit={addNota} className="flex gap-2 mt-2">
                                         <input
                                             type="text"
                                             className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
                                             placeholder="Adicionar anotação..."
                                             value={newNota}
-                                            onChange={(e) =>
-                                                setNewNota(e.target.value)
-                                            }
+                                            onChange={(e) => setNewNota(e.target.value)}
                                             disabled={savingNota}
                                         />
                                         <button
                                             type="submit"
-                                            disabled={
-                                                savingNota || !newNota.trim()
-                                            }
+                                            disabled={savingNota || !newNota.trim()}
                                             className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold px-4 py-2 rounded-xl transition-all text-sm"
                                         >
                                             {savingNota ? "..." : "Guardar"}
@@ -487,21 +397,18 @@ export default function CalendarioPresidente({
             )}
 
             {/* ── HEADER ────────────────────────────────────── */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2 shrink-0">
                 <div>
                     <h2 className="text-2xl font-bold text-blue-700 dark:text-blue-400 flex items-center gap-3">
                         <span>📅</span> Calendário
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                         Jogos e treinos de todas as equipas
                         {(monthStats.jogos > 0 || monthStats.sessoes > 0) && (
                             <span className="ml-2 text-gray-400 dark:text-gray-500">
                                 ·
-                                {monthStats.jogos > 0 &&
-                                    ` ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
-                                {monthStats.sessoes > 0 &&
-                                    ` ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`}{" "}
-                                este mês
+                                {monthStats.jogos > 0 && ` ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
+                                {monthStats.sessoes > 0 && ` ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`} este mês
                             </span>
                         )}
                     </p>
@@ -514,7 +421,7 @@ export default function CalendarioPresidente({
                     >
                         ◀
                     </button>
-                    <span className="font-bold text-gray-800 dark:text-gray-200 text-base min-w-[160px] text-center px-2">
+                    <span className="font-bold text-gray-800 dark:text-gray-200 text-base min-w-40 text-center px-2">
                         {MONTHS[month]} {year}
                     </span>
                     <button
@@ -527,229 +434,162 @@ export default function CalendarioPresidente({
                 </div>
             </div>
 
+            {/* ── LEGENDAS — MOVIDAS PARA O TOPO ────────────── */}
+            <div className="flex flex-wrap gap-2 shrink-0">
+                {[
+                    { color: "bg-rose-500", label: "🤾 Jogo" },
+                    { color: "bg-emerald-500", label: "🏋️ Treino" },
+                    { color: "bg-blue-500", label: "📝 Anotação" },
+                ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl px-3 py-1.5 shadow-sm border border-slate-100 dark:border-gray-800">
+                        <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{item.label}</span>
+                    </div>
+                ))}
+                {epoca && (
+                    <>
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl px-3 py-1.5 shadow-sm border border-slate-100 dark:border-gray-800">
+                            <span className="text-xs">🏁</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Início da Época</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl px-3 py-1.5 shadow-sm border border-slate-100 dark:border-gray-800">
+                            <span className="text-xs">🔚</span>
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">Fim da Época</span>
+                        </div>
+                    </>
+                )}
+            </div>
+
             {/* ── ÉPOCA BANNER ──────────────────────────────── */}
             {epoca && (
-                <div className="flex items-center gap-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-2xl px-5 py-3">
+                <div className="flex items-center gap-3 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-2xl px-5 py-2.5 shrink-0">
                     <span className="text-lg">🏆</span>
                     <div className="flex-1">
-                        <p className="text-sm font-bold text-violet-700 dark:text-violet-300">
-                            {epoca.nome}
-                        </p>
+                        <p className="text-sm font-bold text-violet-700 dark:text-violet-300">{epoca.nome}</p>
                         <p className="text-xs text-violet-500 dark:text-violet-400">
-                            {new Date(epoca.data_inicio).toLocaleDateString(
-                                "pt-PT",
-                            )}{" "}
-                            →{" "}
-                            {new Date(epoca.data_fim).toLocaleDateString(
-                                "pt-PT",
-                            )}
+                            {new Date(epoca.data_inicio).toLocaleDateString("pt-PT")} →{" "}
+                            {new Date(epoca.data_fim).toLocaleDateString("pt-PT")}
                         </p>
                     </div>
-                    <span
-                        className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                            epoca.ativa
-                                ? "bg-violet-100 text-violet-700 dark:bg-violet-800 dark:text-violet-200"
-                                : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                        }`}
-                    >
+                    <span className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                        epoca.ativa
+                            ? "bg-violet-100 text-violet-700 dark:bg-violet-800 dark:text-violet-200"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                    }`}>
                         {epoca.ativa ? "Em curso" : "Concluída"}
                     </span>
                 </div>
             )}
 
-            {/* ── CALENDAR GRID ─────────────────────────────── */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg shadow-slate-200 dark:shadow-gray-950 overflow-hidden border border-slate-100 dark:border-gray-800">
-                <div className="grid grid-cols-7 border-b border-slate-100 dark:border-gray-800">
+            {/* ── CALENDAR GRID — flex-1 para preencher espaço restante ── */}
+            <div className="flex-1 overflow-hidden bg-white dark:bg-gray-900 rounded-3xl shadow-lg shadow-slate-200 dark:shadow-gray-950 border border-slate-100 dark:border-gray-800 flex flex-col">
+                {/* Cabeçalho dias da semana */}
+                <div className="grid grid-cols-7 border-b border-slate-100 dark:border-gray-800 shrink-0">
                     {WEEKDAYS.map((d, i) => (
-                        <div
-                            key={d}
-                            className={`py-3 text-center text-xs font-bold tracking-widest uppercase ${
-                                i >= 5
-                                    ? "text-rose-400 bg-rose-50/60 dark:bg-rose-950/20"
-                                    : "text-indigo-500 dark:text-indigo-400"
-                            }`}
-                        >
+                        <div key={d} className={`py-2.5 text-center text-xs font-bold tracking-widest uppercase ${
+                            i >= 5
+                                ? "text-rose-400 bg-rose-50/60 dark:bg-rose-950/20"
+                                : "text-indigo-500 dark:text-indigo-400"
+                        }`}>
                             {d}
                         </div>
                     ))}
                 </div>
 
-                {grid.map((week, wi) => (
-                    <div
-                        key={wi}
-                        className="grid grid-cols-7 border-b border-slate-100 dark:border-gray-800 last:border-b-0"
-                    >
-                        {week.map((day, di) => {
-                            const key = day ? dateKey(year, month, day) : null;
-                            const dayJogos = key ? jogosByDate[key] || [] : [];
-                            const daySessoes = key
-                                ? sessoesByDate[key] || []
-                                : [];
-                            const isToday = key === todayKey;
-                            const isWeekend = di >= 5;
-                            const dayDate = day
-                                ? new Date(year, month, day)
-                                : null;
-                            if (dayDate) dayDate.setHours(0, 0, 0, 0);
-                            const isPast = dayDate ? dayDate < today : false;
+                {/* Semanas — flex-1 para dividir igualmente a altura disponível */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    {grid.map((week, wi) => (
+                        <div key={wi} className="flex-1 grid grid-cols-7 border-b border-slate-100 dark:border-gray-800 last:border-b-0">
+                            {week.map((day, di) => {
+                                const key = day ? dateKey(year, month, day) : null;
+                                const dayJogos = key ? jogosByDate[key] || [] : [];
+                                const daySessoes = key ? sessoesByDate[key] || [] : [];
+                                const isToday = key === todayKey;
+                                const isWeekend = di >= 5;
+                                const dayDate = day ? new Date(year, month, day) : null;
+                                if (dayDate) dayDate.setHours(0, 0, 0, 0);
+                                const isPast = dayDate ? dayDate < today : false;
+                                const isEpStart = key === epocaInicioKey;
+                                const isEpEnd = key === epocaFimKey;
+                                const hasNotes = key ? noteDatesSet.has(key) : false;
 
-                            const isEpStart = key === epocaInicioKey;
-                            const isEpEnd = key === epocaFimKey;
-                            const hasNotes = key
-                                ? noteDatesSet.has(key)
-                                : false;
-
-                            return (
-                                <div
-                                    key={di}
-                                    onClick={() => day && openDay(day)}
-                                    className={`
-                                        min-h-[110px] p-2.5 flex flex-col relative
-                                        border-r border-slate-100 dark:border-gray-800 last:border-r-0
-                                        transition-colors duration-100
-                                        ${!day ? "bg-slate-50/50 dark:bg-gray-950/50" : ""}
-                                        ${isPast && day ? "opacity-60" : ""}
-                                        ${day ? "cursor-pointer" : ""}
-                                        ${isWeekend && day ? "bg-rose-50/40 dark:bg-rose-950/10" : ""}
-                                        ${day && !isWeekend ? "hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20" : ""}
-                                        ${day && isWeekend ? "hover:bg-rose-50/70 dark:hover:bg-rose-950/20" : ""}
-                                    `}
-                                >
-                                    {day && (
-                                        <>
-                                            <div className="flex items-start justify-between mb-1.5">
-                                                <span
-                                                    className={`
+                                return (
+                                    <div
+                                        key={di}
+                                        onClick={() => day && openDay(day)}
+                                        className={`
+                                            p-2 flex flex-col relative
+                                            border-r border-slate-100 dark:border-gray-800 last:border-r-0
+                                            transition-colors duration-100
+                                            ${!day ? "bg-slate-50/50 dark:bg-gray-950/50" : ""}
+                                            ${isPast && day ? "opacity-60" : ""}
+                                            ${day ? "cursor-pointer" : ""}
+                                            ${isWeekend && day ? "bg-rose-50/40 dark:bg-rose-950/10" : ""}
+                                            ${day && !isWeekend ? "hover:bg-indigo-50/60 dark:hover:bg-indigo-950/20" : ""}
+                                            ${day && isWeekend ? "hover:bg-rose-50/70 dark:hover:bg-rose-950/20" : ""}
+                                        `}
+                                    >
+                                        {day && (
+                                            <>
+                                                <div className="flex items-start justify-between mb-1">
+                                                    <span className={`
                                                         text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full transition-all
-                                                        ${
-                                                            isToday
-                                                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-300 dark:shadow-indigo-900"
-                                                                : isPast
-                                                                  ? "text-gray-400 dark:text-gray-600"
-                                                                  : isWeekend
-                                                                    ? "text-rose-400"
-                                                                    : "text-slate-600 dark:text-slate-300"
+                                                        ${isToday
+                                                            ? "bg-indigo-600 text-white shadow-md shadow-indigo-300 dark:shadow-indigo-900"
+                                                            : isPast
+                                                              ? "text-gray-400 dark:text-gray-600"
+                                                              : isWeekend
+                                                                ? "text-rose-400"
+                                                                : "text-slate-600 dark:text-slate-300"
                                                         }
-                                                    `}
-                                                >
-                                                    {day}
-                                                </span>
-                                                {(isEpStart || isEpEnd) && (
-                                                    <span
-                                                        className="text-[10px] shrink-0"
-                                                        title={
-                                                            isEpStart
-                                                                ? "Início da Época"
-                                                                : "Fim da Época"
-                                                        }
-                                                    >
-                                                        {isEpStart
-                                                            ? "🏁"
-                                                            : "🔚"}
+                                                    `}>
+                                                        {day}
                                                     </span>
-                                                )}
-                                            </div>
+                                                    {(isEpStart || isEpEnd) && (
+                                                        <span className="text-[10px] shrink-0" title={isEpStart ? "Início da Época" : "Fim da Época"}>
+                                                            {isEpStart ? "🏁" : "🔚"}
+                                                        </span>
+                                                    )}
+                                                </div>
 
-                                            <div className="flex flex-col gap-1 flex-1">
-                                                {dayJogos
-                                                    .slice(0, 2)
-                                                    .map((j) => (
-                                                        <div
-                                                            key={j.id}
-                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1 truncate"
-                                                        >
-                                                            <span className="text-[10px] shrink-0">
-                                                                🤾
-                                                            </span>
-                                                            <span className="truncate">
-                                                                vs{" "}
-                                                                {j.adversario}
-                                                            </span>
+                                                <div className="flex flex-col gap-0.5 flex-1">
+                                                    {dayJogos.slice(0, 2).map((j) => (
+                                                        <div key={j.id} className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md border-l-2 border-l-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1 truncate">
+                                                            <span className="text-[10px] shrink-0">🤾</span>
+                                                            <span className="truncate">vs {j.adversario}</span>
                                                         </div>
                                                     ))}
-                                                {dayJogos.length > 2 && (
-                                                    <div className="text-[11px] font-bold text-indigo-500 dark:text-indigo-400 pl-2">
-                                                        +{dayJogos.length - 2}{" "}
-                                                        mais
-                                                    </div>
-                                                )}
-                                                {daySessoes
-                                                    .slice(0, 2)
-                                                    .map((s) => (
-                                                        <div
-                                                            key={s.id}
-                                                            className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 truncate"
-                                                        >
-                                                            <span className="text-[10px] shrink-0">
-                                                                🏋️
-                                                            </span>
-                                                            <span className="truncate">
-                                                                {s.tipo}
-                                                            </span>
+                                                    {dayJogos.length > 2 && (
+                                                        <div className="text-[11px] font-bold text-indigo-500 dark:text-indigo-400 pl-1.5">
+                                                            +{dayJogos.length - 2} mais
+                                                        </div>
+                                                    )}
+                                                    {daySessoes.slice(0, 2).map((s) => (
+                                                        <div key={s.id} className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md border-l-2 border-l-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 truncate">
+                                                            <span className="text-[10px] shrink-0">🏋️</span>
+                                                            <span className="truncate">{s.tipo}</span>
                                                         </div>
                                                     ))}
-                                                {daySessoes.length > 2 && (
-                                                    <div className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400 pl-2">
-                                                        +{daySessoes.length - 2}{" "}
-                                                        mais
-                                                    </div>
-                                                )}
-                                                {hasNotes && (
-                                                    <div className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1 truncate">
-                                                        <span className="text-[10px] shrink-0">
-                                                            📝
-                                                        </span>
-                                                        <span className="truncate">
-                                                            Anotação
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                ))}
-            </div>
-
-            {/* ── LEGEND ──────────────────────────────────────── */}
-            <div className="flex flex-wrap gap-4 justify-center">
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                    <span className="w-3 h-3 rounded-full bg-rose-500" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        🤾 Jogo
-                    </span>
-                </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                    <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        🏋️ Treino
-                    </span>
-                </div>
-                <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                    <span className="w-3 h-3 rounded-full bg-blue-500" />
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        📝 Anotação
-                    </span>
-                </div>
-                {epoca && (
-                    <>
-                        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                            <span className="text-xs">🏁</span>
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                Início da Época
-                            </span>
+                                                    {daySessoes.length > 2 && (
+                                                        <div className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400 pl-1.5">
+                                                            +{daySessoes.length - 2} mais
+                                                        </div>
+                                                    )}
+                                                    {hasNotes && (
+                                                        <div className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md border-l-2 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1 truncate">
+                                                            <span className="text-[10px] shrink-0">📝</span>
+                                                            <span className="truncate">Anotação</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
-                            <span className="text-xs">🔚</span>
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                Fim da Época
-                            </span>
-                        </div>
-                    </>
-                )}
+                    ))}
+                </div>
             </div>
         </div>
     );
