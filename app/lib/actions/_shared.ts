@@ -53,7 +53,6 @@ export const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
 export async function persistPhotoToR2(
     file: File | null,
-    entityType: "customer" | "user",
     entityId: string,
 ): Promise<string | null> {
     if (!file || file.size === 0) {
@@ -66,7 +65,7 @@ export async function persistPhotoToR2(
         );
     }
 
-    const tableName = entityType === "customer" ? "customers" : "users";
+    const tableName = "users";
 
     let previousImageUrl: string | null = null;
     try {
@@ -79,7 +78,7 @@ export async function persistPhotoToR2(
     }
 
     // Upload to R2
-    const imageUrl = await uploadImageToR2(file, entityType, entityId);
+    const imageUrl = await uploadImageToR2(file, "user", entityId);
 
     // Update database with R2 URL
     await sql`
@@ -108,7 +107,7 @@ export async function saveUserPhoto(
     file: File | null,
     userId: string,
 ): Promise<string | null> {
-    return persistPhotoToR2(file, "user", userId);
+    return persistPhotoToR2(file, userId);
 }
 
 /**

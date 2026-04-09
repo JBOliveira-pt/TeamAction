@@ -1,4 +1,4 @@
-import Nutricao from "./nutricao";
+import Nutricao from "./nutricao.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 
@@ -14,14 +14,16 @@ async function fetchData() {
     const orgId = user[0]?.organization_id;
     if (!orgId) return { planos: [] };
 
-    const planos = await sql<{
-        id: string;
-        nome: string;
-        descricao: string | null;
-        objetivo: string | null;
-        observacoes: string | null;
-        created_at: string;
-    }[]>`
+    const planos = await sql<
+        {
+            id: string;
+            nome: string;
+            descricao: string | null;
+            objetivo: string | null;
+            observacoes: string | null;
+            created_at: string;
+        }[]
+    >`
         SELECT id, nome, descricao, objetivo, observacoes, created_at::text
         FROM planos_nutricao
         WHERE organization_id = ${orgId}

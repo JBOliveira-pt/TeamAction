@@ -2414,6 +2414,45 @@ export default function CompleteAccountTypeForm({
                             </div>
                         )}
                     </div>
+                ) : stage === "responsible-profile" ? (
+                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                                Dados do Responsável
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Indique o e-mail do atleta menor de idade a quem
+                                está vinculado(a).
+                            </p>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                E-mail do Atleta Menor{" "}
+                                <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <Mail
+                                    size={16}
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                />
+                                <input
+                                    type="email"
+                                    value={responsibleMinorEmail}
+                                    onChange={(e) =>
+                                        setResponsibleMinorEmail(e.target.value)
+                                    }
+                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    placeholder="email.do.atleta@exemplo.pt"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                O atleta receberá um pedido de vinculação. Se
+                                ainda não tiver conta, o administrador será
+                                notificado.
+                            </p>
+                        </div>
+                    </div>
                 ) : (
                     <div className="space-y-6">
                         <div className="rounded-lg border border-blue-200/20 bg-slate-900/50 p-4">
@@ -2656,47 +2695,6 @@ export default function CompleteAccountTypeForm({
                                     className="block w-full cursor-not-allowed rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/20 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-gray-300 outline-none"
                                 />
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {stage === "responsible-profile" && (
-                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                                Dados do Responsável
-                            </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Indique o e-mail do atleta menor de idade a quem
-                                está vinculado(a).
-                            </p>
-                        </div>
-
-                        <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                E-mail do Atleta Menor{" "}
-                                <span className="text-red-500">*</span>
-                            </label>
-                            <div className="relative">
-                                <Mail
-                                    size={16}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                                />
-                                <input
-                                    type="email"
-                                    value={responsibleMinorEmail}
-                                    onChange={(e) =>
-                                        setResponsibleMinorEmail(e.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="email.do.atleta@exemplo.pt"
-                                />
-                            </div>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                O atleta receberá um pedido de vinculação. Se
-                                ainda não tiver conta, o administrador será
-                                notificado.
-                            </p>
                         </div>
                     </div>
                 )}

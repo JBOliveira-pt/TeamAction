@@ -1,8 +1,12 @@
-import { fetchJogos, fetchEquipas, fetchPresidenteDashboard } from "@/app/lib/data";
-import JogosTable from "./jogos-table";
+import {
+    fetchJogos,
+    fetchEquipas,
+    fetchPresidenteDashboard,
+} from "@/app/lib/data";
+import JogosTable from "./jogos-table.client";
 import AgendarJogoModal from "./_components/AgendarJogoModal.client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function JogosPage() {
     const [jogos, equipas, dashboard] = await Promise.all([
@@ -16,18 +20,22 @@ export default async function JogosPage() {
             {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Jogos</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Jogos
+                    </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {dashboard.epocaNome ? `Época ${dashboard.epocaNome}` : "Sem época ativa"} · Todos os escalões
+                        {dashboard.epocaNome
+                            ? `Época ${dashboard.epocaNome}`
+                            : "Sem época ativa"}{" "}
+                        · Todos os escalões
                     </p>
                 </div>
-                <AgendarJogoModal equipas={equipas.map(e => ({ id: e.id, nome: e.nome }))} />
+                <AgendarJogoModal
+                    equipas={equipas.map((e) => ({ id: e.id, nome: e.nome }))}
+                />
             </div>
 
             <JogosTable jogos={jogos} />
         </div>
     );
 }
-
-
-

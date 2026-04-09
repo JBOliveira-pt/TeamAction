@@ -1,4 +1,7 @@
-import { generateReciboPdf, type ReciboPdfData } from "@/app/lib/receipt-pdf";
+import {
+    generateReciboPdf,
+    type ReciboPdfData,
+} from "@/app/components/receipt-pdf";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextRequest, NextResponse } from "next/server";
 

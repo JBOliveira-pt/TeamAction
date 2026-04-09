@@ -1,4 +1,4 @@
-import CondicaoFisica from "./condicaofisica";
+import CondicaoFisica from "./condicao-fisica.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 
@@ -15,17 +15,19 @@ async function fetchData() {
     if (!orgId) return { avaliacoes: [], atletas: [] };
 
     const [avaliacoes, atletas] = await Promise.all([
-        sql<{
-            id: string;
-            atleta_id: string;
-            atleta_nome: string;
-            data: string;
-            velocidade_30m: number | null;
-            impulsao_vertical: number | null;
-            vo2max: number | null;
-            forca_kg: number | null;
-            observacoes: string | null;
-        }[]>`
+        sql<
+            {
+                id: string;
+                atleta_id: string;
+                atleta_nome: string;
+                data: string;
+                velocidade_30m: number | null;
+                impulsao_vertical: number | null;
+                vo2max: number | null;
+                forca_kg: number | null;
+                observacoes: string | null;
+            }[]
+        >`
             SELECT af.id, af.atleta_id, a.nome AS atleta_nome,
                    af.data::text, af.velocidade_30m, af.impulsao_vertical,
                    af.vo2max, af.forca_kg, af.observacoes

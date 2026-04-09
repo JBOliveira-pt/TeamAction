@@ -1,4 +1,4 @@
-import Assiduidade from "./assiduidade";
+import Assiduidade from "./assiduidade.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 
@@ -14,7 +14,9 @@ async function fetchSessoesDisponiveis() {
     const orgId = user[0]?.organization_id;
     if (!orgId) return [];
 
-    return sql<{ id: string; data: string; tipo: string; duracao_min: number }[]>`
+    return sql<
+        { id: string; data: string; tipo: string; duracao_min: number }[]
+    >`
         SELECT id, data, tipo, duracao_min
         FROM sessoes
         WHERE organization_id = ${orgId}
@@ -33,7 +35,14 @@ async function fetchAtletasAtivos() {
     const orgId = user[0]?.organization_id;
     if (!orgId) return [];
 
-    return sql<{ id: string; nome: string; posicao: string | null; numero_camisola: number | null }[]>`
+    return sql<
+        {
+            id: string;
+            nome: string;
+            posicao: string | null;
+            numero_camisola: number | null;
+        }[]
+    >`
         SELECT id, nome, posicao, numero_camisola
         FROM atletas
         WHERE organization_id = ${orgId} AND estado = 'Ativo'

@@ -1,4 +1,4 @@
-import EquipaAtletas from "./equipaatletas";
+import EquipaAtletas from "./equipa-atletas.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 

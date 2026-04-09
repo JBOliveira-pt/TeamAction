@@ -640,21 +640,9 @@ export default function SideNav({ accountType }: SideNavProps) {
                                 onClick={() => setIsOpen(false)}
                             />
                             <NavItem
-                                href="/dashboard/invoices"
-                                icon={<FileText size={20} />}
-                                label="Faturas"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
                                 href="/dashboard/presidente/recibos"
                                 icon={<Receipt size={20} />}
                                 label="Recibos"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <NavItem
-                                href="/dashboard/customers"
-                                icon={<Users size={20} />}
-                                label="Clientes"
                                 onClick={() => setIsOpen(false)}
                             />
                         </>

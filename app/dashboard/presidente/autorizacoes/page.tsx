@@ -1,5 +1,5 @@
 import { fetchAutorizacoes } from "@/app/lib/data";
-import PedidoFederacaoModal from "./_components/PedidoFederacaoModal";
+import PedidoFederacaoModal from "./_components/PedidoFederacaoModal.client";
 
 export const dynamic = "force-dynamic";
 

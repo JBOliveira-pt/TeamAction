@@ -124,7 +124,32 @@ export async function fetchIsMinor(): Promise<boolean> {
         WHERE u.clerk_user_id = ${userId}
         LIMIT 1
     `.catch(() => []);
-    return rows[0]?.menor_idade === true;
+
+    if (rows.length > 0) {
+        return rows[0]?.menor_idade === true;
+    }
+
+    // Fallback: atletas record may not exist yet — check age from users table
+    const userRows = await sql<
+        { idade: number | null; data_nascimento: string | null }[]
+    >`
+        SELECT idade, data_nascimento FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+    `.catch(() => []);
+
+    if (userRows[0]?.idade !== null && userRows[0]?.idade !== undefined) {
+        return userRows[0].idade < 18;
+    }
+
+    if (userRows[0]?.data_nascimento) {
+        const birth = new Date(userRows[0].data_nascimento);
+        const now = new Date();
+        let age = now.getFullYear() - birth.getFullYear();
+        const m = now.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+        return age < 18;
+    }
+
+    return false;
 }
 
 export async function fetchIsResponsavel(): Promise<boolean> {

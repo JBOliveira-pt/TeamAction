@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import postgres from "postgres";
-import StaffPanel from "./components/StaffPanel";
+import StaffPanel from "./staff-panel.client";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -125,10 +125,16 @@ async function fetchDashboardData() {
 
     const totalAtletas = atletasResult?.[0]?.total ?? 0;
     const proximasSessoes = (proximaSessaoResult ?? []) as {
-        id: string; data: string; tipo: string; duracao_min: number;
+        id: string;
+        data: string;
+        tipo: string;
+        duracao_min: number;
     }[];
     const proximosJogos = (proximoJogoResult ?? []) as {
-        id: string; adversario: string; data: string; casa_fora: string;
+        id: string;
+        adversario: string;
+        data: string;
+        casa_fora: string;
     }[];
     const proximaSessao = proximasSessoes[0] ?? null;
     const proximoJogo = proximosJogos[0] ?? null;
@@ -435,9 +441,7 @@ export default async function TreinadorDashboard() {
                     </div>
                 </div>
             </div>
-            {data?.hasEquipa && (
-                <StaffPanel staff={data.staff ?? []} />
-            )}
+            {data?.hasEquipa && <StaffPanel staff={data.staff ?? []} />}
         </div>
     );
 }

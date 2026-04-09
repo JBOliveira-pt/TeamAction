@@ -384,6 +384,9 @@ export async function eliminarEquipa(
         // Desassociar atletas da equipa antes de eliminar
         await sql`UPDATE atletas SET equipa_id = NULL WHERE equipa_id = ${id}`;
 
+        // Desassociar staff da equipa antes de eliminar
+        await sql`UPDATE staff SET equipa_id = NULL WHERE equipa_id = ${id}`;
+
         await sql`DELETE FROM equipas WHERE id = ${id} AND organization_id = ${organizationId}`;
 
         await sql`

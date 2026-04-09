@@ -898,3 +898,93 @@ export async function fetchAdminRelacoesPendentes(): Promise<
         LIMIT 200
     `;
 }
+
+// ========================================
+// Clube & Equipas (for admin management)
+// ========================================
+
+export type AdminClubeRow = {
+    id: string;
+    organization_id: string;
+    nome: string;
+    modalidade: string | null;
+    nipc: string | null;
+    website: string | null;
+    telefone: string | null;
+    morada: string | null;
+    codigo_postal: string | null;
+    cidade: string | null;
+    pais: string | null;
+};
+
+export async function fetchAdminClubeByOrgId(
+    organizationId: string,
+): Promise<AdminClubeRow | null> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'clubes'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return null;
+
+    const data = await sql<AdminClubeRow[]>`
+        SELECT
+            c.id,
+            c.organization_id,
+            c.nome,
+            c.modalidade,
+            c.nipc,
+            c.website,
+            c.telefone,
+            c.morada,
+            c.codigo_postal,
+            c.cidade,
+            c.pais
+        FROM clubes c
+        WHERE c.organization_id = ${organizationId}
+        LIMIT 1
+    `;
+    return data[0] ?? null;
+}
+
+export type AdminEquipaFullRow = {
+    id: string;
+    nome: string;
+    escalao: string | null;
+    estado: string | null;
+    desporto: string | null;
+    treinador_id: string | null;
+    treinador_nome: string | null;
+    total_atletas: number;
+    total_staff: number;
+};
+
+export async function fetchAdminEquipasByOrgFull(
+    organizationId: string,
+): Promise<AdminEquipaFullRow[]> {
+    const hasTable = await sql<{ exists: boolean }[]>`
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'equipas'
+        ) AS exists
+    `;
+    if (!hasTable[0]?.exists) return [];
+
+    return sql<AdminEquipaFullRow[]>`
+        SELECT
+            e.id,
+            e.nome,
+            e.escalao,
+            e.estado,
+            e.desporto,
+            e.treinador_id,
+            u.name AS treinador_nome,
+            (SELECT COUNT(*)::int FROM atletas a WHERE a.equipa_id = e.id) AS total_atletas,
+            (SELECT COUNT(*)::int FROM staff s WHERE s.equipa_id = e.id) AS total_staff
+        FROM equipas e
+        LEFT JOIN users u ON u.id = e.treinador_id
+        WHERE e.organization_id = ${organizationId}
+        ORDER BY e.nome ASC
+    `;
+}

@@ -2,16 +2,23 @@ import {
     adminChangeAccountTypeAction,
     adminDeleteUserAction,
     adminUpdateUserAction,
+    adminUpdateClubeAction,
+    adminEditEquipaAction,
+    adminDeleteEquipaAction,
 } from "@/app/lib/admin-actions";
 import {
     fetchAdminUserById,
     fetchAdminAtletaByUserId,
     fetchAdminStaffByUserId,
     fetchAdminEquipasByOrg,
+    fetchAdminClubeByOrgId,
+    fetchAdminEquipasByOrgFull,
 } from "@/app/lib/admin-data";
-import { AdminDeleteUserDangerZone } from "../../../ui/admin/delete-user-danger-zone";
-import { AdminUserProfileView } from "../../../ui/admin/admin-user-profile-view";
-import { AdminAccountTypeChanger } from "../../../ui/admin/account-type-changer";
+import { AdminDeleteUserDangerZone } from "@/app/ui/admin/delete-user-danger-zone";
+import { AdminUserProfileView } from "@/app/ui/admin/admin-user-profile-view";
+import { AdminAccountTypeChanger } from "@/app/ui/admin/account-type-changer";
+import { AdminClubeEditor } from "@/app/ui/admin/admin-clube-editor";
+import { AdminEquipasManager } from "@/app/ui/admin/admin-equipas-manager";
 import { clerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
@@ -113,17 +120,30 @@ export default async function AdminUserDetailPage({
     const badge = getAccountTypeLabel(accountType);
 
     // Fetch profile-specific data in parallel
-    const [atletaData, staffData, equipas] = await Promise.all([
-        accountType === "atleta"
-            ? fetchAdminAtletaByUserId(user.id)
-            : Promise.resolve(null),
-        accountType === "treinador"
-            ? fetchAdminStaffByUserId(user.id)
-            : Promise.resolve(null),
-        user.organization_id
-            ? fetchAdminEquipasByOrg(user.organization_id)
-            : Promise.resolve([]),
-    ]);
+    const [atletaData, staffData, equipas, clubeData, equipasFull] =
+        await Promise.all([
+            accountType === "atleta"
+                ? fetchAdminAtletaByUserId(user.id)
+                : Promise.resolve(null),
+            accountType === "treinador"
+                ? fetchAdminStaffByUserId(user.id)
+                : Promise.resolve(null),
+            user.organization_id
+                ? fetchAdminEquipasByOrg(user.organization_id)
+                : Promise.resolve([]),
+            accountType === "presidente" && user.organization_id
+                ? fetchAdminClubeByOrgId(user.organization_id)
+                : Promise.resolve(null),
+            accountType === "presidente" && user.organization_id
+                ? fetchAdminEquipasByOrgFull(user.organization_id)
+                : Promise.resolve([]),
+        ]);
+
+    const updateClubeAction = user.organization_id
+        ? adminUpdateClubeAction.bind(null, user.organization_id)
+        : null;
+    const editEquipaAction = adminEditEquipaAction;
+    const deleteEquipaAction = adminDeleteEquipaAction;
 
     const alertMessage = (() => {
         if (resolvedSearchParams?.success === "1") {
@@ -259,6 +279,22 @@ export default async function AdminUserDetailPage({
 
                 <AdminDeleteUserDangerZone deleteAction={deleteAction} />
             </div>
+
+            {accountType === "presidente" && clubeData && updateClubeAction && (
+                <AdminClubeEditor
+                    clube={clubeData}
+                    updateAction={updateClubeAction}
+                />
+            )}
+
+            {accountType === "presidente" && equipasFull.length > 0 && (
+                <AdminEquipasManager
+                    equipas={equipasFull}
+                    editAction={editEquipaAction}
+                    deleteAction={deleteEquipaAction}
+                    redirectUserId={id}
+                />
+            )}
         </div>
     );
 }

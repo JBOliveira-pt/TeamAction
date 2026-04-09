@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
-import Staff, { type StaffMembro } from "./staff";
+import Staff, { type StaffMembro } from "./staff.client";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 

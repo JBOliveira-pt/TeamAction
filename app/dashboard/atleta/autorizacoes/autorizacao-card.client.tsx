@@ -5,7 +5,7 @@ import { Check, X } from "lucide-react";
 import {
     responderConviteEquipaAtleta,
     responderConviteClubeAtleta,
-} from "@/app/lib/actions/atleta-profile";
+} from "@/app/lib/actions/convites-atleta";
 
 type Props = {
     id: string;

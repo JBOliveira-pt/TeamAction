@@ -1,4 +1,4 @@
-import Jogos from "./jogos";
+import Jogos from "./jogos.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 

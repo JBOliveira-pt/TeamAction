@@ -1,5 +1,5 @@
 import NotificacoesUnificadas from "@/app/ui/components/notificacoes-unificadas";
-import VinculacaoResponsavelSection from "./vinculacao-responsavel-section";
+import VinculacaoResponsavelSection from "./vinculacao-responsavel-section.client";
 
 export const dynamic = "force-dynamic";
 

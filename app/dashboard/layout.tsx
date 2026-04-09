@@ -24,8 +24,7 @@ export const metadata: Metadata = {
         template: "%s | TeamAction Dashboard",
         default: "TeamAction Dashboard",
     },
-    description: "The official Next.js Learn Dashboard built with App Router.",
-    metadataBase: new URL("https://next-learn-dashboard.vercel.sh"),
+    description: "Plataforma de gestão de equipas desportivas.",
 };
 
 export const dynamic = "force-dynamic";

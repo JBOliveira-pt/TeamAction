@@ -112,6 +112,7 @@ export async function atualizarPerfilAtleta(
                 };
             }
             // Guardar alterações pendentes — NÃO salvar diretamente
+            // data_nascimento is NEVER changeable for minors
             await storePendingChanges(
                 minor.userId,
                 minor.guardianEmail,
@@ -123,7 +124,6 @@ export async function atualizarPerfilAtleta(
                         cidade,
                         codigo_postal: codigoPostal,
                         pais,
-                        data_nascimento: dataNascimento,
                     },
                     atletas: {
                         mao_dominante: maoDominante,

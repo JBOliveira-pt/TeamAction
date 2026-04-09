@@ -532,6 +532,8 @@ async function ensureUserExistsWithOrganization(
 
     if (!email) return;
 
+    const FALLBACK_ORG_ID = "00000000-0000-0000-0000-000000000000";
+
     const byClerk = await sql<{ id: string; organization_id: string }[]>`
         SELECT id, organization_id
         FROM users
@@ -539,7 +541,10 @@ async function ensureUserExistsWithOrganization(
         LIMIT 1
     `;
 
-    if (byClerk[0]?.organization_id) {
+    if (
+        byClerk[0]?.organization_id &&
+        byClerk[0].organization_id !== FALLBACK_ORG_ID
+    ) {
         await sql`
             UPDATE users
             SET image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
@@ -561,7 +566,10 @@ async function ensureUserExistsWithOrganization(
             LIMIT 1
         `;
 
-        if (existingByEmail[0]?.organization_id) {
+        if (
+            existingByEmail[0]?.organization_id &&
+            existingByEmail[0].organization_id !== FALLBACK_ORG_ID
+        ) {
             await tx`
                 UPDATE users
                 SET clerk_user_id = ${userId}, image_url = ${uploadedImageUrl || currentUser.imageUrl || null}, updated_at = NOW()
@@ -1216,47 +1224,81 @@ export async function POST(req: Request) {
                 LIMIT 1
             `;
 
-            const athleteDbId = athleteUser[0]?.id;
-            const athleteOrgId = athleteUser[0]?.organization_id;
+            let athleteDbId = athleteUser[0]?.id;
+            let athleteOrgId = athleteUser[0]?.organization_id;
 
-            if (athleteDbId && athleteOrgId) {
-                const existingAtleta = await sql<{ id: string }[]>`
-                    SELECT id FROM atletas WHERE user_id = ${athleteDbId} LIMIT 1
+            // If user exists but has no real organization, create one now
+            const FALLBACK_ORG_UUID = "00000000-0000-0000-0000-000000000000";
+            if (
+                athleteDbId &&
+                (!athleteOrgId || athleteOrgId === FALLBACK_ORG_UUID)
+            ) {
+                console.warn(
+                    `[ACCOUNT_TYPE] Athlete ${userId} has no valid organization_id (got: ${athleteOrgId}). Creating organization now.`,
+                );
+                const orgSlug = `${fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
+                const orgName = `${fullName}'s Organization`;
+                const newOrg = await sql<{ id: string }[]>`
+                    INSERT INTO organizations (name, slug, owner_id, created_at, updated_at)
+                    VALUES (${orgName}, ${orgSlug}, ${userId}, NOW(), NOW())
+                    RETURNING id
                 `;
+                athleteOrgId = newOrg[0].id;
+                await sql`
+                    UPDATE users
+                    SET organization_id = ${athleteOrgId}, updated_at = NOW()
+                    WHERE id = ${athleteDbId}
+                `;
+            }
 
-                if (existingAtleta.length === 0) {
-                    const isMinor = age !== null && age < 18;
-                    await sql`
-                        INSERT INTO atletas (
-                            id, nome, organization_id, user_id, estado,
-                            menor_idade, peso_kg, altura_cm, mao_dominante, modalidade, created_at, updated_at
-                        ) VALUES (
-                            gen_random_uuid(),
-                            ${fullName},
-                            ${athleteOrgId},
-                            ${athleteDbId},
-                            'ativo',
-                            ${isMinor},
-                            ${athleteProfile.pesoKg},
-                            ${athleteProfile.alturaCm},
-                            ${athleteProfile.maoDominante},
-                            ${athleteProfile.modality},
-                            NOW(),
-                            NOW()
-                        )
-                    `;
-                } else {
-                    // Atualizar peso/altura no registo existente
-                    await sql`
-                        UPDATE atletas
-                        SET peso_kg = ${athleteProfile.pesoKg},
-                            altura_cm = ${athleteProfile.alturaCm},
-                            mao_dominante = ${athleteProfile.maoDominante},
-                            modalidade = ${athleteProfile.modality},
-                            updated_at = NOW()
-                        WHERE user_id = ${athleteDbId}
-                    `;
-                }
+            if (!athleteDbId || !athleteOrgId) {
+                console.error(
+                    `[ACCOUNT_TYPE] Cannot create athlete record: athleteDbId=${athleteDbId}, athleteOrgId=${athleteOrgId}`,
+                );
+                return Response.json(
+                    {
+                        error: "Não foi possível criar o registo de atleta. Tente novamente.",
+                    },
+                    { status: 500 },
+                );
+            }
+
+            const existingAtleta = await sql<{ id: string }[]>`
+                SELECT id FROM atletas WHERE user_id = ${athleteDbId} LIMIT 1
+            `;
+
+            if (existingAtleta.length === 0) {
+                const isMinor = age !== null && age < 18;
+                await sql`
+                    INSERT INTO atletas (
+                        id, nome, organization_id, user_id, estado,
+                        menor_idade, peso_kg, altura_cm, mao_dominante, modalidade, created_at, updated_at
+                    ) VALUES (
+                        gen_random_uuid(),
+                        ${fullName},
+                        ${athleteOrgId},
+                        ${athleteDbId},
+                        'ativo',
+                        ${isMinor},
+                        ${athleteProfile.pesoKg},
+                        ${athleteProfile.alturaCm},
+                        ${athleteProfile.maoDominante},
+                        ${athleteProfile.modality},
+                        NOW(),
+                        NOW()
+                    )
+                `;
+            } else {
+                // Atualizar peso/altura no registo existente
+                await sql`
+                    UPDATE atletas
+                    SET peso_kg = ${athleteProfile.pesoKg},
+                        altura_cm = ${athleteProfile.alturaCm},
+                        mao_dominante = ${athleteProfile.maoDominante},
+                        modalidade = ${athleteProfile.modality},
+                        updated_at = NOW()
+                    WHERE user_id = ${athleteDbId}
+                `;
             }
 
             const hasPendingRelationsTable = await hasTable(
@@ -1397,12 +1439,24 @@ export async function POST(req: Request) {
                               AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
                         `.catch(() => {});
 
+                        // Check if the responsible person already has an account
+                        const existingResponsavel = await sql<{ id: string }[]>`
+                            SELECT id FROM users
+                            WHERE LOWER(email) = LOWER(${athleteProfile.responsibleEmail})
+                              AND account_type = 'responsavel'
+                            LIMIT 1
+                        `.catch(() => []);
+
+                        const responsavelUserId =
+                            existingResponsavel[0]?.id ?? null;
+
                         await sql`
                             INSERT INTO atleta_relacoes_pendentes (
                                 atleta_user_id,
                                 relation_kind,
                                 status,
                                 alvo_email,
+                                alvo_responsavel_user_id,
                                 created_at,
                                 updated_at
                             )
@@ -1411,24 +1465,58 @@ export async function POST(req: Request) {
                                 'responsavel',
                                 'pendente',
                                 ${athleteProfile.responsibleEmail},
+                                ${responsavelUserId},
                                 NOW(),
                                 NOW()
                             )
                             ON CONFLICT DO NOTHING
                         `;
 
-                        // Send invitation email to the responsible person
-                        try {
-                            await sendResponsibleInviteEmail(
-                                athleteUserId,
-                                fullName,
-                                athleteProfile.responsibleEmail,
-                            );
-                        } catch (inviteError) {
-                            console.error(
-                                "[ACCOUNT_TYPE] Failed to send responsible invite email:",
-                                inviteError,
-                            );
+                        // Send invitation email only if the responsible
+                        // has NOT completed their account yet
+                        if (!responsavelUserId) {
+                            try {
+                                await sendResponsibleInviteEmail(
+                                    athleteUserId,
+                                    fullName,
+                                    athleteProfile.responsibleEmail,
+                                );
+                            } catch (inviteError) {
+                                console.error(
+                                    "[ACCOUNT_TYPE] Failed to send responsible invite email:",
+                                    inviteError,
+                                );
+                            }
+                        } else {
+                            // Responsible already exists — notify them
+                            await sql`
+                                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    (SELECT COALESCE(organization_id, '00000000-0000-0000-0000-000000000000') FROM users WHERE id = ${responsavelUserId} LIMIT 1),
+                                    ${responsavelUserId},
+                                    'Pedido de Vinculação — Atleta',
+                                    ${`O atleta ${fullName} registou-se como menor de idade e indicou o seu e-mail como responsável. Aguarde que o atleta aceite o pedido de vinculação.`},
+                                    'vinculacao_responsavel',
+                                    false,
+                                    NOW()
+                                )
+                            `.catch(() => {});
+
+                            // Notify the MINOR athlete to approve the vinculation
+                            await sql`
+                                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    ${athleteOrgId ?? "00000000-0000-0000-0000-000000000000"},
+                                    ${athleteUserId},
+                                    'Pedido de Vinculação — Responsável',
+                                    ${`O responsável ${athleteProfile.responsibleEmail} pretende vincular-se ao seu perfil. Aceda às notificações para aceitar ou recusar este pedido.`},
+                                    'vinculacao_responsavel',
+                                    false,
+                                    NOW()
+                                )
+                            `.catch(() => {});
                         }
                     }
                 }
@@ -1482,70 +1570,68 @@ export async function POST(req: Request) {
                         `;
 
                         if (minorRows.length === 0) {
-                            return Response.json(
-                                {
-                                    error:
-                                        "O atleta com o e-mail indicado não está cadastrado na plataforma como menor de idade. " +
-                                        "Verifique o e-mail e tente novamente.",
-                                },
-                                { status: 400 },
+                            // Minor has not signed up yet — store the
+                            // responsible's intention so that the link can
+                            // be established later when the minor registers.
+                            console.log(
+                                `[ACCOUNT_TYPE] Minor ${responsibleMinorEmail} not found yet. Storing responsible intent for later linking.`,
                             );
-                        }
+                        } else {
+                            const minor = minorRows[0];
+                            // Check if link already exists (from athlete-initiated flow)
+                            const existingLink = await sql<{ id: string }[]>`
+                                SELECT id FROM atleta_relacoes_pendentes
+                                WHERE atleta_user_id = ${minor.user_id}
+                                  AND relation_kind = 'responsavel'
+                                  AND LOWER(alvo_email) = LOWER(${currentEmail})
+                                LIMIT 1
+                            `.catch(() => []);
 
-                        const minor = minorRows[0];
-                        // Check if link already exists (from athlete-initiated flow)
-                        const existingLink = await sql<{ id: string }[]>`
-                            SELECT id FROM atleta_relacoes_pendentes
-                            WHERE atleta_user_id = ${minor.user_id}
-                              AND relation_kind = 'responsavel'
-                              AND LOWER(alvo_email) = LOWER(${currentEmail})
-                            LIMIT 1
-                        `.catch(() => []);
+                            if (existingLink.length === 0) {
+                                // Responsible signed up first — create the link request
+                                await sql`
+                                    INSERT INTO atleta_relacoes_pendentes (
+                                        id, atleta_user_id, relation_kind, status,
+                                        alvo_email, alvo_responsavel_user_id,
+                                        created_at, updated_at
+                                    ) VALUES (
+                                        gen_random_uuid(), ${minor.user_id}, 'responsavel', 'pendente',
+                                        ${currentEmail}, ${responsavelDbId},
+                                        NOW(), NOW()
+                                    )
+                                    ON CONFLICT DO NOTHING
+                                `;
+                            }
 
-                        if (existingLink.length === 0) {
-                            // Responsible signed up first — create the link request
+                            // Update atleta.encarregado_educacao for the link
                             await sql`
-                                INSERT INTO atleta_relacoes_pendentes (
-                                    id, atleta_user_id, relation_kind, status,
-                                    alvo_email, alvo_responsavel_user_id,
-                                    created_at, updated_at
-                                ) VALUES (
-                                    gen_random_uuid(), ${minor.user_id}, 'responsavel', 'pendente',
-                                    ${currentEmail}, ${responsavelDbId},
-                                    NOW(), NOW()
+                                UPDATE atletas
+                                SET encarregado_educacao = ${currentEmail}, updated_at = NOW()
+                                WHERE user_id = ${minor.user_id}
+                                  AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
+                            `.catch(() => {});
+
+                            // Notify the minor athlete about the linking request
+                            const minorOrg = await sql<
+                                { organization_id: string | null }[]
+                            >`
+                                SELECT organization_id FROM users WHERE id = ${minor.user_id} LIMIT 1
+                            `.catch(() => []);
+
+                            await sql`
+                                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    ${minorOrg[0]?.organization_id ?? "00000000-0000-0000-0000-000000000000"},
+                                    ${minor.user_id},
+                                    'Pedido de Vinculação — Responsável',
+                                    ${`${fullName} (${currentEmail}) registou-se como responsável e pretende vincular-se ao seu perfil. Pode aceitar ou recusar este pedido.`},
+                                    'vinculacao_responsavel',
+                                    false,
+                                    NOW()
                                 )
-                                ON CONFLICT DO NOTHING
-                            `;
+                            `.catch(() => {});
                         }
-
-                        // Update atleta.encarregado_educacao for the link
-                        await sql`
-                            UPDATE atletas
-                            SET encarregado_educacao = ${currentEmail}, updated_at = NOW()
-                            WHERE user_id = ${minor.user_id}
-                              AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
-                        `.catch(() => {});
-
-                        // Notify the minor athlete about the linking request
-                        const minorOrg = await sql<
-                            { organization_id: string | null }[]
-                        >`
-                            SELECT organization_id FROM users WHERE id = ${minor.user_id} LIMIT 1
-                        `.catch(() => []);
-
-                        await sql`
-                            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
-                            VALUES (
-                                gen_random_uuid(),
-                                ${minorOrg[0]?.organization_id ?? "00000000-0000-0000-0000-000000000000"},
-                                ${minor.user_id},
-                                'Pedido de Vinculação — Responsável',
-                                ${`${fullName} (${currentEmail}) registou-se como responsável e pretende vincular-se ao seu perfil. Pode aceitar ou recusar este pedido.`},
-                                'vinculacao_responsavel',
-                                false,
-                                NOW()
-                            )
-                        `.catch(() => {});
                     }
 
                     // 3. Check if the responsável has any accepted relation

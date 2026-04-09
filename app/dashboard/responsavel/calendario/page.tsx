@@ -3,7 +3,7 @@ import {
     fetchSessoesResponsavel,
     fetchDatasComNotas,
 } from "@/app/lib/data";
-import Calendario from "../../atleta/calendario/calendario";
+import Calendario from "@/app/dashboard/atleta/calendario/calendario.client";
 
 export const dynamic = "force-dynamic";
 

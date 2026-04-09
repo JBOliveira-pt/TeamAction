@@ -3,7 +3,7 @@ import {
     fetchAdminConvitesEquipaAll,
     fetchAdminRelacoesPendentes,
 } from "@/app/lib/admin-data";
-import SendResponsibleInviteButton from "./_components/SendResponsibleInviteButton";
+import SendResponsibleInviteButton from "./_components/SendResponsibleInviteButton.client";
 
 export const dynamic = "force-dynamic";
 

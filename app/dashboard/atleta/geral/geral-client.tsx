@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { atualizarPerfilAtleta } from '@/app/lib/actions';
+import { atualizarPerfilAtleta } from "@/app/lib/actions";
 import {
     CheckCircle,
     Clock,
@@ -10,9 +10,9 @@ import {
     School,
     UserCircle,
     Users,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useRef, useState, useTransition } from 'react';
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useRef, useState, useTransition } from "react";
 
 type GeralClientProps = {
     email: string | null;
@@ -39,7 +39,7 @@ function InfoRow({ label, value }: { label: string; value?: string | null }) {
                 {label}
             </span>
             <span className="text-sm font-medium text-gray-900 dark:text-white">
-                {value ?? '-'}
+                {value ?? "-"}
             </span>
         </div>
     );
@@ -219,9 +219,16 @@ export default function GeralClient({
                                     <input
                                         name="data_nascimento"
                                         type="date"
-                                        defaultValue={dataNascimento ?? ''}
-                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        defaultValue={dataNascimento ?? ""}
+                                        disabled={!!menor}
+                                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
+                                    {menor && (
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                            A data de nascimento não pode ser
+                                            alterada.
+                                        </p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -230,7 +237,7 @@ export default function GeralClient({
                                     <input
                                         name="telefone"
                                         type="tel"
-                                        defaultValue={telefone ?? ''}
+                                        defaultValue={telefone ?? ""}
                                         className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -242,7 +249,7 @@ export default function GeralClient({
                                 </label>
                                 <select
                                     name="mao_dominante"
-                                    defaultValue={mao ?? ''}
+                                    defaultValue={mao ?? ""}
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">— Não definido —</option>
@@ -261,7 +268,7 @@ export default function GeralClient({
                                 <input
                                     name="morada"
                                     type="text"
-                                    defaultValue={morada ?? ''}
+                                    defaultValue={morada ?? ""}
                                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
@@ -274,7 +281,7 @@ export default function GeralClient({
                                     <input
                                         name="cidade"
                                         type="text"
-                                        defaultValue={cidade ?? ''}
+                                        defaultValue={cidade ?? ""}
                                         className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -285,7 +292,7 @@ export default function GeralClient({
                                     <input
                                         name="codigo_postal"
                                         type="text"
-                                        defaultValue={codigoPostal ?? ''}
+                                        defaultValue={codigoPostal ?? ""}
                                         className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -296,7 +303,7 @@ export default function GeralClient({
                                     <input
                                         name="pais"
                                         type="text"
-                                        defaultValue={pais ?? ''}
+                                        defaultValue={pais ?? ""}
                                         className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
@@ -316,7 +323,7 @@ export default function GeralClient({
                                                 name="encarregado_email"
                                                 type="email"
                                                 defaultValue={
-                                                    emailEncarregado ?? ''
+                                                    emailEncarregado ?? ""
                                                 }
                                                 placeholder="email@exemplo.com"
                                                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -352,8 +359,8 @@ export default function GeralClient({
                                     className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
                                 >
                                     {isPending
-                                        ? 'A guardar…'
-                                        : 'Guardar alterações'}
+                                        ? "A guardar…"
+                                        : "Guardar alterações"}
                                 </button>
                             </div>
                         </form>

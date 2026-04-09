@@ -1,6 +1,6 @@
 import { fetchAutorizacoesAtleta } from "@/app/lib/data";
 import { ShieldCheck, Users, Building2 } from "lucide-react";
-import AutorizacaoAtletaCard from "./autorizacao-card";
+import AutorizacaoAtletaCard from "./autorizacao-card.client";
 
 export const dynamic = "force-dynamic";
 

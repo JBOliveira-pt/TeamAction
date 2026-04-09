@@ -353,10 +353,7 @@ export async function aprovarAlteracaoDados(
             await sql`UPDATE users SET pais = ${usersChanges.pais as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
                 () => {},
             );
-        if (usersChanges.data_nascimento !== undefined)
-            await sql`UPDATE users SET data_nascimento = ${usersChanges.data_nascimento as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
-                () => {},
-            );
+        // data_nascimento is never changeable for minors — skip even if present in pending data
         if (usersChanges.nif !== undefined)
             await sql`UPDATE users SET nif = ${usersChanges.nif as string | null}, updated_at = NOW() WHERE id = ${atletaUserId}`.catch(
                 () => {},

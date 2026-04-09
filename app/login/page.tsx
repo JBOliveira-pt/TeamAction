@@ -1,7 +1,7 @@
 "use client";
 
-import LoginView from "../ui/login-form";
-import RegisterView from "../ui/submit-form";
+import LoginView from "./_components/login-form";
+import RegisterView from "./_components/submit-form";
 import { useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";

@@ -7,28 +7,7 @@ import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
     title: "TeamAction Dashboard",
-    description: "TeamAction finance operations dashboard.",
-    metadataBase: new URL("https://next-learn-dashboard.vercel.sh"),
-    openGraph: {
-        title: "TeamAction Dashboard",
-        description: "TeamAction finance operations dashboard.",
-        images: [
-            {
-                url: "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-ecrans.png",
-                width: 1000,
-                height: 760,
-                alt: "TeamAction Dashboard Preview",
-            },
-        ],
-    },
-    twitter: {
-        card: "summary_large_image",
-        title: "TeamAction Dashboard",
-        description: "TeamAction finance operations dashboard.",
-        images: [
-            "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/primeflow-images/primeflow-ecrans.png",
-        ],
-    },
+    description: "Plataforma de gestão de equipas desportivas.",
 };
 
 export default function RootLayout({

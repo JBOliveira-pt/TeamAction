@@ -6,7 +6,7 @@ import {
     FileEdit,
 } from "lucide-react";
 import { fetchAprovacoesPendentes } from "@/app/lib/data/responsavel";
-import AprovacaoCard from "./aprovacao-card";
+import AprovacaoCard from "./aprovacao-card.client";
 
 export default async function PaiAutorizacoesPage() {
     const aprovacoes = await fetchAprovacoesPendentes();

@@ -9,12 +9,21 @@ import {
     StyleSheet,
     renderToBuffer,
 } from "@react-pdf/renderer";
-import { formatCurrencyPTBR } from "./utils";
+import { formatCurrencyPTBR } from "@/app/lib/utils";
 
 const MESES_NOMES: Record<number, string> = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
-    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+    1: "Janeiro",
+    2: "Fevereiro",
+    3: "Marco",
+    4: "Abril",
+    5: "Maio",
+    6: "Junho",
+    7: "Julho",
+    8: "Agosto",
+    9: "Setembro",
+    10: "Outubro",
+    11: "Novembro",
+    12: "Dezembro",
 };
 
 export type ReciboPdfData = {
@@ -88,9 +97,7 @@ const ReciboDocument: React.FC<ReciboDocumentProps> = ({ data }) => (
     <Document>
         <Page size="A4" style={styles.page}>
             <Text style={styles.title}>Recibo de Mensalidade</Text>
-            <Text style={styles.reciboNumber}>
-                Numero: {data.reciboNumber}
-            </Text>
+            <Text style={styles.reciboNumber}>Numero: {data.reciboNumber}</Text>
 
             <View style={styles.section}>
                 <Text style={styles.row}>
@@ -102,28 +109,35 @@ const ReciboDocument: React.FC<ReciboDocumentProps> = ({ data }) => (
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Dados do clube (emissor)</Text>
+                <Text style={styles.sectionTitle}>
+                    Dados do clube (emissor)
+                </Text>
                 <Text style={styles.row}>Nome: {data.clube.nome}</Text>
                 <Text style={styles.row}>NIPC: {data.clube.nipc ?? "-"}</Text>
-                <Text style={styles.row}>Morada: {data.clube.morada ?? "-"}</Text>
-                <Text style={styles.row}>Cidade: {data.clube.cidade ?? "-"}</Text>
+                <Text style={styles.row}>
+                    Morada: {data.clube.morada ?? "-"}
+                </Text>
+                <Text style={styles.row}>
+                    Cidade: {data.clube.cidade ?? "-"}
+                </Text>
                 <Text style={styles.row}>IBAN: {data.issuerIban}</Text>
             </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Dados do atleta</Text>
-                <Text style={styles.row}>
-                    Nome: {data.atleta.nome}
-                </Text>
+                <Text style={styles.row}>Nome: {data.atleta.nome}</Text>
             </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Dados da mensalidade</Text>
                 <Text style={styles.row}>
-                    Periodo: {MESES_NOMES[data.mensalidade.mes] ?? data.mensalidade.mes} / {data.mensalidade.ano}
+                    Periodo:{" "}
+                    {MESES_NOMES[data.mensalidade.mes] ?? data.mensalidade.mes}{" "}
+                    / {data.mensalidade.ano}
                 </Text>
                 <Text style={styles.row}>
-                    Valor recebido: {formatCurrencyPTBR(data.mensalidade.amount)}
+                    Valor recebido:{" "}
+                    {formatCurrencyPTBR(data.mensalidade.amount)}
                 </Text>
                 <Text style={styles.row}>
                     Data de pagamento: {data.mensalidade.dataPagamento ?? "-"}
@@ -143,9 +157,7 @@ const ReciboDocument: React.FC<ReciboDocumentProps> = ({ data }) => (
     </Document>
 );
 
-export async function generateReciboPdf(
-    data: ReciboPdfData,
-): Promise<Buffer> {
+export async function generateReciboPdf(data: ReciboPdfData): Promise<Buffer> {
     try {
         console.log("Gerando PDF para recibo #" + data.reciboNumber);
         const buffer = await renderToBuffer(<ReciboDocument data={data} />);

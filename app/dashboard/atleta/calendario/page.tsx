@@ -4,7 +4,7 @@ import {
     fetchSessoesAtleta,
     fetchDatasComNotas,
 } from "@/app/lib/data";
-import Calendario from "./calendario";
+import Calendario from "./calendario.client";
 
 export const dynamic = "force-dynamic";
 

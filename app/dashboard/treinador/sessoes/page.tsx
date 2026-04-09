@@ -1,4 +1,4 @@
-import Sessoes from "./sessoes";
+import Sessoes from "./sessoes.client";
 import { fetchEquipas } from "@/app/lib/data";
 
 export default async function SessoesPage({

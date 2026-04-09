@@ -25,43 +25,6 @@ export async function searchClubes(
 
 // ── ATLETAS ────────────────────────────────────────────
 
-export async function searchUsuarios(
-    query: string,
-): Promise<
-    { id: string; name: string; email: string; image_url: string | null }[]
-> {
-    if (!query || query.trim().length < 2) return [];
-    try {
-        const organizationId = await getOrganizationId();
-        return await sql<
-            {
-                id: string;
-                name: string;
-                email: string;
-                image_url: string | null;
-            }[]
-        >`
-            SELECT u.id, u.name, u.email, u.image_url
-            FROM users u
-            WHERE (
-                u.name  ILIKE ${"%" + query.trim() + "%"} OR
-                u.email ILIKE ${"%" + query.trim() + "%"}
-            )
-            AND u.organization_id != ${organizationId}
-            AND u.id NOT IN (
-                SELECT arp.atleta_user_id
-                FROM atleta_relacoes_pendentes arp
-                WHERE arp.alvo_clube_id = ${organizationId}
-                AND arp.status = 'pendente'
-            )
-            LIMIT 6
-        `;
-    } catch (error) {
-        console.error("Erro ao pesquisar utilizadores", error);
-        return [];
-    }
-}
-
 export async function convidarAtleta(
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData,

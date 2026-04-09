@@ -1,20 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+
+const POLL_INTERVAL_MS = 10_000; // 10 seconds
 
 export function AguardarValidacaoClient() {
     const router = useRouter();
     const [checking, setChecking] = useState(false);
 
-    const handleCheck = () => {
+    const handleCheck = useCallback(() => {
         setChecking(true);
-        // Server component will re-check and redirect if accepted
         router.refresh();
         setTimeout(() => setChecking(false), 2000);
-    };
+    }, [router]);
+
+    // Auto-poll every 10 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.refresh();
+        }, POLL_INTERVAL_MS);
+        return () => clearInterval(interval);
+    }, [router]);
 
     return (
         <div className="space-y-3">
@@ -34,7 +43,8 @@ export function AguardarValidacaoClient() {
                 )}
             </button>
             <p className="text-xs text-slate-500">
-                Clique para verificar se o atleta já aceitou o pedido.
+                A página verifica automaticamente a cada 10 segundos, ou clique
+                para verificar agora.
             </p>
             <Link
                 href="/"

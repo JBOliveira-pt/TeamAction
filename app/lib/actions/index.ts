@@ -1,5 +1,3 @@
-export { createAtletaProfile } from "./atleta-profile";
-export { updateAtletaProfile } from "./atleta-profile";
 export { criarComunicado } from "./comunicados";
 export { editarComunicado } from "./comunicados";
 export { excluirComunicado } from "./comunicados";
@@ -51,7 +49,6 @@ export { criarNotaCalendario } from "./notas-calendario";
 export { editarNotaCalendario } from "./notas-calendario";
 export { apagarNotaCalendario } from "./notas-calendario";
 export { searchClubes } from "./search";
-export { searchUsuarios } from "./search";
 export { convidarAtleta } from "./search";
 export { getEscaloesByUserAction } from "./search";
 export { editarRegistoMedicoEducando } from "./responsavel";

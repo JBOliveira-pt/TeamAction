@@ -1200,3 +1200,222 @@ export async function adminChangeAccountTypeAction(
     revalidatePath(`/admin/users/${userId}`);
     redirect(`/admin/users/${userId}?success=type_changed`);
 }
+
+// ========================================
+// Admin: Editar Clube
+// ========================================
+
+export async function adminUpdateClubeAction(
+    organizationId: string,
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const nome = String(formData.get("nome") || "").trim();
+    const modalidade = String(formData.get("modalidade") || "").trim() || null;
+    const nipc = String(formData.get("nipc") || "").trim() || null;
+    const website = String(formData.get("website") || "").trim() || null;
+    const telefone = String(formData.get("telefone") || "").trim() || null;
+    const morada = String(formData.get("morada") || "").trim() || null;
+    const codigoPostal =
+        String(formData.get("codigo_postal") || "").trim() || null;
+    const cidade = String(formData.get("cidade") || "").trim() || null;
+    const pais = String(formData.get("pais") || "").trim() || null;
+
+    // Discover the user ID for redirect (find the presidente of this org)
+    const ownerRows = await sql<{ id: string }[]>`
+        SELECT id FROM users
+        WHERE organization_id = ${organizationId} AND account_type = 'presidente'
+        LIMIT 1
+    `;
+    const userId = ownerRows[0]?.id;
+
+    if (!nome) {
+        if (userId) redirect(`/admin/users/${userId}?error=required`);
+        redirect("/admin/users?error=required");
+    }
+
+    if (nipc && !/^\d{9}$/.test(nipc)) {
+        if (userId) redirect(`/admin/users/${userId}?error=update`);
+        redirect("/admin/users?error=update");
+    }
+
+    try {
+        await sql`
+            UPDATE organizations
+            SET name = ${nome}, updated_at = NOW()
+            WHERE id = ${organizationId}
+        `;
+
+        await sql`
+            UPDATE clubes
+            SET
+                nome          = ${nome},
+                modalidade    = ${modalidade},
+                nipc          = ${nipc},
+                website       = ${website},
+                telefone      = ${telefone},
+                morada        = ${morada},
+                codigo_postal = ${codigoPostal},
+                cidade        = ${cidade},
+                pais          = ${pais},
+                updated_at    = NOW()
+            WHERE organization_id = ${organizationId}
+        `;
+
+        await ensureAdminTables();
+        const metadata: JSONValue = JSON.parse(
+            JSON.stringify({
+                organizationId,
+                nome,
+                modalidade,
+                nipc,
+            }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${"admin_clube_update"},
+                ${`/admin/users/${userId ?? "unknown"}`},
+                ${sql.json(metadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        if (userId) redirect(`/admin/users/${userId}?error=update`);
+        redirect("/admin/users?error=update");
+    }
+
+    revalidatePath("/admin/users");
+    if (userId) {
+        revalidatePath(`/admin/users/${userId}`);
+        redirect(`/admin/users/${userId}?success=1`);
+    }
+    redirect("/admin/users?success=1");
+}
+
+// ========================================
+// Admin: Editar Equipa
+// ========================================
+
+export async function adminEditEquipaAction(
+    equipaId: string,
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const nome = String(formData.get("nome") || "").trim();
+    const escalao = String(formData.get("escalao") || "").trim() || null;
+    const estado = String(formData.get("estado") || "").trim() || null;
+    const redirectUserId =
+        String(formData.get("_redirectUserId") || "").trim() || null;
+
+    if (!nome) {
+        if (redirectUserId)
+            redirect(`/admin/users/${redirectUserId}?error=required`);
+        redirect("/admin/users?error=required");
+    }
+
+    try {
+        await sql`
+            UPDATE equipas
+            SET nome = ${nome}, escalao = ${escalao}, estado = ${estado}, updated_at = NOW()
+            WHERE id = ${equipaId}
+        `;
+
+        await ensureAdminTables();
+        const metadata: JSONValue = JSON.parse(
+            JSON.stringify({ equipaId, nome, escalao, estado }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${"admin_equipa_update"},
+                ${`/admin/users/${redirectUserId ?? "unknown"}`},
+                ${sql.json(metadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        if (redirectUserId)
+            redirect(`/admin/users/${redirectUserId}?error=update`);
+        redirect("/admin/users?error=update");
+    }
+
+    revalidatePath("/admin/users");
+    if (redirectUserId) {
+        revalidatePath(`/admin/users/${redirectUserId}`);
+        redirect(`/admin/users/${redirectUserId}?success=1`);
+    }
+    redirect("/admin/users?success=1");
+}
+
+// ========================================
+// Admin: Eliminar Equipa
+// ========================================
+
+export async function adminDeleteEquipaAction(
+    equipaId: string,
+    formData: FormData,
+): Promise<void> {
+    await requireAdminSession();
+
+    const redirectUserId =
+        String(formData.get("_redirectUserId") || "").trim() || null;
+
+    try {
+        const rows = await sql<{ id: string; nome: string }[]>`
+            SELECT id, nome FROM equipas WHERE id = ${equipaId} LIMIT 1
+        `;
+        if (rows.length === 0) {
+            if (redirectUserId)
+                redirect(`/admin/users/${redirectUserId}?error=update`);
+            redirect("/admin/users?error=update");
+        }
+
+        const nomeEquipa = rows[0].nome;
+
+        // Desvincular atletas da equipa
+        await sql`UPDATE atletas SET equipa_id = NULL WHERE equipa_id = ${equipaId}`;
+
+        // Desvincular staff da equipa
+        await sql`UPDATE staff SET equipa_id = NULL WHERE equipa_id = ${equipaId}`;
+
+        // Desvincular treinador_id da equipa noutras referências
+        await sql`DELETE FROM equipas WHERE id = ${equipaId}`;
+
+        await ensureAdminTables();
+        const metadata: JSONValue = JSON.parse(
+            JSON.stringify({ equipaId, nome: nomeEquipa }),
+        );
+        await sql`
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            VALUES (
+                NULL,
+                ${"Administrador"},
+                ${"admin@teamaction.local"},
+                ${"admin_equipa_delete"},
+                ${`/admin/users/${redirectUserId ?? "unknown"}`},
+                ${sql.json(metadata)}
+            )
+        `;
+    } catch (error) {
+        console.error(error);
+        if (redirectUserId)
+            redirect(`/admin/users/${redirectUserId}?error=update`);
+        redirect("/admin/users?error=update");
+    }
+
+    revalidatePath("/admin/users");
+    if (redirectUserId) {
+        revalidatePath(`/admin/users/${redirectUserId}`);
+        redirect(`/admin/users/${redirectUserId}?success=1`);
+    }
+    redirect("/admin/users?success=1");
+}

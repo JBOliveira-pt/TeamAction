@@ -2,7 +2,10 @@ import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 import { getCurrentUser } from "./auth-helpers";
 import { uploadReceiptPdfToR2 } from "./r2-storage";
-import { generateReciboPdf, type ReciboPdfData } from "./receipt-pdf";
+import {
+    generateReciboPdf,
+    type ReciboPdfData,
+} from "@/app/components/receipt-pdf";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -37,9 +40,18 @@ function ensureNotFuture(dateStr: string) {
 }
 
 const MESES_NOMES: Record<string, string> = {
-    "1": "Janeiro", "2": "Fevereiro", "3": "Marco", "4": "Abril",
-    "5": "Maio", "6": "Junho", "7": "Julho", "8": "Agosto",
-    "9": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+    "1": "Janeiro",
+    "2": "Fevereiro",
+    "3": "Marco",
+    "4": "Abril",
+    "5": "Maio",
+    "6": "Junho",
+    "7": "Julho",
+    "8": "Agosto",
+    "9": "Setembro",
+    "10": "Outubro",
+    "11": "Novembro",
+    "12": "Dezembro",
 };
 
 /**
@@ -72,7 +84,9 @@ export async function createReciboForPaidMensalidade(
 
     const clubeIban = clubeRows[0]?.iban;
     if (!clubeIban) {
-        throw new Error("IBAN do clube obrigatorio para criar recibo. Configure o IBAN nas definicoes do clube.");
+        throw new Error(
+            "IBAN do clube obrigatorio para criar recibo. Configure o IBAN nas definicoes do clube.",
+        );
     }
 
     const reciboNumber = await generateReciboNumber();
@@ -117,7 +131,14 @@ export async function createReciboForPaidMensalidade(
     `;
 
     const reciboId = inserted[0]?.id || null;
-    console.log("Recibo criado: #" + reciboNumber + " para " + MESES_NOMES[mes] + "/" + ano);
+    console.log(
+        "Recibo criado: #" +
+            reciboNumber +
+            " para " +
+            MESES_NOMES[mes] +
+            "/" +
+            ano,
+    );
     return reciboId;
 }
 
@@ -185,7 +206,12 @@ export async function sendRecibo(reciboId: string) {
     }
 
     const clubeRows = await sql<
-        { nome: string; nipc: string | null; morada: string | null; cidade: string | null }[]
+        {
+            nome: string;
+            nipc: string | null;
+            morada: string | null;
+            cidade: string | null;
+        }[]
     >`SELECT nome, nipc, morada, cidade FROM clubes WHERE organization_id = ${currentUser.organization_id} LIMIT 1`;
 
     const clube = clubeRows[0];
@@ -226,16 +252,24 @@ export async function sendRecibo(reciboId: string) {
     try {
         buffer = await generateReciboPdf(pdfData);
     } catch (pdfError) {
-        const errorMsg = pdfError instanceof Error ? pdfError.message : String(pdfError);
+        const errorMsg =
+            pdfError instanceof Error ? pdfError.message : String(pdfError);
         console.error("Falha ao gerar PDF:", errorMsg);
         throw new Error("Falha ao gerar PDF: " + errorMsg);
     }
 
     let pdfUrl: string;
     try {
-        pdfUrl = await uploadReceiptPdfToR2(buffer, recibo.id, recibo.recibo_number);
+        pdfUrl = await uploadReceiptPdfToR2(
+            buffer,
+            recibo.id,
+            recibo.recibo_number,
+        );
     } catch (uploadError) {
-        const errorMsg = uploadError instanceof Error ? uploadError.message : String(uploadError);
+        const errorMsg =
+            uploadError instanceof Error
+                ? uploadError.message
+                : String(uploadError);
         console.error("Falha ao fazer upload do PDF:", errorMsg);
         throw new Error("Falha ao fazer upload do PDF: " + errorMsg);
     }
@@ -252,7 +286,8 @@ export async function sendRecibo(reciboId: string) {
         `;
         console.log("Recibo enviado: #" + recibo.recibo_number);
     } catch (dbError) {
-        const errorMsg = dbError instanceof Error ? dbError.message : String(dbError);
+        const errorMsg =
+            dbError instanceof Error ? dbError.message : String(dbError);
         console.error("Falha ao atualizar recibo:", errorMsg);
         throw new Error("Falha ao atualizar recibo: " + errorMsg);
     }
