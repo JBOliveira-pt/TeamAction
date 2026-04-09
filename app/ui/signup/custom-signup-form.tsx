@@ -94,7 +94,8 @@ type SignUpStage =
     | "trainer-profile"
     | "athlete-profile"
     | "responsible-profile"
-    | "verify";
+    | "verify"
+    | "completing";
 
 type AthleteLookupOption = {
     value: string;
@@ -467,9 +468,7 @@ export default function CustomSignUpForm({
     const [athletePostalCode, setAthletePostalCode] = useState("");
     const [athleteAddress, setAthleteAddress] = useState("");
     const [athleteCity, setAthleteCity] = useState("");
-    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState(
-        "teamaction@outlook.pt",
-    );
+    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState("");
     const [athleteClubOptions, setAthleteClubOptions] = useState<
         AthleteLookupOption[]
     >([]);
@@ -1826,6 +1825,10 @@ export default function CustomSignUpForm({
 
             await setActive({ session: completeSignUp.createdSessionId });
 
+            // Sessão Clerk activa — mudar para ecrã de conclusão (sem retorno)
+            setStage("completing");
+            setErrorMessage(null);
+
             const payload = new FormData();
             payload.append("firstName", firstName.trim());
             payload.append("lastName", lastName.trim());
@@ -2004,9 +2007,7 @@ export default function CustomSignUpForm({
                 try {
                     await session?.touch();
                 } catch {}
-                setTimeout(() => {
-                    window.location.href = "/aguardar-validacao";
-                }, 2000);
+                router.replace("/aguardar-validacao");
             } else {
                 setSuccessMessage(
                     "Registo concluído com sucesso. A redirecionar...",
@@ -2014,15 +2015,23 @@ export default function CustomSignUpForm({
                 try {
                     await session?.touch();
                 } catch {}
-                setTimeout(() => {
-                    window.location.href =
-                        getDashboardPathForAccountType(accountType);
-                }, 1200);
+                router.replace(getDashboardPathForAccountType(accountType));
             }
         } catch (error) {
+            // Se já estamos no stage "completing", a sessão Clerk está activa
+            // e os dados provavelmente já foram guardados — redirecionar para o dashboard
+            if (stage === "completing") {
+                try {
+                    await session?.touch();
+                } catch {}
+                router.replace(getDashboardPathForAccountType(accountType));
+                return;
+            }
             setErrorMessage(getClerkErrorMessage(error));
         } finally {
-            setIsSubmitting(false);
+            if (stage !== "completing") {
+                setIsSubmitting(false);
+            }
         }
     };
 
@@ -3463,7 +3472,7 @@ export default function CustomSignUpForm({
                     </form>
                 )}
 
-                {stage !== "verify" && (
+                {stage !== "verify" && stage !== "completing" && (
                     <div
                         id="clerk-captcha"
                         className="mt-4"
@@ -3472,7 +3481,7 @@ export default function CustomSignUpForm({
                 )}
             </div>
 
-            {isSubmitting && (
+            {(isSubmitting || stage === "completing") && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
                     <div
                         role="status"
@@ -3483,10 +3492,14 @@ export default function CustomSignUpForm({
                             <Loader2 className="h-8 w-8 animate-spin text-blue-300" />
                         </div>
                         <p className="text-base font-semibold text-white">
-                            Estamos a verificar os seus dados
+                            {stage === "completing"
+                                ? "A concluir a sua conta"
+                                : "Estamos a verificar os seus dados"}
                         </p>
                         <p className="mt-2 text-sm text-slate-300">
-                            Aguarde um momento para concluir a criação da conta.
+                            {stage === "completing"
+                                ? "A guardar os seus dados. Será redirecionado em breve..."
+                                : "Aguarde um momento para concluir a criação da conta."}
                         </p>
                         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/70">
                             <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-400" />

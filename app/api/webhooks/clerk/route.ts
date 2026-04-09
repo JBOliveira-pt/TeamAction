@@ -157,8 +157,8 @@ export async function POST(req: Request) {
         if (eventType === "user.deleted") {
             // Buscar o user para obter o id UUID e email (id do webhook é clerk_user_id)
             const [user] = await sql<
-                { id: string; email: string }[]
-            >`SELECT id, email FROM users WHERE clerk_user_id = ${id} LIMIT 1`;
+                { id: string; email: string; organization_id: string | null }[]
+            >`SELECT id, email, organization_id FROM users WHERE clerk_user_id = ${id} LIMIT 1`;
 
             if (user) {
                 await sql.begin(async (tx: any) => {
@@ -175,6 +175,7 @@ export async function POST(req: Request) {
                     // Dados filhos de atletas
                     if (atletaIds.length > 0) {
                         for (const tbl of [
+                            "convocatorias",
                             "mensalidades",
                             "estatisticas_jogo",
                             "assiduidade",
@@ -190,16 +191,17 @@ export async function POST(req: Request) {
                         }
                     }
 
-                    // Dados diretos do user
+                    // Dados diretos do user (DELETE)
                     for (const [tbl, col] of [
                         ["atletas", "user_id"],
                         ["staff", "user_id"],
                         ["notificacoes", "recipient_user_id"],
-                        ["user_action_logs", "user_id"],
                         ["pedidos_alteracao_perfil", "user_id"],
                         ["pedidos_plano", "user_id"],
                         ["notas_atleta", "user_id"],
                         ["condicao_fisica", "user_id"],
+                        ["user_cursos", "user_id"],
+                        ["calendar_notes", "user_id"],
                         ["atleta_relacoes_pendentes", "atleta_user_id"],
                         [
                             "atleta_relacoes_pendentes",
@@ -212,7 +214,10 @@ export async function POST(req: Request) {
                         ["jogadas_taticas", "treinador_id"],
                         ["planos_nutricao", "treinador_id"],
                         ["convites_equipa", "treinador_id"],
-                        ["calendar_notes", "user_id"],
+                        ["convites_clube", "convidado_user_id"],
+                        ["convites_clube", "convidado_por"],
+                        ["comunicados", "criado_por"],
+                        ["documentos", "uploaded_by"],
                     ] as const) {
                         await tx`
                             DELETE FROM ${tx(tbl)}
@@ -225,25 +230,61 @@ export async function POST(req: Request) {
                         DELETE FROM recibos WHERE created_by = ${user.id}
                     `.catch(() => {});
 
-                    // Equipas: limpar treinador (não apagar)
-                    await tx`
-                        UPDATE equipas SET treinador_id = NULL
-                        WHERE treinador_id = ${user.id}
-                    `.catch(() => {});
-
-                    // Sessões: limpar criado_por
-                    await tx`
-                        UPDATE sessoes SET criado_por = NULL
-                        WHERE criado_por = ${user.id}
-                    `.catch(() => {});
+                    // Dados partilhados / logs: nullificar referências (preservar registos)
+                    for (const [tbl, col] of [
+                        ["user_action_logs", "user_id"],
+                        ["equipas", "treinador_id"],
+                        ["sessoes", "criado_por"],
+                        ["mensalidades", "updated_by"],
+                        ["recibos", "sent_by_user"],
+                        ["estatisticas_jogo", "created_by"],
+                        ["autorizacoes_log", "autorizado_por"],
+                        ["autorizacoes_log", "autorizado_a"],
+                        ["autorizacoes_log", "resolved_by"],
+                    ] as const) {
+                        await tx`
+                            UPDATE ${tx(tbl)}
+                            SET ${tx(col)} = NULL
+                            WHERE ${tx(col)} = ${user.id}
+                        `.catch(() => {});
+                    }
 
                     // Medico (ligada por email)
                     await tx`
                         DELETE FROM medico WHERE email = ${user.email}
                     `.catch(() => {});
 
-                    // Finalmente, apagar o user
+                    // Apagar o user
                     await tx`DELETE FROM users WHERE id = ${user.id}`;
+
+                    // Organização: se era o único membro, apagar org e dados org-scoped
+                    if (user.organization_id) {
+                        const remainingRows = await tx`
+                            SELECT COUNT(*)::text AS count FROM users
+                            WHERE organization_id = ${user.organization_id}
+                        `.catch(() => [{ count: "1" }]);
+                        const remaining = Number(remainingRows[0]?.count ?? 1);
+
+                        if (remaining === 0) {
+                            for (const tbl of [
+                                "notificacoes",
+                                "comunicados",
+                                "documentos",
+                                "epocas",
+                                "clubes",
+                                "pedidos_plano",
+                            ]) {
+                                await tx`
+                                    DELETE FROM ${tx(tbl)}
+                                    WHERE organization_id = ${user.organization_id}
+                                `.catch(() => {});
+                            }
+                            await tx`
+                                DELETE FROM organizations
+                                WHERE id = ${user.organization_id}
+                            `.catch(() => {});
+                        }
+                    }
                 });
             }
 

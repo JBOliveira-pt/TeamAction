@@ -145,6 +145,12 @@ export async function cascadeDeleteUser(
     userId: string,
     userEmail?: string | null,
 ): Promise<void> {
+    // 0) Obter organization_id do user antes de apagar
+    const userRows = await tx<
+        { organization_id: string | null }[]
+    >`SELECT organization_id FROM users WHERE id = ${userId} LIMIT 1`;
+    const userOrgId = userRows[0]?.organization_id ?? null;
+
     // 1) Obter IDs dos atletas vinculados a este user
     const atletaIds = (await tableExists(tx, "atletas"))
         ? (
@@ -156,6 +162,12 @@ export async function cascadeDeleteUser(
 
     // 2) Dados filhos de atletas (atleta_id → atletas.id)
     if (atletaIds.length > 0) {
+        await deleteByTableColumnIn(
+            tx,
+            "convocatorias",
+            "atleta_id",
+            atletaIds,
+        );
         await deleteByTableColumnIn(tx, "mensalidades", "atleta_id", atletaIds);
         await deleteByTableColumnIn(
             tx,
@@ -201,7 +213,21 @@ export async function cascadeDeleteUser(
     await deleteByColumnIfExists(tx, "pedidos_plano", "user_id", userId);
     await deleteByColumnIfExists(tx, "notas_atleta", "user_id", userId);
     await deleteByColumnIfExists(tx, "condicao_fisica", "user_id", userId);
+    await deleteByColumnIfExists(tx, "user_cursos", "user_id", userId);
     await deleteRecibosByUser(tx, userId);
+
+    // 3b) Convites de clube (enviados ou recebidos)
+    await deleteByColumnIfExists(
+        tx,
+        "convites_clube",
+        "convidado_user_id",
+        userId,
+    );
+    await deleteByColumnIfExists(tx, "convites_clube", "convidado_por", userId);
+
+    // 3c) Conteúdo criado pelo user (comunicados e documentos)
+    await deleteByColumnIfExists(tx, "comunicados", "criado_por", userId);
+    await deleteByColumnIfExists(tx, "documentos", "uploaded_by", userId);
 
     // 4) Relações pendentes (atleta ou responsável)
     await deleteByColumnIfExists(
@@ -240,8 +266,21 @@ export async function cascadeDeleteUser(
     // 6) Equipas: limpar treinador_id (equipa é partilhada, não se apaga)
     await nullifyColumnIfExists(tx, "equipas", "treinador_id", userId);
 
-    // 7) Sessões criadas por este user
+    // 7) Dados partilhados: nullificar referências do user (preservar os registos)
     await nullifyColumnIfExists(tx, "sessoes", "criado_por", userId);
+    await nullifyColumnIfExists(tx, "mensalidades", "updated_by", userId);
+    await nullifyColumnIfExists(tx, "recibos", "sent_by_user", userId);
+    await nullifyColumnIfExists(tx, "estatisticas_jogo", "created_by", userId);
+
+    // 7b) Logs de autorizações: preservar histórico, nullificar referências
+    await nullifyColumnIfExists(
+        tx,
+        "autorizacoes_log",
+        "autorizado_por",
+        userId,
+    );
+    await nullifyColumnIfExists(tx, "autorizacoes_log", "autorizado_a", userId);
+    await nullifyColumnIfExists(tx, "autorizacoes_log", "resolved_by", userId);
 
     // 8) Tabela medico (ligada por email)
     if (userEmail && (await tableExists(tx, "medico"))) {
@@ -250,6 +289,45 @@ export async function cascadeDeleteUser(
 
     // 9) Finalmente, apagar o registo do user
     await tx`DELETE FROM users WHERE id = ${userId}`;
+
+    // 10) Organização: se o user era o único membro, apagar a org e dados org-scoped
+    if (userOrgId) {
+        const remainingUsers = await tx<{ count: string }[]>`
+            SELECT COUNT(*)::text AS count FROM users
+            WHERE organization_id = ${userOrgId}
+        `;
+        const remaining = Number(remainingUsers[0]?.count ?? 0);
+
+        if (remaining === 0) {
+            // Nenhum outro user nesta org — apagar tudo que é org-scoped
+            await deleteByOrgIfExists(tx, "notificacoes", userOrgId);
+            await deleteByOrgIfExists(tx, "comunicados", userOrgId);
+            await deleteByOrgIfExists(tx, "documentos", userOrgId);
+            await deleteByOrgIfExists(tx, "epocas", userOrgId);
+            await deleteByOrgIfExists(tx, "clubes", userOrgId);
+            await deleteByOrgIfExists(tx, "pedidos_plano", userOrgId);
+
+            if (await tableExists(tx, "organizations")) {
+                await tx`DELETE FROM organizations WHERE id = ${userOrgId}`;
+            }
+        }
+    }
+}
+
+/** Apagar linhas de uma tabela onde organization_id = orgId */
+async function deleteByOrgIfExists(
+    tx: SqlExecutor,
+    tableName: string,
+    orgId: string,
+): Promise<void> {
+    const hasT = await tableExists(tx, tableName);
+    if (!hasT) return;
+    const hasC = await columnExists(tx, tableName, "organization_id");
+    if (!hasC) return;
+    await tx`
+        DELETE FROM ${tx(tableName)}
+        WHERE organization_id = ${orgId}
+    `;
 }
 
 /** Apagar linhas de uma tabela onde a coluna está num array de IDs */
@@ -668,14 +746,16 @@ export async function adminUpdateUserAction(
             }),
         );
         await sql`
-            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata, affected_user_name, affected_user_email)
             VALUES (
                 ${userId},
                 ${"Administrador"},
                 ${"admin@teamaction.local"},
                 ${"admin_user_update"},
                 ${`/admin/users/${userId}`},
-                ${sql.json(updateMetadata)}
+                ${sql.json(updateMetadata)},
+                ${name},
+                ${email}
             )
         `;
     } catch (error) {
@@ -776,14 +856,16 @@ export async function adminDeleteUserAction(
             }),
         );
         await sql`
-            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata)
+            INSERT INTO user_action_logs (user_id, user_name, user_email, interaction_type, path, metadata, affected_user_name, affected_user_email)
             VALUES (
                 NULL,
                 ${"Administrador"},
                 ${"admin@teamaction.local"},
                 ${"admin_user_delete"},
                 ${`/admin/users/${userId}`},
-                ${sql.json(deleteMetadata)}
+                ${sql.json(deleteMetadata)},
+                ${targetUser.name},
+                ${targetUser.email}
             )
         `;
     } catch (error) {

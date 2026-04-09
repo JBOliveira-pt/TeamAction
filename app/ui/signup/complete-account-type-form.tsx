@@ -75,7 +75,8 @@ type CompleteStage =
     | "president-profile"
     | "trainer-profile"
     | "athlete-profile"
-    | "responsible-profile";
+    | "responsible-profile"
+    | "completing";
 
 type AthleteLookupOption = {
     value: string;
@@ -450,9 +451,7 @@ export default function CompleteAccountTypeForm({
     const [athletePostalCode, setAthletePostalCode] = useState("");
     const [athleteAddress, setAthleteAddress] = useState("");
     const [athleteCity, setAthleteCity] = useState("");
-    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState(
-        "teamaction@outlook.pt",
-    );
+    const [athleteResponsibleEmail, setAthleteResponsibleEmail] = useState("");
     const [athleteClubOptions, setAthleteClubOptions] = useState<
         AthleteLookupOption[]
     >([]);
@@ -1436,6 +1435,10 @@ export default function CompleteAccountTypeForm({
                 );
             }
 
+            // Mudar para ecrã de conclusão antes do POST
+            setStage("completing");
+            setError(null);
+
             const response = await fetch("/api/account-type", {
                 method: "POST",
                 body: payload,
@@ -1457,9 +1460,7 @@ export default function CompleteAccountTypeForm({
                 try {
                     await session?.touch();
                 } catch {}
-                setTimeout(() => {
-                    window.location.href = "/aguardar-validacao";
-                }, 2000);
+                router.replace("/aguardar-validacao");
             } else {
                 setSuccessMessage(
                     "Perfil concluído com sucesso. A redirecionar...",
@@ -1467,18 +1468,26 @@ export default function CompleteAccountTypeForm({
                 try {
                     await session?.touch();
                 } catch {}
-                setTimeout(() => {
-                    window.location.href = "/dashboard";
-                }, 1200);
+                router.replace("/dashboard");
             }
         } catch (err) {
+            if (stage === "completing") {
+                // POST falhou mas a sessão está activa — redirecionar
+                try {
+                    await session?.touch();
+                } catch {}
+                router.replace("/dashboard");
+                return;
+            }
             setError(
                 err instanceof Error
                     ? err.message
                     : "Erro inesperado ao guardar.",
             );
         } finally {
-            setIsSubmitting(false);
+            if (stage !== "completing") {
+                setIsSubmitting(false);
+            }
         }
     };
 
@@ -2772,7 +2781,7 @@ export default function CompleteAccountTypeForm({
                 </div>
             </div>
 
-            {isSubmitting && (
+            {(isSubmitting || stage === "completing") && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
                     <div
                         role="status"
@@ -2783,10 +2792,14 @@ export default function CompleteAccountTypeForm({
                             <Loader2 className="h-8 w-8 animate-spin text-blue-300" />
                         </div>
                         <p className="text-base font-semibold text-white">
-                            Estamos a verificar os seus dados
+                            {stage === "completing"
+                                ? "A concluir a sua conta"
+                                : "Estamos a verificar os seus dados"}
                         </p>
                         <p className="mt-2 text-sm text-slate-300">
-                            Aguarde um momento para concluir a criação da conta.
+                            {stage === "completing"
+                                ? "A guardar os seus dados. Será redirecionado em breve..."
+                                : "Aguarde um momento para concluir a criação da conta."}
                         </p>
                         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-700/70">
                             <div className="h-full w-1/2 animate-pulse rounded-full bg-blue-400" />

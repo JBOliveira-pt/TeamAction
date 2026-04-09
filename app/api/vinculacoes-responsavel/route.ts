@@ -34,6 +34,7 @@ export async function GET() {
         WHERE arp.atleta_user_id = ${me.id}
           AND arp.relation_kind = 'responsavel'
           AND arp.status = 'pendente'
+          AND arp.alvo_responsavel_user_id IS NOT NULL
         ORDER BY arp.created_at DESC
     `;
 
