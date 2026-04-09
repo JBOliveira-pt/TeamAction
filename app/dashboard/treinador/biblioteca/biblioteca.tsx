@@ -36,48 +36,64 @@ function TacticalDiagram({ posicoes, setas = [], large = false }: { posicoes: Pl
     const r = large ? 5 : 4;
 
     return (
-        <svg viewBox="0 0 120 70" className="w-full h-full">
+        <svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid meet" className="w-full h-full">
             <defs>
-                <marker id="arr" markerWidth="6" markerHeight="5" refX="5.5" refY="2.5" orient="auto">
-                    <polygon points="0 0, 6 2.5, 0 5" fill="#f59e0b" />
+                <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                    <polygon points="0 0, 8 3, 0 6" fill="#f59e0b" />
                 </marker>
             </defs>
 
-            {/* Campo */}
-            <rect x="2" y="2" width="116" height="66" rx="2" fill="#f0fdf4" stroke="#22c55e" strokeWidth="1.5" />
-            <line x1="60" y1="2" x2="60" y2="68" stroke="#22c55e" strokeWidth="0.7" opacity="0.4" />
-            <circle cx="60" cy="35" r="10" fill="none" stroke="#22c55e" strokeWidth="0.7" opacity="0.4" />
-            <rect x="2" y="25" width="11" height="20" fill="none" stroke="#22c55e" strokeWidth="1" />
-            <rect x="107" y="25" width="11" height="20" fill="none" stroke="#22c55e" strokeWidth="1" />
+            {/* Campo de andebol */}
+            <rect x="0" y="0" width="400" height="220" fill="#1a4731" />
+            <rect x="10" y="10" width="380" height="200" fill="#2d6a4f" />
+            {/* Balizas */}
+            <rect x="0" y="95" width="10" height="30" fill="none" stroke="white" strokeWidth="2.5" />
+            <rect x="390" y="95" width="10" height="30" fill="none" stroke="white" strokeWidth="2.5" />
+            {/* Limite do campo */}
+            <rect x="10" y="10" width="380" height="200" fill="none" stroke="white" strokeWidth="2.5" />
+            {/* Arcos de 6m */}
+            <path d="M 10 53 A 57 57 0 0 1 10 167" fill="none" stroke="white" strokeWidth="2" />
+            <path d="M 390 53 A 57 57 0 0 0 390 167" fill="none" stroke="white" strokeWidth="2" />
+            {/* Linhas de 9m (tracejado) */}
+            <path d="M 10 24.5 A 85.5 85.5 0 0 1 10 195.5" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="7,5" opacity="0.85" />
+            <path d="M 390 24.5 A 85.5 85.5 0 0 0 390 195.5" fill="none" stroke="white" strokeWidth="1.5" strokeDasharray="7,5" opacity="0.85" />
+            {/* Linha central */}
+            <line x1="200" y1="10" x2="200" y2="210" stroke="white" strokeWidth="2" />
+            {/* Círculo central */}
+            <circle cx="200" cy="110" r="28.5" fill="none" stroke="white" strokeWidth="1.5" />
+            <circle cx="200" cy="110" r="2.5" fill="white" />
+            {/* Marcas de penalty */}
+            <line x1="76.5" y1="106" x2="76.5" y2="114" stroke="white" strokeWidth="2.5" />
+            <line x1="323.5" y1="106" x2="323.5" y2="114" stroke="white" strokeWidth="2.5" />
 
             {/* Setas */}
-            {setas.map((a) => {
-                const p1 = toSvg(a.x1, a.y1);
-                const p2 = toSvg(a.x2, a.y2);
-                return (
-                    <line
-                        key={a.id}
-                        x1={p1.cx} y1={p1.cy}
-                        x2={p2.cx} y2={p2.cy}
-                        stroke="#f59e0b" strokeWidth="1.5"
-                        markerEnd="url(#arr)"
-                    />
-                );
-            })}
+            {setas.map((a) => (
+                <line
+                    key={a.id}
+                    x1={(a.x1 / 100) * 400}
+                    y1={(a.y1 / 100) * 220}
+                    x2={(a.x2 / 100) * 400}
+                    y2={(a.y2 / 100) * 220}
+                    stroke="#f59e0b"
+                    strokeWidth="2"
+                    markerEnd="url(#arr)"
+                />
+            ))}
 
-            {/* Jogadores nas posições reais */}
+            {/* Jogadores */}
             {posicoes.map((p) => {
-                const { cx, cy } = toSvg(p.x, p.y);
+                const cx = (p.x / 100) * 400;
+                const cy = (p.y / 100) * 220;
                 const fill = p.color === "blue" ? "#2563eb" : "#dc2626";
                 return (
                     <g key={`${p.id}-${p.color}`}>
-                        <circle cx={cx} cy={cy} r={r} fill={fill} stroke="white" strokeWidth={1.4} />
+                        <circle cx={cx} cy={cy} r={r * 2.2} fill={fill} stroke="white" strokeWidth={1.5} />
                         <text
                             x={cx}
                             y={cy + 0.5}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            fontSize={r * 0.9}
+                            fontSize={r * 1.8}
                             fill="white"
                             fontWeight="bold"
                         >
@@ -244,7 +260,7 @@ export default function Biblioteca() {
                                         {modal.jogada.tipo}
                                     </span>
                                 </div>
-                                <div className="w-full rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 overflow-hidden aspect-video mb-4">
+                                <div className="w-full rounded-xl border border-green-900 bg-[#1a4731] overflow-hidden aspect-video mb-4">
                                     <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                 </div>
                                 {modal.jogada.descricao && (
@@ -314,7 +330,7 @@ export default function Biblioteca() {
                                         />
                                         <p className="text-xs text-gray-400 text-right">{editForm.descricao.length}/300</p>
                                     </div>
-                                    <div className="w-full rounded-xl border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30 overflow-hidden aspect-video">
+                                    <div className="w-full rounded-xl border border-green-900 bg-[#1a4731] overflow-hidden aspect-video">
                                         <TacticalDiagram posicoes={modal.jogada.posicoes} setas={modal.jogada.setas} large />
                                     </div>
                                     <div className="flex gap-2">
@@ -395,7 +411,7 @@ export default function Biblioteca() {
                             key={j.id}
                             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all"
                         >
-                            <div className="rounded-lg border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 overflow-hidden w-full h-44">
+                            <div className="rounded-lg border border-green-900 bg-[#1a4731] overflow-hidden w-full h-44">
                                 <TacticalDiagram posicoes={j.posicoes} setas={j.setas} />
                             </div>
                             <div>
