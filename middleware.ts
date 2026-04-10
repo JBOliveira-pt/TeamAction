@@ -97,13 +97,6 @@ export default clerkMiddleware(async (auth, request) => {
         const targetPath = defaultDashboardPath(accountType);
 
         if (path === "/dashboard") {
-            // Responsável vai direto para /aguardar-validacao que faz a
-            // verificação de vinculação e redireciona ao dashboard se aceite.
-            if (accountType === "responsavel") {
-                return NextResponse.redirect(
-                    new URL("/aguardar-validacao", request.url),
-                );
-            }
             if (targetPath !== "/dashboard") {
                 return NextResponse.redirect(new URL(targetPath, request.url));
             }

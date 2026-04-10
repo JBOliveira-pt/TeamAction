@@ -144,13 +144,9 @@ function StatCard({
 export default function CondicaoFisicaClient({
     medidas,
     contaPendente,
-    alturaInicial,
-    pesoInicial,
 }: {
     medidas: Medida[];
     contaPendente: boolean;
-    alturaInicial: number | null;
-    pesoInicial: number | null;
 }) {
     const [showModal, setShowModal] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -160,8 +156,8 @@ export default function CondicaoFisicaClient({
     const ultima = medidas[medidas.length - 1] ?? null;
     const primeira = medidas[0] ?? null;
 
-    const alturaAtual = ultima ? ultima.altura : alturaInicial;
-    const pesoAtual = ultima ? ultima.peso : pesoInicial;
+    const alturaAtual = ultima?.altura ?? null;
+    const pesoAtual = ultima?.peso ?? null;
     const imc =
         alturaAtual && pesoAtual ? calcularImc(alturaAtual, pesoAtual) : null;
     const variacaoPeso =

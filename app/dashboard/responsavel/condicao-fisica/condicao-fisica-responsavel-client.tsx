@@ -214,58 +214,63 @@ export default function CondicaoFisicaResponsavelClient({
                 </button>
             </div>
 
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    label="Altura atual"
+                    value={cfAltura ? `${cfAltura} cm` : "—"}
+                    sub={
+                        ultimaData
+                            ? `Atualizado em ${ultimaData}`
+                            : "Sem registos"
+                    }
+                />
+                <StatCard
+                    label="Peso atual"
+                    value={cfPeso ? `${cfPeso} kg` : "—"}
+                    sub={
+                        ultimaData
+                            ? `Atualizado em ${ultimaData}`
+                            : "Sem registos"
+                    }
+                />
+                <StatCard
+                    label="IMC"
+                    value={cfIMC ?? "—"}
+                    sub={
+                        cfIMC
+                            ? Number(cfIMC) < 18.5
+                                ? "Abaixo do peso"
+                                : Number(cfIMC) < 25
+                                  ? "Peso normal"
+                                  : "Acima do peso"
+                            : ""
+                    }
+                />
+                <StatCard
+                    label="Variação peso"
+                    value={
+                        variacaoPeso
+                            ? `${Number(variacaoPeso) >= 0 ? "+" : ""}${variacaoPeso} kg`
+                            : "—"
+                    }
+                    sub="Desde o primeiro registo"
+                />
+            </div>
+
             {medidas.length === 0 ? (
                 <div className="bg-white dark:bg-gray-900 rounded-xl p-10 border border-gray-200 dark:border-gray-800 flex flex-col items-center justify-center gap-2 text-center">
                     <span className="text-3xl">💪</span>
                     <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                        Sem registos
+                        Sem registos de medidas
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                        Ainda não existem registos de condição física.
+                        Utilize o botão &quot;Registar medidas&quot; para
+                        adicionar.
                     </p>
                 </div>
             ) : (
                 <>
-                    {/* Stat cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <StatCard
-                            label="Altura atual"
-                            value={cfAltura ? `${cfAltura} cm` : "—"}
-                            sub={
-                                ultimaData ? `Atualizado em ${ultimaData}` : ""
-                            }
-                        />
-                        <StatCard
-                            label="Peso atual"
-                            value={cfPeso ? `${cfPeso} kg` : "—"}
-                            sub={
-                                ultimaData ? `Atualizado em ${ultimaData}` : ""
-                            }
-                        />
-                        <StatCard
-                            label="IMC"
-                            value={cfIMC ?? "—"}
-                            sub={
-                                cfIMC
-                                    ? Number(cfIMC) < 18.5
-                                        ? "Abaixo do peso"
-                                        : Number(cfIMC) < 25
-                                          ? "Peso normal"
-                                          : "Acima do peso"
-                                    : ""
-                            }
-                        />
-                        <StatCard
-                            label="Variação peso"
-                            value={
-                                variacaoPeso
-                                    ? `${Number(variacaoPeso) >= 0 ? "+" : ""}${variacaoPeso} kg`
-                                    : "—"
-                            }
-                            sub="Desde o primeiro registo"
-                        />
-                    </div>
-
                     {/* Table */}
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                         <table className="w-full text-sm">

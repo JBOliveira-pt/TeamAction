@@ -14,11 +14,6 @@ export default async function AtletaCondicaoFisicaPage() {
         (dadosAtleta?.responsavel_pendente ?? false);
 
     return (
-        <CondicaoFisicaClient
-            medidas={medidas}
-            contaPendente={contaPendente}
-            alturaInicial={dadosAtleta?.altura_cm ?? null}
-            pesoInicial={dadosAtleta?.peso_kg ?? null}
-        />
+        <CondicaoFisicaClient medidas={medidas} contaPendente={contaPendente} />
     );
 }

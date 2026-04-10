@@ -8,9 +8,9 @@ import {
 export const dynamic = "force-dynamic";
 
 const badgeColors: Record<string, string> = {
-    green: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-    orange: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
-    blue: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+    green: "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20",
+    orange: "bg-amber-500/10 text-amber-500 border border-amber-500/20",
+    blue: "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20",
     gray: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
 };
 
@@ -24,21 +24,42 @@ function Badge({ label, color }: { label: string; color: string }) {
     );
 }
 
-function InfoRow({
+function InfoSection({
     label,
-    value,
-    badgeColor,
+    badge,
+    details,
+    icon,
 }: {
     label: string;
-    value: string;
-    badgeColor: string;
+    badge: { value: string; color: string };
+    details?: { label: string; value: string }[];
+    icon?: string;
 }) {
     return (
-        <div className="flex items-center justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-b-0">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-                {label}
-            </span>
-            <Badge label={value} color={badgeColor} />
+        <div className="flex flex-col gap-0.5 py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0">
+            <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    {icon && <span>{icon}</span>} {label}
+                </span>
+                <Badge label={badge.value} color={badge.color} />
+            </div>
+            {details && details.length > 0 && (
+                <div className="ml-6 flex flex-col">
+                    {details.map((d) => (
+                        <div
+                            key={d.label}
+                            className="flex items-center justify-between"
+                        >
+                            <span className="text-xs text-gray-400 dark:text-gray-500">
+                                {d.label}
+                            </span>
+                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate ml-2 max-w-[60%] text-right">
+                                {d.value}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -47,7 +68,7 @@ function resolveClube(clube_nome: string | null): {
     value: string;
     color: string;
 } {
-    if (clube_nome) return { value: clube_nome, color: "green" };
+    if (clube_nome) return { value: "Associado", color: "green" };
     return { value: "Sem clube", color: "gray" };
 }
 
@@ -55,8 +76,7 @@ function resolveEquipa(equipa_nome: string | null): {
     value: string;
     color: string;
 } {
-    if (equipa_nome)
-        return { value: `Associado — ${equipa_nome}`, color: "green" };
+    if (equipa_nome) return { value: "Associado", color: "green" };
     return { value: "Sem equipa", color: "gray" };
 }
 
@@ -64,8 +84,7 @@ function resolveTreinador(treinador_nome: string | null): {
     value: string;
     color: string;
 } {
-    if (treinador_nome)
-        return { value: `Associado — ${treinador_nome}`, color: "green" };
+    if (treinador_nome) return { value: "Associado", color: "green" };
     return { value: "Sem treinador", color: "gray" };
 }
 
@@ -171,78 +190,173 @@ export default async function PaiDashboard() {
                 </p>
             </div>
 
-            {/* Primeira linha: Infos do Educando + Condição Física + Calendário */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Primeira linha: Infos do Educando + Saúde do Atleta + Calendário */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
                 {/* Infos do Educando */}
-                <div className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800">
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                <div className="gap-6 bg-white dark:bg-gray-900 rounded-xl p-5 pb-8 border border-gray-200 dark:border-gray-800 flex flex-col">
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                         📋 Infos do Atleta
                     </h2>
-                    <div className="flex flex-col">
-                        <InfoRow
+                    <div className="flex flex-col flex-1 justify-between">
+                        <InfoSection
                             label="Clube"
-                            value={clube.value}
-                            badgeColor={clube.color}
+                            badge={clube}
+                            details={
+                                dados?.atleta?.clube_nome
+                                    ? [
+                                          {
+                                              label: "Nome",
+                                              value: dados.atleta.clube_nome,
+                                          },
+                                      ]
+                                    : undefined
+                            }
                         />
-                        <InfoRow
+                        <InfoSection
                             label="Equipa"
-                            value={equipa.value}
-                            badgeColor={equipa.color}
+                            badge={equipa}
+                            details={
+                                dados?.atleta?.equipa_nome
+                                    ? [
+                                          {
+                                              label: "Nome",
+                                              value: dados.atleta.equipa_nome,
+                                          },
+                                      ]
+                                    : undefined
+                            }
                         />
-                        <InfoRow
+                        <InfoSection
                             label="Treinador"
-                            value={treinador.value}
-                            badgeColor={treinador.color}
+                            badge={treinador}
+                            details={[
+                                ...(dados?.atleta?.treinador_nome
+                                    ? [
+                                          {
+                                              label: "Nome",
+                                              value: dados.atleta
+                                                  .treinador_nome,
+                                          },
+                                      ]
+                                    : []),
+                                ...(dados?.atleta?.treinador_email
+                                    ? [
+                                          {
+                                              label: "E-mail",
+                                              value: dados.atleta
+                                                  .treinador_email,
+                                          },
+                                      ]
+                                    : []),
+                            ]}
                         />
                     </div>
                 </div>
 
-                {/* Condição Física */}
-                <div className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800">
+                {/* Saúde do Atleta */}
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800 flex flex-col">
                     {ultimaMedida ? (
                         <>
-                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                                💪 Condição Física
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                                💪 Saúde do Atleta
                             </h2>
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between py-1">
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                                        Altura
-                                    </span>
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                        {cfAltura} cm
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between py-1">
-                                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                                        Peso
-                                    </span>
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                        {cfPeso} kg
-                                    </span>
-                                </div>
-                                {cfIMC && (
-                                    <div className="flex items-center justify-between py-1">
+                            <div className="flex flex-col flex-1 justify-between">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
                                         <span className="text-sm text-gray-500 dark:text-gray-400">
-                                            IMC
+                                            Status médico
                                         </span>
-                                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                                            {cfIMC}
+                                        <span
+                                            className={`text-sm font-semibold ${
+                                                dados?.atleta?.estado ===
+                                                "Lesionado"
+                                                    ? "text-red-500"
+                                                    : dados?.atleta?.estado ===
+                                                        "Suspenso"
+                                                      ? "text-amber-500"
+                                                      : dados?.atleta
+                                                              ?.estado ===
+                                                          "Inativo"
+                                                        ? "text-gray-400"
+                                                        : "text-emerald-500"
+                                            }`}
+                                        >
+                                            {dados?.atleta?.estado ===
+                                            "Lesionado"
+                                                ? "Indisponível"
+                                                : dados?.atleta?.estado ===
+                                                    "Suspenso"
+                                                  ? "Suspenso"
+                                                  : dados?.atleta?.estado ===
+                                                      "Inativo"
+                                                    ? "Inativo"
+                                                    : "Disponível"}
                                         </span>
                                     </div>
-                                )}
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            Altura
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {cfAltura} cm
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            Peso
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {cfPeso} kg
+                                        </span>
+                                    </div>
+                                    {cfIMC && (
+                                        <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                IMC
+                                            </span>
+                                            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                {cfIMC}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-auto pt-2">
                                     Último registo: {cfDataRegisto}
                                 </p>
                             </div>
                         </>
                     ) : (
-                        <div className="flex flex-col items-center justify-center gap-2 text-center h-full">
-                            <span className="text-2xl">💪</span>
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                Condição Física
-                            </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
+                        <div className="flex flex-col flex-1">
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                                💪 Saúde do Atleta
+                            </h2>
+                            <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                    Status médico
+                                </span>
+                                <span
+                                    className={`text-sm font-semibold ${
+                                        dados?.atleta?.estado === "Lesionado"
+                                            ? "text-red-500"
+                                            : dados?.atleta?.estado ===
+                                                "Suspenso"
+                                              ? "text-amber-500"
+                                              : dados?.atleta?.estado ===
+                                                  "Inativo"
+                                                ? "text-gray-400"
+                                                : "text-emerald-500"
+                                    }`}
+                                >
+                                    {dados?.atleta?.estado === "Lesionado"
+                                        ? "Indisponível"
+                                        : dados?.atleta?.estado === "Suspenso"
+                                          ? "Suspenso"
+                                          : dados?.atleta?.estado === "Inativo"
+                                            ? "Inativo"
+                                            : "Disponível"}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-auto pt-2">
                                 Sem registos de condição física.
                             </p>
                         </div>
@@ -250,18 +364,40 @@ export default async function PaiDashboard() {
                 </div>
 
                 {/* Calendário */}
-                <div className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800">
+                <div className="bg-white dark:bg-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-800 flex flex-col">
                     {proximosTreinos.length + proximosJogos.length > 0 ? (
                         <>
-                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
                                 📅 Calendário
                             </h2>
-                            <p className="text-xs text-gray-400 dark:text-gray-500">
-                                {`${proximosTreinos.length} treino(s) e ${proximosJogos.length} jogo(s) por realizar${proximoEventoTexto ? ` · próximo: ${proximoEventoTexto}` : ""}`}
-                            </p>
+                            <div className="flex flex-col flex-1 justify-between">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            Treinos agendados
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {proximosTreinos.length}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                                            Jogos agendados
+                                        </span>
+                                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                                            {proximosJogos.length}
+                                        </span>
+                                    </div>
+                                </div>
+                                {proximoEventoTexto && (
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-auto pt-2">
+                                        Próximo evento: {proximoEventoTexto}
+                                    </p>
+                                )}
+                            </div>
                         </>
                     ) : (
-                        <div className="flex flex-col items-center justify-center gap-2 text-center h-full">
+                        <div className="flex flex-col items-center justify-center gap-2 text-center flex-1">
                             <span className="text-2xl">📅</span>
                             <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
                                 Calendário

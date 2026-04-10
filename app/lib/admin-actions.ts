@@ -1125,6 +1125,22 @@ export async function adminResolvePedidoPerfilAction(
                         UPDATE users SET email = ${valor_novo}, updated_at = NOW()
                         WHERE id = ${user_id}
                     `;
+
+                    // Sincronizar tabelas que referenciam o email do responsável
+                    if (valor_atual) {
+                        await tx`
+                            UPDATE atletas
+                            SET encarregado_educacao = ${valor_novo}, updated_at = NOW()
+                            WHERE encarregado_educacao = ${valor_atual}
+                        `.catch(() => {});
+
+                        await tx`
+                            UPDATE atleta_relacoes_pendentes
+                            SET alvo_email = ${valor_novo}, updated_at = NOW()
+                            WHERE alvo_email = ${valor_atual}
+                              AND relation_kind = 'responsavel'
+                        `.catch(() => {});
+                    }
                 } else if (campo === "data_nascimento") {
                     await tx`
                         UPDATE users SET data_nascimento = ${valor_novo}, updated_at = NOW()

@@ -6,14 +6,21 @@ import {
     apagarRegistoMedico,
     editarRegistoMedico,
 } from "@/app/lib/actions";
-import { Pencil, ShieldCheck, Trash2 } from "lucide-react";
+import {
+    ChevronDown,
+    ChevronUp,
+    Pencil,
+    ShieldCheck,
+    Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useMemo, useState, useTransition } from "react";
 
 type RegistoMedico = {
     id: string;
     tipo: string;
     descricao: string;
+    gravidade: string;
     data_inicio: string;
     data_prevista_retorno: string | null;
     observacoes: string | null;
@@ -111,6 +118,26 @@ function ModalForm({
                             required
                             className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Gravidade
+                        </label>
+                        <select
+                            name="gravidade"
+                            defaultValue="leve"
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="leve">
+                                🟢 Leve — continua disponível
+                            </option>
+                            <option value="media">
+                                🟡 Média — fica indisponível
+                            </option>
+                            <option value="grave">
+                                🔴 Grave — fica indisponível
+                            </option>
+                        </select>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -227,6 +254,20 @@ function EditModal({
                             className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            Gravidade
+                        </label>
+                        <select
+                            name="gravidade"
+                            defaultValue={registo.gravidade}
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="leve">Leve</option>
+                            <option value="media">Média</option>
+                            <option value="grave">Grave</option>
+                        </select>
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -253,19 +294,6 @@ function EditModal({
                                 className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                            Estado
-                        </label>
-                        <select
-                            name="estado"
-                            defaultValue={registo.estado}
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="ativo">Ativo</option>
-                            <option value="resolvido">Resolvido</option>
-                        </select>
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -319,19 +347,49 @@ function RegistoCard({
     const fmtDate = (val: string | null) =>
         val ? new Date(val).toLocaleDateString("pt-PT") : "—";
 
+    const resolvido = r.estado !== "ativo";
+
     return (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2">
+        <div
+            className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex flex-col gap-2 ${resolvido ? "opacity-60" : ""}`}
+        >
             <div className="flex items-center justify-between gap-2">
-                <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                        r.tipo === "lesao"
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
-                    }`}
-                >
-                    {r.tipo === "lesao" ? "Lesão" : "Doença"}
-                </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            r.tipo === "lesao"
+                                ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+                        }`}
+                    >
+                        {r.tipo === "lesao" ? "Lesão" : "Doença"}
+                    </span>
+                    <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            r.gravidade === "grave"
+                                ? "bg-red-500 text-white"
+                                : r.gravidade === "media"
+                                  ? "bg-amber-500 text-white"
+                                  : "bg-emerald-500 text-white"
+                        }`}
+                    >
+                        {r.gravidade === "grave"
+                            ? "Grave"
+                            : r.gravidade === "media"
+                              ? "Média"
+                              : "Leve"}
+                    </span>
+                    <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                            resolvido
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                        }`}
+                    >
+                        {resolvido ? "Resolvido" : "Ativo"}
+                    </span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
                     <button
                         onClick={() => onEdit(r)}
                         disabled={contaPendente}
@@ -380,6 +438,44 @@ function RegistoCard({
     );
 }
 
+type SortKey = "data" | "tipo" | "gravidade";
+type SortDir = "asc" | "desc";
+
+const gravidadeOrder: Record<string, number> = { grave: 3, media: 2, leve: 1 };
+
+function SortButton({
+    label,
+    sortKey,
+    active,
+    dir,
+    onClick,
+}: {
+    label: string;
+    sortKey: SortKey;
+    active: boolean;
+    dir: SortDir;
+    onClick: (key: SortKey) => void;
+}) {
+    return (
+        <button
+            onClick={() => onClick(sortKey)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                active
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+            }`}
+        >
+            {label}
+            {active &&
+                (dir === "asc" ? (
+                    <ChevronUp size={12} />
+                ) : (
+                    <ChevronDown size={12} />
+                ))}
+        </button>
+    );
+}
+
 export default function MedicoClientWrapper({
     registos,
     contaPendente,
@@ -390,14 +486,48 @@ export default function MedicoClientWrapper({
     const [showLesaoModal, setShowLesaoModal] = useState(false);
     const [showDoencaModal, setShowDoencaModal] = useState(false);
     const [editando, setEditando] = useState<RegistoMedico | null>(null);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
     const router = useRouter();
 
-    async function handleDelete(id: string) {
-        if (contaPendente) return;
-        if (!confirm("Tens a certeza que queres apagar este registo?")) return;
+    async function handleDeleteConfirmed() {
+        if (!deleteId || contaPendente) return;
+        const id = deleteId;
+        setDeleteId(null);
         await apagarRegistoMedico(id);
         router.refresh();
     }
+
+    const [sortKey, setSortKey] = useState<SortKey>("data");
+    const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+    function handleSort(key: SortKey) {
+        if (sortKey === key) {
+            setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+            setSortKey(key);
+            setSortDir("desc");
+        }
+    }
+
+    const sorted = useMemo(() => {
+        const arr = [...registos];
+        arr.sort((a, b) => {
+            let cmp = 0;
+            if (sortKey === "data") {
+                cmp =
+                    new Date(a.data_inicio).getTime() -
+                    new Date(b.data_inicio).getTime();
+            } else if (sortKey === "tipo") {
+                cmp = a.tipo.localeCompare(b.tipo);
+            } else if (sortKey === "gravidade") {
+                cmp =
+                    (gravidadeOrder[a.gravidade] ?? 0) -
+                    (gravidadeOrder[b.gravidade] ?? 0);
+            }
+            return sortDir === "asc" ? cmp : -cmp;
+        });
+        return arr;
+    }, [registos, sortKey, sortDir]);
 
     const ativos = registos.filter((r) => r.estado === "ativo");
     const statusMedico = ativos.length === 0 ? "Disponível" : "Indisponível";
@@ -465,18 +595,46 @@ export default function MedicoClientWrapper({
                 />
             </div>
 
-            {/* active injuries/illnesses */}
+            {/* Lesões e doenças */}
             <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                        Lesões e doenças em andamento
-                    </span>
-                    <span className="text-sm text-gray-400">
-                        {ativos.length}
-                    </span>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Lesões e doenças
+                        </span>
+                        <span className="text-sm text-gray-400">
+                            {registos.length}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-400 mr-1">
+                            Ordenar:
+                        </span>
+                        <SortButton
+                            label="Data"
+                            sortKey="data"
+                            active={sortKey === "data"}
+                            dir={sortDir}
+                            onClick={handleSort}
+                        />
+                        <SortButton
+                            label="Tipo"
+                            sortKey="tipo"
+                            active={sortKey === "tipo"}
+                            dir={sortDir}
+                            onClick={handleSort}
+                        />
+                        <SortButton
+                            label="Gravidade"
+                            sortKey="gravidade"
+                            active={sortKey === "gravidade"}
+                            dir={sortDir}
+                            onClick={handleSort}
+                        />
+                    </div>
                 </div>
 
-                {ativos.length === 0 ? (
+                {registos.length === 0 ? (
                     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-12 flex flex-col items-center justify-center gap-4 text-center">
                         <div className="p-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20">
                             <ShieldCheck
@@ -486,22 +644,21 @@ export default function MedicoClientWrapper({
                         </div>
                         <div className="space-y-1">
                             <p className="font-semibold text-gray-900 dark:text-white text-base">
-                                Nenhuma lesão ou doença ativa
+                                Nenhuma lesão ou doença registada
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-                                Boas notícias! Atualmente estás sem lesões e
-                                disponível para todas as atividades.
+                                Boas notícias! Não tens qualquer registo médico.
                             </p>
                         </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {ativos.map((r) => (
+                        {sorted.map((r) => (
                             <RegistoCard
                                 key={r.id}
                                 r={r}
                                 onEdit={setEditando}
-                                onDelete={handleDelete}
+                                onDelete={setDeleteId}
                                 contaPendente={contaPendente}
                             />
                         ))}
@@ -535,6 +692,34 @@ export default function MedicoClientWrapper({
                     onClose={() => setEditando(null)}
                     contaPendente={contaPendente}
                 />
+            )}
+
+            {deleteId && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-4">
+                        <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
+                            Apagar registo médico
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Tens a certeza que queres apagar este registo? Esta
+                            ação não pode ser revertida.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleDeleteConfirmed}
+                                className="flex-1 font-bold py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-all"
+                            >
+                                Apagar
+                            </button>
+                            <button
+                                onClick={() => setDeleteId(null)}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 rounded-xl transition-all"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </main>
     );

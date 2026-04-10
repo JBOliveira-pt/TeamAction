@@ -873,6 +873,7 @@ export type AdminRelacaoPendenteRow = {
     relation_kind: string;
     status: string;
     created_at: string;
+    responsavel_registado: boolean;
 };
 
 export async function fetchAdminRelacoesPendentes(): Promise<
@@ -896,7 +897,8 @@ export async function fetchAdminRelacoesPendentes(): Promise<
             COALESCE(o.name, '') AS alvo_clube_nome,
             arp.relation_kind,
             arp.status,
-            arp.created_at
+            arp.created_at,
+            (arp.alvo_responsavel_user_id IS NOT NULL) AS responsavel_registado
         FROM atleta_relacoes_pendentes arp
         LEFT JOIN users ua ON ua.id = arp.atleta_user_id
         LEFT JOIN organizations o ON o.id = arp.alvo_clube_id

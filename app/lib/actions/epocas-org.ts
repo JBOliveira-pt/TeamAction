@@ -6,7 +6,7 @@ import { getOrganizationId } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
 
 // ========================================
-// Ã‰poca Actions (Modal)
+// Época Actions (Modal)
 // ========================================
 
 export async function criarEpoca(
@@ -52,15 +52,15 @@ export async function criarEpoca(
             VALUES (
                 gen_random_uuid(),
                 ${organizationId},
-                'Nova Ã©poca criada',
-                ${`Ã‰poca ${nome} criada${ativa ? " e definida como ativa" : ""}.`},
+                'Nova época criada',
+                ${`${nome} criada${ativa ? " e definida como ativa" : ""}.`},
                 'Info',
                 NOW()
             )
         `;
     } catch (error) {
         console.error(error);
-        return { error: "Erro ao criar Ã©poca." };
+        return { error: "Erro ao criar época." };
     }
 
     await logAction(clerkId, "epoca_create", "/dashboard/presidente/epoca", {

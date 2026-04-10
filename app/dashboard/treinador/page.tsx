@@ -92,20 +92,27 @@ async function fetchDashboardData() {
             : Promise.resolve([{ total: 0, presencas: 0 }]),
     ]).catch(() => [null, null, null, null, null]);
 
-    const staffResult = equipaId
-        ? await sql<
-              {
-                  id: string;
-                  nome: string;
-                  funcao: string;
-                  user_id: string | null;
-              }[]
-          >`
+    // Verificar se o treinador está vinculado a um clube
+    const clubeRows = await sql<{ id: string }[]>`
+        SELECT id FROM clubes WHERE organization_id = ${orgId} LIMIT 1
+    `.catch(() => []);
+    const temClube = clubeRows.length > 0;
+
+    const staffResult =
+        equipaId && temClube
+            ? await sql<
+                  {
+                      id: string;
+                      nome: string;
+                      funcao: string;
+                      user_id: string | null;
+                  }[]
+              >`
             SELECT id, nome, funcao, user_id FROM staff
             WHERE equipa_id = ${equipaId}
             ORDER BY nome ASC
         `.catch(() => [])
-        : [];
+            : [];
 
     // Atleta mais assíduo da equipa
     const atletaDestaqueResult = equipaId
@@ -178,6 +185,7 @@ async function fetchDashboardData() {
         proximosEventos,
         staff: staffResult,
         hasEquipa: equipaId !== null,
+        temClube,
     };
 }
 
@@ -441,7 +449,9 @@ export default async function TreinadorDashboard() {
                     </div>
                 </div>
             </div>
-            {data?.hasEquipa && <StaffPanel staff={data.staff ?? []} />}
+            {data?.temClube && data?.hasEquipa && (
+                <StaffPanel staff={data.staff ?? []} />
+            )}
         </div>
     );
 }

@@ -338,6 +338,20 @@ export async function fetchCondicaoFisicaResponsavel(): Promise<
             SELECT id, altura::float AS altura, peso::float AS peso, data_registo::text
             FROM condicao_fisica
             WHERE user_id = ${info.minorUserId}
+              AND data_registo <= CURRENT_DATE
+
+            UNION ALL
+
+            SELECT
+                id,
+                altura_cm::float AS altura,
+                peso_kg::float  AS peso,
+                created_at::date::text AS data_registo
+            FROM atletas
+            WHERE user_id = ${info.minorUserId}
+              AND altura_cm IS NOT NULL
+              AND peso_kg  IS NOT NULL
+
             ORDER BY data_registo ASC
         `;
     } catch (error) {
@@ -353,6 +367,7 @@ export async function fetchRegistosMedicosResponsavel(): Promise<
         id: string;
         tipo: string;
         descricao: string;
+        gravidade: string;
         data_inicio: string;
         data_prevista_retorno: string | null;
         observacoes: string | null;
@@ -369,6 +384,7 @@ export async function fetchRegistosMedicosResponsavel(): Promise<
                 id: string;
                 tipo: string;
                 descricao: string;
+                gravidade: string;
                 data_inicio: string;
                 data_prevista_retorno: string | null;
                 observacoes: string | null;
@@ -376,7 +392,7 @@ export async function fetchRegistosMedicosResponsavel(): Promise<
                 created_at: string;
             }[]
         >`
-            SELECT id, tipo, descricao, data_inicio::text, data_prevista_retorno::text,
+            SELECT id, tipo, descricao, gravidade, data_inicio::text, data_prevista_retorno::text,
                    observacoes, estado, created_at::text
             FROM medico
             WHERE email = ${info.minorEmail}

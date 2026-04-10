@@ -305,7 +305,8 @@ export default async function AdminConvitesPage({
                                         {r.relation_kind === "responsavel" &&
                                             r.status?.toLowerCase() ===
                                                 "pendente" &&
-                                            r.alvo_email && (
+                                            r.alvo_email &&
+                                            !r.responsavel_registado && (
                                                 <SendResponsibleInviteButton
                                                     athleteUserId={
                                                         r.atleta_user_id

@@ -1,6 +1,6 @@
 import { sql, getOrganizationId } from "./_shared";
 
-// ---------- Ã‰POCA ----------
+// ---------- ÉPOCA ----------
 
 export async function fetchEpocaAtiva() {
     try {

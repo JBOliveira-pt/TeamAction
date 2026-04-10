@@ -180,9 +180,12 @@ export async function fetchAtletaAtual() {
                 mao_dominante: string | null;
                 equipa_nome: string | null;
                 treinador_nome: string | null;
+                treinador_email: string | null;
                 encarregado: string | null;
                 clube_nome: string | null;
                 responsavel_associado: boolean;
+                responsavel_nome: string | null;
+                responsavel_email: string | null;
                 menor_idade: boolean;
                 peso_kg: number | null;
                 altura_cm: number | null;
@@ -200,12 +203,15 @@ export async function fetchAtletaAtual() {
                 atletas.altura_cm,
                 equipas.nome AS equipa_nome,
                 treinador.name AS treinador_nome,
+                treinador.email AS treinador_email,
                 atletas.encarregado_educacao AS encarregado,
                 CASE
                     WHEN pres.id IS NOT NULL THEN o.name
                     ELSE NULL
                 END AS clube_nome,
-                CASE WHEN resp.id IS NOT NULL THEN true ELSE false END AS responsavel_associado
+                CASE WHEN resp.id IS NOT NULL THEN true ELSE false END AS responsavel_associado,
+                resp.name AS responsavel_nome,
+                resp.email AS responsavel_email
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
             LEFT JOIN users treinador ON treinador.id = equipas.treinador_id
@@ -248,10 +254,13 @@ export async function fetchAtletaAtual() {
                 mao_dominante: null,
                 equipa_nome: null,
                 treinador_nome: null,
+                treinador_email: null,
                 encarregado: null,
                 clube_nome: null,
                 clube_pendente: clubePendente?.alvo_nome ?? null,
                 responsavel_associado: false,
+                responsavel_nome: null,
+                responsavel_email: null,
                 menor_idade: false,
                 responsavel_pendente: !!responsavelPendente,
                 peso_kg: null,
@@ -462,8 +471,11 @@ export async function fetchAtletaDoResponsavel() {
                 numero_camisola: number | null;
                 estado: string;
                 mao_dominante: string | null;
+                altura_cm: number | null;
+                peso_kg: number | null;
                 equipa_nome: string | null;
                 treinador_nome: string | null;
+                treinador_email: string | null;
                 clube_nome: string | null;
             }[]
         >`
@@ -474,8 +486,11 @@ export async function fetchAtletaDoResponsavel() {
                 atletas.numero_camisola,
                 atletas.estado,
                 atletas.mao_dominante,
+                atletas.altura_cm::float AS altura_cm,
+                atletas.peso_kg::float AS peso_kg,
                 equipas.nome AS equipa_nome,
                 treinador.name AS treinador_nome,
+                treinador.email AS treinador_email,
                 CASE
                     WHEN pres.id IS NOT NULL THEN o.name
                     ELSE NULL
