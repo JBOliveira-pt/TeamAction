@@ -533,24 +533,68 @@ function ModalNovoJogo({
                                         Hora de início{" "}
                                         <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="time"
-                                        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                                        value={horaInicio}
-                                        onChange={(e) => setHoraInicio(e.target.value)}
-                                        required
-                                    />
+                                    <div className="flex gap-1">
+                                        <select
+                                            className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-2 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                            value={horaInicio ? horaInicio.split(":")[0] : ""}
+                                            onChange={(e) => {
+                                                const h = e.target.value;
+                                                const m = horaInicio ? horaInicio.split(":")[1] : "00";
+                                                if (h && m) {
+                                                    const newVal = `${h}:${m}`;
+                                                    setHoraInicio(newVal);
+                                                    const totalMin = parseInt(h) * 60 + parseInt(m) + 90;
+                                                    const fimH = Math.floor(totalMin / 60) % 24;
+                                                    const fimM = totalMin % 60;
+                                                    setHoraFim(`${String(fimH).padStart(2, "0")}:${String(fimM).padStart(2, "0")}`);
+                                                } else {
+                                                    setHoraInicio(h ? `${h}:00` : "");
+                                                }
+                                            }}
+                                            required
+                                        >
+                                            <option value="">HH</option>
+                                            {Array.from({ length: 24 }, (_, i) => (
+                                                <option key={i} value={String(i).padStart(2, "0")}>
+                                                    {String(i).padStart(2, "0")}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <span className="flex items-center text-gray-500 font-bold">:</span>
+                                        <select
+                                            className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 px-2 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                            value={horaInicio ? horaInicio.split(":")[1] : ""}
+                                            onChange={(e) => {
+                                                const m = e.target.value;
+                                                const h = horaInicio ? horaInicio.split(":")[0] : "";
+                                                if (h && m) {
+                                                    const newVal = `${h}:${m}`;
+                                                    setHoraInicio(newVal);
+                                                    const totalMin = parseInt(h) * 60 + parseInt(m) + 90;
+                                                    const fimH = Math.floor(totalMin / 60) % 24;
+                                                    const fimM = totalMin % 60;
+                                                    setHoraFim(`${String(fimH).padStart(2, "0")}:${String(fimM).padStart(2, "0")}`);
+                                                }
+                                            }}
+                                            required
+                                        >
+                                            <option value="">MM</option>
+                                            {["00", "15", "30", "45"].map((m) => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                        Hora de término{" "}
+                                        Hora terminada{" "}
                                         <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="time"
-                                        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                                         value={horaFim}
-                                        onChange={(e) => setHoraFim(e.target.value)}
+                                        readOnly
                                         required
                                     />
                                 </div>
