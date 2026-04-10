@@ -15,6 +15,7 @@ type Jogo = {
     resultado_adv: number | null;
     equipa_id: string | null;
     equipa_nome: string | null;
+    adversario_fake: boolean;
 };
 
 type Clube = {
@@ -22,6 +23,12 @@ type Clube = {
     name: string;
     cidade: string | null;
     desporto: string | null;
+};
+
+type EquipaTreinador = {
+    organization_id: string;
+    nome: string;
+    treinador_nome: string;
 };
 
 const hoje = new Date();
@@ -202,30 +209,34 @@ function ModalNovoJogo({
         equipa_id: string;
         hora_inicio: string;
         hora_fim: string;
+        adversario_org_id: string | null;
     }) => Promise<void>;
     onClose: () => void;
 }) {
-    // Passo 1: perguntar se adversário está na plataforma
-    // Passo 2: pesquisar (se sim) ou escrever nome (se não)
-    // Passo 3: restante info
     const [passo, setPasso] = useState<1 | 2 | 3>(1);
-    const [adversarioNaPlataforma, setAdversarioNaPlataforma] = useState<
-        boolean | null
-    >(null);
+    const [adversarioNaPlataforma, setAdversarioNaPlataforma] = useState<boolean | null>(null);
+    const [adversarioPossuiClube, setAdversarioPossuiClube] = useState<boolean | null>(null);
 
-    // Pesquisa de clube
     const [pesquisa, setPesquisa] = useState("");
     const [resultados, setResultados] = useState<Clube[]>([]);
     const [buscando, setBuscando] = useState(false);
-    const [clubeSelecionado, setClubeSelecionado] = useState<Clube | null>(
-        null,
-    );
+    const [clubeSelecionado, setClubeSelecionado] = useState<Clube | null>(null);
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Nome manual
+    const [equipasAdv, setEquipasAdv] = useState<{ id: string; nome: string }[]>([]);
+    const [equipaAdvSelecionada, setEquipaAdvSelecionada] = useState<{ id: string; nome: string } | null>(null);
+    const [equipasLoadedForClubeId, setEquipasLoadedForClubeId] = useState<string | null>(null);
+    const [semEquipas, setSemEquipas] = useState(false);
+    const loadingEquipas = clubeSelecionado !== null && equipasLoadedForClubeId !== clubeSelecionado.id;
+
+    const [pesquisaTreinador, setPesquisaTreinador] = useState("");
+    const [resultadosTreinador, setResultadosTreinador] = useState<EquipaTreinador[]>([]);
+    const [buscandoTreinador, setBuscandoTreinador] = useState(false);
+    const [equipaTreinadorSelecionada, setEquipaTreinadorSelecionada] = useState<EquipaTreinador | null>(null);
+    const searchTimerTreinador = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const [nomeManual, setNomeManual] = useState("");
 
-    // Dados do jogo
     const [dataJogo, setDataJogo] = useState("");
     const [casaFora, setCasaFora] = useState("casa");
     const [local, setLocal] = useState("");
@@ -235,19 +246,14 @@ function ModalNovoJogo({
     const [saving, setSaving] = useState(false);
     const [erroData, setErroData] = useState("");
 
-    // Resultados derivados — sem useEffect para limpar
-    const resultadosMostrar =
-        adversarioNaPlataforma && pesquisa.trim().length >= 2 ? resultados : [];
+    const resultadosMostrar = adversarioPossuiClube === true && pesquisa.trim().length >= 2 ? resultados : [];
 
-    // Pesquisa com debounce — setState apenas dentro dos callbacks assíncronos
     useEffect(() => {
-        if (!adversarioNaPlataforma || pesquisa.trim().length < 2) return;
+        if (adversarioPossuiClube !== true || pesquisa.trim().length < 2) return;
         if (searchTimer.current) clearTimeout(searchTimer.current);
         searchTimer.current = setTimeout(async () => {
             setBuscando(true);
-            const res = await fetch(
-                `/api/clubes?q=${encodeURIComponent(pesquisa.trim())}`,
-            );
+            const res = await fetch(`/api/clubes?q=${encodeURIComponent(pesquisa.trim())}`);
             if (res.ok) setResultados(await res.json());
             else setResultados([]);
             setBuscando(false);
@@ -255,10 +261,48 @@ function ModalNovoJogo({
         return () => {
             if (searchTimer.current) clearTimeout(searchTimer.current);
         };
-    }, [pesquisa, adversarioNaPlataforma]);
+    }, [pesquisa, adversarioPossuiClube]);
+
+    useEffect(() => {
+        if (!clubeSelecionado) return;
+        const id = clubeSelecionado.id;
+        let cancelled = false;
+        fetch(`/api/equipas?clube_id=${encodeURIComponent(id)}`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((data: { id: string; nome: string }[]) => {
+                if (cancelled) return;
+                setEquipasAdv(data);
+                setEquipaAdvSelecionada(null);
+                setSemEquipas(data.length === 0);
+                setEquipasLoadedForClubeId(id);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setSemEquipas(true);
+                setEquipasLoadedForClubeId(id);
+            });
+        return () => { cancelled = true; };
+    }, [clubeSelecionado]);
+
+    useEffect(() => {
+        if (adversarioPossuiClube !== false || pesquisaTreinador.trim().length < 2) return;
+        if (searchTimerTreinador.current) clearTimeout(searchTimerTreinador.current);
+        searchTimerTreinador.current = setTimeout(async () => {
+            setBuscandoTreinador(true);
+            const res = await fetch(`/api/treinador/pesquisar-equipas?q=${encodeURIComponent(pesquisaTreinador.trim())}`);
+            if (res.ok) setResultadosTreinador(await res.json());
+            else setResultadosTreinador([]);
+            setBuscandoTreinador(false);
+        }, 350);
+        return () => {
+            if (searchTimerTreinador.current) clearTimeout(searchTimerTreinador.current);
+        };
+    }, [pesquisaTreinador, adversarioPossuiClube]);
 
     const adversarioFinal = adversarioNaPlataforma
-        ? (clubeSelecionado?.name ?? "")
+        ? adversarioPossuiClube === true
+            ? (clubeSelecionado?.name ?? "")
+            : (equipaTreinadorSelecionada?.nome ?? "")
         : nomeManual.trim();
 
     const validarEAvancar = () => {
@@ -269,8 +313,6 @@ function ModalNovoJogo({
     const submitJogo = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!adversarioFinal || !dataJogo) return;
-
-        // Validar data não passada
         const d = new Date(dataJogo);
         d.setHours(0, 0, 0, 0);
         if (d < hoje) {
@@ -287,21 +329,43 @@ function ModalNovoJogo({
             equipa_id: equipaId,
             hora_inicio: horaInicio,
             hora_fim: horaFim,
+            adversario_org_id: adversarioNaPlataforma
+                ? adversarioPossuiClube
+                    ? (clubeSelecionado?.id ?? null)
+                    : (equipaTreinadorSelecionada?.organization_id ?? null)
+                : null,
         });
         setSaving(false);
+    };
+
+    const handleBack = () => {
+        if (passo === 2) {
+            setPasso(1);
+            setAdversarioNaPlataforma(null);
+            setAdversarioPossuiClube(null);
+            setPesquisa("");
+            setResultados([]);
+            setClubeSelecionado(null);
+            setEquipasAdv([]);
+            setEquipaAdvSelecionada(null);
+            setSemEquipas(false);
+            setPesquisaTreinador("");
+            setResultadosTreinador([]);
+            setEquipaTreinadorSelecionada(null);
+            setNomeManual("");
+        } else if (passo === 3) {
+            setPasso(2);
+        }
     };
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh] overflow-y-auto">
-                {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
                     <div className="flex items-center gap-3">
                         {passo > 1 && (
                             <button
-                                onClick={() =>
-                                    setPasso((p) => (p - 1) as 1 | 2 | 3)
-                                }
+                                onClick={handleBack}
                                 className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-lg"
                             >
                                 ←
@@ -324,7 +388,6 @@ function ModalNovoJogo({
                     </button>
                 </div>
 
-                {/* Barra de progresso */}
                 <div className="h-1 bg-gray-100 dark:bg-gray-800">
                     <div
                         className="h-full bg-amber-500 transition-all"
@@ -333,7 +396,6 @@ function ModalNovoJogo({
                 </div>
 
                 <div className="p-5 flex flex-col gap-5">
-                    {/* ── Passo 1: adversário na plataforma? ── */}
                     {passo === 1 && (
                         <>
                             <div>
@@ -341,9 +403,7 @@ function ModalNovoJogo({
                                     O adversário está cadastrado na plataforma?
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                    Se o clube adversário também usa o
-                                    TeamAction, pode pesquisá-lo. Caso
-                                    contrário, introduz o nome manualmente.
+                                    Se a equipa adversária também usa o TeamAction, pode pesquisá-la.
                                 </p>
                             </div>
                             <div className="flex gap-3">
@@ -371,94 +431,217 @@ function ModalNovoJogo({
                         </>
                     )}
 
-                    {/* ── Passo 2a: pesquisar clube ── */}
-                    {passo === 2 && adversarioNaPlataforma && (
+                    {passo === 2 && adversarioNaPlataforma === true && (
                         <>
-                            <div className="flex flex-col gap-1">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                    Pesquisar clube adversário{" "}
-                                    <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    autoFocus
-                                    className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
-                                    placeholder="Nome do clube..."
-                                    value={pesquisa}
-                                    onChange={(e) => {
-                                        setPesquisa(e.target.value);
-                                        setClubeSelecionado(null);
-                                    }}
-                                />
+                            <div>
+                                <p className="font-semibold text-gray-800 dark:text-gray-100 text-base mb-3">
+                                    A equipa adversária possui um clube?
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setAdversarioPossuiClube(true);
+                                            setEquipaTreinadorSelecionada(null);
+                                            setPesquisaTreinador("");
+                                            setResultadosTreinador([]);
+                                        }}
+                                        className={`flex-1 border-2 font-bold py-3 rounded-xl transition-all flex flex-col items-center gap-1 ${adversarioPossuiClube === true ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300" : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                                    >
+                                        <span className="text-xl">🏟️</span>
+                                        <span>Sim</span>
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setAdversarioPossuiClube(false);
+                                            setClubeSelecionado(null);
+                                            setPesquisa("");
+                                            setResultados([]);
+                                            setEquipasAdv([]);
+                                            setEquipaAdvSelecionada(null);
+                                            setSemEquipas(false);
+                                        }}
+                                        className={`flex-1 border-2 font-bold py-3 rounded-xl transition-all flex flex-col items-center gap-1 ${adversarioPossuiClube === false ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300" : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                                    >
+                                        <span className="text-xl">👤</span>
+                                        <span>Não</span>
+                                    </button>
+                                </div>
                             </div>
 
-                            {buscando && (
-                                <p className="text-xs text-gray-400 text-center">
-                                    A pesquisar...
-                                </p>
-                            )}
-
-                            {!buscando && resultadosMostrar.length > 0 && (
-                                <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
-                                    {resultadosMostrar.map((c) => (
-                                        <button
-                                            key={c.id}
-                                            onClick={() => {
-                                                setClubeSelecionado(c);
-                                                setPesquisa(c.name);
-                                                setResultados([]);
+                            {adversarioPossuiClube === true && (
+                                <>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                            Pesquisar clube adversário <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            autoFocus
+                                            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                            placeholder="Nome do clube..."
+                                            value={pesquisa}
+                                            onChange={(e) => {
+                                                setPesquisa(e.target.value);
+                                                setClubeSelecionado(null);
                                             }}
-                                            className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${clubeSelecionado?.id === c.id ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}
-                                        >
-                                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
-                                                {c.name}
-                                            </p>
-                                            {(c.cidade || c.desporto) && (
-                                                <p className="text-xs text-gray-400">
-                                                    {[c.desporto, c.cidade]
-                                                        .filter(Boolean)
-                                                        .join(" · ")}
-                                                </p>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
+                                        />
+                                    </div>
+
+                                    {buscando && (
+                                        <p className="text-xs text-gray-400 text-center">A pesquisar...</p>
+                                    )}
+
+                                    {!buscando && resultadosMostrar.length > 0 && (
+                                        <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                                            {resultadosMostrar.map((c) => (
+                                                <button
+                                                    key={c.id}
+                                                    onClick={() => {
+                                                        setClubeSelecionado(c);
+                                                        setPesquisa(c.name);
+                                                        setResultados([]);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${clubeSelecionado?.id === c.id ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}
+                                                >
+                                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{c.name}</p>
+                                                    {(c.cidade || c.desporto) && (
+                                                        <p className="text-xs text-gray-400">
+                                                            {[c.desporto, c.cidade].filter(Boolean).join(" · ")}
+                                                        </p>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {!buscando && pesquisa.trim().length >= 2 && resultadosMostrar.length === 0 && !clubeSelecionado && (
+                                        <p className="text-sm text-gray-400 text-center py-2">
+                                            Nenhum clube encontrado na plataforma.
+                                        </p>
+                                    )}
+
+                                    {clubeSelecionado && loadingEquipas && (
+                                        <p className="text-xs text-gray-400 text-center">A carregar equipas...</p>
+                                    )}
+
+                                    {clubeSelecionado && !loadingEquipas && semEquipas && (
+                                        <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 text-sm font-medium">
+                                            <span>⚠️</span>
+                                            <span>Este clube ainda não tem equipas cadastradas na plataforma.</span>
+                                        </div>
+                                    )}
+
+                                    {clubeSelecionado && !loadingEquipas && !semEquipas && equipasAdv.length > 0 && (
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                                Selecionar equipa <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                                value={equipaAdvSelecionada?.id ?? ""}
+                                                onChange={(e) => {
+                                                    const found = equipasAdv.find((eq) => eq.id === e.target.value) ?? null;
+                                                    setEquipaAdvSelecionada(found);
+                                                }}
+                                            >
+                                                <option value="">Escolher equipa...</option>
+                                                {equipasAdv.map((eq) => (
+                                                    <option key={eq.id} value={eq.id}>{eq.nome}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={validarEAvancar}
+                                        disabled={!clubeSelecionado || semEquipas || !equipaAdvSelecionada}
+                                        className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition-all"
+                                    >
+                                        Continuar →
+                                    </button>
+                                </>
                             )}
 
-                            {!buscando &&
-                                pesquisa.trim().length >= 2 &&
-                                resultadosMostrar.length === 0 &&
-                                !clubeSelecionado && (
-                                    <p className="text-sm text-gray-400 text-center py-2">
-                                        Nenhum clube encontrado na plataforma.
-                                    </p>
-                                )}
+                            {adversarioPossuiClube === false && (
+                                <>
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                            Pesquisar organização do treinador <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            autoFocus
+                                            className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                            placeholder="Nome da equipa ou do treinador..."
+                                            value={pesquisaTreinador}
+                                            onChange={(e) => {
+                                                setPesquisaTreinador(e.target.value);
+                                                setEquipaTreinadorSelecionada(null);
+                                            }}
+                                        />
+                                    </div>
 
-                            <button
-                                onClick={validarEAvancar}
-                                disabled={!clubeSelecionado}
-                                className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition-all"
-                            >
-                                Continuar →
-                            </button>
+                                    {buscandoTreinador && (
+                                        <p className="text-xs text-gray-400 text-center">A pesquisar...</p>
+                                    )}
+
+                                    {!buscandoTreinador && pesquisaTreinador.trim().length >= 2 && resultadosTreinador.length > 0 && (
+                                        <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
+                                            {resultadosTreinador.map((e) => (
+                                                <button
+                                                    key={e.id}
+                                                    onClick={() => {
+                                                        setEquipaTreinadorSelecionada(e);
+                                                        setPesquisaTreinador(e.nome);
+                                                        setResultadosTreinador([]);
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2.5 rounded-xl border transition-all ${equipaTreinadorSelecionada?.organization_id === e.organization_id ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20" : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-900/20"}`}
+                                                >
+                                                    <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{e.nome}</p>
+                                                    {e.treinador_nome && (
+                                                        <p className="text-xs text-gray-400">Treinador: {e.treinador_nome}</p>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {!buscandoTreinador && pesquisaTreinador.trim().length >= 2 && resultadosTreinador.length === 0 && !equipaTreinadorSelecionada && (
+                                        <p className="text-sm text-gray-400 text-center py-2">
+                                            Nenhuma equipa de treinador encontrada.
+                                        </p>
+                                    )}
+
+                                    <button
+                                        onClick={validarEAvancar}
+                                        disabled={!equipaTreinadorSelecionada}
+                                        className="w-full bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl transition-all"
+                                    >
+                                        Continuar →
+                                    </button>
+                                </>
+                            )}
                         </>
                     )}
 
-                    {/* ── Passo 2b: nome manual ── */}
-                    {passo === 2 && !adversarioNaPlataforma && (
+                    {passo === 2 && adversarioNaPlataforma === false && (
                         <>
+                            <div>
+                                <p className="font-semibold text-gray-800 dark:text-gray-100 text-base">
+                                    Criar equipa adversária
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                    Esta equipa não está na plataforma. Será criada como equipa fictícia (🤖) apenas para registar este jogo.
+                                </p>
+                            </div>
                             <div className="flex flex-col gap-1">
                                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                    Nome do clube adversário{" "}
-                                    <span className="text-red-500">*</span>
+                                    Nome da equipa adversária <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     autoFocus
                                     className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
                                     placeholder="Ex: FC Maia"
                                     value={nomeManual}
-                                    onChange={(e) =>
-                                        setNomeManual(e.target.value)
-                                    }
+                                    onChange={(e) => setNomeManual(e.target.value)}
                                     maxLength={100}
                                     onKeyDown={(e) =>
                                         e.key === "Enter" &&
@@ -480,12 +663,8 @@ function ModalNovoJogo({
                         </>
                     )}
 
-                    {/* ── Passo 3: detalhes do jogo ── */}
                     {passo === 3 && (
-                        <form
-                            onSubmit={submitJogo}
-                            className="flex flex-col gap-4"
-                        >
+                        <form onSubmit={submitJogo} className="flex flex-col gap-4">
                             <div className="px-3 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm font-semibold text-amber-800 dark:text-amber-300">
                                 vs {adversarioFinal}
                             </div>
@@ -506,16 +685,13 @@ function ModalNovoJogo({
                                     required
                                 />
                                 {erroData && (
-                                    <p className="text-xs text-red-500">
-                                        {erroData}
-                                    </p>
+                                    <p className="text-xs text-red-500">{erroData}</p>
                                 )}
                             </div>
 
                             <div className="flex flex-col gap-1">
                                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                    Casa / Fora{" "}
-                                    <span className="text-red-500">*</span>
+                                    Casa / Fora <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
@@ -530,8 +706,7 @@ function ModalNovoJogo({
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                        Hora de início{" "}
-                                        <span className="text-red-500">*</span>
+                                        Hora de início <span className="text-red-500">*</span>
                                     </label>
                                     <div className="flex gap-1">
                                         <select
@@ -587,8 +762,7 @@ function ModalNovoJogo({
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                                        Hora terminada{" "}
-                                        <span className="text-red-500">*</span>
+                                        Hora terminada <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="time"
@@ -688,6 +862,7 @@ export default function Jogos({ equipas, autoOpenModal = false }: { equipas: Equ
         equipa_id: string;
         hora_inicio: string;
         hora_fim: string;
+        adversario_org_id: string | null;
     }) => {
         const res = await fetch("/api/jogos", {
             method: "POST",
@@ -885,7 +1060,10 @@ export default function Jogos({ equipas, autoOpenModal = false }: { equipas: Equ
                                                 {formatData(j.data)}
                                             </td>
                                             <td className="p-3">
-                                                <p className="font-semibold text-gray-800 dark:text-gray-100">
+                                                <p className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                                                    {j.adversario_fake && (
+                                                        <span title="Equipa fictícia (não está na plataforma)">🤖</span>
+                                                    )}
                                                     {j.adversario}
                                                 </p>
                                                 {j.equipa_nome && (

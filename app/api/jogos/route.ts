@@ -32,6 +32,7 @@ export async function GET() {
             resultado_adv: number | null;
             equipa_id: string | null;
             equipa_nome: string | null;
+            adversario_fake: boolean;
         }[]
     >`
         SELECT
@@ -44,7 +45,8 @@ export async function GET() {
             j.resultado_nos,
             j.resultado_adv,
             j.equipa_id,
-            e.nome AS equipa_nome
+            e.nome AS equipa_nome,
+            (j.adversario_clube_id IS NULL) AS adversario_fake
         FROM jogos j
         LEFT JOIN equipas e ON e.id = j.equipa_id
         WHERE j.organization_id = ${user.organization_id}
@@ -71,6 +73,7 @@ export async function POST(req: NextRequest) {
         equipa_id?: string;
         hora_inicio?: string;
         hora_fim?: string;
+        adversario_org_id?: string | null;
     };
 
     if (!body.adversario?.trim() || body.adversario.trim().length < 2)
@@ -97,7 +100,6 @@ export async function POST(req: NextRequest) {
     if (!body.equipa_id)
         return new Response("Equipa é obrigatória.", { status: 400 });
 
-    // Treinador só pode criar jogos para a sua equipa
     if (user.account_type === "treinador") {
         const equipa = await sql`
             SELECT id FROM equipas WHERE id = ${body.equipa_id} AND treinador_id = ${user.id}
@@ -113,6 +115,7 @@ export async function POST(req: NextRequest) {
     const equipaId = body.equipa_id;
     const horaInicio = body.hora_inicio || null;
     const horaFim = body.hora_fim || null;
+    const adversarioClubeId = body.adversario_org_id ?? null;
 
     try {
         const rows = await sql<
@@ -126,12 +129,14 @@ export async function POST(req: NextRequest) {
                 resultado_nos: number | null;
                 resultado_adv: number | null;
                 equipa_id: string | null;
+                adversario_fake: boolean;
             }[]
         >`
-            INSERT INTO jogos (id, adversario, data, equipa_id, casa_fora, local, hora_inicio, hora_fim, estado, visibilidade_publica, organization_id)
+            INSERT INTO jogos (id, adversario, adversario_clube_id, data, equipa_id, casa_fora, local, hora_inicio, hora_fim, estado, visibilidade_publica, organization_id)
             VALUES (
                 gen_random_uuid(),
                 ${body.adversario.trim()},
+                ${adversarioClubeId},
                 ${body.data},
                 ${equipaId},
                 ${casaFora},
@@ -142,7 +147,8 @@ export async function POST(req: NextRequest) {
                 false,
                 ${user.organization_id}
             )
-            RETURNING id, adversario, data::text, equipa_id, casa_fora, local, estado, resultado_nos, resultado_adv
+            RETURNING id, adversario, data::text, equipa_id, casa_fora, local, estado, resultado_nos, resultado_adv,
+                      (adversario_clube_id IS NULL) AS adversario_fake
         `;
         return Response.json(rows[0], { status: 201 });
     } catch (err: unknown) {
