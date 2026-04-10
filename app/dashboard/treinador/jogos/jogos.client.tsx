@@ -587,7 +587,7 @@ function ModalNovoJogo({
                                         <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
                                             {resultadosTreinador.map((e) => (
                                                 <button
-                                                    key={e.id}
+                                                    key={e.organization_id}
                                                     onClick={() => {
                                                         setEquipaTreinadorSelecionada(e);
                                                         setPesquisaTreinador(e.nome);
