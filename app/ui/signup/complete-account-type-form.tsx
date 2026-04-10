@@ -1460,7 +1460,7 @@ export default function CompleteAccountTypeForm({
                 try {
                     await session?.touch();
                 } catch {}
-                router.replace("/aguardar-validacao");
+                window.location.replace("/aguardar-validacao");
             } else {
                 setSuccessMessage(
                     "Perfil concluído com sucesso. A redirecionar...",
@@ -1468,7 +1468,7 @@ export default function CompleteAccountTypeForm({
                 try {
                     await session?.touch();
                 } catch {}
-                router.replace("/dashboard");
+                window.location.replace("/dashboard");
             }
         } catch (err) {
             if (stage === "completing") {
@@ -1476,7 +1476,7 @@ export default function CompleteAccountTypeForm({
                 try {
                     await session?.touch();
                 } catch {}
-                router.replace("/dashboard");
+                window.location.replace("/dashboard");
                 return;
             }
             setError(

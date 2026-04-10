@@ -2007,7 +2007,7 @@ export default function CustomSignUpForm({
                 try {
                     await session?.touch();
                 } catch {}
-                router.replace("/aguardar-validacao");
+                window.location.replace("/aguardar-validacao");
             } else {
                 setSuccessMessage(
                     "Registo concluído com sucesso. A redirecionar...",
@@ -2015,7 +2015,9 @@ export default function CustomSignUpForm({
                 try {
                     await session?.touch();
                 } catch {}
-                router.replace(getDashboardPathForAccountType(accountType));
+                window.location.replace(
+                    getDashboardPathForAccountType(accountType),
+                );
             }
         } catch (error) {
             // Se já estamos no stage "completing", a sessão Clerk está activa
@@ -2024,7 +2026,9 @@ export default function CustomSignUpForm({
                 try {
                     await session?.touch();
                 } catch {}
-                router.replace(getDashboardPathForAccountType(accountType));
+                window.location.replace(
+                    getDashboardPathForAccountType(accountType),
+                );
                 return;
             }
             setErrorMessage(getClerkErrorMessage(error));
