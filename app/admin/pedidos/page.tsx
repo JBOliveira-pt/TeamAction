@@ -8,13 +8,17 @@ type SearchParams = {
     success?: string;
     error?: string;
     status?: string;
+    email_enviado?: string;
 };
 
 function getAlertFromParams(searchParams?: SearchParams) {
     if (searchParams?.success === "aprovado") {
+        const emailEnviado = searchParams?.email_enviado === "1";
         return {
             kind: "success" as const,
-            message: "Pedido de alteração aprovado e aplicado com sucesso.",
+            message: emailEnviado
+                ? "Pedido de alteração de e-mail aprovado. Um e-mail de convite foi enviado para o novo endereço."
+                : "Pedido de alteração aprovado e aplicado com sucesso.",
         };
     }
 

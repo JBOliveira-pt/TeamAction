@@ -1085,94 +1085,78 @@ export async function adminResolvePedidoPerfilAction(
         redirect("/admin/pedidos?error=invalid");
     }
 
+    /* ── Buscar pedido (fora do try, para redirect seguro) ────────────── */
+    const pedido = await sql<
+        {
+            id: string;
+            user_id: string;
+            organization_id: string | null;
+            campo: string;
+            valor_atual: string | null;
+            valor_novo: string;
+            status: string;
+        }[]
+    >`
+        SELECT id, user_id, organization_id, campo, valor_atual, valor_novo, status
+        FROM pedidos_alteracao_perfil
+        WHERE id = ${pedidoId}
+        LIMIT 1
+    `;
+
+    if (!pedido.length || pedido[0].status !== "pendente") {
+        redirect("/admin/pedidos?error=not_found");
+    }
+
+    const { user_id, organization_id, campo, valor_atual, valor_novo } =
+        pedido[0];
+
     try {
-        const pedido = await sql<
-            {
-                id: string;
-                user_id: string;
-                organization_id: string | null;
-                campo: string;
-                valor_atual: string | null;
-                valor_novo: string;
-                status: string;
-            }[]
-        >`
-            SELECT id, user_id, organization_id, campo, valor_atual, valor_novo, status
-            FROM pedidos_alteracao_perfil
-            WHERE id = ${pedidoId}
-            LIMIT 1
-        `;
+        /* ── Atualizar status + aplicar alteração (transação) ─────────── */
+        await sql.begin(async (tx: any) => {
+            await tx`
+                UPDATE pedidos_alteracao_perfil
+                SET status = ${decisao}, updated_at = NOW()
+                WHERE id = ${pedidoId}
+            `;
 
-        if (!pedido.length || pedido[0].status !== "pendente") {
-            redirect("/admin/pedidos?error=not_found");
-        }
-
-        const { user_id, organization_id, campo, valor_novo } = pedido[0];
-
-        await sql`
-            UPDATE pedidos_alteracao_perfil
-            SET status = ${decisao}, updated_at = NOW()
-            WHERE id = ${pedidoId}
-        `;
-
-        // Se aprovado, aplicar a alteração
-        if (decisao === "aprovado") {
-            if (campo === "email") {
-                await sql`
-                    UPDATE users SET email = ${valor_novo}, updated_at = NOW()
-                    WHERE id = ${user_id}
-                `;
-
-                // Sync with Clerk
-                const userData = await sql<
-                    { clerk_user_id: string | null }[]
-                >`SELECT clerk_user_id FROM users WHERE id = ${user_id} LIMIT 1`;
-                const clerkUserId = userData[0]?.clerk_user_id;
-                if (clerkUserId) {
-                    try {
-                        const client = await clerkClient();
-                        await client.emailAddresses.createEmailAddress({
-                            userId: clerkUserId,
-                            emailAddress: valor_novo,
-                        });
-                    } catch (err) {
-                        console.error(
-                            "Falha ao atualizar email no Clerk:",
-                            err,
-                        );
-                    }
+            if (decisao === "aprovado") {
+                if (campo === "email") {
+                    await tx`
+                        UPDATE users SET email = ${valor_novo}, updated_at = NOW()
+                        WHERE id = ${user_id}
+                    `;
+                } else if (campo === "data_nascimento") {
+                    await tx`
+                        UPDATE users SET data_nascimento = ${valor_novo}, updated_at = NOW()
+                        WHERE id = ${user_id}
+                    `;
                 }
-            } else if (campo === "data_nascimento") {
-                await sql`
-                    UPDATE users SET data_nascimento = ${valor_novo}, updated_at = NOW()
-                    WHERE id = ${user_id}
+            }
+
+            // Notificação in-app
+            const campoLabel: Record<string, string> = {
+                email: "email",
+                data_nascimento: "data de nascimento",
+            };
+            const titulo =
+                decisao === "aprovado"
+                    ? "Alteração Aprovada"
+                    : "Alteração Rejeitada";
+            const descricao =
+                decisao === "aprovado"
+                    ? `A alteração do campo ${campoLabel[campo] || campo} foi aprovada e aplicada.`
+                    : `A alteração do campo ${campoLabel[campo] || campo} foi rejeitada pelo administrador.`;
+
+            if (organization_id) {
+                await ensureRecipientUserIdColumn(tx);
+                await tx`
+                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                    VALUES (gen_random_uuid(), ${organization_id}, ${user_id}, ${titulo}, ${descricao}, 'Aviso', false, NOW())
                 `;
             }
-        }
+        });
 
-        // Notificar o utilizador
-        const campoLabel: Record<string, string> = {
-            email: "email",
-            data_nascimento: "data de nascimento",
-        };
-        const titulo =
-            decisao === "aprovado"
-                ? "Alteração Aprovada"
-                : "Alteração Rejeitada";
-        const descricao =
-            decisao === "aprovado"
-                ? `A alteração do campo ${campoLabel[campo] || campo} foi aprovada e aplicada.`
-                : `A alteração do campo ${campoLabel[campo] || campo} foi rejeitada pelo administrador.`;
-
-        if (organization_id) {
-            await ensureRecipientUserIdColumn(sql);
-            await sql`
-                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
-                VALUES (gen_random_uuid(), ${organization_id}, ${user_id}, ${titulo}, ${descricao}, 'Aviso', false, NOW())
-            `;
-        }
-
-        // Audit log
+        // Audit log (fora da transação — não é crítico)
         await ensureAdminTables();
         const metadata: JSONValue = JSON.parse(
             JSON.stringify({
@@ -1194,6 +1178,124 @@ export async function adminResolvePedidoPerfilAction(
                 ${sql.json(metadata)}
             )
         `;
+
+        /* ── Clerk sync + e-mail de convite (só para alteração de email aprovada) */
+        if (decisao === "aprovado" && campo === "email") {
+            // 1. Atualizar e-mail no Clerk (criar novo, tornar primário, remover antigo)
+            const userData = await sql<
+                { clerk_user_id: string | null }[]
+            >`SELECT clerk_user_id FROM users WHERE id = ${user_id} LIMIT 1`;
+            const clerkUserId = userData[0]?.clerk_user_id;
+
+            if (clerkUserId) {
+                try {
+                    const client = await clerkClient();
+                    const clerkUser = await client.users.getUser(clerkUserId);
+
+                    // Criar novo e-mail como verificado + primário
+                    await client.emailAddresses.createEmailAddress({
+                        userId: clerkUserId,
+                        emailAddress: valor_novo,
+                        verified: true,
+                        primary: true,
+                    });
+
+                    // Remover o e-mail antigo
+                    const oldEmailObj = clerkUser.emailAddresses.find(
+                        (e) =>
+                            e.emailAddress === valor_atual &&
+                            e.id !== clerkUser.primaryEmailAddressId,
+                    );
+                    if (oldEmailObj) {
+                        await client.emailAddresses.deleteEmailAddress(
+                            oldEmailObj.id,
+                        );
+                    }
+                } catch (err) {
+                    console.error(
+                        "[PEDIDO_EMAIL] Falha ao atualizar email no Clerk:",
+                        err,
+                    );
+                }
+            }
+
+            // 2. Enviar e-mail de convite com link de login (Resend)
+            try {
+                const { Resend } = await import("resend");
+                const apiKey = process.env.RESEND_API_KEY;
+                if (apiKey) {
+                    const resend = new Resend(apiKey);
+                    const baseUrl =
+                        process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ||
+                        (process.env.VERCEL_URL
+                            ? `https://${process.env.VERCEL_URL}`
+                            : "http://localhost:3000");
+                    const loginUrl = `${baseUrl}/login`;
+
+                    const html = `
+<!DOCTYPE html>
+<html lang="pt">
+<head><meta charset="UTF-8" /></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <tr><td style="background:#1e3a5f;padding:24px 32px;text-align:center;">
+          <img src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png" alt="TeamAction" width="180" style="display:inline-block;max-width:180px;height:auto;" />
+        </td></tr>
+        <tr><td style="padding:32px;">
+          <h2 style="margin:0 0 16px;color:#1e3a5f;font-size:18px;">O seu e-mail foi alterado</h2>
+          <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
+            O administrador da <strong>TeamAction</strong> aprovou a alteração do seu e-mail.
+          </p>
+          <p style="margin:0 0 8px;color:#374151;font-size:15px;line-height:1.6;">
+            <strong>E-mail anterior:</strong> ${valor_atual || "—"}
+          </p>
+          <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">
+            <strong>Novo e-mail:</strong> ${valor_novo}
+          </p>
+          <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">
+            A partir de agora, utilize o seu <strong>novo e-mail</strong> para aceder à plataforma:
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+            <tr><td align="center">
+              <a href="${loginUrl}" target="_blank" style="display:inline-block;background:#1e3a5f;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:8px;">
+                Aceder à TeamAction
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+            Se não solicitou esta alteração, contacte o administrador imediatamente.
+          </p>
+        </td></tr>
+        <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} TeamAction &mdash; Plataforma de Gestão Desportiva</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`.trim();
+
+                    const fromAddress =
+                        process.env.RESEND_FROM_EMAIL ||
+                        "TeamAction <onboarding@resend.dev>";
+
+                    await resend.emails.send({
+                        from: fromAddress,
+                        replyTo: process.env.RESEND_REPLY_TO_EMAIL || undefined,
+                        to: valor_novo,
+                        subject: "O seu e-mail na TeamAction foi alterado",
+                        html,
+                    });
+                }
+            } catch (emailErr) {
+                console.error(
+                    "[PEDIDO_EMAIL] Falha ao enviar notificação por e-mail:",
+                    emailErr,
+                );
+            }
+        }
     } catch (error) {
         console.error(error);
         redirect("/admin/pedidos?error=action");
@@ -1201,7 +1303,9 @@ export async function adminResolvePedidoPerfilAction(
 
     revalidatePath("/admin/pedidos");
     revalidatePath("/dashboard");
-    redirect(`/admin/pedidos?success=${decisao}`);
+    redirect(
+        `/admin/pedidos?success=${decisao}${campo === "email" && decisao === "aprovado" ? "&email_enviado=1" : ""}`,
+    );
 }
 
 // ========================================
