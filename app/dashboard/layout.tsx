@@ -64,17 +64,19 @@ export default async function Layout({
         `;
         const dbUserId = userRows[0]?.id;
 
-        if (dbUserId) {
-            const acceptedRows = await sql<{ id: string }[]>`
-                SELECT id FROM atleta_relacoes_pendentes
-                WHERE alvo_responsavel_user_id = ${dbUserId}
-                  AND relation_kind = 'responsavel'
-                  AND status = 'aceite'
-                LIMIT 1
-            `;
-            if (acceptedRows.length === 0) {
-                redirect("/aguardar-validacao");
-            }
+        if (!dbUserId) {
+            redirect("/aguardar-validacao");
+        }
+
+        const acceptedRows = await sql<{ id: string }[]>`
+            SELECT id FROM atleta_relacoes_pendentes
+            WHERE alvo_responsavel_user_id = ${dbUserId}
+              AND relation_kind = 'responsavel'
+              AND status = 'aceite'
+            LIMIT 1
+        `;
+        if (acceptedRows.length === 0) {
+            redirect("/aguardar-validacao");
         }
     }
 
