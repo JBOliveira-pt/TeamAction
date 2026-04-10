@@ -9,19 +9,30 @@ type Jogo = {
     hora_inicio: string | null;
     equipa_nome: string | null;
     estado: string;
+    is_mine: boolean;
 };
 
 function jogoJaComecou(jogo: Jogo): boolean {
-    // Se tem hora_inicio, usa data+hora para comparar; caso contrário basta o dia ter chegado
-    if (jogo.hora_inicio) {
-        const inicio = new Date(`${jogo.data.slice(0, 10)}T${jogo.hora_inicio.slice(0, 5)}`);
-        return Date.now() >= inicio.getTime();
-    }
     const dia = new Date(jogo.data.slice(0, 10));
     dia.setHours(0, 0, 0, 0);
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return dia <= hoje;
+    const agora = new Date();
+    const hojeMeia = new Date();
+    hojeMeia.setHours(0, 0, 0, 0);
+
+    if (dia > hojeMeia) return false;
+    if (dia < hojeMeia) return true;
+
+    // Mesmo dia — verificar hora_inicio
+    if (jogo.hora_inicio) {
+        const [h, m] = jogo.hora_inicio.slice(0, 5).split(":").map(Number);
+        if (
+            agora.getHours() < h ||
+            (agora.getHours() === h && agora.getMinutes() < m)
+        ) {
+            return false;
+        }
+    }
+    return true;
 }
 
 type Atleta = {
@@ -39,7 +50,8 @@ type Evento = {
 };
 
 const TIPOS_EVENTO = [
-    "Golo",
+    "Golo Feito",
+    "Golo Sofrido",
     "Assistência",
     "Falta",
     "Cartão Amarelo",
@@ -48,18 +60,21 @@ const TIPOS_EVENTO = [
 ];
 
 const TIPO_BADGE: Record<string, string> = {
-    "Golo": "bg-green-600",
-    "Assistência": "bg-blue-600",
-    "Falta": "bg-orange-500",
+    "Golo Feito": "bg-green-600",
+    "Golo Sofrido": "bg-red-500",
+    Assistência: "bg-blue-600",
+    Falta: "bg-orange-500",
     "Cartão Amarelo": "bg-yellow-500",
     "Cartão Vermelho": "bg-red-600",
-    "Substituição": "bg-purple-600",
+    Substituição: "bg-purple-600",
 };
 
 const ESTADO_BADGE: Record<string, string> = {
-    "agendado": "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-    "realizado": "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-    "cancelado": "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+    agendado:
+        "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    realizado:
+        "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    cancelado: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
 };
 
 export default function EstatisticasAoVivo({
@@ -74,17 +89,21 @@ export default function EstatisticasAoVivo({
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+    const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(
+        null,
+    );
 
     const [form, setForm] = useState({
-        tipo: "Golo",
+        tipo: "Golo Feito",
         atleta_id: "",
         minuto: "",
         observacoes: "",
     });
 
     const jogoSelecionado = jogos.find((j) => j.id === jogoId);
-    const podeRegistar = jogoSelecionado ? jogoJaComecou(jogoSelecionado) : false;
+    const jaComecou = jogoSelecionado ? jogoJaComecou(jogoSelecionado) : false;
+    const isMine = jogoSelecionado?.is_mine ?? false;
+    const podeRegistar = jaComecou && isMine;
 
     useEffect(() => {
         if (!jogoId) {
@@ -122,10 +141,15 @@ export default function EstatisticasAoVivo({
             });
             if (!res.ok) throw new Error(await res.text());
             setShowModal(false);
-            setForm({ tipo: "Golo", atleta_id: "", minuto: "", observacoes: "" });
-            const updated = await fetch(`/api/eventos-jogo?jogo_id=${jogoId}`).then((r) =>
-                r.json(),
-            );
+            setForm({
+                tipo: "Golo Feito",
+                atleta_id: "",
+                minuto: "",
+                observacoes: "",
+            });
+            const updated = await fetch(
+                `/api/eventos-jogo?jogo_id=${jogoId}`,
+            ).then((r) => r.json());
             setEventos(Array.isArray(updated) ? updated : []);
             showToast("Evento registado com sucesso.");
         } catch (err: unknown) {
@@ -138,10 +162,13 @@ export default function EstatisticasAoVivo({
         }
     }
 
-    const statsByTipo = TIPOS_EVENTO.reduce<Record<string, number>>((acc, t) => {
-        acc[t] = eventos.filter((e) => e.tipo === t).length;
-        return acc;
-    }, {});
+    const statsByTipo = TIPOS_EVENTO.reduce<Record<string, number>>(
+        (acc, t) => {
+            acc[t] = eventos.filter((e) => e.tipo === t).length;
+            return acc;
+        },
+        {},
+    );
 
     return (
         <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-6">
@@ -161,13 +188,13 @@ export default function EstatisticasAoVivo({
                         Live Stats
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Seleciona um jogo e regista eventos — golos, faltas, cartões e
-                        substituições.
+                        Seleciona um jogo e regista eventos — golos, faltas,
+                        cartões e substituições.
                     </p>
                 </div>
                 <button
                     onClick={() => setShowModal(true)}
-                    disabled={!jogoId || !podeRegistar}
+                    disabled={!podeRegistar}
                     className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
                 >
                     <Plus size={18} /> Registar Evento
@@ -180,7 +207,9 @@ export default function EstatisticasAoVivo({
                     Selecionar Jogo
                 </label>
                 {jogos.length === 0 ? (
-                    <p className="text-sm text-gray-400">Nenhum jogo registado.</p>
+                    <p className="text-sm text-gray-400">
+                        Nenhum jogo registado.
+                    </p>
                 ) : (
                     <select
                         value={jogoId}
@@ -193,17 +222,30 @@ export default function EstatisticasAoVivo({
                                 vs {j.adversario} ·{" "}
                                 {new Date(j.data).toLocaleDateString("pt-PT")}
                                 {j.equipa_nome ? ` · ${j.equipa_nome}` : ""}
+                                {!j.is_mine ? " (adversário)" : ""}
                             </option>
                         ))}
                     </select>
                 )}
-                {jogoSelecionado && !podeRegistar && (
+                {jogoSelecionado && !jaComecou && (
                     <div className="mt-3 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300 text-xs font-medium">
-                        ⏳ Este jogo ainda não começou. O registo de eventos estará disponível a partir de{" "}
+                        ⏳ Este jogo ainda não começou. O registo de eventos
+                        estará disponível a partir de{" "}
                         <strong>
-                            {new Date(jogoSelecionado.data.slice(0, 10)).toLocaleDateString("pt-PT")}
-                            {jogoSelecionado.hora_inicio ? ` às ${jogoSelecionado.hora_inicio.slice(0, 5)}` : ""}
-                        </strong>.
+                            {new Date(
+                                jogoSelecionado.data.slice(0, 10),
+                            ).toLocaleDateString("pt-PT")}
+                            {jogoSelecionado.hora_inicio
+                                ? ` às ${jogoSelecionado.hora_inicio.slice(0, 5)}`
+                                : ""}
+                        </strong>
+                        .
+                    </div>
+                )}
+                {jogoSelecionado && jaComecou && !isMine && (
+                    <div className="mt-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                        👁️ Este jogo foi criado pelo adversário. Pode ver as
+                        estatísticas, mas não pode registar eventos.
                     </div>
                 )}
                 {jogoSelecionado && (
@@ -212,7 +254,9 @@ export default function EstatisticasAoVivo({
                             vs {jogoSelecionado.adversario}
                         </span>
                         <span className="text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-gray-600 dark:text-gray-300">
-                            {new Date(jogoSelecionado.data).toLocaleDateString("pt-PT")}
+                            {new Date(jogoSelecionado.data).toLocaleDateString(
+                                "pt-PT",
+                            )}
                         </span>
                         {jogoSelecionado.equipa_nome && (
                             <span className="text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-gray-600 dark:text-gray-300">
@@ -231,7 +275,7 @@ export default function EstatisticasAoVivo({
             {jogoId && (
                 <>
                     {/* Contadores por tipo */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
                         {TIPOS_EVENTO.map((tipo) => (
                             <div
                                 key={tipo}
@@ -298,7 +342,9 @@ export default function EstatisticasAoVivo({
                                                     {ev.atleta_nome ?? "—"}
                                                 </td>
                                                 <td className="p-3 text-gray-600 dark:text-gray-400">
-                                                    {ev.minuto != null ? `${ev.minuto}'` : "—"}
+                                                    {ev.minuto != null
+                                                        ? `${ev.minuto}'`
+                                                        : "—"}
                                                 </td>
                                                 <td className="p-3 text-gray-500 dark:text-gray-400 text-xs">
                                                     {ev.observacoes ?? "—"}
@@ -328,7 +374,10 @@ export default function EstatisticasAoVivo({
                                 <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
+                        <form
+                            onSubmit={handleSubmit}
+                            className="p-5 flex flex-col gap-4"
+                        >
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Tipo de Evento *
@@ -336,7 +385,10 @@ export default function EstatisticasAoVivo({
                                 <select
                                     value={form.tipo}
                                     onChange={(e) =>
-                                        setForm((f) => ({ ...f, tipo: e.target.value }))
+                                        setForm((f) => ({
+                                            ...f,
+                                            tipo: e.target.value,
+                                        }))
                                     }
                                     required
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
@@ -353,7 +405,10 @@ export default function EstatisticasAoVivo({
                                 <select
                                     value={form.atleta_id}
                                     onChange={(e) =>
-                                        setForm((f) => ({ ...f, atleta_id: e.target.value }))
+                                        setForm((f) => ({
+                                            ...f,
+                                            atleta_id: e.target.value,
+                                        }))
                                     }
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
                                 >
@@ -361,7 +416,9 @@ export default function EstatisticasAoVivo({
                                     {atletas.map((a) => (
                                         <option key={a.id} value={a.id}>
                                             {a.nome}
-                                            {a.numero_camisola ? ` (#${a.numero_camisola})` : ""}
+                                            {a.numero_camisola
+                                                ? ` (#${a.numero_camisola})`
+                                                : ""}
                                         </option>
                                     ))}
                                 </select>
@@ -376,7 +433,10 @@ export default function EstatisticasAoVivo({
                                     max={120}
                                     value={form.minuto}
                                     onChange={(e) =>
-                                        setForm((f) => ({ ...f, minuto: e.target.value }))
+                                        setForm((f) => ({
+                                            ...f,
+                                            minuto: e.target.value,
+                                        }))
                                     }
                                     placeholder="ex: 45"
                                     className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
@@ -389,7 +449,10 @@ export default function EstatisticasAoVivo({
                                 <textarea
                                     value={form.observacoes}
                                     onChange={(e) =>
-                                        setForm((f) => ({ ...f, observacoes: e.target.value }))
+                                        setForm((f) => ({
+                                            ...f,
+                                            observacoes: e.target.value,
+                                        }))
                                     }
                                     rows={2}
                                     placeholder="Notas adicionais..."

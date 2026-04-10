@@ -18,6 +18,8 @@ export async function fetchJogos() {
                 estado: string;
                 equipa_id: string;
                 equipa_nome: string;
+                hora_inicio: string | null;
+                hora_fim: string | null;
             }[]
         >`
             SELECT
@@ -29,6 +31,8 @@ export async function fetchJogos() {
                 jogos.resultado_adv,
                 jogos.estado,
                 jogos.equipa_id,
+                jogos.hora_inicio,
+                jogos.hora_fim,
                 equipas.nome AS equipa_nome
             FROM jogos
             LEFT JOIN equipas ON jogos.equipa_id = equipas.id

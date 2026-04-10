@@ -1,0 +1,49 @@
+export default function Loading() {
+    return (
+        <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 animate-pulse">
+            {/* Header */}
+            <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-2">
+                    <div className="h-7 w-40 rounded-lg bg-gray-200 dark:bg-gray-800" />
+                    <div className="h-4 w-56 rounded bg-gray-200 dark:bg-gray-800" />
+                </div>
+                <div className="h-9 w-36 rounded-lg bg-gray-200 dark:bg-gray-800" />
+            </div>
+
+            {/* Filters: search + category buttons */}
+            <div className="mb-6 flex flex-col md:flex-row gap-3">
+                <div className="h-10 w-full md:w-72 rounded-lg bg-gray-200 dark:bg-gray-800" />
+                <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                            key={i}
+                            className="h-9 w-20 rounded-full bg-gray-200 dark:bg-gray-800"
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Exercise cards grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                        key={i}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-3"
+                    >
+                        <div className="flex items-center gap-2">
+                            <div className="h-5 w-5 rounded bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700" />
+                        </div>
+                        <div className="h-5 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-3 w-full rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="flex items-center justify-between">
+                            <div className="h-3 w-16 rounded bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-5 w-14 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}

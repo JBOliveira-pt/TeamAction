@@ -1089,6 +1089,29 @@ export async function POST(req: Request) {
                     WHERE clerk_user_id = ${userId}
                 `;
             }
+
+            // Rename the trainer's mirror team and set treinador_id
+            const trainerUser = await sql<
+                { id: string; organization_id: string | null }[]
+            >`
+                SELECT id, organization_id FROM users
+                WHERE clerk_user_id = ${userId} LIMIT 1
+            `;
+            const trainerDbUserId = trainerUser[0]?.id;
+            const trainerOrgId = trainerUser[0]?.organization_id;
+
+            if (trainerOrgId) {
+                const teamName = `Equipa de ${fullName}`;
+                await sql`
+                    UPDATE equipas
+                    SET
+                        nome = ${teamName},
+                        treinador_id = ${trainerDbUserId || null},
+                        desporto = ${trainerProfile.modality},
+                        updated_at = NOW()
+                    WHERE organization_id = ${trainerOrgId}
+                `;
+            }
         }
 
         if (hasDataNascimento && hasIdade) {

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import RegistarResultadoModal from "./_components/RegistarResultadoModal.client";
 import ConvocatoriaModal from "./_components/ConvocatoriaModal.client";
+import EditarDataModal from "./_components/EditarDataModal.client";
 
 type Jogo = {
     id: string;
@@ -14,6 +16,8 @@ type Jogo = {
     estado: string;
     equipa_id: string;
     equipa_nome: string;
+    hora_inicio: string | null;
+    hora_fim: string | null;
 };
 
 const estadoStyle: Record<string, string> = {
@@ -46,6 +50,7 @@ function getResultado(j: Jogo) {
 
 export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
     const [filtroEquipa, setFiltroEquipa] = useState("Todas");
+    const router = useRouter();
 
     const equipasUnicas = [
         "Todas",
@@ -118,6 +123,11 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                         "pt-PT",
                                         { day: "2-digit", month: "short" },
                                     )}
+                                    {j.hora_inicio && (
+                                        <span className="ml-1">
+                                            {j.hora_inicio.slice(0, 5)}
+                                        </span>
+                                    )}
                                 </p>
                                 <p className="text-gray-900 dark:text-white font-semibold mt-1">
                                     vs {j.adversario}
@@ -178,6 +188,29 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                         ) : (
                             jogosFiltrados.map((j) => {
                                 const resultado = getResultado(j);
+                                const dataJogo = new Date(j.data);
+                                dataJogo.setHours(0, 0, 0, 0);
+                                const agora = new Date();
+                                const hojeMeia = new Date();
+                                hojeMeia.setHours(0, 0, 0, 0);
+                                let jogoTerminado = false;
+                                if (dataJogo < hojeMeia) {
+                                    jogoTerminado = true;
+                                } else if (
+                                    dataJogo.getTime() === hojeMeia.getTime() &&
+                                    j.hora_fim
+                                ) {
+                                    const [hf, mf] = j.hora_fim
+                                        .split(":")
+                                        .map(Number);
+                                    if (
+                                        agora.getHours() > hf ||
+                                        (agora.getHours() === hf &&
+                                            agora.getMinutes() >= mf)
+                                    ) {
+                                        jogoTerminado = true;
+                                    }
+                                }
                                 return (
                                     <tr
                                         key={j.id}
@@ -192,14 +225,11 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                                     month: "short",
                                                 })}
                                             </span>
-                                            <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">
-                                                {new Date(
-                                                    j.data,
-                                                ).toLocaleTimeString("pt-PT", {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                })}
-                                            </span>
+                                            {j.hora_inicio && (
+                                                <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">
+                                                    {j.hora_inicio.slice(0, 5)}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
                                             {j.adversario}
@@ -217,16 +247,36 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${estadoStyle[j.estado] ?? "bg-slate-500/10 text-slate-400"}`}
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${jogoTerminado && j.estado === "agendado" ? "bg-amber-500/10 text-amber-400" : (estadoStyle[j.estado] ?? "bg-slate-500/10 text-slate-400")}`}
                                             >
-                                                {j.estado}
+                                                {jogoTerminado &&
+                                                j.estado === "agendado"
+                                                    ? "terminado"
+                                                    : j.estado}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
+                                                {j.estado === "agendado" &&
+                                                    !jogoTerminado && (
+                                                        <EditarDataModal
+                                                            jogo={{
+                                                                id: j.id,
+                                                                adversario:
+                                                                    j.adversario,
+                                                                data: j.data,
+                                                                hora_inicio:
+                                                                    j.hora_inicio,
+                                                                hora_fim:
+                                                                    j.hora_fim,
+                                                            }}
+                                                            onSaved={() =>
+                                                                router.refresh()
+                                                            }
+                                                        />
+                                                    )}
                                                 {j.estado !== "cancelado" &&
-                                                    new Date(j.data) <=
-                                                        new Date() && (
+                                                    jogoTerminado && (
                                                         <RegistarResultadoModal
                                                             jogo={{
                                                                 id: j.id,
@@ -237,6 +287,7 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                                         />
                                                     )}
                                                 {j.estado !== "cancelado" &&
+                                                    !jogoTerminado &&
                                                     j.equipa_id && (
                                                         <ConvocatoriaModal
                                                             jogoId={j.id}

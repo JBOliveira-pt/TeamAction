@@ -59,7 +59,12 @@ export default async function EquipaDetailPage({
             ? Math.round((vitorias / jogosRealizados.length) * 100)
             : 0;
 
-    const treinador = staff.find((s) => s.funcao === "treinador");
+    const treinadorPrincipal = staff.find(
+        (s) => s.funcao === "Treinador Principal",
+    );
+    const treinadorNome =
+        equipa.treinador_nome ?? treinadorPrincipal?.nome ?? null;
+    const restStaff = staff.filter((s) => s.id !== treinadorPrincipal?.id);
 
     return (
         <div className="p-6 space-y-6">
@@ -139,19 +144,25 @@ export default async function EquipaDetailPage({
                                     Treinador
                                 </p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
-                                    {equipa.treinador_nome ?? "—"}
+                                    {treinadorNome ?? "—"}
+                                    {treinadorPrincipal &&
+                                        !treinadorPrincipal.user_id && (
+                                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                                                🤖 Fictício
+                                            </span>
+                                        )}
                                 </p>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-400 dark:text-gray-500">
                                     Staff Técnico
                                 </p>
-                                {staff.length === 0 ? (
+                                {restStaff.length === 0 ? (
                                     <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
                                         —
                                     </p>
                                 ) : (
-                                    staff.map((s) => (
+                                    restStaff.map((s) => (
                                         <p
                                             key={s.id}
                                             className="text-sm font-medium text-gray-900 dark:text-white mt-0.5"

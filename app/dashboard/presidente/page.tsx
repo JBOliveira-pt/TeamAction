@@ -101,27 +101,27 @@ export default async function PresidenteDashboard() {
     ];
 
     const atalhos = [
-    {
-        label: "Convidar Atleta",
-        href: "/dashboard/presidente/atletas?new=true",  // ✅
-        icon: "➕",
-    },
-    {
-        label: "Agendar Jogo",
-        href: "/dashboard/presidente/jogos?new=true",    // ✅ já implementado
-        icon: "⚽",
-    },
-    {
-        label: "Nova Equipa",
-        href: "/dashboard/presidente/equipas?new=true",  // ✅
-        icon: "🏅",
-    },
-    {
-        label: "Relatórios",
-        href: "/dashboard/presidente/relatorios",        // sem alteração
-        icon: "📄",
-    },
-];
+        {
+            label: "Convidar Atleta",
+            href: "/dashboard/presidente/atletas?new=true", // ✅
+            icon: "➕",
+        },
+        {
+            label: "Agendar Jogo",
+            href: "/dashboard/presidente/jogos?new=true", // ✅ já implementado
+            icon: "⚽",
+        },
+        {
+            label: "Nova Equipa",
+            href: "/dashboard/presidente/equipas?new=true", // ✅
+            icon: "🏅",
+        },
+        {
+            label: "Relatórios",
+            href: "/dashboard/presidente/relatorios", // sem alteração
+            icon: "📄",
+        },
+    ];
 
     return (
         <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -133,7 +133,7 @@ export default async function PresidenteDashboard() {
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {dashboard.epocaNome
-                            ? `Época ${dashboard.epocaNome} · ${new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" })}`
+                            ? `${dashboard.epocaNome} · ${new Date().toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" })}`
                             : "Sem época ativa"}
                     </p>
                 </div>

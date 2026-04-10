@@ -23,12 +23,16 @@ async function fetchData() {
                 hora_inicio: string | null;
                 equipa_nome: string | null;
                 estado: string;
+                is_mine: boolean;
             }[]
         >`
-            SELECT j.id, j.adversario, j.data::text, j.hora_inicio::text, e.nome AS equipa_nome, j.estado
+            SELECT j.id, j.adversario, j.data::text, j.hora_inicio::text,
+                   e.nome AS equipa_nome, j.estado,
+                   (j.organization_id = ${orgId}) AS is_mine
             FROM jogos j
             LEFT JOIN equipas e ON e.id = j.equipa_id
             WHERE j.organization_id = ${orgId}
+               OR j.mirror_game_id IN (SELECT id FROM jogos WHERE organization_id = ${orgId})
             ORDER BY j.data DESC
             LIMIT 50
         `,

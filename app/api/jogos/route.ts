@@ -33,6 +33,8 @@ export async function GET() {
             equipa_id: string | null;
             equipa_nome: string | null;
             adversario_fake: boolean;
+            hora_inicio: string | null;
+            hora_fim: string | null;
         }[]
     >`
         SELECT
@@ -46,7 +48,9 @@ export async function GET() {
             j.resultado_adv,
             j.equipa_id,
             e.nome AS equipa_nome,
-            (j.adversario_clube_id IS NULL) AS adversario_fake
+            (j.adversario_clube_id IS NULL) AS adversario_fake,
+            j.hora_inicio,
+            j.hora_fim
         FROM jogos j
         LEFT JOIN equipas e ON e.id = j.equipa_id
         WHERE j.organization_id = ${user.organization_id}
@@ -74,6 +78,7 @@ export async function POST(req: NextRequest) {
         hora_inicio?: string;
         hora_fim?: string;
         adversario_org_id?: string | null;
+        visibilidade_publica?: boolean;
     };
 
     if (!body.adversario?.trim() || body.adversario.trim().length < 2)
@@ -116,6 +121,7 @@ export async function POST(req: NextRequest) {
     const horaInicio = body.hora_inicio || null;
     const horaFim = body.hora_fim || null;
     const adversarioClubeId = body.adversario_org_id ?? null;
+    const visibilidadePublica = body.visibilidade_publica === true;
 
     try {
         const rows = await sql<
@@ -144,13 +150,96 @@ export async function POST(req: NextRequest) {
                 ${horaInicio},
                 ${horaFim},
                 'agendado',
-                false,
+                ${visibilidadePublica},
                 ${user.organization_id}
             )
             RETURNING id, adversario, data::text, equipa_id, casa_fora, local, estado, resultado_nos, resultado_adv,
                       (adversario_clube_id IS NULL) AS adversario_fake
         `;
-        return Response.json(rows[0], { status: 201 });
+
+        // ── Jogo espelhado + notificação para equipas pessoais de treinador ──
+        const createdGame = rows[0];
+        if (adversarioClubeId) {
+            // Verificar se o adversário é uma org sem clube (equipa pessoal de treinador)
+            const advClube = await sql`
+                SELECT id FROM clubes WHERE organization_id = ${adversarioClubeId} LIMIT 1
+            `;
+            if (advClube.length === 0) {
+                // É equipa pessoal — buscar equipa + treinador adversário e nome da equipa que criou o jogo
+                const [advEquipa, minhaEquipa] = await Promise.all([
+                    sql<{ id: string; treinador_id: string | null }[]>`
+                        SELECT e.id, e.treinador_id FROM equipas e
+                        WHERE e.organization_id = ${adversarioClubeId} LIMIT 1
+                    `,
+                    sql<{ nome: string }[]>`
+                        SELECT nome FROM equipas WHERE id = ${equipaId} LIMIT 1
+                    `,
+                ]);
+
+                if (advEquipa.length > 0) {
+                    const advEquipaId = advEquipa[0].id;
+                    const advTreinadorId = advEquipa[0].treinador_id;
+                    const nomeMinhaEquipa =
+                        minhaEquipa[0]?.nome ?? "Equipa adversária";
+                    const casaForaMirror =
+                        casaFora === "casa" ? "fora" : "casa";
+
+                    // Criar jogo espelhado na organização adversária
+                    const mirror = await sql<{ id: string }[]>`
+                        INSERT INTO jogos (id, adversario, adversario_clube_id, data, equipa_id, casa_fora, local, hora_inicio, hora_fim, estado, visibilidade_publica, organization_id, mirror_game_id)
+                        VALUES (
+                            gen_random_uuid(),
+                            ${nomeMinhaEquipa},
+                            ${user.organization_id},
+                            ${body.data},
+                            ${advEquipaId},
+                            ${casaForaMirror},
+                            ${local},
+                            ${horaInicio},
+                            ${horaFim},
+                            'agendado',
+                            false,
+                            ${adversarioClubeId},
+                            ${createdGame.id}
+                        )
+                        RETURNING id
+                    `;
+
+                    // Linkar o jogo original ao espelhado
+                    if (mirror.length > 0) {
+                        await sql`
+                            UPDATE jogos SET mirror_game_id = ${mirror[0].id} WHERE id = ${createdGame.id}
+                        `;
+
+                        // Notificar o treinador adversário
+                        if (advTreinadorId) {
+                            const dataFormatada = new Date(
+                                body.data,
+                            ).toLocaleDateString("pt-PT", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                            });
+                            await sql`
+                                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    ${adversarioClubeId},
+                                    ${advTreinadorId},
+                                    ${"Novo jogo agendado"},
+                                    ${`${nomeMinhaEquipa} agendou um jogo contra a tua equipa para ${dataFormatada} (${casaForaMirror === "casa" ? "em casa" : "fora"}).`},
+                                    'jogo',
+                                    false,
+                                    NOW()
+                                )
+                            `;
+                        }
+                    }
+                }
+            }
+        }
+
+        return Response.json(createdGame, { status: 201 });
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[POST /api/jogos]", msg);
