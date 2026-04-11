@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { ASSETS } from "@/app/lib/assets";
 import { LandingNavbar } from "@/app/components/landing-navbar";
+import { ScrollTagline } from "@/app/components/scroll-tagline";
 
 export default function LandingPage() {
     return (
@@ -27,37 +28,51 @@ export default function LandingPage() {
             <LandingNavbar />
 
             {/* --- HERO SECTION --- */}
-            <section className="pt-32 pb-20 px-4">
-                <div className="max-w-7xl mx-auto text-center">
-                    <h1 className="mt-8 text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900">
+            <section className="relative h-screen w-full overflow-hidden">
+                {/* Video background */}
+                <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 h-full w-full object-cover"
+                >
+                    <source src={ASSETS.heroVideo} type="video/mp4" />
+                </video>
+
+                {/* Dark overlay */}
+                <div className="absolute inset-0 bg-black/10" />
+
+                {/* Content */}
+                <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
+                    <Image
+                        src={ASSETS.logoFullWhiteNoBgShadow}
+                        alt="TeamAction"
+                        width={340}
+                        height={82}
+                        className="mb-8 h-auto w-auto max-w-[280px] md:max-w-[340px] drop-shadow-lg"
+                        priority
+                    />
+                    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
                         A gestão esportiva <br />
-                        <span className="text-blue-600 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#27365D] to-blue-700">
                             levada a sério
                         </span>
                     </h1>
-                    <p className="mt-6 text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-                        Planeje treinos, gerencie sua equipa e analise o
-                        desempenho dos seus atletas em uma única plataforma,
-                        simples e intuitiva. Tenha hoje mesmo o futuro da gestão
-                        desportiva na palma de sua mão.
+                    <p className="mt-6 text-xl text-white/85 max-w-2xl mx-auto leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+                        Tenha hoje mesmo o futuro da gestão <br />
+                        desportiva na palma de sua mão
                     </p>
-
-                    {/* Mockup Preview */}
-                    <div className="mt-16 relative mx-auto max-w-5xl">
-                        <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-400 rounded-2xl shadow-2xl border-8 border-white overflow-hidden flex items-center justify-center">
-                            <Layout className="h-20 w-20 text-white/50" />
-                            <p className="absolute bottom-4 right-4 text-white font-mono text-sm bg-black/20 px-3 py-1 rounded">
-                                Visualização do Dashboard (WIP)
-                            </p>
-                        </div>
-                    </div>
                 </div>
             </section>
+
+            {/* --- TAGLINE SCROLL --- */}
+            <ScrollTagline />
 
             {/* --- ROADMAP SECTION --- */}
             <section
                 id="sobre"
-                className="relative py-24 text-white"
+                className="relative py-100 text-white"
                 style={{
                     backgroundImage: `url('${ASSETS.loginBackground}')`,
                     backgroundAttachment: "fixed",
@@ -65,53 +80,7 @@ export default function LandingPage() {
                     backgroundPosition: "center",
                     backgroundRepeat: "no-repeat",
                 }}
-            >
-                {/* overlay escuro para manter legibilidade */}
-                <div className="absolute inset-0 bg-slate-950/50" />
-                <div className="relative max-w-4xl mx-auto px-4">
-                    <h2 className="text-3xl font-bold mb-12 text-center">
-                        Status do Desenvolvimento
-                    </h2>
-                    <div className="space-y-6">
-                        {[
-                            {
-                                task: "Arquitetura Next.js 14 & Tailwind Setup",
-                                done: true,
-                            },
-                            { task: "Sistema de Autenticação", done: true },
-                            {
-                                task: "Módulo de Gerenciamento de Atletas",
-                                done: false,
-                            },
-                            {
-                                task: "Biblioteca de Exercícios (CRUD)",
-                                done: false,
-                            },
-                            { task: "Dashboard de Performance", done: false },
-                        ].map((item, idx) => (
-                            <div
-                                key={idx}
-                                className="flex items-center gap-4 bg-slate-800/50 p-4 rounded-lg border border-slate-700"
-                            >
-                                {item.done ? (
-                                    <CheckCircle2 className="text-green-400 h-6 w-6 shrink-0" />
-                                ) : (
-                                    <div className="h-6 w-6 border-2 border-slate-500 rounded-full shrink-0" />
-                                )}
-                                <span
-                                    className={
-                                        item.done
-                                            ? "text-slate-300 line-through"
-                                            : "text-white"
-                                    }
-                                >
-                                    {item.task}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
+            ></section>
 
             {/* --- FEATURES --- */}
             {/* --- TREINADOR --- */}

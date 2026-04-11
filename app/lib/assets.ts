@@ -1,7 +1,12 @@
 const BASE = process.env.NEXT_PUBLIC_R2_IMAGES_URL;
+const VIDEOS_BASE = process.env.NEXT_PUBLIC_R2_IMAGES_URL?.replace(
+    "teamaction-images",
+    "teamaction-videos",
+);
 
 export const ASSETS = {
     logoFullWhiteNoBg: `${BASE}/LogoTeamAction-Full-White-Nobg.png`,
+    logoFullWhiteNoBgShadow: `${BASE}/LogoTeamAction-Full-White-Nobg-WithShadow.png`,
     logoWhite: `${BASE}/teamaction-logo-white.png`,
     logoBlack: `${BASE}/teamaction-logo-black.png`,
     logoFullWhite: `${BASE}/teamaction-logofull-white.png`,
@@ -9,4 +14,5 @@ export const ASSETS = {
     loginBackground: `${BASE}/teamaction-login-background.png`,
     faviconWhite: `${BASE}/teamaction-favicon-white.ico`,
     faviconBlack: `${BASE}/teamaction-favicon-black.ico`,
+    heroVideo: `${VIDEOS_BASE}/quadra-andebol-loop.mp4`,
 };

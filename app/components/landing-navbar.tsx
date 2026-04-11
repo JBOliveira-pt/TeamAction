@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
     ClipboardList,
-    Dumbbell,
+    Volleyball,
     Building2,
     UserCheck,
     UserPlus,
@@ -16,25 +16,25 @@ import { ASSETS } from "@/app/lib/assets";
 
 const profileLinks = [
     {
-        label: "Treinador",
-        icon: ClipboardList,
-        href: "#treinador",
-        color: "text-blue-500 hover:text-blue-400",
-        bg: "hover:bg-blue-500/10",
-    },
-    {
-        label: "Atleta",
-        icon: Dumbbell,
-        href: "#atleta",
-        color: "text-emerald-500 hover:text-emerald-400",
-        bg: "hover:bg-emerald-500/10",
-    },
-    {
         label: "Presidente",
         icon: Building2,
         href: "#clube",
         color: "text-indigo-500 hover:text-indigo-400",
         bg: "hover:bg-indigo-500/10",
+    },
+    {
+        label: "Treinador",
+        icon: ClipboardList,
+        href: "#treinador",
+        color: "text-emerald-500 hover:text-blue-400",
+        bg: "hover:bg-blue-500/10",
+    },
+    {
+        label: "Atleta",
+        icon: Volleyball,
+        href: "#atleta",
+        color: "text-blue-500 hover:text-emerald-400",
+        bg: "hover:bg-emerald-500/10",
     },
     {
         label: "Responsável",
@@ -68,7 +68,7 @@ export function LandingNavbar() {
             <nav
                 className={`fixed w-full z-50 transition-all duration-700 ease-out ${
                     scrolled
-                        ? "bg-white/60 backdrop-blur-2xl border-b border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.06)]"
+                        ? "bg-white/35 backdrop-blur-xl border-b border-slate-200/50 shadow-[0_4px_24px_rgba(0,0,0,0.08)]"
                         : "bg-transparent border-b border-transparent"
                 }`}
             >
@@ -93,7 +93,7 @@ export function LandingNavbar() {
                         <div className="hidden lg:flex items-center gap-10">
                             {/* Recursos group */}
                             <div className="flex items-center gap-3">
-                                <span className="text-[13px] font-semibold uppercase tracking-widest text-slate-400 select-none">
+                                <span className="text-[13px] font-semibold uppercase tracking-widest text-[#27365D]-100 select-none">
                                     Recursos
                                 </span>
                                 <div className="w-px h-5 bg-slate-300/40" />
@@ -117,7 +117,7 @@ export function LandingNavbar() {
                             {/* Planos */}
                             <a
                                 href="#planos"
-                                className="text-[13px] font-semibold uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors duration-200"
+                                className="text-[13px] font-semibold uppercase tracking-widest text-[#27365D]-100 hover:text-blue-400 transition-colors duration-200"
                             >
                                 Planos
                             </a>
@@ -127,13 +127,13 @@ export function LandingNavbar() {
                         <div className="hidden lg:flex items-center gap-3">
                             <Link
                                 href="/login"
-                                className="px-5 py-2.5 rounded-full text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors duration-200"
+                                className="px-5 py-2.5 rounded-full text-1rem font-semibold text-[#27365D]-100 hover:text-blue-400 transition-colors duration-200"
                             >
                                 Log in
                             </Link>
                             <Link
                                 href="/signup"
-                                className="flex items-center gap-2 px-7 py-2.5 rounded-[0.8rem] text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
+                                className="flex items-center gap-2 px-7 py-2.5 rounded-[0.8rem] text-sm font-semibold bg-blue-800 text-white hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
                             >
                                 <UserPlus className="h-4 w-4" />
                                 Sign up
