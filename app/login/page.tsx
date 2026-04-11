@@ -5,6 +5,7 @@ import RegisterView from "./_components/submit-form";
 import { useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { ASSETS } from "@/app/lib/assets";
 
 function LoginPageContent() {
     const searchParams = useSearchParams();
@@ -52,7 +53,7 @@ function LoginPageContent() {
                 className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
                 style={{
                     backgroundImage:
-                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                        `url('${ASSETS.loginBackground}')`,
                 }}
             >
                 <div className="text-white text-center">
@@ -68,7 +69,7 @@ function LoginPageContent() {
             className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
             style={{
                 backgroundImage:
-                    "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                    `url('${ASSETS.loginBackground}')`,
             }}
         >
             {currentView === "login" && <LoginView setView={handleSetView} />}
@@ -87,7 +88,7 @@ export default function LoginPage() {
                     className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
                     style={{
                         backgroundImage:
-                            "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                            `url('${ASSETS.loginBackground}')`,
                     }}
                 >
                     <div className="text-white">Carregando...</div>

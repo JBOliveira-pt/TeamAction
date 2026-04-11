@@ -4,6 +4,7 @@ import {
     isAdminSessionTokenValid,
 } from "@/app/lib/admin-auth";
 import { createInviteToken } from "@/app/lib/invite-token";
+import { ASSETS } from "@/app/lib/assets";
 
 function getBaseUrl(): string {
     if (process.env.NEXT_PUBLIC_APP_URL) {
@@ -28,7 +29,7 @@ function buildEmailHtml(athleteName: string, inviteUrl: string): string {
           <tr>
             <td style="background:#1e3a5f;padding:24px 32px;text-align:center;">
               <img
-                src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
+                src="${ASSETS.logoFullWhite}"
                 alt="TeamAction"
                 width="180"
                 style="display:inline-block;max-width:180px;height:auto;"

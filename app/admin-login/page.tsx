@@ -4,6 +4,7 @@ import {
     isAdminSessionTokenValid,
 } from "@/app/lib/admin-auth";
 import Image from "next/image";
+import { ASSETS } from "@/app/lib/assets";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -46,14 +47,14 @@ export default async function AdminLoginPage({
             className="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
             style={{
                 backgroundImage:
-                    "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                    `url('${ASSETS.loginBackground}')`,
             }}
         >
             <div className="w-full max-w-md rounded-3xl border border-blue-200/20 bg-slate-950/60 p-6 shadow-[0_24px_64px_-24px_rgba(2,6,23,0.95)] backdrop-blur-xl backdrop-saturate-150">
                 <div className="mb-4 flex items-center justify-center">
                     <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-blue-200/30 bg-slate-950/70 shadow-[0_10px_30px_rgba(15,23,42,0.65)]">
                         <Image
-                            src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
+                            src={ASSETS.logoWhite}
                             alt="TeamAction"
                             width={64}
                             height={64}

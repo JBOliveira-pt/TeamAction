@@ -4,6 +4,7 @@ import { adminLogoutAction } from "@/app/lib/admin-actions";
 import { useTheme } from "@/app/components/theme-provider";
 import { ChevronDown, LogOut, Moon, Sun } from "lucide-react";
 import Image from "next/image";
+import { ASSETS } from "@/app/lib/assets";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 export function AdminHeader() {
@@ -66,8 +67,8 @@ export function AdminHeader() {
                                 <Image
                                     src={
                                         !mounted || theme === "dark"
-                                            ? "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
-                                            : "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-black.png"
+                                            ? ASSETS.logoWhite
+                                            : ASSETS.logoBlack
                                     }
                                     alt="TeamAction"
                                     width={36}

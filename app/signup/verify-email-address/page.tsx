@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { ASSETS } from "@/app/lib/assets";
 
 export default function VerifyEmailPage() {
     const router = useRouter();
@@ -21,7 +22,7 @@ export default function VerifyEmailPage() {
             className="flex min-h-screen items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
             style={{
                 backgroundImage:
-                    "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                    `url('${ASSETS.loginBackground}')`,
             }}
         >
             <div className="text-center text-white">

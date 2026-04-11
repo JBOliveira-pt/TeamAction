@@ -2,6 +2,7 @@
 "use client";
 
 import { DashboardHeader } from "@/app/components/header";
+import { ASSETS } from "@/app/lib/assets";
 import { AccountType } from "@/app/lib/account-type";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -238,7 +239,7 @@ export default function SideNav({ accountType }: SideNavProps) {
             >
                 <div className="flex items-center gap-3 mb-10 px-2">
                     <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
+                        src={ASSETS.logoFullWhite}
                         alt="TeamAction"
                         width={190}
                         height={46}
@@ -246,7 +247,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                         priority
                     />
                     <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-black.png"
+                        src={ASSETS.logoFullBlack}
                         alt="TeamAction"
                         width={190}
                         height={46}

@@ -6,6 +6,7 @@ import {
 } from "@/app/lib/account-type";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { ASSETS } from "@/app/lib/assets";
 import { verifyInviteToken } from "@/app/lib/invite-token";
 import postgres from "postgres";
 
@@ -73,7 +74,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
                     className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
                     style={{
                         backgroundImage:
-                            "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                            `url('${ASSETS.loginBackground}')`,
                     }}
                 />
 
@@ -95,7 +96,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
                 className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
                     backgroundImage:
-                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                        `url('${ASSETS.loginBackground}')`,
                 }}
             />
 

@@ -17,7 +17,11 @@ export default function RootLayout({
 }) {
     return (
         <Providers>
-            <html lang="en" className="h-full" suppressHydrationWarning>
+            <html
+                lang="en"
+                className="h-full scroll-smooth"
+                suppressHydrationWarning
+            >
                 <head>
                     <script
                         dangerouslySetInnerHTML={{
@@ -34,8 +38,8 @@ export default function RootLayout({
                                     // Update favicon based on SYSTEM preferences (not saved theme)
                                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                                     const faviconUrl = prefersDark
-                                        ? 'https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-favicon-white.ico'
-                                        : 'https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-favicon-black.ico';
+                                        ? '${process.env.NEXT_PUBLIC_R2_IMAGES_URL}/teamaction-favicon-white.ico'
+                                        : '${process.env.NEXT_PUBLIC_R2_IMAGES_URL}/teamaction-favicon-black.ico';
                                     
                                     // Remove existing favicons
                                     const existingLinks = document.querySelectorAll("link[rel*='icon']");

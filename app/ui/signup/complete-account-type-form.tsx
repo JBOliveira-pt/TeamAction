@@ -14,6 +14,7 @@ import {
     Volleyball,
 } from "lucide-react";
 import Image from "next/image";
+import { ASSETS } from "@/app/lib/assets";
 import { useRouter } from "next/navigation";
 import { useClerk, useSession } from "@clerk/nextjs";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -1516,7 +1517,7 @@ export default function CompleteAccountTypeForm({
                 <div className="flex items-center gap-3 border-b border-blue-200/20 pb-6">
                     <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-blue-200/30 bg-slate-950/70 shadow-[0_10px_30px_rgba(15,23,42,0.65)]">
                         <Image
-                            src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logo-white.png"
+                            src={ASSETS.logoWhite}
                             width={48}
                             height={48}
                             alt="TeamAction"

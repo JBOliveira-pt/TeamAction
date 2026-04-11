@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import Image from "next/image";
+import { ASSETS } from "@/app/lib/assets";
 import {
     Home,
     Logs,
@@ -59,7 +60,7 @@ export function AdminSideNav() {
             >
                 <div className="mb-10 px-2">
                     <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png"
+                        src={ASSETS.logoFullWhite}
                         alt="TeamAction"
                         width={190}
                         height={46}
@@ -67,7 +68,7 @@ export function AdminSideNav() {
                         priority
                     />
                     <Image
-                        src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-black.png"
+                        src={ASSETS.logoFullBlack}
                         alt="TeamAction"
                         width={190}
                         height={46}

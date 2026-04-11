@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ASSETS } from "@/app/lib/assets";
 
 export function FaviconManager() {
     useEffect(() => {
@@ -10,8 +11,8 @@ export function FaviconManager() {
         // Função para atualizar o favicon baseado nas preferências do sistema
         const updateFavicon = (isDark: boolean) => {
             const faviconUrl = isDark
-                ? "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-favicon-white.ico"
-                : "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-favicon-black.ico";
+                ? ASSETS.faviconWhite
+                : ASSETS.faviconBlack;
 
             // Remove todos os links de favicon existentes
             const existingLinks =

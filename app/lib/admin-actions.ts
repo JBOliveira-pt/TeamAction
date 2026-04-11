@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import postgres, { type JSONValue } from "postgres";
 import { clerkClient } from "@clerk/nextjs/server";
+import { ASSETS } from "@/app/lib/assets";
 import {
     clearAdminSessionCookie,
     createAdminSessionToken,
@@ -1257,7 +1258,7 @@ export async function adminResolvePedidoPerfilAction(
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
         <tr><td style="background:#1e3a5f;padding:24px 32px;text-align:center;">
-          <img src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-logofull-white.png" alt="TeamAction" width="180" style="display:inline-block;max-width:180px;height:auto;" />
+          <img src="${ASSETS.logoFullWhite}" alt="TeamAction" width="180" style="display:inline-block;max-width:180px;height:auto;" />
         </td></tr>
         <tr><td style="padding:32px;">
           <h2 style="margin:0 0 16px;color:#1e3a5f;font-size:18px;">O seu e-mail foi alterado</h2>

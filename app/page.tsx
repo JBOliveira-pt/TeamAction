@@ -17,62 +17,14 @@ import {
     BarChart3,
     ShieldCheck,
 } from "lucide-react";
+import { ASSETS } from "@/app/lib/assets";
+import { LandingNavbar } from "@/app/components/landing-navbar";
 
 export default function LandingPage() {
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
+        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans scroll-smooth">
             {/* --- NAV BAR --- */}
-            <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16 items-center">
-                        <div className="flex items-center gap-2">
-                            <Image
-                                src="https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/LogoTeamAction-Full-White-Nobg.png"
-                                alt="TeamAction"
-                                width={190}
-                                height={46}
-                                className="dark:hidden h-auto w-auto max-w-[190px]"
-                                priority
-                            />
-                        </div>
-                        <div className="hidden md:flex space-x-8 font-medium">
-                            <a
-                                href="#recursos"
-                                className="hover:text-blue-600 transition"
-                            >
-                                Recursos
-                            </a>
-                            <a
-                                href="#sobre"
-                                className="hover:text-blue-600 transition"
-                            >
-                                Sobre
-                            </a>
-                            <a
-                                href="https://github.com/JBOliveira-pt/TeamAction"
-                                target="_blank"
-                                className="flex items-center gap-1 hover:text-blue-600 transition"
-                            >
-                                <Github className="h-4 w-4" /> GitHub
-                            </a>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Link
-                                href="/login"
-                                className="px-5 py-2 rounded-full font-semibold hover:text-blue-700 transition"
-                            >
-                                Log in
-                            </Link>
-                            <Link
-                                href="/signup"
-                                className="bg-blue-600 text-white px-5 py-2 rounded-md font-semibold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
-                            >
-                                Sign up
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <LandingNavbar />
 
             {/* --- HERO SECTION --- */}
             <section className="pt-32 pb-20 px-4">
@@ -108,7 +60,7 @@ export default function LandingPage() {
                 className="relative py-24 text-white"
                 style={{
                     backgroundImage:
-                        "url('https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/teamaction-login-background.png')",
+                        `url('${ASSETS.loginBackground}')`,
                     backgroundAttachment: "fixed",
                     backgroundSize: "cover",
                     backgroundPosition: "center",
@@ -164,7 +116,7 @@ export default function LandingPage() {
 
             {/* --- FEATURES --- */}
             {/* --- TREINADOR --- */}
-            <section id="recursos" className="py-24 bg-white">
+            <section id="treinador" className="py-24 bg-white">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-4xl font-bold">
