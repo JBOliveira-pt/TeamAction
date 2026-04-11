@@ -67,8 +67,7 @@ export default async function AguardarValidacaoPage() {
             <div
                 className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
                 style={{
-                    backgroundImage:
-                        `url('${ASSETS.loginBackground}')`,
+                    backgroundImage: `url('${ASSETS.loginBackground}')`,
                 }}
             />
 

@@ -21,8 +21,7 @@ export default function VerifyEmailPage() {
         <main
             className="flex min-h-screen items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
             style={{
-                backgroundImage:
-                    `url('${ASSETS.loginBackground}')`,
+                backgroundImage: `url('${ASSETS.loginBackground}')`,
             }}
         >
             <div className="text-center text-white">

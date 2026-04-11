@@ -59,8 +59,7 @@ export default function LandingPage() {
                 id="sobre"
                 className="relative py-24 text-white"
                 style={{
-                    backgroundImage:
-                        `url('${ASSETS.loginBackground}')`,
+                    backgroundImage: `url('${ASSETS.loginBackground}')`,
                     backgroundAttachment: "fixed",
                     backgroundSize: "cover",
                     backgroundPosition: "center",

@@ -52,8 +52,7 @@ function LoginPageContent() {
             <main
                 className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
                 style={{
-                    backgroundImage:
-                        `url('${ASSETS.loginBackground}')`,
+                    backgroundImage: `url('${ASSETS.loginBackground}')`,
                 }}
             >
                 <div className="text-white text-center">
@@ -68,8 +67,7 @@ function LoginPageContent() {
         <main
             className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
             style={{
-                backgroundImage:
-                    `url('${ASSETS.loginBackground}')`,
+                backgroundImage: `url('${ASSETS.loginBackground}')`,
             }}
         >
             {currentView === "login" && <LoginView setView={handleSetView} />}
@@ -87,8 +85,7 @@ export default function LoginPage() {
                 <main
                     className="flex min-h-screen items-center justify-center p-4 bg-cover bg-center bg-no-repeat"
                     style={{
-                        backgroundImage:
-                            `url('${ASSETS.loginBackground}')`,
+                        backgroundImage: `url('${ASSETS.loginBackground}')`,
                     }}
                 >
                     <div className="text-white">Carregando...</div>

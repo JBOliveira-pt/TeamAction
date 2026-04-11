@@ -46,8 +46,7 @@ export default async function AdminLoginPage({
         <main
             className="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
             style={{
-                backgroundImage:
-                    `url('${ASSETS.loginBackground}')`,
+                backgroundImage: `url('${ASSETS.loginBackground}')`,
             }}
         >
             <div className="w-full max-w-md rounded-3xl border border-blue-200/20 bg-slate-950/60 p-6 shadow-[0_24px_64px_-24px_rgba(2,6,23,0.95)] backdrop-blur-xl backdrop-saturate-150">
