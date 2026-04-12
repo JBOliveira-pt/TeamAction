@@ -1,19 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check } from "lucide-react";
 
-const lines = [
-    "Gerencia o teu clube",
-    "coordena a tua equipa",
-    "agende jogos e treinos",
-    "analise o desempenho de teus atletas",
-    "tudo em uma plataforma simples e intuitiva",
+const lines: ReactNode[] = [
+    <>Gerencia o teu clube</>,
+    <>Coordena a tua equipa</>,
+    <>Agenda jogos e treinos</>,
+    <>Analisa o desempenho de teus atletas</>,
+    <>Tudo em uma plataforma simples e intuitiva</>,
 ];
 
-function getLineReveal(progress: number, lineIndex: number) {
+function getLineReveal(
+    progress: number,
+    lineIndex: number,
+    totalLines: number,
+) {
     const stagger = 0.1;
-    const offset = lineIndex * stagger;
+    const isLast = lineIndex === totalLines - 1;
+    const extraDelay = isLast ? 0.15 : 0;
+    const offset = lineIndex * stagger + extraDelay;
     const p = progress - offset;
 
     const revealStart = 0.0;
@@ -34,7 +40,7 @@ function CheckDrawn({ visible }: { visible: boolean }) {
             }}
         >
             <Check
-                className="w-8 h-8 text-gray-800"
+                className="w-8 h-8 text-green-500"
                 strokeWidth={3}
                 style={{
                     strokeDasharray: 50,
@@ -63,13 +69,13 @@ export function ScrollTagline() {
 
             // A distância total conta desde que o topo entra no fundo (vh)
             // até que o wrapper termine o seu percurso.
-            const totalDistance = rect.height;
+            const totalDistance = rect.height * 0.5;
 
             const startOffset = vh * 0.1;
             const traveled = vh - rect.top - startOffset;
 
             const raw = traveled / totalDistance;
-            setProgress(Math.max(0, Math.min(1, raw)));
+            setProgress(Math.max(0, Math.min(2, raw)));
 
             // Track ball center relative to the sticky section
             const section = sectionRef.current;
@@ -93,18 +99,18 @@ export function ScrollTagline() {
     // and translates down as scroll progresses, exiting through the bottom
     // Ball appears later (starts at 15% progress) and moves slower
     const ballProgress = Math.max(0, (progress - 0.15) / 0.85);
-    const videoTranslateY = ballProgress * 130; // percentage of viewport height
+    const videoTranslateY = ballProgress * 120; // percentage of viewport height
 
     return (
         // Tall wrapper creates the scroll runway; content sticks inside it
-        <div ref={wrapperRef} className="relative" style={{ height: "400vh" }}>
+        <div ref={wrapperRef} className="relative" style={{ height: "1000vh" }}>
             <section
                 ref={sectionRef}
                 className="sticky top-0 h-screen bg-white overflow-hidden flex items-center"
             >
-                <div className="w-full max-w-[60vw] pl-8 sm:pl-12 md:pl-20">
+                <div className="w-full max-w-[45vw] pl-8 sm:pl-12 md:pl-40">
                     {lines.map((line, i) => {
-                        const t = getLineReveal(progress, i);
+                        const t = getLineReveal(progress, i, lines.length);
                         const eased =
                             t < 0.5
                                 ? 4 * t * t * t
@@ -122,10 +128,11 @@ export function ScrollTagline() {
                                     <CheckDrawn visible={showCheck} />
                                 )}
                                 <p
-                                    className="text-5xl md:text-5xl font-extrabold uppercase tracking-[0.1rem] leading-[1.15] text-slate-900 will-change-transform"
+                                    className="text-5xl md:text-5xl font-extrabold tracking-[0rem] leading-[1.01] text-slate-900 will-change-transform drop-shadow-[0_4px_24px_rgba(15,23,42,0.12)]"
                                     style={{
                                         opacity: eased,
                                         transform: `translateY(${100 * (1 - eased)}%)`,
+                                        fontVariant: "small-caps",
                                     }}
                                 >
                                     {line}
@@ -139,7 +146,7 @@ export function ScrollTagline() {
                 <div
                     className="absolute inset-0 pointer-events-none z-10"
                     style={{
-                        background: `radial-gradient(circle 1000px at ${ballCenter.x}px ${ballCenter.y}px, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 40%, rgba(255,255,255,0) 70%)`,
+                        background: `radial-gradient(circle 700px at ${ballCenter.x}px ${ballCenter.y}px, rgba(255, 255, 255, 0.75) 99%, rgba(255,255,255,0) 100%)`,
                     }}
                 />
 

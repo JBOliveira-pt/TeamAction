@@ -15,4 +15,6 @@ export const ASSETS = {
     faviconWhite: `${BASE}/teamaction-favicon-white.ico`,
     faviconBlack: `${BASE}/teamaction-favicon-black.ico`,
     heroVideo: `${VIDEOS_BASE}/quadra-andebol-loop.mp4`,
+    mosaicoFotos: `${BASE}/mosaico-fotosevideo.png`,
+    mosaicoVideo: `${VIDEOS_BASE}/segurandobola-andebol.mp4`,
 };
