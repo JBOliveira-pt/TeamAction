@@ -1,10 +1,15 @@
 // Componente perfil unificado.
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { fetchMeuPerfil, fetchPerfilAtletaGeral } from "@/app/lib/data";
+import {
+    fetchMeuPerfil,
+    fetchPerfilAtletaGeral,
+    fetchCursoTreinador,
+} from "@/app/lib/data";
 import { fetchPedidosAlteracaoPerfil } from "@/app/lib/actions/pedidos-perfil";
 import PerfilInlineEditor from "@/app/ui/components/editar-perfil-modal";
 import AvatarUploader from "@/app/ui/components/avatar-uploader";
+import CursoTreinadorCard from "@/app/ui/components/curso-treinador-card";
 import Image from "next/image";
 import { ShieldCheck, ShieldAlert, Mail, UserCheck } from "lucide-react";
 import InfoDesportivaCard from "@/app/ui/components/info-desportiva-card";
@@ -55,6 +60,12 @@ export default async function PerfilUnificadoPage() {
             ? await fetchPerfilAtletaGeral()
             : null;
 
+    // Dados específicos do treinador (curso)
+    const cursoTreinador =
+        perfil.account_type === "treinador"
+            ? await fetchCursoTreinador()
+            : null;
+
     const isMinorAthlete = !!atletaData?.user?.menor_idade;
 
     return (
@@ -88,6 +99,11 @@ export default async function PerfilUnificadoPage() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Card específico do Treinador ── */}
+            {perfil.account_type === "treinador" && (
+                <CursoTreinadorCard cursoAtual={cursoTreinador} />
+            )}
 
             {/* ── Cards específicos do Atleta ── */}
             {perfil.account_type === "atleta" && atletaData && (

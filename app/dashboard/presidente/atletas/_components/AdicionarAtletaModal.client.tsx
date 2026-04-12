@@ -114,6 +114,20 @@ export default function AdicionarAtletaModal({
                                 />
                             </div>
 
+                            {/* Data de Nascimento */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    Data de Nascimento{" "}
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    name="data_nascimento"
+                                    type="date"
+                                    required
+                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                />
+                            </div>
+
                             {/* Equipa + Estado */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">

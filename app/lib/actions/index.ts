@@ -28,6 +28,7 @@ export { editarRegistoMedico } from "./notas-medico";
 export { apagarRegistoMedico } from "./notas-medico";
 export { atualizarPerfilAtleta } from "./perfil";
 export { atualizarPerfilTreinador } from "./perfil";
+export { atualizarCursoTreinador } from "./perfil";
 export { aprovarPerfilAtleta } from "./perfil";
 export { atualizarMeuPerfil } from "./perfil";
 export { atualizarInfoDesportiva } from "./perfil";

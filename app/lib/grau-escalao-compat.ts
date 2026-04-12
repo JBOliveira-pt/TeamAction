@@ -60,3 +60,38 @@ export function isEscalaoPermitido(
 ): boolean {
     return getEscaloesPermitidos(grauId).includes(escalaoNome);
 }
+
+// ── Regras de idade por escalão ──
+
+/** Idade máxima (exclusiva) para cada escalão. null = sem limite. */
+const ESCALAO_IDADE_MAX: Record<string, number | null> = {
+    "Sub-8": 8,
+    "Sub-10": 10,
+    "Sub-12": 12,
+    "Sub-14": 14,
+    "Sub-16": 16,
+    "Sub-18": 18,
+    "Sub-20": 20,
+    Juniores: 21,
+    Seniores: null,
+};
+
+/** Retorna a idade máxima exclusiva para um escalão, ou null (sem limite). */
+export function getIdadeMaximaEscalao(escalao: string): number | null {
+    return ESCALAO_IDADE_MAX[escalao] ?? null;
+}
+
+/** Verifica se uma idade é permitida para o escalão (idade < limite). */
+export function isIdadePermitidaEscalao(
+    idade: number,
+    escalao: string,
+): boolean {
+    const limite = getIdadeMaximaEscalao(escalao);
+    if (limite === null) return true; // Seniores — sem limite
+    return idade < limite;
+}
+
+/** Limites de composição de equipa. */
+export const MAX_ATLETAS_POR_EQUIPA = 14;
+export const MIN_JOGADORES_CAMPO = 6;
+export const MIN_GUARDA_REDES = 1;

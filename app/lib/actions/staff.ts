@@ -86,6 +86,11 @@ export async function adicionarMembro(
                     error: `O grau técnico deste treinador não permite treinar no escalão ${equipaRow.escalao}.`,
                 };
             }
+        } else if (funcao === "Treinador Principal") {
+            // Treinador sem curso registado não pode ser Treinador Principal
+            return {
+                error: "Treinadores sem curso registado só podem ser adicionados como Treinador Adjunto.",
+            };
         }
     }
 
@@ -256,6 +261,18 @@ export async function editarMembro(
         if (jaExiste) {
             return {
                 error: `Esta equipa já tem um ${funcao}. Remove o atual antes de adicionar outro.`,
+            };
+        }
+    }
+
+    // Validação: Treinador Principal real exige curso registado
+    if (funcao === "Treinador Principal" && isTreinador && userIdStaff) {
+        const [temCurso] = await sql<{ id: string }[]>`
+            SELECT uc.id FROM user_cursos uc WHERE uc.user_id = ${userIdStaff} LIMIT 1
+        `;
+        if (!temCurso) {
+            return {
+                error: "Treinadores sem curso registado só podem ser Treinador Adjunto.",
             };
         }
     }

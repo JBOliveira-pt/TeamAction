@@ -48,6 +48,8 @@ export type { AutorizacaoAtleta } from "./atleta-dados";
 export { fetchAtletaFederado } from "./atleta-dados";
 export { fetchMensalidadesAtleta } from "./atleta-dados";
 export { fetchPerfilAtletaGeral } from "./atletas";
+export { fetchCursoTreinador } from "./perfil";
+export type { CursoTreinador } from "./perfil";
 export { fetchAtletaDoResponsavel } from "./atletas";
 export { fetchEscaloes } from "./organizacao";
 export { fetchDesportoOrg } from "./organizacao";

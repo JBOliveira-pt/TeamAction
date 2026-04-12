@@ -17,6 +17,11 @@ type Jogo = {
     equipa_nome: string;
     hora_inicio: string | null;
     hora_fim: string | null;
+    adversario_fake?: boolean;
+    mirror_game_id?: string | null;
+    resposta_adversario?: string | null;
+    proposta_data?: string | null;
+    proposta_hora?: string | null;
 };
 
 type Equipa = { id: string; nome: string };

@@ -52,6 +52,30 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
     const [erro, setErro] = useState("");
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Treinador real encontrado mas sem cursos registados
+    const treinadorSemCurso =
+        !loadingEscaloes &&
+        !!emailResult?.existe &&
+        emailResult.account_type === "treinador" &&
+        escaloesTreinador.length === 0;
+
+    // Forçar "Treinador Adjunto" quando treinador não tem curso
+    useEffect(() => {
+        if (treinadorSemCurso && funcao !== "Treinador Adjunto") {
+            setFuncao("Treinador Adjunto");
+        }
+    }, [treinadorSemCurso, funcao]);
+
+    // Opções de função (restringir a Adjunto se sem curso)
+    const funcaoOptions = useMemo(() => {
+        if (treinadorSemCurso) {
+            return FUNCOES_TREINADOR.filter(
+                (f) => f.value === "Treinador Adjunto",
+            );
+        }
+        return FUNCOES_TREINADOR;
+    }, [treinadorSemCurso]);
+
     // Equipas filtradas pelo grau técnico (fake) ou escalões do treinador (real)
     const equipasFiltradas = useMemo(() => {
         // Para treinadores fictícios: filtrar por grau selecionado
@@ -252,7 +276,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                 onChange={(e) => setFuncao(e.target.value)}
                 className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
             >
-                {FUNCOES_TREINADOR.map((f) => (
+                {funcaoOptions.map((f) => (
                     <option key={f.value} value={f.value}>
                         {f.label}
                     </option>
@@ -627,17 +651,24 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                                                 ⚠️ Este
                                                                 treinador não
                                                                 tem cursos
-                                                                registados na
-                                                                plataforma.
+                                                                registados. Só
+                                                                pode ser
+                                                                adicionado como{" "}
+                                                                <strong>
+                                                                    Treinador
+                                                                    Adjunto
+                                                                </strong>
+                                                                .
                                                             </p>
                                                         )}
                                                     </div>
                                                 )}
 
-                                                {/* Equipa selector — filtrada por curso */}
+                                                {/* Equipa selector — filtrada por curso, ou todas para adjunto sem curso */}
                                                 {!loadingEscaloes &&
-                                                    escaloesTreinador.length >
-                                                        0 && (
+                                                    (escaloesTreinador.length >
+                                                        0 ||
+                                                        treinadorSemCurso) && (
                                                         <div className="space-y-1">
                                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                                                 Equipa{" "}

@@ -36,6 +36,10 @@ export async function GET() {
             adversario_fake: boolean;
             hora_inicio: string | null;
             hora_fim: string | null;
+            mirror_game_id: string | null;
+            resposta_adversario: string | null;
+            proposta_data: string | null;
+            proposta_hora: string | null;
         }[]
     >`
         SELECT
@@ -51,7 +55,11 @@ export async function GET() {
             e.nome AS equipa_nome,
             (j.adversario_clube_id IS NULL) AS adversario_fake,
             j.hora_inicio,
-            j.hora_fim
+            j.hora_fim,
+            j.mirror_game_id,
+            j.resposta_adversario,
+            j.proposta_data::text,
+            j.proposta_hora
         FROM jogos j
         LEFT JOIN equipas e ON e.id = j.equipa_id
         WHERE j.organization_id = ${user.organization_id}
@@ -158,77 +166,112 @@ export async function POST(req: NextRequest) {
                       (adversario_clube_id IS NULL) AS adversario_fake
         `;
 
-        // ── Jogo espelhado + notificação para equipas pessoais de treinador ──
+        // ── Jogo espelhado + notificação para adversários na plataforma ──
         const createdGame = rows[0];
         if (adversarioClubeId) {
-            // Verificar se o adversário é uma org sem clube (equipa pessoal de treinador)
-            const advClube = await sql`
-                SELECT id FROM clubes WHERE organization_id = ${adversarioClubeId} LIMIT 1
-            `;
-            if (advClube.length === 0) {
-                // É equipa pessoal — buscar equipa + treinador adversário e nome da equipa que criou o jogo
-                const [advEquipa, minhaEquipa] = await Promise.all([
-                    sql<{ id: string; treinador_id: string | null }[]>`
-                        SELECT e.id, e.treinador_id FROM equipas e
-                        WHERE e.organization_id = ${adversarioClubeId} LIMIT 1
-                    `,
-                    sql<{ nome: string }[]>`
-                        SELECT nome FROM equipas WHERE id = ${equipaId} LIMIT 1
-                    `,
+            // Buscar info do adversário: equipa, treinador, clube (se houver)
+            const [advEquipas, minhaEquipa, advClubeRows, meuClubeRows] =
+                await Promise.all([
+                    sql<
+                        { id: string; treinador_id: string | null }[]
+                    >`SELECT id, treinador_id FROM equipas WHERE organization_id = ${adversarioClubeId} LIMIT 1`,
+                    sql<
+                        { nome: string }[]
+                    >`SELECT nome FROM equipas WHERE id = ${equipaId} LIMIT 1`,
+                    sql<
+                        { nome: string }[]
+                    >`SELECT nome FROM clubes WHERE organization_id = ${adversarioClubeId} LIMIT 1`,
+                    sql<
+                        { nome: string }[]
+                    >`SELECT nome FROM clubes WHERE organization_id = ${user.organization_id} LIMIT 1`,
                 ]);
 
-                if (advEquipa.length > 0) {
-                    const advEquipaId = advEquipa[0].id;
-                    const advTreinadorId = advEquipa[0].treinador_id;
-                    const nomeMinhaEquipa =
-                        minhaEquipa[0]?.nome ?? "Equipa adversária";
-                    const casaForaMirror =
-                        casaFora === "casa" ? "fora" : "casa";
+            if (advEquipas.length > 0) {
+                const advEquipaId = advEquipas[0].id;
+                const advTreinadorId = advEquipas[0].treinador_id;
+                const nomeMinhaEquipa =
+                    minhaEquipa[0]?.nome ?? "Equipa adversária";
+                const nomeMeuClube = meuClubeRows[0]?.nome ?? null;
+                const casaForaMirror = casaFora === "casa" ? "fora" : "casa";
 
-                    // Criar jogo espelhado na organização adversária
-                    const mirror = await sql<{ id: string }[]>`
-                        INSERT INTO jogos (id, adversario, adversario_clube_id, data, equipa_id, casa_fora, local, hora_inicio, hora_fim, estado, visibilidade_publica, organization_id, mirror_game_id)
-                        VALUES (
-                            gen_random_uuid(),
-                            ${nomeMinhaEquipa},
-                            ${user.organization_id},
-                            ${body.data},
-                            ${advEquipaId},
-                            ${casaForaMirror},
-                            ${local},
-                            ${horaInicio},
-                            ${horaFim},
-                            'agendado',
-                            false,
-                            ${adversarioClubeId},
-                            ${createdGame.id}
-                        )
-                        RETURNING id
+                // Criar jogo espelhado na organização adversária
+                const mirror = await sql<{ id: string }[]>`
+                    INSERT INTO jogos (id, adversario, adversario_clube_id, data, equipa_id, casa_fora, local, hora_inicio, hora_fim, estado, visibilidade_publica, organization_id, mirror_game_id, resposta_adversario)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${nomeMeuClube ? `${nomeMinhaEquipa} (${nomeMeuClube})` : nomeMinhaEquipa},
+                        ${user.organization_id},
+                        ${body.data},
+                        ${advEquipaId},
+                        ${casaForaMirror},
+                        ${local},
+                        ${horaInicio},
+                        ${horaFim},
+                        'agendado',
+                        false,
+                        ${adversarioClubeId},
+                        ${createdGame.id},
+                        'pendente'
+                    )
+                    RETURNING id
+                `;
+
+                // Linkar o jogo original ao espelhado + marcar resposta pendente no original
+                if (mirror.length > 0) {
+                    await sql`
+                        UPDATE jogos SET mirror_game_id = ${mirror[0].id}, resposta_adversario = 'pendente' WHERE id = ${createdGame.id}
                     `;
 
-                    // Linkar o jogo original ao espelhado
-                    if (mirror.length > 0) {
-                        await sql`
-                            UPDATE jogos SET mirror_game_id = ${mirror[0].id} WHERE id = ${createdGame.id}
-                        `;
+                    // Notificar: treinador adversário + presidente adversário (se clube)
+                    const dataFormatada = new Date(
+                        body.data,
+                    ).toLocaleDateString("pt-PT", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                    });
+                    const nomeComClube = nomeMeuClube
+                        ? `${nomeMinhaEquipa} (${nomeMeuClube})`
+                        : nomeMinhaEquipa;
+                    const descricao = `${nomeComClube} agendou um jogo contra a tua equipa para ${dataFormatada} (${casaForaMirror === "casa" ? "em casa" : "fora"}). Consulta os teus jogos para concordar, discordar ou propor outra data.`;
 
-                        // Notificar o treinador adversário
-                        if (advTreinadorId) {
-                            const dataFormatada = new Date(
-                                body.data,
-                            ).toLocaleDateString("pt-PT", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                            });
+                    // Notificar treinador
+                    if (advTreinadorId) {
+                        await sql`
+                            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                            VALUES (
+                                gen_random_uuid(),
+                                ${adversarioClubeId},
+                                ${advTreinadorId},
+                                ${"Novo jogo agendado — resposta necessária"},
+                                ${descricao},
+                                'jogo',
+                                false,
+                                NOW()
+                            )
+                        `;
+                    }
+
+                    // Se adversário é clube, notificar também o presidente
+                    if (advClubeRows.length > 0) {
+                        const presRows = await sql<{ id: string }[]>`
+                            SELECT u.id FROM users u
+                            WHERE u.organization_id = ${adversarioClubeId}
+                              AND u.account_type = 'presidente'
+                            LIMIT 1
+                        `;
+                        if (
+                            presRows.length > 0 &&
+                            presRows[0].id !== advTreinadorId
+                        ) {
                             await sql`
                                 INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                                 VALUES (
                                     gen_random_uuid(),
                                     ${adversarioClubeId},
-                                    ${advTreinadorId},
-                                    ${"Novo jogo agendado"},
-                                    ${`${nomeMinhaEquipa} agendou um jogo contra a tua equipa para ${dataFormatada} (${casaForaMirror === "casa" ? "em casa" : "fora"}).`},
+                                    ${presRows[0].id},
+                                    ${"Novo jogo agendado — resposta necessária"},
+                                    ${descricao},
                                     'jogo',
                                     false,
                                     NOW()

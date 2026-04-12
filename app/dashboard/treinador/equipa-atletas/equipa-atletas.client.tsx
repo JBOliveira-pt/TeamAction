@@ -504,6 +504,7 @@ function ModalCriarAtleta({
 
     // Formulário atleta fictício
     const [nome, setNome] = useState("");
+    const [dataNascimento, setDataNascimento] = useState("");
     const [posicao, setPosicao] = useState("");
     const [numeroCamisola, setNumeroCamisola] = useState("");
     const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
@@ -562,6 +563,10 @@ function ModalCriarAtleta({
             setErro("O nome é obrigatório.");
             return;
         }
+        if (!comEmail && !dataNascimento) {
+            setErro("A data de nascimento é obrigatória.");
+            return;
+        }
         setErro("");
         setEnviando(true);
         const equipa = equipas.find((e) => e.id === equipaId);
@@ -578,6 +583,7 @@ function ModalCriarAtleta({
                 equipa_nome: equipa?.nome ?? null,
                 email: comEmail ? email.trim() : null,
                 mao_dominante: maoDominante || null,
+                data_nascimento: dataNascimento || null,
             }),
         });
         setEnviando(false);
@@ -733,6 +739,21 @@ function ModalCriarAtleta({
                                     placeholder="Ex: João Silva"
                                     value={nome}
                                     onChange={(e) => setNome(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Data de Nascimento{" "}
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    value={dataNascimento}
+                                    onChange={(e) =>
+                                        setDataNascimento(e.target.value)
+                                    }
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-3">

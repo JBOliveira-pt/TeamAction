@@ -203,6 +203,59 @@ export async function atualizarPerfilTreinador(
     return { success: true };
 }
 
+export async function atualizarCursoTreinador(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) return { error: "Não autenticado." };
+
+    const modalityId = parseInt(
+        formData.get("modality_id")?.toString() ?? "",
+        10,
+    );
+    const levelId = parseInt(formData.get("level_id")?.toString() ?? "", 10);
+
+    if (!modalityId || !levelId) {
+        return { error: "Modalidade e grau técnico são obrigatórios." };
+    }
+
+    try {
+        // Verificar que o curso (combinação modalidade + grau) existe
+        const [curso] = await sql<{ id: string }[]>`
+            SELECT id FROM cursos
+            WHERE modality_id = ${modalityId} AND level_id = ${levelId}
+            LIMIT 1
+        `;
+        if (!curso) {
+            return {
+                error: "Combinação de modalidade e grau técnico inválida.",
+            };
+        }
+
+        // Obter user.id e organization_id
+        const [user] = await sql<{ id: string; organization_id: string }[]>`
+            SELECT id, organization_id FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
+        `;
+        if (!user) return { error: "Utilizador não encontrado." };
+        if (!user.organization_id)
+            return { error: "Organização não encontrada." };
+
+        // Remover cursos anteriores e inserir o novo (um treinador = um curso ativo)
+        await sql`DELETE FROM user_cursos WHERE user_id = ${user.id}`;
+        await sql`
+            INSERT INTO user_cursos (id, user_id, curso_id, organization_id, created_at)
+            VALUES (gen_random_uuid(), ${user.id}, ${curso.id}, ${user.organization_id}, NOW())
+        `;
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao atualizar curso." };
+    }
+
+    revalidatePath("/dashboard/treinador/perfil");
+    return { success: true };
+}
+
 export async function aprovarPerfilAtleta(
     minorUserId: string,
 ): Promise<{ error?: string } | null> {

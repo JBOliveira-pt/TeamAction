@@ -2,6 +2,11 @@
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
+import {
+    isIdadePermitidaEscalao,
+    getIdadeMaximaEscalao,
+    MAX_ATLETAS_POR_EQUIPA,
+} from "@/app/lib/grau-escalao-compat";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -108,6 +113,88 @@ export async function PUT(
 
     // Se aceite, atribuir atleta à equipa
     if (body.estado === "aceite" && convite.equipa_id) {
+        // Validar: atleta não pode pertencer a outra equipa
+        const [atletaEquipa] = await sql<
+            {
+                equipa_id: string | null;
+                user_id: string | null;
+                data_nascimento: string | null;
+            }[]
+        >`
+            SELECT equipa_id, user_id, data_nascimento FROM atletas WHERE id = ${convite.atleta_id} LIMIT 1
+        `;
+        if (
+            atletaEquipa?.equipa_id &&
+            atletaEquipa.equipa_id !== convite.equipa_id
+        ) {
+            await sql`
+                UPDATE convites_equipa SET estado = 'pendente', updated_at = NOW() WHERE id = ${id}
+            `;
+            return new Response(
+                "Este atleta já pertence a outra equipa. Tem de ser removido da equipa atual primeiro.",
+                { status: 409 },
+            );
+        }
+
+        // Validar: máximo de atletas na equipa (14)
+        const [countRow] = await sql<{ total: number }[]>`
+            SELECT COUNT(*)::int AS total FROM atletas WHERE equipa_id = ${convite.equipa_id}
+        `;
+        if ((countRow?.total ?? 0) >= MAX_ATLETAS_POR_EQUIPA) {
+            await sql`
+                UPDATE convites_equipa SET estado = 'pendente', updated_at = NOW() WHERE id = ${id}
+            `;
+            return new Response(
+                `Esta equipa já tem o máximo de ${MAX_ATLETAS_POR_EQUIPA} atletas.`,
+                { status: 409 },
+            );
+        }
+
+        // Validar: idade compatível com o escalão
+        let idadeAtleta: number | null = null;
+
+        if (atletaEquipa?.user_id) {
+            // Atleta real — buscar data_nascimento da tabela users
+            const [userRow] = await sql<{ data_nascimento: string | null }[]>`
+                SELECT data_nascimento FROM users WHERE id = ${atletaEquipa.user_id} LIMIT 1
+            `;
+            if (userRow?.data_nascimento) {
+                const birth = new Date(userRow.data_nascimento);
+                const today = new Date();
+                idadeAtleta = today.getFullYear() - birth.getFullYear();
+                const m = today.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+                    idadeAtleta--;
+            }
+        } else if (atletaEquipa?.data_nascimento) {
+            // Atleta fake — usar data_nascimento da tabela atletas
+            const birth = new Date(atletaEquipa.data_nascimento);
+            const today = new Date();
+            idadeAtleta = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+                idadeAtleta--;
+        }
+
+        if (idadeAtleta !== null) {
+            const [equipa] = await sql<{ escalao: string }[]>`
+                SELECT escalao FROM equipas WHERE id = ${convite.equipa_id} LIMIT 1
+            `;
+            if (
+                equipa &&
+                !isIdadePermitidaEscalao(idadeAtleta, equipa.escalao)
+            ) {
+                await sql`
+                    UPDATE convites_equipa SET estado = 'pendente', updated_at = NOW() WHERE id = ${id}
+                `;
+                const limite = getIdadeMaximaEscalao(equipa.escalao);
+                return new Response(
+                    `O atleta tem ${idadeAtleta} anos mas o escalão ${equipa.escalao} requer idade inferior a ${limite} anos.`,
+                    { status: 409 },
+                );
+            }
+        }
+
         await sql`
             UPDATE atletas SET equipa_id = ${convite.equipa_id}
             WHERE id = ${convite.atleta_id} AND organization_id = ${me.organization_id}

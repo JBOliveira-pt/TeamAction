@@ -55,3 +55,43 @@ export async function fetchMeuPerfil(): Promise<PerfilUtilizador | null> {
         throw new Error("Failed to fetch perfil.");
     }
 }
+
+export type CursoTreinador = {
+    curso_id: string;
+    modality_id: number;
+    modality_name: string;
+    level_id: number;
+    level_code: string;
+    level_name: string;
+    level_description: string;
+};
+
+export async function fetchCursoTreinador(): Promise<CursoTreinador | null> {
+    const { userId } = await auth();
+    if (!userId) return null;
+
+    try {
+        const rows = await sql<CursoTreinador[]>`
+            SELECT
+                uc.curso_id,
+                m.id   AS modality_id,
+                m.name AS modality_name,
+                g.id   AS level_id,
+                g.code AS level_code,
+                g.name AS level_name,
+                g.description AS level_description
+            FROM user_cursos uc
+            INNER JOIN cursos c ON c.id = uc.curso_id
+            INNER JOIN modalidades m ON m.id = c.modality_id
+            INNER JOIN graus_tecnicos g ON g.id = c.level_id
+            INNER JOIN users u ON u.id = uc.user_id
+            WHERE u.clerk_user_id = ${userId}
+            ORDER BY g.id DESC
+            LIMIT 1
+        `;
+        return rows[0] ?? null;
+    } catch (error) {
+        console.error("Database Error:", error);
+        return null;
+    }
+}

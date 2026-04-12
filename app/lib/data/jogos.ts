@@ -19,6 +19,11 @@ export async function fetchJogos() {
                 equipa_nome: string;
                 hora_inicio: string | null;
                 hora_fim: string | null;
+                adversario_fake: boolean;
+                mirror_game_id: string | null;
+                resposta_adversario: string | null;
+                proposta_data: string | null;
+                proposta_hora: string | null;
             }[]
         >`
             SELECT
@@ -32,7 +37,12 @@ export async function fetchJogos() {
                 jogos.equipa_id,
                 jogos.hora_inicio,
                 jogos.hora_fim,
-                equipas.nome AS equipa_nome
+                equipas.nome AS equipa_nome,
+                (jogos.adversario_clube_id IS NULL) AS adversario_fake,
+                jogos.mirror_game_id,
+                jogos.resposta_adversario,
+                jogos.proposta_data::text,
+                jogos.proposta_hora
             FROM jogos
             LEFT JOIN equipas ON jogos.equipa_id = equipas.id
             WHERE jogos.organization_id = ${organizationId}

@@ -34,15 +34,17 @@ export async function GET() {
 
     await ensureTable();
 
-    const rows = await sql<{
-        id: string;
-        treinador_nome: string;
-        atleta_id: string;
-        atleta_nome: string;
-        equipa_nome: string | null;
-        estado: string;
-        created_at: string;
-    }[]>`
+    const rows = await sql<
+        {
+            id: string;
+            treinador_nome: string;
+            atleta_id: string;
+            atleta_nome: string;
+            equipa_nome: string | null;
+            estado: string;
+            created_at: string;
+        }[]
+    >`
         SELECT c.id, c.treinador_nome, c.atleta_id,
                a.nome AS atleta_nome, c.equipa_nome, c.estado, c.created_at::text
         FROM convites_equipa c
@@ -59,22 +61,32 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) return new Response("Unauthorized", { status: 401 });
 
-    const user = await sql<{ id: string; organization_id: string; name: string }[]>`
+    const user = await sql<
+        { id: string; organization_id: string; name: string }[]
+    >`
         SELECT id, organization_id, name FROM users WHERE clerk_user_id = ${userId} LIMIT 1
     `;
     const me = user[0];
     if (!me) return new Response("User not found", { status: 404 });
 
-    const body = await req.json() as {
+    const body = (await req.json()) as {
         atleta_id: string;
         equipa_id?: string;
         equipa_nome?: string;
     };
 
-    if (!body.atleta_id) return new Response("atleta_id obrigatório.", { status: 400 });
+    if (!body.atleta_id)
+        return new Response("atleta_id obrigatório.", { status: 400 });
 
     // Get atleta info
-    const atletaRows = await sql<{ id: string; nome: string; user_id: string | null; organization_id: string }[]>`
+    const atletaRows = await sql<
+        {
+            id: string;
+            nome: string;
+            user_id: string | null;
+            organization_id: string;
+        }[]
+    >`
         SELECT id, nome, user_id, organization_id FROM atletas
         WHERE id = ${body.atleta_id} LIMIT 1
     `;
@@ -85,10 +97,13 @@ export async function POST(req: NextRequest) {
     const treinadorTemClube = await sql<{ id: string }[]>`
         SELECT id FROM clubes WHERE organization_id = ${me.organization_id} LIMIT 1
     `;
-    if (treinadorTemClube.length > 0 && atleta.organization_id !== me.organization_id) {
+    if (
+        treinadorTemClube.length > 0 &&
+        atleta.organization_id !== me.organization_id
+    ) {
         return new Response(
             "Não é possível convidar atletas de outro clube. Só tens acesso aos atletas da tua organização.",
-            { status: 403 }
+            { status: 403 },
         );
     }
 
@@ -103,7 +118,25 @@ export async function POST(req: NextRequest) {
         LIMIT 1
     `;
     if (existing.length > 0)
-        return new Response("Já existe um convite pendente para este atleta.", { status: 409 });
+        return new Response("Já existe um convite pendente para este atleta.", {
+            status: 409,
+        });
+
+    // Validar: atleta não pode pertencer a outra equipa
+    if (body.equipa_id) {
+        const [atletaEquipa] = await sql<{ equipa_id: string | null }[]>`
+            SELECT equipa_id FROM atletas WHERE id = ${body.atleta_id} LIMIT 1
+        `;
+        if (
+            atletaEquipa?.equipa_id &&
+            atletaEquipa.equipa_id !== body.equipa_id
+        ) {
+            return new Response(
+                "Este atleta já pertence a outra equipa. Tem de ser removido da equipa atual primeiro.",
+                { status: 409 },
+            );
+        }
+    }
 
     const equipaId = body.equipa_id || null;
     const equipaNome = body.equipa_nome?.trim() || null;
@@ -134,5 +167,8 @@ export async function POST(req: NextRequest) {
         `.catch(() => {});
     }
 
-    return Response.json({ id: convite.id, atleta_nome: atleta.nome }, { status: 201 });
+    return Response.json(
+        { id: convite.id, atleta_nome: atleta.nome },
+        { status: 201 },
+    );
 }

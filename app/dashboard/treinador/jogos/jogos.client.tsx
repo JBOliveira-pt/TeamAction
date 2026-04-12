@@ -19,6 +19,10 @@ type Jogo = {
     adversario_fake: boolean;
     hora_inicio: string | null;
     hora_fim: string | null;
+    mirror_game_id: string | null;
+    resposta_adversario: string | null;
+    proposta_data: string | null;
+    proposta_hora: string | null;
 };
 
 type Clube = {
@@ -74,6 +78,152 @@ function EstadoBadge({ estado }: { estado: string }) {
 }
 
 /* ── Resultado badge ──────────────────────────────────────────────────── */
+
+/* ── Badge resposta adversário ────────────────────────────────────────── */
+function RespostaAdversarioBadge({ resposta }: { resposta: string | null }) {
+    if (!resposta || resposta === "pendente")
+        return (
+            <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                ⏳ Pendente
+            </span>
+        );
+    if (resposta === "aceite")
+        return (
+            <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                ✓ Confirmado
+            </span>
+        );
+    if (resposta === "recusado")
+        return (
+            <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                ✕ Recusado
+            </span>
+        );
+    if (resposta === "nova_proposta")
+        return (
+            <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                📅 Nova proposta
+            </span>
+        );
+    return null;
+}
+
+/* ── Botões de resposta (para jogo espelhado) ─────────────────────────── */
+function BotoesRespostaJogo({
+    jogo,
+    onResponded,
+}: {
+    jogo: Jogo;
+    onResponded: (resposta: string) => void;
+}) {
+    const [enviando, setEnviando] = useState(false);
+    const [showProposta, setShowProposta] = useState(false);
+    const [propostaData, setPropostaData] = useState("");
+    const [propostaHora, setPropostaHora] = useState("");
+    const [erro, setErro] = useState("");
+
+    const responder = async (
+        resposta: "aceite" | "recusado" | "nova_proposta",
+    ) => {
+        setErro("");
+        setEnviando(true);
+        try {
+            const res = await fetch(`/api/jogos/${jogo.id}/resposta`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    resposta,
+                    proposta_data:
+                        resposta === "nova_proposta" ? propostaData : null,
+                    proposta_hora:
+                        resposta === "nova_proposta"
+                            ? propostaHora || null
+                            : null,
+                }),
+            });
+            if (res.ok) {
+                onResponded(resposta);
+            } else {
+                setErro(await res.text());
+            }
+        } catch {
+            setErro("Erro de rede.");
+        } finally {
+            setEnviando(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-2">
+            <div className="flex gap-1.5">
+                <button
+                    onClick={() => responder("aceite")}
+                    disabled={enviando}
+                    className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-xs font-bold hover:bg-green-200 dark:hover:bg-green-900/50 transition-all disabled:opacity-50"
+                >
+                    ✓ Concordar
+                </button>
+                <button
+                    onClick={() => responder("recusado")}
+                    disabled={enviando}
+                    className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all disabled:opacity-50"
+                >
+                    ✕ Discordar
+                </button>
+                <button
+                    onClick={() => setShowProposta(!showProposta)}
+                    disabled={enviando}
+                    className="px-3 py-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-bold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all disabled:opacity-50"
+                >
+                    📅 Propor
+                </button>
+            </div>
+            {showProposta && (
+                <div className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                                Nova data *
+                            </label>
+                            <input
+                                type="date"
+                                required
+                                className="px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                value={propostaData}
+                                onChange={(e) =>
+                                    setPropostaData(e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                                Nova hora
+                            </label>
+                            <input
+                                type="time"
+                                className="px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                                value={propostaHora}
+                                onChange={(e) =>
+                                    setPropostaHora(e.target.value)
+                                }
+                            />
+                        </div>
+                    </div>
+                    <button
+                        onClick={() =>
+                            propostaData && responder("nova_proposta")
+                        }
+                        disabled={!propostaData || enviando}
+                        className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 transition-all"
+                    >
+                        {enviando ? "A enviar..." : "Enviar proposta"}
+                    </button>
+                </div>
+            )}
+            {erro && <p className="text-xs text-red-500">{erro}</p>}
+        </div>
+    );
+}
 function ResultadoBadge({ nos, adv }: { nos: number; adv: number }) {
     const cor =
         nos > adv ? "bg-green-600" : nos < adv ? "bg-red-600" : "bg-yellow-500";
@@ -1820,9 +1970,38 @@ export default function Jogos({
                                                 )}
                                             </td>
                                             <td className="p-3">
-                                                <EstadoBadge
-                                                    estado={j.estado}
-                                                />
+                                                <div className="flex flex-col gap-1">
+                                                    <EstadoBadge
+                                                        estado={j.estado}
+                                                    />
+                                                    {j.estado === "agendado" &&
+                                                        !j.adversario_fake &&
+                                                        j.resposta_adversario && (
+                                                            <RespostaAdversarioBadge
+                                                                resposta={
+                                                                    j.resposta_adversario
+                                                                }
+                                                            />
+                                                        )}
+                                                    {j.resposta_adversario ===
+                                                        "nova_proposta" &&
+                                                        j.proposta_data && (
+                                                            <span className="text-[10px] text-purple-600 dark:text-purple-400">
+                                                                Proposta:{" "}
+                                                                {new Date(
+                                                                    j.proposta_data,
+                                                                ).toLocaleDateString(
+                                                                    "pt-PT",
+                                                                    {
+                                                                        day: "2-digit",
+                                                                        month: "short",
+                                                                    },
+                                                                )}
+                                                                {j.proposta_hora &&
+                                                                    ` ${j.proposta_hora}`}
+                                                            </span>
+                                                        )}
+                                                </div>
                                             </td>
                                             <td className="p-3">
                                                 {j.resultado_nos !== null &&
@@ -1851,6 +2030,47 @@ export default function Jogos({
                                                     >
                                                         👁️ Ver
                                                     </button>
+                                                    {/* Botões de resposta para jogos espelhados (agendados pelo adversário) */}
+                                                    {j.estado === "agendado" &&
+                                                        !jogoTerminado &&
+                                                        j.mirror_game_id &&
+                                                        j.resposta_adversario ===
+                                                            "pendente" && (
+                                                            <BotoesRespostaJogo
+                                                                jogo={j}
+                                                                onResponded={(
+                                                                    resposta,
+                                                                ) => {
+                                                                    setJogos(
+                                                                        (
+                                                                            prev,
+                                                                        ) =>
+                                                                            prev.map(
+                                                                                (
+                                                                                    x,
+                                                                                ) =>
+                                                                                    x.id ===
+                                                                                    j.id
+                                                                                        ? {
+                                                                                              ...x,
+                                                                                              resposta_adversario:
+                                                                                                  resposta,
+                                                                                          }
+                                                                                        : x,
+                                                                            ),
+                                                                    );
+                                                                    showToast(
+                                                                        resposta ===
+                                                                            "aceite"
+                                                                            ? "Jogo confirmado!"
+                                                                            : resposta ===
+                                                                                "recusado"
+                                                                              ? "Jogo recusado."
+                                                                              : "Proposta enviada!",
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
                                                     {semResultado && (
                                                         <button
                                                             onClick={() =>

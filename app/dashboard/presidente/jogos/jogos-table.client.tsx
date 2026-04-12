@@ -19,6 +19,11 @@ type Jogo = {
     equipa_nome: string;
     hora_inicio: string | null;
     hora_fim: string | null;
+    adversario_fake?: boolean;
+    mirror_game_id?: string | null;
+    resposta_adversario?: string | null;
+    proposta_data?: string | null;
+    proposta_hora?: string | null;
 };
 
 const estadoStyle: Record<string, string> = {
@@ -26,6 +31,118 @@ const estadoStyle: Record<string, string> = {
     agendado: "bg-cyan-500/10 text-cyan-400",
     cancelado: "bg-red-500/10 text-red-400",
 };
+
+const respostaStyle: Record<string, { label: string; style: string }> = {
+    pendente: { label: "⏳ Pendente", style: "bg-amber-500/10 text-amber-500" },
+    aceite: { label: "✓ Confirmado", style: "bg-green-500/10 text-green-500" },
+    recusado: { label: "✕ Recusado", style: "bg-red-500/10 text-red-500" },
+    nova_proposta: {
+        label: "📅 Nova proposta",
+        style: "bg-purple-500/10 text-purple-500",
+    },
+};
+
+/* ── Botões de resposta (para jogo espelhado) ─────────────────────────── */
+function BotoesRespostaJogo({
+    jogo,
+    onResponded,
+}: {
+    jogo: Jogo;
+    onResponded: () => void;
+}) {
+    const [enviando, setEnviando] = useState(false);
+    const [showProposta, setShowProposta] = useState(false);
+    const [propostaData, setPropostaData] = useState("");
+    const [propostaHora, setPropostaHora] = useState("");
+    const [erro, setErro] = useState("");
+
+    const responder = async (
+        resposta: "aceite" | "recusado" | "nova_proposta",
+    ) => {
+        setErro("");
+        setEnviando(true);
+        try {
+            const res = await fetch(`/api/jogos/${jogo.id}/resposta`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    resposta,
+                    proposta_data:
+                        resposta === "nova_proposta" ? propostaData : null,
+                    proposta_hora:
+                        resposta === "nova_proposta"
+                            ? propostaHora || null
+                            : null,
+                }),
+            });
+            if (res.ok) {
+                onResponded();
+            } else {
+                setErro(await res.text());
+            }
+        } catch {
+            setErro("Erro de rede.");
+        } finally {
+            setEnviando(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-2 mt-1">
+            <div className="flex gap-1">
+                <button
+                    onClick={() => responder("aceite")}
+                    disabled={enviando}
+                    className="px-2 py-1 bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg text-[11px] font-bold hover:bg-green-500/20 transition-all disabled:opacity-50"
+                >
+                    ✓ Concordar
+                </button>
+                <button
+                    onClick={() => responder("recusado")}
+                    disabled={enviando}
+                    className="px-2 py-1 bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg text-[11px] font-bold hover:bg-red-500/20 transition-all disabled:opacity-50"
+                >
+                    ✕ Discordar
+                </button>
+                <button
+                    onClick={() => setShowProposta(!showProposta)}
+                    disabled={enviando}
+                    className="px-2 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-lg text-[11px] font-bold hover:bg-purple-500/20 transition-all disabled:opacity-50"
+                >
+                    📅 Propor
+                </button>
+            </div>
+            {showProposta && (
+                <div className="flex flex-col gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            type="date"
+                            className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            value={propostaData}
+                            onChange={(e) => setPropostaData(e.target.value)}
+                        />
+                        <input
+                            type="time"
+                            className="px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                            value={propostaHora}
+                            onChange={(e) => setPropostaHora(e.target.value)}
+                        />
+                    </div>
+                    <button
+                        onClick={() =>
+                            propostaData && responder("nova_proposta")
+                        }
+                        disabled={!propostaData || enviando}
+                        className="w-full px-2 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-[11px] font-bold disabled:opacity-50 transition-all"
+                    >
+                        {enviando ? "A enviar..." : "Enviar proposta"}
+                    </button>
+                </div>
+            )}
+            {erro && <p className="text-[10px] text-red-500">{erro}</p>}
+        </div>
+    );
+}
 
 function getResultado(j: Jogo) {
     if (j.estado === "agendado")
@@ -247,17 +364,62 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                             {resultado.label}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-medium ${jogoTerminado && j.estado === "agendado" ? "bg-amber-500/10 text-amber-400" : (estadoStyle[j.estado] ?? "bg-slate-500/10 text-slate-400")}`}
-                                            >
-                                                {jogoTerminado &&
-                                                j.estado === "agendado"
-                                                    ? "terminado"
-                                                    : j.estado}
-                                            </span>
+                                            <div className="flex flex-col gap-1">
+                                                <span
+                                                    className={`px-2 py-1 rounded-full text-xs font-medium inline-block w-fit ${jogoTerminado && j.estado === "agendado" ? "bg-amber-500/10 text-amber-400" : (estadoStyle[j.estado] ?? "bg-slate-500/10 text-slate-400")}`}
+                                                >
+                                                    {jogoTerminado &&
+                                                    j.estado === "agendado"
+                                                        ? "terminado"
+                                                        : j.estado}
+                                                </span>
+                                                {j.estado === "agendado" &&
+                                                    !j.adversario_fake &&
+                                                    j.resposta_adversario && (
+                                                        <span
+                                                            className={`px-2 py-0.5 rounded-full text-[10px] font-medium inline-block w-fit ${respostaStyle[j.resposta_adversario]?.style ?? ""}`}
+                                                        >
+                                                            {respostaStyle[
+                                                                j
+                                                                    .resposta_adversario
+                                                            ]?.label ??
+                                                                j.resposta_adversario}
+                                                        </span>
+                                                    )}
+                                                {j.resposta_adversario ===
+                                                    "nova_proposta" &&
+                                                    j.proposta_data && (
+                                                        <span className="text-[10px] text-purple-600 dark:text-purple-400">
+                                                            {new Date(
+                                                                j.proposta_data,
+                                                            ).toLocaleDateString(
+                                                                "pt-PT",
+                                                                {
+                                                                    day: "2-digit",
+                                                                    month: "short",
+                                                                },
+                                                            )}
+                                                            {j.proposta_hora &&
+                                                                ` ${j.proposta_hora}`}
+                                                        </span>
+                                                    )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
+                                                {/* Botões de resposta para jogos espelhados (agendados pelo adversário) */}
+                                                {j.estado === "agendado" &&
+                                                    !jogoTerminado &&
+                                                    j.mirror_game_id &&
+                                                    j.resposta_adversario ===
+                                                        "pendente" && (
+                                                        <BotoesRespostaJogo
+                                                            jogo={j}
+                                                            onResponded={() =>
+                                                                router.refresh()
+                                                            }
+                                                        />
+                                                    )}
                                                 {j.estado === "agendado" &&
                                                     !jogoTerminado && (
                                                         <EditarDataModal

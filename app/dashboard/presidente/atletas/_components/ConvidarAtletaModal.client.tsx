@@ -61,12 +61,12 @@ const MAOS = [
 
 export default function ConvidarAtletaModal({
     equipas,
-    defaultOpen = false,  // ✅ novo prop
+    defaultOpen = false, // ✅ novo prop
 }: {
     equipas: Equipa[];
-    defaultOpen?: boolean;  // ✅ novo prop
+    defaultOpen?: boolean; // ✅ novo prop
 }) {
-    const [open, setOpen] = useState(defaultOpen);  // ✅ alterado
+    const [open, setOpen] = useState(defaultOpen); // ✅ alterado
     const [step, setStep] = useState<WizardStep>("choice");
 
     const [nome, setNome] = useState("");
@@ -772,7 +772,7 @@ export default function ConvidarAtletaModal({
                                         const idade = calcularIdade(
                                             emailResult.data_nascimento,
                                         );
-                                        if (idade > limite) {
+                                        if (idade >= limite) {
                                             return (
                                                 <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg flex flex-col gap-1.5">
                                                     <p className="text-sm font-bold text-red-400">

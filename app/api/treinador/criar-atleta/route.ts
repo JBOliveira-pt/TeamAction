@@ -2,6 +2,11 @@
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
+import {
+    isIdadePermitidaEscalao,
+    getIdadeMaximaEscalao,
+    MAX_ATLETAS_POR_EQUIPA,
+} from "@/app/lib/grau-escalao-compat";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -42,10 +47,15 @@ export async function POST(req: NextRequest) {
         equipa_nome?: string | null;
         email?: string | null;
         mao_dominante?: string | null;
+        data_nascimento?: string | null;
     };
 
     if (!body.nome?.trim())
         return new Response("Nome é obrigatório.", { status: 400 });
+    if (!body.data_nascimento)
+        return new Response("Data de nascimento é obrigatória.", {
+            status: 400,
+        });
 
     // Validar que a equipa pertence ao treinador
     if (body.equipa_id) {
@@ -61,6 +71,39 @@ export async function POST(req: NextRequest) {
                 "Só pode adicionar atletas à sua própria equipa.",
                 { status: 403 },
             );
+        }
+
+        // Validar: máximo de atletas na equipa (14)
+        const [countRow] = await sql<{ total: number }[]>`
+            SELECT COUNT(*)::int AS total FROM atletas WHERE equipa_id = ${body.equipa_id}
+        `;
+        if ((countRow?.total ?? 0) >= MAX_ATLETAS_POR_EQUIPA) {
+            return new Response(
+                `Esta equipa já tem o máximo de ${MAX_ATLETAS_POR_EQUIPA} atletas.`,
+                { status: 409 },
+            );
+        }
+
+        // Validar: idade compatível com o escalão da equipa
+        if (body.data_nascimento) {
+            const [equipaRow] = await sql<{ escalao: string }[]>`
+                SELECT escalao FROM equipas WHERE id = ${body.equipa_id} LIMIT 1
+            `;
+            if (equipaRow) {
+                const birth = new Date(body.data_nascimento);
+                const today = new Date();
+                let idade = today.getFullYear() - birth.getFullYear();
+                const m = today.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+                    idade--;
+                if (!isIdadePermitidaEscalao(idade, equipaRow.escalao)) {
+                    const limite = getIdadeMaximaEscalao(equipaRow.escalao);
+                    return new Response(
+                        `O atleta tem ${idade} anos mas o escalão ${equipaRow.escalao} requer idade inferior a ${limite} anos.`,
+                        { status: 409 },
+                    );
+                }
+            }
         }
     }
 
@@ -109,7 +152,7 @@ export async function POST(req: NextRequest) {
         INSERT INTO atletas (
             id, nome, posicao, numero_camisola,
             equipa_id, estado, federado, mao_dominante,
-            organization_id, user_id, created_at, updated_at
+            organization_id, user_id, data_nascimento, created_at, updated_at
         ) VALUES (
             gen_random_uuid(),
             ${body.nome.trim()},
@@ -121,6 +164,7 @@ export async function POST(req: NextRequest) {
             ${body.mao_dominante ?? null},
             ${treinador.organization_id},
             ${linkedUserId},
+            ${body.data_nascimento ?? null},
             NOW(), NOW()
         )
         RETURNING id
