@@ -1,3 +1,4 @@
+// Rota API jogadas-taticas: listar e criar jogadas taticas com posicoes e setas.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

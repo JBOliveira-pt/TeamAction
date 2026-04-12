@@ -1,3 +1,4 @@
+// Página de convites.
 import {
     fetchAdminConvitesClubeAll,
     fetchAdminConvitesEquipaAll,
@@ -108,7 +109,7 @@ export default async function AdminConvitesPage({
                 </p>
             </header>
 
-            {/* Tab navigation */}
+            {/* Navegação de tabs */}
             <div className="flex gap-2">
                 {[
                     {
@@ -146,7 +147,7 @@ export default async function AdminConvitesPage({
                 ))}
             </div>
 
-            {/* Tab content */}
+            {/* Conteúdo da tab */}
             {tab === "clube" && (
                 <div className="space-y-3">
                     {convitesClubeAll.length === 0 ? (

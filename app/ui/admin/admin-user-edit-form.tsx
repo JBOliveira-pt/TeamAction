@@ -1,3 +1,4 @@
+// Componente admin user edit form.
 "use client";
 
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
@@ -184,7 +185,7 @@ export function AdminUserEditForm({
     const isAtleta = accountType === "atleta";
     const isTreinador = accountType === "treinador";
 
-    // Split stored full name into first/last for separate editing
+    // Separar nome completo em primeiro/último para edição
     const nameParts = user.name.split(" ");
     const defaultFirstName = nameParts[0] || "";
     const defaultLastName = nameParts.slice(1).join(" ") || "";
@@ -253,14 +254,14 @@ export function AdminUserEditForm({
     }, [codigoPostal]);
 
     function handleSubmit(formData: FormData) {
-        // Combine first + last name back into full name
+        // Juntar primeiro + último nome de volta em nome completo
         const first = String(formData.get("firstName") || "").trim();
         const last = String(formData.get("lastName") || "").trim();
         formData.set("name", [first, last].filter(Boolean).join(" "));
         formData.delete("firstName");
         formData.delete("lastName");
 
-        // Sync sobrenome for athletes
+        // Sincronizar sobrenome para atletas
         if (isAtleta) {
             formData.set("sobrenome", last);
         }
@@ -335,7 +336,7 @@ export function AdminUserEditForm({
                 </p>
             </div>
 
-            {/* Photo upload */}
+            {/* Upload de foto */}
             <div>
                 <label className={labelCls}>Foto de perfil</label>
                 <div className="flex items-center gap-4">

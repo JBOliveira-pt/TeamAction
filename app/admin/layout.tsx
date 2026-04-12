@@ -1,3 +1,4 @@
+// Layout do painel de admin com verificação de sessão.
 import { ReactNode } from "react";
 import { requireAdminSession } from "@/app/lib/admin-auth";
 import { AdminSideNav } from "@/app/ui/admin/sidenav";

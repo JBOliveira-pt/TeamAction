@@ -1,3 +1,4 @@
+// Layout do dashboard: sidebar, header e verificação de acesso.
 import SideNav from "@/app/ui/dashboard/sidenav";
 import { LoginAvisoPopup } from "@/app/components/login-aviso-popup";
 import { UserInteractionTracker } from "@/app/components/user-interaction-tracker";

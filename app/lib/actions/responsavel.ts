@@ -1,3 +1,4 @@
+// Actions do responsável: aprovar convites, gerir dados do educando e pedidos.
 "use server";
 
 import { auth } from "@clerk/nextjs/server";

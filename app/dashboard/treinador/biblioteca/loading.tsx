@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção biblioteca (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-48 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -10,7 +11,7 @@ export default function Loading() {
                 <div className="h-9 w-32 rounded-lg bg-gray-200 dark:bg-gray-800" />
             </div>
 
-            {/* Filters: search + category buttons */}
+            {/* Filtros: pesquisa + botões de categoria */}
             <div className="flex flex-wrap items-center gap-2 mb-6">
                 <div className="h-10 flex-1 min-w-[180px] rounded-lg bg-gray-200 dark:bg-gray-800" />
                 {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -21,7 +22,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Plays grid */}
+            {/* Grelha de jogadas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div

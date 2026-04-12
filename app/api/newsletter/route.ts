@@ -1,3 +1,4 @@
+// Rota API newsletter: regista subscricao na newsletter com nome e email.
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 

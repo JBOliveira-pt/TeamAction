@@ -1,3 +1,4 @@
+// Componente notas client.
 'use client';
 
 import {
@@ -65,7 +66,7 @@ export default function NotasClientWrapper({
 
     return (
         <main className="p-6 space-y-4 bg-gray-50 dark:bg-gray-950 min-h-screen">
-            {/* header */}
+            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                     As minhas notas
@@ -83,7 +84,7 @@ export default function NotasClientWrapper({
                 </div>
             </div>
 
-            {/* content */}
+            {/* Conteúdo */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm p-16 flex flex-col items-center justify-center gap-4 text-center">
                 {initialNotas.length === 0 ? (
                     <>

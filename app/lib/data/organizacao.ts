@@ -1,6 +1,5 @@
+// Queries de organização: época ativa, perfil e escalonário do treinador.
 import { sql, getOrganizationId } from "./_shared";
-
-// ---------- ÉPOCA ----------
 
 export async function fetchEpocaAtiva() {
     try {

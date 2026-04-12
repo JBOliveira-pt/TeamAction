@@ -1,3 +1,4 @@
+// Componente medico responsavel client.
 "use client";
 
 import {
@@ -524,7 +525,7 @@ export default function MedicoResponsavelClient({
                 </div>
             </div>
 
-            {/* Stat cards */}
+            {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col gap-2">
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">

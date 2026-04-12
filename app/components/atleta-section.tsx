@@ -1,3 +1,4 @@
+// Secção Atleta: vídeo scrub e cards de funcionalidades do atleta.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -206,7 +207,7 @@ export function AtletaSection() {
         >
             <section className="sticky top-0 h-screen bg-white overflow-hidden">
                 <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex gap-10 items-stretch h-full">
-                    {/* LEFT: Header panel */}
+                    {/* ESQUERDA: painel cabeçalho */}
                     <div className="flex-shrink-0 w-[38%] min-w-[320px] max-w-[440px] flex flex-col justify-center py-16">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-500 text-sm font-semibold mb-6 w-fit">
                             <Volleyball className="h-4 w-4" />
@@ -237,7 +238,7 @@ export function AtletaSection() {
                         </p>
                     </div>
 
-                    {/* RIGHT: Feature cards — scroll up */}
+                    {/* DIREITA: cards de funcionalidades — sobem */}
                     <div className="flex-1 min-w-0 overflow-hidden h-full">
                         <div
                             className="grid grid-cols-1 sm:grid-cols-2 gap-5 will-change-transform py-16"

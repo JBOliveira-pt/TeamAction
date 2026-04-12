@@ -1,3 +1,4 @@
+// Página de recibos do presidente.
 import { Metadata } from "next";
 import { fetchReciboDetail } from "@/app/lib/receipts-data";
 import ReciboDetailForm from "@/app/ui/receipts/edit-form";

@@ -1,3 +1,4 @@
+// Componente cliente de staff panel.client.tsx (treinador).
 "use client";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";

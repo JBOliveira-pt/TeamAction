@@ -1,3 +1,4 @@
+// Providers globais: ClerkProvider e ThemeProvider.
 "use client";
 
 import { ClerkProvider } from "@clerk/nextjs";

@@ -1,4 +1,4 @@
-// app/ui/search.tsx
+// Componente de pesquisa com debounce para filtrar recibos.
 "use client";
 
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";

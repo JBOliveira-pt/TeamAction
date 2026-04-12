@@ -1,3 +1,4 @@
+// Página de espera: aguarda validação de vinculação do responsável.
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { normalizeAccountType } from "@/app/lib/account-type";
@@ -42,7 +43,7 @@ export default async function AguardarValidacaoPage() {
         redirect("/dashboard");
     }
 
-    // Check if responsável has an accepted relation
+    // Verificar se responsável tem vinculação aceite
     const userRows = await sql<{ id: string }[]>`
         SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
     `;

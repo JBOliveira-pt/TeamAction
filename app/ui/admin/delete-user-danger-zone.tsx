@@ -1,3 +1,4 @@
+// Componente delete user danger zone.
 "use client";
 
 import { useState } from "react";

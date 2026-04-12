@@ -1,3 +1,4 @@
+// Página de definições da conta: seleção de plano e verificação de menor/responsável.
 import {
     fetchPedidoPlano,
     fetchPlanoAtual,

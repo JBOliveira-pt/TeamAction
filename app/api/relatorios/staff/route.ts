@@ -1,3 +1,4 @@
+// Rota API relatorios/staff: gera e devolve relatorio CSV de staff.
 import { gerarRelatorioStaff } from "@/app/lib/actions";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextResponse } from "next/server";

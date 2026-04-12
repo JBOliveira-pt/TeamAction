@@ -1,3 +1,4 @@
+// Componente cliente de staff (presidente).
 "use client";
 
 import {
@@ -78,7 +79,7 @@ export function EditarMembroModal({
     const [escaloesTreinador, setEscaloesTreinador] = useState<string[]>([]);
     const [loadingEscaloes, startLoadEscaloes] = useTransition();
 
-    // Fake trainer fields
+    // Campos do treinador fictício
     const [fakeNome, setFakeNome] = useState(
         !membro.userid && isTreinador ? membro.nome : "",
     );

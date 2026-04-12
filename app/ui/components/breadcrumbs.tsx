@@ -1,3 +1,4 @@
+// Componente breadcrumbs.
 import { clsx } from "clsx";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
@@ -16,7 +17,7 @@ export default function Breadcrumbs({
     return (
         <nav aria-label="Breadcrumb" className="mb-6 block">
             <ol className="flex items-center gap-2 text-sm">
-                {/* Home icon */}
+                {/* Ícone início */}
                 <li>
                     <Link
                         href="/dashboard"

@@ -1,3 +1,4 @@
+// Tagline animada com scroll: texto progressivo e vídeo de bola em queda.
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -77,7 +78,7 @@ export function ScrollTagline() {
             const raw = traveled / totalDistance;
             setProgress(Math.max(0, Math.min(2, raw)));
 
-            // Track ball center relative to the sticky section
+            // Rastrear centro da bola relativo à secção sticky
             const section = sectionRef.current;
             const video = videoRef.current;
             if (section && video) {
@@ -95,14 +96,12 @@ export function ScrollTagline() {
         return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
-    // Video starts aligned with the first line (top of content area)
-    // and translates down as scroll progresses, exiting through the bottom
-    // Ball appears later (starts at 15% progress) and moves slower
+    // Vídeo começa alinhado com a primeira linha e desce com o scroll
     const ballProgress = Math.max(0, (progress - 0.15) / 0.85);
-    const videoTranslateY = ballProgress * 120; // percentage of viewport height
+    const videoTranslateY = ballProgress * 120;
 
     return (
-        // Tall wrapper creates the scroll runway; content sticks inside it
+        // Wrapper alto cria a pista de scroll; o conteúdo fica sticky dentro
         <div ref={wrapperRef} className="relative" style={{ height: "1000vh" }}>
             <section
                 ref={sectionRef}
@@ -142,7 +141,7 @@ export function ScrollTagline() {
                     })}
                 </div>
 
-                {/* Radial fade overlay – follows ball center */}
+                {/* Degradê radial — segue o centro da bola */}
                 <div
                     className="absolute inset-0 pointer-events-none z-10"
                     style={{
@@ -150,7 +149,7 @@ export function ScrollTagline() {
                     }}
                 />
 
-                {/* Falling ball video on the right side */}
+                {/* Vídeo da bola em queda no lado direito */}
                 <div
                     ref={videoRef}
                     className="absolute right-30 w-[100vw] max-w-[500px] aspect-square pointer-events-none will-change-transform z-20"

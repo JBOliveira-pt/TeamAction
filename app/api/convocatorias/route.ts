@@ -1,3 +1,4 @@
+// Rota API convocatorias: listar e gerir convocatórias de atletas para jogos.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    // Verify the game belongs to this organization
+    // Verificar que o jogo pertence a esta organização
     const [jogo] = await sql<
         { id: string; equipa_id: string; adversario: string; data: string }[]
     >`
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
     `;
     if (!jogo) return new Response("Jogo não encontrado", { status: 404 });
 
-    // Delete existing convocatórias for this game, then insert new ones
+    // Apagar convocatórias existentes deste jogo e inserir novas
     await sql.begin(async (tx: any) => {
         await tx`DELETE FROM convocatorias WHERE jogo_id = ${body.jogo_id!}`;
 
@@ -100,12 +101,12 @@ export async function POST(req: NextRequest) {
             `;
         }
 
-        // Auto-notification for convocados
+        // Auto-notificação para convocados
         const convocados = body.atletas!.filter(
             (a) => a.estado === "convocado" || a.estado === "suplente",
         );
         if (convocados.length > 0) {
-            // Get user_id for each convocado athlete
+            // Obter user_id de cada atleta convocado
             const atletaIds = convocados.map((a) => a.atleta_id);
             const atletaUsers = await tx`
                 SELECT id, user_id FROM atletas WHERE id = ANY(${atletaIds})

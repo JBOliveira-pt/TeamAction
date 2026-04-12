@@ -1,3 +1,4 @@
+// Rota API avaliacoes-fisicas: listar e criar avaliacoes fisicas de atletas.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

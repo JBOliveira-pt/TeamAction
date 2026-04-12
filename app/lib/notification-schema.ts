@@ -1,3 +1,4 @@
+// Schema de notificações: garante coluna recipient_user_id.
 import type { Sql } from "postgres";
 
 let ensureRecipientUserIdColumnPromise: Promise<void> | null = null;

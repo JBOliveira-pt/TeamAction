@@ -1,3 +1,4 @@
+// Componente cliente de comunicados (presidente).
 "use client";
 
 import { useState, useTransition } from "react";
@@ -41,7 +42,7 @@ export default function ComunicadoModal({
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    // Edit form state
+    // Estado do formulário de edição
     const [titulo, setTitulo] = useState(comunicado.titulo);
     const [conteudo, setConteudo] = useState(comunicado.conteudo);
     const [destinatarios, setDestinatarios] = useState(
@@ -52,7 +53,7 @@ export default function ComunicadoModal({
         setOpen(false);
         setMode("view");
         setError(null);
-        // Reset edit fields to original values
+        // Repor campos de edição para os valores originais
         setTitulo(comunicado.titulo);
         setConteudo(comunicado.conteudo);
         setDestinatarios(comunicado.destinatarios);
@@ -108,7 +109,7 @@ export default function ComunicadoModal({
                         onClick={handleClose}
                     />
                     <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-4">
-                        {/* Header */}
+                        {/* Cabe�alho */}
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0 flex-1">
                                 {mode === "edit" ? (
@@ -145,7 +146,7 @@ export default function ComunicadoModal({
                             </div>
                         )}
 
-                        {/* View mode */}
+                        {/* Modo visualiza��o */}
                         {mode === "view" && (
                             <>
                                 <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap max-h-96 overflow-y-auto">
@@ -180,7 +181,7 @@ export default function ComunicadoModal({
                             </>
                         )}
 
-                        {/* Edit mode */}
+                        {/* Modo edi��o */}
                         {mode === "edit" && (
                             <>
                                 <div className="space-y-3">
@@ -264,7 +265,7 @@ export default function ComunicadoModal({
                             </>
                         )}
 
-                        {/* Confirm delete mode */}
+                        {/* Modo confirmar elimina��o */}
                         {mode === "confirm-delete" && (
                             <>
                                 <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400 space-y-2">

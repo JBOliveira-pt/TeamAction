@@ -1,3 +1,4 @@
+// Componente avatar uploader.
 "use client";
 
 import { useState, useRef } from "react";
@@ -28,7 +29,7 @@ export default function AvatarUploader({
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Quick client-side validation
+        // Validação rápida no cliente
         if (!file.type.startsWith("image/")) {
             setError("Selecione um ficheiro de imagem.");
             return;
@@ -58,7 +59,7 @@ export default function AvatarUploader({
                 return;
             }
 
-            // Refresh server components to pick up new image
+            // Atualizar componentes do servidor com a nova imagem
             router.refresh();
         } catch {
             setError("Erro de rede ao fazer upload.");
@@ -98,7 +99,7 @@ export default function AvatarUploader({
                     )}
                 </div>
 
-                {/* Overlay on hover */}
+                {/* Sobreposi��o ao passar */}
                 {!disabled && (
                     <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         {uploading ? (
@@ -112,7 +113,7 @@ export default function AvatarUploader({
                     </div>
                 )}
 
-                {/* Status indicator */}
+                {/* Indicador de estado */}
                 <span className="absolute bottom-0 right-0 bg-green-500 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-900" />
             </button>
 

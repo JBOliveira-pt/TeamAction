@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção jogos (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col gap-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-32 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -27,10 +28,10 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Section title */}
+            {/* Título da secção */}
             <div className="h-5 w-36 rounded bg-gray-200 dark:bg-gray-800" />
 
-            {/* Table */}
+            {/* Tabela */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <div

@@ -1,3 +1,4 @@
+// Queries de dados do admin: utilizadores, pedidos, logs e newsletter.
 import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, {

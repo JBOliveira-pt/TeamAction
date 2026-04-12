@@ -1,3 +1,4 @@
+// Página de estatisticas do presidente.
 import { fetchEstatisticasPorEquipa, fetchTopAtletas } from "@/app/lib/data";
 
 export const dynamic = 'force-dynamic';

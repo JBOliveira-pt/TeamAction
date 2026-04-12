@@ -1,3 +1,4 @@
+// Rota API eventos-jogo: CRUD de eventos de jogo (golos, cartões, etc.) com sincronização para jogo espelhado.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
     const jogoId = req.nextUrl.searchParams.get("jogo_id");
     if (!jogoId) return Response.json([]);
 
-    // Find the game and its mirror to collect events from both sides
+    // Buscar o jogo e o seu mirror para recolher eventos de ambos os lados
     const jogo = await sql<
         { id: string; organization_id: string; mirror_game_id: string | null }[]
     >`
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
     const gameOrgId = jogo[0].organization_id;
     const mirrorId = jogo[0].mirror_game_id;
 
-    // User must own this game OR it must be the mirror of one they own
+    // Utilizador deve ser dono deste jogo OU deve ser o mirror de um que possui
     const ownsGame = gameOrgId === me.organization_id;
     const ownsMirror = mirrorId
         ? (
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
         : false;
     if (!ownsGame && !ownsMirror) return Response.json([]);
 
-    // Collect events from this game's org AND from the mirror game's org
+    // Recolher eventos da org deste jogo E da org do jogo mirror
     const jogoIds = [jogoId];
     if (mirrorId) jogoIds.push(mirrorId);
 
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
     if (!tiposValidos.includes(body.tipo))
         return new Response("Tipo inválido.", { status: 400 });
 
-    // Verify the user owns this game
+    // Verificar que o utilizador é dono deste jogo
     const jogo = await sql<
         { id: string; organization_id: string; mirror_game_id: string | null }[]
     >`
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
         RETURNING id
     `;
 
-    // Sync to mirror game: invert Golo Feito <-> Golo Sofrido for the other org
+    // Sincronizar para jogo mirror: inverter Golo Feito <-> Golo Sofrido para a outra org
     const mirrorGameId = jogo[0].mirror_game_id;
     if (mirrorGameId) {
         const mirrorGame = await sql<{ organization_id: string }[]>`

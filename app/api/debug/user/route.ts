@@ -1,3 +1,4 @@
+// Rota API debug/user: devolve dados completos do utilizador autenticado (apenas debug).
 import { auth } from "@clerk/nextjs/server";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import postgres from "postgres";

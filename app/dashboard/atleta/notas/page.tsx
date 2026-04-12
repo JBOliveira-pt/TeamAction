@@ -1,3 +1,4 @@
+// Página de notas do atleta.
 import { fetchAtletaAtual } from "@/app/lib/data";
 import NotasUnificadas from "@/app/ui/components/notas-unificadas";
 

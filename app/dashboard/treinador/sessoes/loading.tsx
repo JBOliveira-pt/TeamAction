@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção sessoes (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-52 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -27,7 +28,7 @@ export default function Loading() {
                 </div>
             </div>
 
-            {/* Filter tabs */}
+            {/* Filtros */}
             <div className="flex flex-wrap gap-2 mb-4">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <div
@@ -37,7 +38,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Table */}
+            {/* Tabela */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <div

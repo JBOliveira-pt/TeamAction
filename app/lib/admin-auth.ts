@@ -1,3 +1,4 @@
+// Autenticação do admin: sessão por cookie, login e logout.
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import crypto from "node:crypto";

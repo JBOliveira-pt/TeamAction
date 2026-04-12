@@ -1,3 +1,4 @@
+// Página de login.
 "use client";
 
 import LoginView from "./_components/login-form";

@@ -1,3 +1,4 @@
+// Página de sessoes do treinador.
 import Sessoes from "./sessoes.client";
 import { fetchEquipas } from "@/app/lib/data";
 

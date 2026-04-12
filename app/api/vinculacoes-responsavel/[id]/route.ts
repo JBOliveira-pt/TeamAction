@@ -1,3 +1,4 @@
+// Rota API vinculacoes-responsavel/[id]: atleta menor aceita ou recusa vinculacao de responsavel.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

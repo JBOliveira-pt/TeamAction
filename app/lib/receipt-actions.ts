@@ -1,3 +1,4 @@
+// Actions de recibos: criar, enviar e regenerar PDF.
 "use server";
 
 import { sql, getOrganizationId } from "@/app/lib/data/_shared";
@@ -11,21 +12,21 @@ export async function uploadRecibo(
 ): Promise<{ error?: string; success?: boolean }> {
     const organizationId = await getOrganizationId();
 
-    const file          = formData.get("ficheiro") as File | null;
-    const atletaId      = formData.get("atleta_id") as string;
+    const file = formData.get("ficheiro") as File | null;
+    const atletaId = formData.get("atleta_id") as string;
     const mensalidadeId = formData.get("mensalidade_id") as string;
-    const amount        = formData.get("amount") as string;
+    const amount = formData.get("amount") as string;
     const paymentMethod = formData.get("payment_method") as string;
-    const issuerIban    = formData.get("issuer_iban") as string;
-    const receivedDate  = formData.get("received_date") as string;
-    const status        = (formData.get("status") as string) ?? "pendente";
+    const issuerIban = formData.get("issuer_iban") as string;
+    const receivedDate = formData.get("received_date") as string;
+    const status = (formData.get("status") as string) ?? "pendente";
 
-    if (!atletaId)       return { error: "Atleta é obrigatório." };
-    if (!mensalidadeId)  return { error: "Mensalidade é obrigatória." };
-    if (!amount)         return { error: "Valor é obrigatório." };
-    if (!paymentMethod)  return { error: "Método de pagamento é obrigatório." };
-    if (!issuerIban)     return { error: "IBAN é obrigatório." };
-    if (!receivedDate)   return { error: "Data de recebimento é obrigatória." };
+    if (!atletaId) return { error: "Atleta é obrigatório." };
+    if (!mensalidadeId) return { error: "Mensalidade é obrigatória." };
+    if (!amount) return { error: "Valor é obrigatório." };
+    if (!paymentMethod) return { error: "Método de pagamento é obrigatório." };
+    if (!issuerIban) return { error: "IBAN é obrigatório." };
+    if (!receivedDate) return { error: "Data de recebimento é obrigatória." };
 
     let pdfUrl: string | null = null;
     if (file && file.size > 0) {

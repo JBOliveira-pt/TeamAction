@@ -1,3 +1,4 @@
+// Gestor de favicon: alterna ícone conforme preferência de cor do sistema.
 "use client";
 
 import { useEffect } from "react";

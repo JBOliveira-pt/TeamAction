@@ -1,3 +1,4 @@
+// Queries de dados do atleta: notas, registos médicos e autorizações.
 import { sql, getOrganizationId } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 

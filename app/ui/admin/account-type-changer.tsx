@@ -1,3 +1,4 @@
+// Componente account type changer.
 "use client";
 
 import { useState } from "react";

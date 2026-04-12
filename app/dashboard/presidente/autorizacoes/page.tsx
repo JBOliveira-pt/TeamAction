@@ -1,3 +1,4 @@
+// Página de autorizacoes do presidente.
 import { fetchAutorizacoes } from "@/app/lib/data";
 import PedidoFederacaoModal from "./_components/PedidoFederacaoModal.client";
 

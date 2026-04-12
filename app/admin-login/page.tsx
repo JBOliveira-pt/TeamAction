@@ -1,3 +1,4 @@
+// Página de login do administrador.
 import { adminLoginAction } from "@/app/lib/admin-actions";
 import {
     getAdminSessionFromCookie,

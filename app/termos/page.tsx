@@ -1,3 +1,4 @@
+// Página de termos e condições.
 import Link from "next/link";
 import Image from "next/image";
 import { ASSETS } from "@/app/lib/assets";

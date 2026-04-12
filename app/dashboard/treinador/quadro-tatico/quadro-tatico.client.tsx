@@ -1,3 +1,4 @@
+// Componente cliente de quadro tatico (treinador).
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
@@ -300,7 +301,7 @@ export default function QuadroTatico() {
     } | null>(null);
     const fieldRef = useRef<HTMLDivElement>(null);
 
-    // Toast
+    // Notificação temporária
     const [toast, setToast] = useState<{
         msg: string;
         tipo: "ok" | "erro";

@@ -1,3 +1,4 @@
+// Componente cliente de jogos (presidente).
 "use client";
 
 import { useRouter } from "next/navigation";

@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção condicao fisica (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-44 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -23,7 +24,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Table */}
+            {/* Tabela */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="h-4 w-48 rounded bg-gray-200 dark:bg-gray-700" />

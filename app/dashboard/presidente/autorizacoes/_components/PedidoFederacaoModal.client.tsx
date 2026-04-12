@@ -1,3 +1,4 @@
+// Componente cliente de autorizacoes (presidente).
 "use client";
 
 import { useState, useTransition } from "react";
@@ -107,7 +108,7 @@ export default function PedidoFederacaoModal({ pedido }: { pedido: Pedido }) {
                         onClick={() => setOpen(false)}
                     />
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-4">
-                        {/* Header */}
+                        {/* Cabeçalho */}
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <span
@@ -163,7 +164,7 @@ export default function PedidoFederacaoModal({ pedido }: { pedido: Pedido }) {
                             </div>
                         )}
 
-                        {/* Resolved info */}
+                        {/* Info da resolução */}
                         {pedido.status !== "pendente" && pedido.resolved_at && (
                             <div className="space-y-1">
                                 <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">
@@ -175,14 +176,14 @@ export default function PedidoFederacaoModal({ pedido }: { pedido: Pedido }) {
                             </div>
                         )}
 
-                        {/* Error */}
+                        {/* Erro */}
                         {error && (
                             <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
                                 {error}
                             </div>
                         )}
 
-                        {/* Actions */}
+                        {/* Ações */}
                         {pedido.status === "pendente" ? (
                             <div className="flex justify-end gap-3 pt-2">
                                 <button

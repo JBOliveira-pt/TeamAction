@@ -1,3 +1,4 @@
+// Rota API avaliacoes-fisicas/[id]: atualizar ou eliminar avaliacao fisica por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

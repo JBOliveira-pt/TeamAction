@@ -1,3 +1,4 @@
+// Página de exercicios do treinador.
 import Exercicios from "./exercicios.client";
 
 export default function ExerciciosPage() {

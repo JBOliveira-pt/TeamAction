@@ -1,3 +1,4 @@
+// Componente cliente de mensalidades (presidente).
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
@@ -68,7 +69,7 @@ export default function RegistarMensalidadeModal({
                         onClick={() => setOpen(false)}
                     />
                     <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
-                        {/* Header */}
+                        {/* Cabeçalho */}
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
                                 Registar Pagamento

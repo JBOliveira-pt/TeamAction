@@ -1,3 +1,4 @@
+// Rota API avatar: upload de imagem de perfil (self-upload e upload pelo responsável para menores).
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { uploadImageToR2, deleteImageFromR2 } from "@/app/lib/r2-storage";
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
         );
     }
 
-    // Check if the responsável is uploading on behalf of a minor
+    // Verificar se o responsável está a enviar avatar em nome de um menor
     const url = new URL(request.url);
     const targetUserId = url.searchParams.get("targetUserId");
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
 
         // ── Responsável uploading avatar for the minor ──
         if (targetUserId) {
-            // Verify caller is a responsável
+            // Verificar se quem chama é responsável
             const [caller] = await sql<
                 { id: string; email: string; account_type: string }[]
             >`
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
                 );
             }
 
-            // Verify the target is a minor linked to this responsável
+            // Verificar que o alvo é um menor vinculado a este responsável
             const [minor] = await sql<
                 { user_id: string; encarregado_educacao: string | null }[]
             >`
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
                 );
             }
 
-            // Get current image to delete old one
+            // Obter imagem atual para apagar a antiga
             const [targetUser] = await sql<
                 { id: string; image_url: string | null }[]
             >`
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
                 try {
                     await deleteImageFromR2(targetUser.image_url);
                 } catch {
-                    // Ignore deletion errors
+                    // Ignorar erros de eliminação
                 }
             }
 
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
 
         // ── Normal self-upload flow ──
 
-        // Fetch current user to get existing image_url
+        // Obter utilizador atual para aceder ao image_url existente
         const [user] = await sql<{ id: string; image_url: string | null }[]>`
             SELECT id, image_url FROM users WHERE clerk_user_id = ${clerkUserId} LIMIT 1
         `;
@@ -198,19 +199,19 @@ export async function POST(request: Request) {
 
         // Adulto — salvar directamente
 
-        // Delete old R2 image if it's not a Clerk URL
+        // Apagar imagem antiga do R2 se não for URL do Clerk
         if (user.image_url && !user.image_url.includes("img.clerk.com")) {
             try {
                 await deleteImageFromR2(user.image_url);
             } catch {
-                // Ignore deletion errors for old images
+                // Ignorar erros de eliminação de imagens antigas
             }
         }
 
-        // Upload new avatar to R2
+        // Upload do novo avatar para R2
         const imageUrl = await uploadImageToR2(file, "user", user.id);
 
-        // Update DB
+        // Atualizar BD
         await sql`
             UPDATE users SET image_url = ${imageUrl}, updated_at = NOW()
             WHERE clerk_user_id = ${clerkUserId}

@@ -1,3 +1,4 @@
+// Componente cliente de calendario (presidente).
 "use client";
 import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";

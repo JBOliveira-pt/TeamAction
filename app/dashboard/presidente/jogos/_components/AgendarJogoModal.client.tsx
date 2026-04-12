@@ -1,3 +1,4 @@
+// Componente cliente de jogos (presidente).
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -317,7 +318,7 @@ export default function AgendarJogoModal({
             {open && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh] overflow-y-auto">
-                        {/* Header */}
+                        {/* Cabeçalho */}
                         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
                             <div className="flex items-center gap-3">
                                 {passo > 1 && (
@@ -345,7 +346,7 @@ export default function AgendarJogoModal({
                             </button>
                         </div>
 
-                        {/* Progress bar */}
+                        {/* Barra de progresso */}
                         <div className="h-1 bg-gray-100 dark:bg-gray-800">
                             <div
                                 className="h-full bg-blue-500 transition-all"

@@ -1,3 +1,4 @@
+// Modal de convocatória — seleção de atletas convocados para um jogo (presidente).
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -85,7 +86,7 @@ export default function ConvocatoriaModal({
             setAtletas(atletasData);
 
             if (convocData.length > 0) {
-                // Existing convocatória - load it
+                // Convocatória existente — carregar
                 setConvocados(
                     convocData.map((c) => ({
                         id: c.id,
@@ -97,7 +98,7 @@ export default function ConvocatoriaModal({
                     })),
                 );
             } else {
-                // No existing convocatória - default all athletes as convocado
+                // Sem convocatória existente — todos os atletas como convocado por defeito
                 setConvocados(
                     atletasData.map((a) => ({
                         atleta_id: a.id,
@@ -182,7 +183,7 @@ export default function ConvocatoriaModal({
                     />
 
                     <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
-                        {/* Header */}
+                        {/* Cabe�alho */}
                         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
                             <div>
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -208,7 +209,7 @@ export default function ConvocatoriaModal({
                             </button>
                         </div>
 
-                        {/* Summary badges */}
+                        {/* Badges resumo */}
                         <div className="px-6 py-3 flex gap-3 flex-wrap border-b border-gray-100 dark:border-gray-800">
                             <span className="text-xs font-medium px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                                 {counts.convocado} Convocados
@@ -224,7 +225,7 @@ export default function ConvocatoriaModal({
                             </span>
                         </div>
 
-                        {/* Body */}
+                        {/* Corpo */}
                         <div className="flex-1 overflow-y-auto p-6">
                             {loading ? (
                                 <div className="text-center text-gray-400 py-10">
@@ -243,7 +244,7 @@ export default function ConvocatoriaModal({
                                                 key={c.atleta_id}
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50"
                                             >
-                                                {/* Athlete info */}
+                                                {/* Info do atleta */}
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
                                                         {c.numero_camisola !=
@@ -264,7 +265,7 @@ export default function ConvocatoriaModal({
                                                     )}
                                                 </div>
 
-                                                {/* Estado buttons */}
+                                                {/* Bot�es de estado */}
                                                 <div className="flex gap-1 flex-wrap">
                                                     {ESTADOS.map((e) => (
                                                         <button
@@ -293,7 +294,7 @@ export default function ConvocatoriaModal({
                             )}
                         </div>
 
-                        {/* Footer */}
+                        {/* Rodap� */}
                         <div className="p-6 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
                             <button
                                 onClick={() => setOpen(false)}

@@ -1,3 +1,4 @@
+// Página de equipa atletas do treinador.
 import EquipaAtletas from "./equipa-atletas.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";

@@ -1,3 +1,4 @@
+// Página de users.
 import {
     adminChangeAccountTypeAction,
     adminDeleteUserAction,
@@ -119,7 +120,7 @@ export default async function AdminUserDetailPage({
     const deleteAction = adminDeleteUserAction.bind(null, id);
     const badge = getAccountTypeLabel(accountType);
 
-    // Fetch profile-specific data in parallel
+    // Buscar dados específicos do perfil em paralelo
     const [atletaData, staffData, equipas, clubeData, equipasFull] =
         await Promise.all([
             accountType === "atleta"

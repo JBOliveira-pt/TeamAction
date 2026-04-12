@@ -1,3 +1,4 @@
+// Página de comunicados do atleta.
 import { fetchComunicados } from "@/app/lib/data";
 import { Bell } from "lucide-react";
 import { getOrganizationId } from "@/app/lib/data/_shared";

@@ -1,3 +1,4 @@
+// Rota API admin/newsletter-thank: admin envia email de agradecimento a subscritor da newsletter.
 import { NextRequest, NextResponse } from "next/server";
 import postgres from "postgres";
 import { Resend } from "resend";

@@ -1,12 +1,9 @@
+// Actions de notificações: marcar como lida e eliminar.
 "use server";
 
 import { sql } from "./_shared";
 import { getOrganizationId } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
-
-// ========================================
-// Notificações Actions
-// ========================================
 
 function revalidateNotificacoes() {
     revalidatePath("/dashboard/presidente/notificacoes");

@@ -1,3 +1,4 @@
+// Página de epoca do presidente.
 import { fetchEpocaAtiva } from "@/app/lib/data";
 import NovaEpocaModal from "./_components/NovaEpocaModal.client";
 

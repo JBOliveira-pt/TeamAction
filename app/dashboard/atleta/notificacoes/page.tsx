@@ -1,3 +1,4 @@
+// Página de notificacoes do atleta.
 import NotificacoesUnificadas from "@/app/ui/components/notificacoes-unificadas";
 import VinculacaoResponsavelSection from "./vinculacao-responsavel-section.client";
 

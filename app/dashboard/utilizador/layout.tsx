@@ -1,3 +1,4 @@
+// Layout da secção utilizador.
 import { enforceDashboardAccountType } from "@/app/lib/dashboard-access";
 
 export const dynamic = "force-dynamic";

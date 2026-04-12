@@ -1,3 +1,4 @@
+// Rota API recibos/pdf: gera PDF de um recibo a partir dos dados fornecidos.
 import {
     generateReciboPdf,
     type ReciboPdfData,

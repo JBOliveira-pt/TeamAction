@@ -1,3 +1,4 @@
+// Rota API calendario/notas: listar e criar notas pessoais no calendario.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

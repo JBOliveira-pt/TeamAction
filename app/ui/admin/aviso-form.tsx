@@ -1,3 +1,4 @@
+// Componente aviso form.
 "use client";
 
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";

@@ -1,3 +1,4 @@
+// Rota API planos-nutricao/[id]: atualizar ou eliminar plano de nutricao por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

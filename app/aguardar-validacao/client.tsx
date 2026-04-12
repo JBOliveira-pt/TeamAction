@@ -1,3 +1,4 @@
+// Cliente da página de espera: polling automático e botões de verificação/logout.
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -6,7 +7,7 @@ import { useClerk } from "@clerk/nextjs";
 import { Loader2, LogOut } from "lucide-react";
 import Link from "next/link";
 
-const POLL_INTERVAL_MS = 10_000; // 10 seconds
+const POLL_INTERVAL_MS = 10_000; // 10 segundos
 
 export function AguardarValidacaoClient() {
     const router = useRouter();
@@ -25,7 +26,7 @@ export function AguardarValidacaoClient() {
         await signOut({ redirectUrl: "/signup" });
     }, [signOut]);
 
-    // Auto-poll every 10 seconds
+    // Verificação automática a cada 10 segundos
     useEffect(() => {
         const interval = setInterval(() => {
             router.refresh();

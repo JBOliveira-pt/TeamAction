@@ -1,3 +1,4 @@
+// Política de passwords: força, validação e constantes.
 export const MIN_PASSWORD_LENGTH = 8;
 export const PASSWORD_PRECHECK_NOTICE_DURATION_MS = 2000;
 

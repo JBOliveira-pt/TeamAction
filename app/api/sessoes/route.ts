@@ -1,3 +1,4 @@
+// Rota API sessoes: listar e criar sessoes de treino da organizacao.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

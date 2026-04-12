@@ -1,3 +1,4 @@
+// Componente de erro com opção de retry.
 "use client";
 
 export default function ResponsavelError({

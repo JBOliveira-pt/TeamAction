@@ -1,3 +1,4 @@
+// Rota API notificacoes/[id]/read: marcar notificacao como lida por id.
 import { auth } from "@clerk/nextjs/server";
 import { ensureRecipientUserIdColumn } from "@/app/lib/notification-schema";
 import { requireApiAccountType } from "@/app/lib/api-guards";

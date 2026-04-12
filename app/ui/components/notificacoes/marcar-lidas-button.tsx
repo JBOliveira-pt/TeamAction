@@ -1,3 +1,4 @@
+// Componente marcar lidas button.
 "use client";
 
 import { marcarTodasComoLidas } from "@/app/lib/actions";

@@ -1,3 +1,4 @@
+// Componente admin clube editor.
 "use client";
 
 import { useState } from "react";

@@ -1,3 +1,4 @@
+// Rota API perfil-atleta/options: devolve opcoes de selecao para o perfil de atleta.
 import { clerkClient } from "@clerk/nextjs/server";
 import postgres from "postgres";
 

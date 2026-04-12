@@ -1,3 +1,4 @@
+// Queries de comunicados, autorizações e documentos da organização.
 import {
     sql,
     getOrganizationId,

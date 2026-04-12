@@ -1,3 +1,4 @@
+// Actions de pedidos de alteração de perfil (admin aprova/recusa).
 "use server";
 
 import { auth } from "@clerk/nextjs/server";

@@ -1,3 +1,4 @@
+// Página de jogos do presidente.
 import {
     fetchJogos,
     fetchEquipas,

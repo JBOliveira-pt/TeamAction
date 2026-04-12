@@ -1,3 +1,4 @@
+// Rota API webhook Clerk: sincroniza eventos de utilizador (criar, atualizar, eliminar) com a BD local.
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";

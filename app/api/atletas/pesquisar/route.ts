@@ -1,3 +1,4 @@
+// Rota API atletas/pesquisar: pesquisa atletas por nome dentro da organizacao.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

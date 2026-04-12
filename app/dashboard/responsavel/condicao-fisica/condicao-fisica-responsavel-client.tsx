@@ -1,3 +1,4 @@
+// Componente condicao fisica responsavel client.
 "use client";
 
 import {
@@ -214,7 +215,7 @@ export default function CondicaoFisicaResponsavelClient({
                 </button>
             </div>
 
-            {/* Stat cards */}
+            {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     label="Altura atual"
@@ -271,7 +272,7 @@ export default function CondicaoFisicaResponsavelClient({
                 </div>
             ) : (
                 <>
-                    {/* Table */}
+                    {/* Tabela */}
                     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
                         <table className="w-full text-sm">
                             <thead className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-950">

@@ -1,3 +1,4 @@
+// Componente admin equipas manager.
 "use client";
 
 import { useState } from "react";

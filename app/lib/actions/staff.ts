@@ -1,13 +1,10 @@
+// Actions de staff: adicionar, editar, remover e suspender membros.
 "use server";
 
 import { sql, logAction } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { isEscalaoPermitido } from "@/app/lib/grau-escalao-compat";
-
-// ========================================
-// Staff Actions (Modal)
-// ========================================
 
 const FUNCOES_TREINADOR = ["Treinador Principal", "Treinador Adjunto"];
 

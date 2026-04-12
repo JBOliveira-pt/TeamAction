@@ -1,3 +1,4 @@
+// Rota API account-type-check: verifica o account_type de um utilizador na BD pelo uid do Clerk.
 import postgres from "postgres";
 import { NextRequest } from "next/server";
 

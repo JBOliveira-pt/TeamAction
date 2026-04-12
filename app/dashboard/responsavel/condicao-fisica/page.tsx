@@ -1,3 +1,4 @@
+// Página de condicao fisica do responsável.
 import {
     fetchCondicaoFisicaResponsavel,
     fetchAtletaDoResponsavel,

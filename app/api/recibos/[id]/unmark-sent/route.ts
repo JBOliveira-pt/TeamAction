@@ -1,3 +1,4 @@
+// Rota API recibos/[id]/unmark-sent: remover marcacao de enviado de um recibo.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextResponse } from "next/server";

@@ -1,3 +1,4 @@
+// Rota API recibos/pending: lista recibos pendentes de envio da organizacao.
 import { auth } from "@clerk/nextjs/server";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import postgres from "postgres";

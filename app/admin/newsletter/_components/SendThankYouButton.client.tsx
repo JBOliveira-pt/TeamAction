@@ -1,3 +1,4 @@
+// Componente cliente de newsletter.
 "use client";
 
 import { useState } from "react";

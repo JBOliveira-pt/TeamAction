@@ -1,3 +1,4 @@
+// Actions de comunicados, autorizações, federação e documentos.
 "use server";
 
 import { sql, logAction } from "./_shared";

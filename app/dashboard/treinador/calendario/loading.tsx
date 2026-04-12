@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção calendario (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 flex flex-col gap-6 animate-pulse">
-            {/* Month header */}
+            {/* Cabeçalho do mês */}
             <div className="flex items-center justify-center gap-4">
                 <div className="h-8 w-8 rounded bg-gray-200 dark:bg-gray-800" />
                 <div className="h-7 w-44 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -14,7 +15,7 @@ export default function Loading() {
                 <div className="h-4 w-24 rounded bg-gray-200 dark:bg-gray-700" />
             </div>
 
-            {/* Weekday header */}
+            {/* Cabeçalho dias da semana */}
             <div className="grid grid-cols-7 gap-1">
                 {["S", "T", "Q", "Q", "S", "S", "D"].map((d, i) => (
                     <div
@@ -24,7 +25,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Calendar grid */}
+            {/* Grelha do calendário */}
             <div className="grid grid-cols-7 gap-1">
                 {Array.from({ length: 35 }).map((_, i) => (
                     <div

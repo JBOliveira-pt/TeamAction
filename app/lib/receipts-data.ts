@@ -1,3 +1,4 @@
+// Queries de recibos: listar, detalhar e pesquisar.
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 import { RecibosTableRow, Recibo } from "./definitions";
@@ -136,24 +137,26 @@ export async function fetchReciboById(reciboId: string): Promise<Recibo> {
 export async function fetchReciboDetail(reciboId: string) {
     const organizationId = await requireOrganizationId();
 
-    const data = await sql<{
-        recibo_id: string;
-        recibo_number: number;
-        status: "pendente_envio" | "enviado_atleta";
-        received_date: string;
-        amount: number;
-        pdf_url: string | null;
-        recibo_created_by: string | null;
-        mensalidade_id: string;
-        mensalidade_mes: number;
-        mensalidade_ano: number;
-        data_pagamento: string | null;
-        atleta_id: string;
-        atleta_nome: string;
-        sent_at: string | null;
-        sent_by_user_name: string | null;
-        issuer_iban: string;
-    }[]>`
+    const data = await sql<
+        {
+            recibo_id: string;
+            recibo_number: number;
+            status: "pendente_envio" | "enviado_atleta";
+            received_date: string;
+            amount: number;
+            pdf_url: string | null;
+            recibo_created_by: string | null;
+            mensalidade_id: string;
+            mensalidade_mes: number;
+            mensalidade_ano: number;
+            data_pagamento: string | null;
+            atleta_id: string;
+            atleta_nome: string;
+            sent_at: string | null;
+            sent_by_user_name: string | null;
+            issuer_iban: string;
+        }[]
+    >`
         SELECT
             recibos.id AS recibo_id,
             recibos.recibo_number,

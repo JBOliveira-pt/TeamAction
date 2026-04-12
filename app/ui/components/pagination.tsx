@@ -1,3 +1,4 @@
+// Componente pagination.
 "use client";
 
 import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";

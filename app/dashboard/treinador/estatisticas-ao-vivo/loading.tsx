@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção estatisticas ao vivo (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-40 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -10,7 +11,7 @@ export default function Loading() {
                 <div className="h-9 w-36 rounded-lg bg-gray-200 dark:bg-gray-800" />
             </div>
 
-            {/* Selector card */}
+            {/* Card de seleção */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 border border-gray-200 dark:border-gray-700 space-y-3">
                 <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700" />
                 <div className="h-10 w-full rounded-lg bg-gray-200 dark:bg-gray-700" />
@@ -20,7 +21,7 @@ export default function Loading() {
                 </div>
             </div>
 
-            {/* Counter grid */}
+            {/* Grelha contadores */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div
@@ -33,7 +34,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Events table */}
+            {/* Tabela de eventos */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="h-4 w-28 rounded bg-gray-200 dark:bg-gray-700" />

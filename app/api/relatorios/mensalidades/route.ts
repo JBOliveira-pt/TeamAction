@@ -1,3 +1,4 @@
+// Rota API relatorios/mensalidades: gera relatorio de mensalidades dos atletas.
 import { NextResponse } from "next/server";
 import { sql, getOrganizationId } from "@/app/lib/data/_shared";
 

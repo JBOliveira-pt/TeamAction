@@ -1,4 +1,4 @@
-// app/ui/dashboard/sidenav.tsx
+// Barra de navegação lateral do dashboard com menus dinâmicos por tipo de conta.
 "use client";
 
 import { DashboardHeader } from "@/app/components/header";

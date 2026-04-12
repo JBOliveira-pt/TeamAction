@@ -1,3 +1,4 @@
+// Componente notas calendario client.
 "use client";
 
 import {
@@ -36,7 +37,7 @@ function todayISO() {
     return new Date().toISOString().slice(0, 10);
 }
 
-/** Group notes by date */
+/** Agrupar notas por data */
 function groupByDate(notas: Nota[]) {
     const map = new Map<string, Nota[]>();
     for (const n of notas) {
@@ -115,7 +116,7 @@ export default function NotasCalendarioClient({
 
     return (
         <div className="p-6 space-y-6">
-            {/* header */}
+            {/* Cabe�alho */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -146,7 +147,7 @@ export default function NotasCalendarioClient({
                 </p>
             )}
 
-            {/* content */}
+            {/* Conte�do */}
             {initialNotas.length === 0 ? (
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-6 py-16 text-center flex flex-col items-center gap-4">
                     <div className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">

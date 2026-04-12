@@ -1,10 +1,11 @@
+// Rota API convites-equipa/[id]: atleta aceita ou recusa convite de equipa (com fluxo de menor).
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
-// Athlete accepts or declines a convite
+// Atleta aceita ou recusa um convite
 export async function PUT(
     req: NextRequest,
     { params }: { params: Promise<{ id: string }> },
@@ -26,7 +27,7 @@ export async function PUT(
     if (!["aceite", "recusado"].includes(body.estado))
         return new Response("Estado inválido.", { status: 400 });
 
-    // Get convite
+    // Buscar convite
     const conviteRows = await sql<
         {
             id: string;
@@ -50,7 +51,7 @@ export async function PUT(
     if (convite.estado !== "pendente")
         return new Response("Convite já respondido.", { status: 409 });
 
-    // Check if athlete is a minor
+    // Verificar se atleta é menor
     const atletaInfo = await sql<
         {
             nome: string;
@@ -65,7 +66,7 @@ export async function PUT(
     const isMinor = atletaInfo[0]?.menor_idade === true;
     const responsavelEmail = atletaInfo[0]?.encarregado_educacao;
 
-    // If minor is accepting, require responsible approval first
+    // Se menor está a aceitar, requer aprovação do responsável primeiro
     if (body.estado === "aceite" && isMinor) {
         await sql`
             UPDATE convites_equipa
@@ -73,7 +74,7 @@ export async function PUT(
             WHERE id = ${id}
         `;
 
-        // Notify the responsible
+        // Notificar o responsável
         if (responsavelEmail) {
             const responsavelRows = await sql<{ id: string }[]>`
                 SELECT id FROM users WHERE LOWER(email) = LOWER(${responsavelEmail}) LIMIT 1
@@ -98,14 +99,14 @@ export async function PUT(
         return Response.json({ ok: true, estado: "pendente_responsavel" });
     }
 
-    // Update convite estado
+    // Atualizar estado do convite
     await sql`
         UPDATE convites_equipa
         SET estado = ${body.estado}, updated_at = NOW()
         WHERE id = ${id}
     `;
 
-    // If accepted, assign athlete to equipa
+    // Se aceite, atribuir atleta à equipa
     if (body.estado === "aceite" && convite.equipa_id) {
         await sql`
             UPDATE atletas SET equipa_id = ${convite.equipa_id}
@@ -113,7 +114,7 @@ export async function PUT(
         `.catch(() => {});
     }
 
-    // Notify the treinador
+    // Notificar o treinador
     const decisao = body.estado === "aceite" ? "aceitou" : "recusou";
 
     await sql`

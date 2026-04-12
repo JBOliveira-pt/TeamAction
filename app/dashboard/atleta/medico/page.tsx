@@ -1,4 +1,5 @@
-﻿import { fetchAtletaAtual, fetchRegistosMedicos } from "@/app/lib/data";
+// Página de medico do atleta.
+import { fetchAtletaAtual, fetchRegistosMedicos } from "@/app/lib/data";
 import MedicoClientWrapper from "./medico-client";
 
 export const dynamic = "force-dynamic";

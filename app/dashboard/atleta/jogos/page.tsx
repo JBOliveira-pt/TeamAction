@@ -1,3 +1,4 @@
+// Página de jogos do atleta.
 import { fetchJogosAtleta } from "@/app/lib/data";
 
 export const dynamic = "force-dynamic";

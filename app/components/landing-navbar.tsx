@@ -1,3 +1,4 @@
+// Navbar da landing page: logo, ícones de recursos, planos e autenticação.
 "use client";
 
 import { useEffect, useState } from "react";
@@ -74,7 +75,7 @@ export function LandingNavbar() {
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-20">
-                        {/* Logo */}
+                        {/* Logotipo */}
                         <a
                             href="#"
                             className="flex-shrink-0 transition-opacity hover:opacity-80"
@@ -89,9 +90,9 @@ export function LandingNavbar() {
                             />
                         </a>
 
-                        {/* Center: Recursos icons + Planos */}
+                        {/* Centro: ícones Recursos + Planos */}
                         <div className="hidden lg:flex items-center gap-10">
-                            {/* Recursos group */}
+                            {/* Grupo Recursos */}
                             <div className="flex items-center gap-3">
                                 <span className="text-[13px] font-semibold uppercase tracking-widest text-[#27365D]-100 select-none">
                                     Recursos
@@ -123,7 +124,7 @@ export function LandingNavbar() {
                             </a>
                         </div>
 
-                        {/* Right: Auth buttons */}
+                        {/* Direita: botões Auth */}
                         <div className="hidden lg:flex items-center gap-3">
                             <Link
                                 href="/login"
@@ -140,7 +141,7 @@ export function LandingNavbar() {
                             </Link>
                         </div>
 
-                        {/* Mobile hamburger */}
+                        {/* Hamburger mobile */}
                         <button
                             onClick={() => setMobileOpen((o) => !o)}
                             className="lg:hidden p-2.5 rounded-xl text-slate-600 hover:bg-slate-200/50 transition-colors cursor-pointer"
@@ -156,7 +157,7 @@ export function LandingNavbar() {
                 </div>
             </nav>
 
-            {/* Mobile menu overlay */}
+            {/* Menu mobile overlay */}
             <div
                 className={`fixed inset-0 z-40 lg:hidden transition-all duration-500 ${
                     mobileOpen
@@ -197,7 +198,7 @@ export function LandingNavbar() {
                         Planos
                     </a>
 
-                    {/* Auth buttons */}
+                    {/* Botões Auth */}
                     <div className="border-t border-slate-200/60 pt-8 flex flex-col gap-3">
                         <Link
                             href="/login"

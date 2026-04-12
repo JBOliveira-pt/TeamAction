@@ -1,4 +1,4 @@
-// app/ui/components/button.tsx
+// Componente botão reutilizável com variantes e tamanhos.
 import { ButtonHTMLAttributes, ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -1,13 +1,10 @@
+// Actions de mensalidades: registar pagamento e suspender atleta.
 "use server";
 
 import { sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { getOrganizationId, requireAccountType } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
-
-// ========================================
-// Mensalidades Actions (Modal)
-// ========================================
 
 export async function registarPagamento(
     prevState: { error?: string; success?: boolean } | null,
@@ -123,10 +120,6 @@ export async function registarPagamento(
     revalidatePath("/dashboard/presidente/notificacoes");
     return { success: true };
 }
-
-// ========================================
-// Suspender Atleta
-// ========================================
 
 export async function suspenderAtleta(
     prevState: { error?: string; success?: boolean } | null,

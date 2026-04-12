@@ -1,3 +1,4 @@
+// Página de relatorios do presidente.
 import { fetchRelatoriosMetadata } from "@/app/lib/data";
 import RelatoriosClient from "./_components/relatorios-client";
 

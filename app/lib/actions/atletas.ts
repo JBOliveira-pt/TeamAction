@@ -1,12 +1,9 @@
+// Actions de atletas: adicionar e editar atletas no modal.
 "use server";
 
 import { sql, logAction } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-
-// ========================================
-// Atleta Actions (Modal)
-// ========================================
 
 export async function adicionarAtleta(
     prevState: { error?: string; success?: boolean } | null,

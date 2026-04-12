@@ -1,3 +1,4 @@
+// Dashboard principal do presidente: equipas, jogos, notificações e resumo geral.
 import Link from "next/link";
 import {
     fetchPresidenteDashboard,

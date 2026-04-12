@@ -1,3 +1,4 @@
+// Componente perfil unificado.
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchMeuPerfil, fetchPerfilAtletaGeral } from "@/app/lib/data";

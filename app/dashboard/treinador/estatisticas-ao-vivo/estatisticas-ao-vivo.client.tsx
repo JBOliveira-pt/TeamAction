@@ -1,3 +1,4 @@
+// Componente cliente de estatisticas ao vivo (treinador).
 "use client";
 import { useState, useEffect } from "react";
 import { BarChart2, Plus, X } from "lucide-react";
@@ -180,7 +181,7 @@ export default function EstatisticasAoVivo({
                 </div>
             )}
 
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2">

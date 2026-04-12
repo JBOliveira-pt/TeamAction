@@ -1,13 +1,10 @@
+// Actions de épocas e organização: criar/editar época e atualizar dados do clube.
 "use server";
 
 import { sql, logAction } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { getOrganizationId } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
-
-// ========================================
-// Época Actions (Modal)
-// ========================================
 
 export async function criarEpoca(
     prevState: { error?: string; success?: boolean } | null,
@@ -71,10 +68,6 @@ export async function criarEpoca(
     revalidatePath("/dashboard/presidente/notificacoes");
     return { success: true };
 }
-
-// ========================================
-// OrganizaÃ§Ã£o Actions
-// ========================================
 
 export async function atualizarOrganizacao(
     prevState: { error?: string; success?: boolean } | null,

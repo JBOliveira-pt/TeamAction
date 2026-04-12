@@ -1,3 +1,4 @@
+// Página de medico do responsável.
 import { fetchRegistosMedicosResponsavel } from "@/app/lib/data";
 import MedicoResponsavelClient from "./medico-responsavel-client";
 

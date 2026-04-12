@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção notificacoes (treinador).
 export default function Loading() {
     return (
         <div className="p-6 space-y-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div className="space-y-2">
                     <div className="h-7 w-40 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -10,7 +11,7 @@ export default function Loading() {
                 <div className="h-9 w-44 rounded-lg bg-gray-200 dark:bg-gray-800" />
             </div>
 
-            {/* Notification cards */}
+            {/* Cards de notificação */}
             <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <div

@@ -1,3 +1,4 @@
+// Componente custom signup form.
 "use client";
 
 import { useSignUp, useSession } from "@clerk/nextjs";
@@ -638,7 +639,7 @@ export default function CustomSignUpForm({
                     const breached = Boolean(data.breached);
                     setIsPasswordBreached(breached);
                     if (breached) {
-                        // Keep the breach warning visible until the password changes.
+                        // Manter o aviso de password comprometida visível até a password mudar.
                         showPrecheckNotice(PRECHECK_BREACH_MESSAGE);
                     } else {
                         showPrecheckNotice(

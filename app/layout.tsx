@@ -1,3 +1,4 @@
+// Layout raiz: define metadados, tema (dark/light) e favicon dinâmico.
 import "@/app/ui/global.css";
 import { inter } from "@/app/ui/fonts";
 import { Metadata } from "next";
@@ -27,7 +28,7 @@ export default function RootLayout({
                         dangerouslySetInnerHTML={{
                             __html: `
                                 (function() {
-                                    // Apply dark mode class based on saved theme
+                                    // Aplicar classe dark mode conforme tema guardado
                                     const theme = localStorage.getItem('theme') || 'light';
                                     if (theme === 'dark') {
                                         document.documentElement.classList.add('dark');
@@ -35,17 +36,17 @@ export default function RootLayout({
                                         document.documentElement.classList.remove('dark');
                                     }
                                     
-                                    // Update favicon based on SYSTEM preferences (not saved theme)
+                                    // Atualizar favicon conforme preferências do SISTEMA
                                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                                     const faviconUrl = prefersDark
                                         ? '${process.env.NEXT_PUBLIC_R2_IMAGES_URL}/teamaction-favicon-white.ico'
                                         : '${process.env.NEXT_PUBLIC_R2_IMAGES_URL}/teamaction-favicon-black.ico';
                                     
-                                    // Remove existing favicons
+                                    // Remover favicons existentes
                                     const existingLinks = document.querySelectorAll("link[rel*='icon']");
                                     existingLinks.forEach(function(link) { link.remove(); });
                                     
-                                    // Create new favicon link
+                                    // Criar novo link para favicon
                                     const link = document.createElement('link');
                                     link.type = 'image/x-icon';
                                     link.rel = 'shortcut icon';

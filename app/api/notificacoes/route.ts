@@ -1,3 +1,4 @@
+// Rota API notificacoes: lista notificacoes nao lidas do utilizador autenticado.
 import { fetchNotificacoes } from "@/app/lib/data";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextResponse } from "next/server";

@@ -1,3 +1,4 @@
+// Actions do admin: CRUD utilizadores, aprovar pedidos, gerir planos e equipas.
 "use server";
 
 import bcrypt from "bcryptjs";
@@ -415,7 +416,7 @@ export async function adminUpdateUserAction(
     const telefone = String(formData.get("telefone") || "").trim() || null;
     const rawPassword = String(formData.get("password") || "").trim();
 
-    // Extended personal fields
+    // Campos pessoais adicionais
     const sobrenome = String(formData.get("sobrenome") || "").trim() || null;
     const morada = String(formData.get("morada") || "").trim() || null;
     const pesoKg = String(formData.get("pesoKg") || "").trim() || null;
@@ -426,7 +427,7 @@ export async function adminUpdateUserAction(
     const cidade = String(formData.get("cidade") || "").trim() || null;
     const pais = String(formData.get("pais") || "").trim() || null;
 
-    // Athlete-specific fields
+    // Campos específicos do atleta
     const atletaId = String(formData.get("atletaId") || "").trim() || null;
     const posicao = String(formData.get("posicao") || "").trim() || null;
     const numeroCamisola =
@@ -440,7 +441,7 @@ export async function adminUpdateUserAction(
     const numeroFederado =
         String(formData.get("numeroFederado") || "").trim() || null;
 
-    // Staff-specific fields
+    // Campos específicos do staff
     const staffId = String(formData.get("staffId") || "").trim() || null;
     const funcaoStaff =
         String(formData.get("funcaoStaff") || "").trim() || null;
@@ -477,10 +478,10 @@ export async function adminUpdateUserAction(
 
         const clerkUserId = currentUser.clerk_user_id;
 
-        // Helper: check if a given section should run
+        // Helper: verificar se a secção dada deve ser executada
         const inSection = (s: string) => !section || section === s;
 
-        // --- Photo upload via R2 ---
+        // --- Upload de foto via R2 ---
         let imageUrl: string | null = null;
         if (
             inSection("pessoais") &&
@@ -503,12 +504,12 @@ export async function adminUpdateUserAction(
             imageUrl = await uploadImageToR2(profilePhoto, "user", userId);
         }
 
-        // --- Clerk updates (name, email, password) ---
+        // --- Atualizações no Clerk (nome, email, password) ---
         if (clerkUserId) {
             const client = await clerkClient();
 
             if (inSection("pessoais")) {
-                // Split name for Clerk first/last
+                // Separar nome/apelido para o Clerk
                 const nameParts = name.split(/\s+/);
                 const firstName = nameParts[0] || name;
                 const lastName =
@@ -519,7 +520,7 @@ export async function adminUpdateUserAction(
                     lastName,
                 });
 
-                // Handle email change via Clerk — creates an unverified email address
+                // Tratar alteração de email via Clerk
                 const previousEmail = currentUser.email.toLowerCase();
                 const newEmail = email.toLowerCase();
                 if (newEmail !== previousEmail) {
@@ -531,7 +532,7 @@ export async function adminUpdateUserAction(
                 }
             }
 
-            // Handle password change via Clerk
+            // Tratar alteração de password via Clerk
             if (inSection("seguranca") && rawPassword.length > 0) {
                 await client.users.updateUser(clerkUserId, {
                     password: rawPassword,
@@ -539,13 +540,13 @@ export async function adminUpdateUserAction(
             }
         }
 
-        // --- Database: update users table ---
+        // --- Base de dados: atualizar tabela users ---
         const hashedPassword =
             inSection("seguranca") && rawPassword.length > 0
                 ? await bcrypt.hash(rawPassword, 12)
                 : null;
 
-        // Discover optional columns
+        // Descobrir colunas opcionais
         const optionalCols = await sql<{ column_name: string }[]>`
             SELECT column_name
             FROM information_schema.columns
@@ -560,7 +561,7 @@ export async function adminUpdateUserAction(
         const hasCol = (col: string) =>
             optionalCols.some((c) => c.column_name === col);
 
-        // Core fields (name, email, password, image) — only for pessoais/seguranca/full
+        // Campos principais (name, email, password, image) — para pessoais/seguranca/full
         if (inSection("pessoais")) {
             if (imageUrl) {
                 await sql`
@@ -586,7 +587,7 @@ export async function adminUpdateUserAction(
             `;
         }
 
-        // Update optional columns individually (section-guarded)
+        // Atualizar colunas opcionais individualmente (por secção)
         if (inSection("morada") && iban !== null) {
             await sql`
                 UPDATE clubes SET iban = ${iban}, updated_at = NOW()
@@ -658,7 +659,7 @@ export async function adminUpdateUserAction(
             `;
         }
 
-        // --- Database: update atletas table ---
+        // --- Base de dados: atualizar tabela atletas ---
         if (inSection("desportivos") && atletaId) {
             const hasAtletas = await tableExists(sql, "atletas");
             if (hasAtletas) {
@@ -687,7 +688,7 @@ export async function adminUpdateUserAction(
             }
         }
 
-        // --- Database: update staff table ---
+        // --- Base de dados: atualizar tabela staff ---
         if (inSection("staff") && staffId) {
             const hasStaff = await tableExists(sql, "staff");
             if (hasStaff) {
@@ -700,7 +701,7 @@ export async function adminUpdateUserAction(
             }
         }
 
-        // --- Database: update organization name ---
+        // --- Base de dados: atualizar nome da organização ---
         if (
             inSection("seguranca") &&
             organizationName &&
@@ -711,7 +712,7 @@ export async function adminUpdateUserAction(
                 SET name = ${organizationName}, updated_at = NOW()
                 WHERE id = ${currentUser.organization_id}
             `;
-            // Keep clubes.nome in sync
+            // Manter clubes.nome sincronizado
             await sql`
                 UPDATE clubes
                 SET nome = ${organizationName}, updated_at = NOW()
@@ -719,7 +720,7 @@ export async function adminUpdateUserAction(
             `;
         }
 
-        // --- Audit log ---
+        // --- Log de auditoria ---
         await ensureAdminTables();
         const updateMetadata: JSONValue = JSON.parse(
             JSON.stringify({
@@ -966,9 +967,7 @@ export async function adminCreateAvisoAction(
     redirect("/admin/avisos?success=1");
 }
 
-// ========================================
 // Aprovar / Rejeitar Pedidos de Plano
-// ========================================
 
 export async function adminResolvePedidoPlanoAction(
     formData: FormData,
@@ -1038,7 +1037,7 @@ export async function adminResolvePedidoPlanoAction(
             VALUES (gen_random_uuid(), ${organization_id}, ${user_id}, ${titulo}, ${descricao}, 'Aviso', false, NOW())
         `;
 
-        // Audit log
+        // Log de auditoria
         await ensureAdminTables();
         const metadata: JSONValue = JSON.parse(
             JSON.stringify({
@@ -1070,9 +1069,7 @@ export async function adminResolvePedidoPlanoAction(
     redirect(`/admin/planos?success=${decisao}`);
 }
 
-// ========================================
 // Aprovar / Rejeitar Pedidos de Alteração de Perfil
-// ========================================
 
 export async function adminResolvePedidoPerfilAction(
     formData: FormData,
@@ -1173,7 +1170,7 @@ export async function adminResolvePedidoPerfilAction(
             }
         });
 
-        // Audit log (fora da transação — não é crítico)
+        // Log de auditoria (fora da transação — não é crítico)
         await ensureAdminTables();
         const metadata: JSONValue = JSON.parse(
             JSON.stringify({
@@ -1325,9 +1322,7 @@ export async function adminResolvePedidoPerfilAction(
     );
 }
 
-// ========================================
 // Alterar Account Type de um utilizador
-// ========================================
 
 export async function adminChangeAccountTypeAction(
     formData: FormData,
@@ -1358,13 +1353,13 @@ export async function adminChangeAccountTypeAction(
 
         const { clerk_user_id, account_type: oldType, name } = userData[0];
 
-        // Update database
+        // Atualizar base de dados
         await sql`
             UPDATE users SET account_type = ${validated}, updated_at = NOW()
             WHERE id = ${userId}
         `;
 
-        // Update Clerk metadata
+        // Atualizar metadados no Clerk
         if (clerk_user_id) {
             try {
                 const client = await clerkClient();
@@ -1377,7 +1372,7 @@ export async function adminChangeAccountTypeAction(
             }
         }
 
-        // Audit log
+        // Log de auditoria
         await ensureAdminTables();
         const metadata: JSONValue = JSON.parse(
             JSON.stringify({
@@ -1408,9 +1403,7 @@ export async function adminChangeAccountTypeAction(
     redirect(`/admin/users/${userId}?success=type_changed`);
 }
 
-// ========================================
 // Admin: Editar Clube
-// ========================================
 
 export async function adminUpdateClubeAction(
     organizationId: string,
@@ -1429,7 +1422,7 @@ export async function adminUpdateClubeAction(
     const cidade = String(formData.get("cidade") || "").trim() || null;
     const pais = String(formData.get("pais") || "").trim() || null;
 
-    // Discover the user ID for redirect (find the presidente of this org)
+    // Descobrir o user_id para redirect (presidente desta org)
     const ownerRows = await sql<{ id: string }[]>`
         SELECT id FROM users
         WHERE organization_id = ${organizationId} AND account_type = 'presidente'
@@ -1504,9 +1497,7 @@ export async function adminUpdateClubeAction(
     redirect("/admin/users?success=1");
 }
 
-// ========================================
 // Admin: Editar Equipa
-// ========================================
 
 export async function adminEditEquipaAction(
     equipaId: string,
@@ -1563,9 +1554,7 @@ export async function adminEditEquipaAction(
     redirect("/admin/users?success=1");
 }
 
-// ========================================
 // Admin: Eliminar Equipa
-// ========================================
 
 export async function adminDeleteEquipaAction(
     equipaId: string,

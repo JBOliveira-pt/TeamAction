@@ -1,3 +1,4 @@
+// Página de estatisticas do responsável.
 import { fetchAtletaDoResponsavel } from "@/app/lib/data";
 
 export const dynamic = "force-dynamic";

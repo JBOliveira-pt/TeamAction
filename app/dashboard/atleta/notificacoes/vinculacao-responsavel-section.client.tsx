@@ -1,3 +1,4 @@
+// Componente cliente de notificacoes (atleta).
 "use client";
 
 import { useState, useEffect } from "react";
@@ -164,7 +165,7 @@ function VinculacaoCard({
 
     return (
         <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-violet-300 dark:border-violet-700 shadow-sm overflow-hidden">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="bg-violet-50 dark:bg-violet-900/20 px-5 py-3 flex items-center gap-3 border-b border-violet-200 dark:border-violet-800">
                 <UserCheck
                     size={18}
@@ -175,7 +176,7 @@ function VinculacaoCard({
                 </span>
             </div>
 
-            {/* Body */}
+            {/* Corpo */}
             <div className="p-5 space-y-4">
                 <div>
                     <p className="text-sm text-gray-700 dark:text-gray-300">

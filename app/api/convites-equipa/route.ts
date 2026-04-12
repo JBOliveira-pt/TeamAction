@@ -1,3 +1,4 @@
+// Rota API convites-equipa: listar e criar convites de equipa para atletas.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

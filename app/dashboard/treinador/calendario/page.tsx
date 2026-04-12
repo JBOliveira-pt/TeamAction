@@ -1,3 +1,4 @@
+// Página de calendario do treinador.
 import {
     fetchJogosTreinador,
     fetchEpocaAtiva,

@@ -1,3 +1,4 @@
+// Página de jogos do responsável.
 import { fetchJogosResponsavel } from "@/app/lib/data";
 
 export const dynamic = "force-dynamic";

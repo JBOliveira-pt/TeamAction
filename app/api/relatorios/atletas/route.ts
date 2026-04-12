@@ -1,3 +1,4 @@
+// Rota API relatorios/atletas: gera e devolve relatorio CSV de atletas.
 import { gerarRelatorioAtletas } from "@/app/lib/actions";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextResponse } from "next/server";

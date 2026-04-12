@@ -1,3 +1,4 @@
+// Serviço de recibos: geração de PDF e registo em base de dados.
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 import { getCurrentUser } from "./auth-helpers";

@@ -1,3 +1,4 @@
+// Componente notificacoes unificadas.
 import { fetchNotificacoes } from "@/app/lib/data";
 import ToggleLidaButton from "./notificacoes/toggle-lida-button";
 import MarcarLidasButton from "./notificacoes/marcar-lidas-button";

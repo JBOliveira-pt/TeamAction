@@ -1,6 +1,6 @@
-// ========================================
-// Organization Types
-// ========================================
+// Definições de tipos TypeScript para toda a aplicação.
+
+// --- Tipos de Organização ---
 export type Organization = {
     id: string;
     name: string;
@@ -10,9 +10,7 @@ export type Organization = {
     updated_at: string;
 };
 
-// ========================================
-// User Types
-// ========================================
+// --- Tipos de Utilizador ---
 export type User = {
     id: string;
     name: string;
@@ -23,9 +21,7 @@ export type User = {
     account_type?: "presidente" | "treinador" | "atleta" | "responsavel" | null;
 };
 
-// ========================================
-// Recibo Types (antigo Receipt, agora ligado a mensalidades/atletas)
-// ========================================
+// --- Tipos de Recibo ---
 export type ReciboStatus = "pendente_envio" | "enviado_atleta";
 
 export type Recibo = {
@@ -62,9 +58,7 @@ export type RecibosTableRow = {
     mensalidade_id: string;
 };
 
-// ========================================
-// Atleta Types
-// ========================================
+// --- Tipos de Atleta ---
 export type Atleta = {
     id: number;
     nome: string;
@@ -98,9 +92,7 @@ export type AtletaState = {
     message: string | null;
 };
 
-// ========================================
-// Presidente Types
-// ========================================
+// --- Tipos de Presidente ---
 export type PresidentePerfil = {
     id: string;
     name: string;

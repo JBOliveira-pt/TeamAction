@@ -1,3 +1,4 @@
+// Página de nutricao do treinador.
 import Nutricao from "./nutricao.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";

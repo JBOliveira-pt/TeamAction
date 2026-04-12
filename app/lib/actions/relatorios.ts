@@ -1,11 +1,8 @@
+// Actions de relatórios: geração de CSV de atletas e mensalidades.
 "use server";
 
 import { sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
-
-// ========================
-// RELATÃ“RIOS CSV
-// ========================
 
 export async function gerarRelatorioAtletas() {
     const { userId } = await auth();

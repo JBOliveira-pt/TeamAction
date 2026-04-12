@@ -1,10 +1,5 @@
+// Queries de equipas: listar, detalhar e buscar equipas da organização.
 import { sql, getOrganizationId } from "./_shared";
-
-// ============================================
-// PRESIDENTE QUERIES
-// ============================================
-
-// ---------- EQUIPAS ----------
 
 export async function fetchEquipas() {
     try {

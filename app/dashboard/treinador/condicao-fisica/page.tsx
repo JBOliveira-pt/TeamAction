@@ -1,3 +1,4 @@
+// Página de condicao fisica do treinador.
 import CondicaoFisica from "./condicao-fisica.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";

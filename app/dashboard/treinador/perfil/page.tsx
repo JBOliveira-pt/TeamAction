@@ -1,3 +1,4 @@
+// Página de perfil do treinador.
 import PerfilUnificadoPage from "@/app/ui/components/perfil-unificado";
 
 export const dynamic = "force-dynamic";

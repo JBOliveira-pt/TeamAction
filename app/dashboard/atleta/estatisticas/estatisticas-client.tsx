@@ -1,3 +1,4 @@
+// Componente estatisticas client.
 "use client";
 
 import { AlertTriangle } from "lucide-react";

@@ -1,3 +1,4 @@
+// Rota API calendario/notas/[id]: eliminar nota de calendario por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 

@@ -1,13 +1,14 @@
+// Esqueleto de carregamento para secção relatorios (treinador).
 export default function Loading() {
     return (
         <div className="p-6 space-y-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="space-y-2">
                 <div className="h-7 w-36 rounded-lg bg-gray-200 dark:bg-gray-800" />
                 <div className="h-4 w-56 rounded bg-gray-200 dark:bg-gray-800" />
             </div>
 
-            {/* Report cards */}
+            {/* Cards de relatórios */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[1, 2, 3].map((i) => (
                     <div

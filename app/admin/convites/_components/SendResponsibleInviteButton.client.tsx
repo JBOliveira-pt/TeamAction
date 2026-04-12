@@ -1,3 +1,4 @@
+// Componente cliente de convites.
 "use client";
 
 import { useState } from "react";

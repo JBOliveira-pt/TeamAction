@@ -1,3 +1,4 @@
+// Página de staff do treinador.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import Staff, { type StaffMembro } from "./staff.client";

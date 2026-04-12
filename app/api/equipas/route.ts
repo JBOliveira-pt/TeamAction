@@ -1,3 +1,4 @@
+// Rota API equipas: lista equipas de um clube por clube_id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

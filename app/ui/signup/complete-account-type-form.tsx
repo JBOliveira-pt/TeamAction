@@ -1,3 +1,4 @@
+// Componente complete account type form.
 "use client";
 
 import {
@@ -934,7 +935,7 @@ export default function CompleteAccountTypeForm({
                     const breached = Boolean(data.breached);
                     setIsPasswordBreached(breached);
                     if (breached) {
-                        // Keep the breach warning visible until the password changes.
+                        // Manter o aviso de password comprometida visível até a password mudar.
                         showPrecheckNotice(PRECHECK_BREACH_MESSAGE);
                     } else {
                         showPrecheckNotice(

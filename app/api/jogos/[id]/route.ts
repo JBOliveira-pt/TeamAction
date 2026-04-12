@@ -1,3 +1,4 @@
+// Rota API jogos/[id]: editar e apagar jogos com sincronização de jogo espelhado.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
@@ -42,7 +43,7 @@ export async function PUT(
             ? body.estado
             : undefined;
 
-    // Validate resultado if provided
+    // Validar resultado se fornecido
     if (body.resultado_nos !== undefined && body.resultado_nos !== null) {
         if (!Number.isInteger(body.resultado_nos) || body.resultado_nos < 0)
             return new Response("Resultado inválido.", { status: 400 });

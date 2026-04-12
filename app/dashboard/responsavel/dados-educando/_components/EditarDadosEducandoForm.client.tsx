@@ -1,3 +1,4 @@
+// Componente cliente de dados educando (responsável).
 "use client";
 
 import { useActionState, useEffect, useState, useRef } from "react";

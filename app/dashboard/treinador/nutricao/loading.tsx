@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção nutricao (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 p-6 flex flex-col gap-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-36 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -23,7 +24,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Plans grid */}
+            {/* Grelha de planos */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3].map((i) => (
                     <div

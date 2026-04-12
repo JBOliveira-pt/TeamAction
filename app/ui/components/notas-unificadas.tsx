@@ -1,3 +1,4 @@
+// Componente notas unificadas.
 import { fetchNotasCalendario } from "@/app/lib/data/notas-calendario";
 import NotasCalendarioClient from "./notas-calendario-client";
 

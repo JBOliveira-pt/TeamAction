@@ -1,3 +1,4 @@
+// Página de mensalidades do atleta.
 import { fetchMensalidadesAtleta, fetchAtletaFederado } from "@/app/lib/data";
 import { Receipt, ShieldAlert } from "lucide-react";
 

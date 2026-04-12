@@ -1,3 +1,4 @@
+// Operações de armazenamento Cloudflare R2: upload, download e eliminação.
 import {
     DeleteObjectCommand,
     GetObjectCommand,

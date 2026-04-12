@@ -1,3 +1,4 @@
+// Componente cliente de staff (presidente).
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -26,13 +27,13 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
     const [open, setOpen] = useState(false);
     const [step, setStep] = useState<WizardStep>("choice");
 
-    // Shared fields
+    // Campos partilhados
     const [funcao, setFuncao] = useState("Treinador Principal");
     const [nome, setNome] = useState("");
     const [equipaId, setEquipaId] = useState("");
     const [grauId, setGrauId] = useState<number>(0);
 
-    // Email check
+    // Verificação de email
     const [email, setEmail] = useState("");
     const [verificando, setVerificando] = useState(false);
     const [emailResult, setEmailResult] = useState<{
@@ -46,7 +47,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
     const [escaloesTreinador, setEscaloesTreinador] = useState<string[]>([]);
     const [loadingEscaloes, setLoadingEscaloes] = useState(false);
 
-    // Submission
+    // Submissão
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,7 +79,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         setErro("");
     }
 
-    // Auto-verify email
+    // Auto-verificar email
     useEffect(() => {
         if (step !== "email-check") return;
         setEmailResult(null);
@@ -121,7 +122,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         };
     }, [email, step]);
 
-    // Create fictitious trainer (no email)
+    // Criar treinador fictício (sem email)
     const criarTreinadorFicticio = async () => {
         if (!nome.trim()) {
             setErro("O nome é obrigatório.");
@@ -145,7 +146,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         }
     };
 
-    // Send internal invite (trainer found on platform)
+    // Enviar convite interno (treinador encontrado na plataforma)
     const enviarConviteInterno = async () => {
         if (!emailResult?.user_id) {
             setErro("Utilizador não encontrado.");
@@ -169,7 +170,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         }
     };
 
-    // Create external profile + notify admin
+    // Criar perfil externo + notificar admin
     const criarPerfilExterno = async () => {
         if (!nome.trim()) {
             setErro("O nome é obrigatório.");
@@ -215,7 +216,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         </button>
     );
 
-    // Step indicator
+    // Indicador de passo
     const stepNumber =
         step === "choice"
             ? 1
@@ -240,7 +241,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         </div>
     );
 
-    // Function selector (shared between fake-form and email-check)
+    // Seletor de função (partilhado entre fake-form e email-check)
     const funcaoSelector = (
         <div className="space-y-1">
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -559,7 +560,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                             </div>
                                         )}
 
-                                    {/* Found as trainer */}
+                                    {/* Encontrado como treinador */}
                                     {!verificando &&
                                         emailResult?.existe &&
                                         emailResult.account_type ===
@@ -705,7 +706,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                             </div>
                                         )}
 
-                                    {/* Not found */}
+                                    {/* N�o encontrado */}
                                     {!verificando &&
                                         emailResult &&
                                         !emailResult.existe && (
@@ -779,7 +780,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                 </div>
                                 {stepIndicator}
                                 <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
-                                    {/* Email badge */}
+                                    {/* Badge de email */}
                                     <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3">
                                         <span className="text-xl">📧</span>
                                         <div>

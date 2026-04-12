@@ -1,3 +1,4 @@
+// Componente toggle lida button.
 "use client";
 
 import { toggleNotificacaoLida } from "@/app/lib/actions";

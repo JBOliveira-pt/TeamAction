@@ -1,3 +1,4 @@
+// Página de autorizacoes do responsável.
 import {
     ShieldCheck,
     Users,

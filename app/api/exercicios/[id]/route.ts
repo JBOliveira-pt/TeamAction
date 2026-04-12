@@ -1,3 +1,4 @@
+// Rota API exercicios/[id]: atualizar ou eliminar exercicio de treino por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

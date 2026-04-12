@@ -1,3 +1,4 @@
+// Utilitários gerais: formatação de moeda, datas e strings.
 export const formatCurrency = (
     amount: number | string,
     locale: string = "en-US",

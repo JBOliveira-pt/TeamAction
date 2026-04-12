@@ -1,3 +1,4 @@
+// Componente cliente de autorizacoes (atleta).
 "use client";
 
 import { ReactNode, useState } from "react";

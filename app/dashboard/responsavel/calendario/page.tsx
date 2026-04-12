@@ -1,3 +1,4 @@
+// Página de calendario do responsável.
 import {
     fetchJogosResponsavel,
     fetchSessoesResponsavel,

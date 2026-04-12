@@ -1,3 +1,4 @@
+// Página de relatorios do treinador.
 const relatorios = [
     {
         id: 1,

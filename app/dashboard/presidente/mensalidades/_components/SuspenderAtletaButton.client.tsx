@@ -1,3 +1,4 @@
+// Componente cliente de mensalidades (presidente).
 "use client";
 
 import { useActionState } from "react";

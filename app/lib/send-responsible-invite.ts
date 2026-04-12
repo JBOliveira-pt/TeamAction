@@ -1,3 +1,4 @@
+// Envio de email de convite ao responsável via Resend.
 import { Resend } from "resend";
 import { createInviteToken } from "./invite-token";
 import { ASSETS } from "@/app/lib/assets";

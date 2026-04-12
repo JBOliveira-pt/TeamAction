@@ -1,3 +1,4 @@
+// Página de estatisticas do atleta.
 import { fetchAtletaAtual } from "@/app/lib/data";
 import EstatisticasTreinoClient from "./estatisticas-client";
 

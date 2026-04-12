@@ -1,3 +1,4 @@
+// Gráfico de barras mensal com períodos 3/6/12M e expansão lateral.
 "use client";
 
 import { CalendarIcon } from "lucide-react";
@@ -19,6 +20,9 @@ type MonthlyCountChartProps = {
         data: MonthlyCountPoint[];
     }>;
 };
+
+const MONTH_OPTIONS = [3, 6, 12] as const;
+type MonthOption = (typeof MONTH_OPTIONS)[number];
 
 const accentClasses = {
     blue: {
@@ -42,14 +46,9 @@ const accentClasses = {
 function generateYAxis(values: number[]) {
     const max = Math.max(...values, 0);
     const topLabel = Math.max(1, Math.ceil(max / 5) * 5);
-    const yAxisLabels = [
-        topLabel,
-        topLabel * 0.75,
-        topLabel * 0.5,
-        topLabel * 0.25,
-        0,
-    ].map((value) => `${Math.round(value)}`);
-
+    const yAxisLabels = [topLabel, topLabel * 0.5, 0].map(
+        (v) => `${Math.round(v)}`,
+    );
     return { topLabel, yAxisLabels };
 }
 
@@ -60,7 +59,7 @@ export function MonthlyCountChart({
     accent,
     tabs,
 }: MonthlyCountChartProps) {
-    const [selectedMonths, setSelectedMonths] = useState<3 | 5 | 12>(12);
+    const [selectedMonths, setSelectedMonths] = useState<MonthOption>(3);
     const [selectedTabId, setSelectedTabId] = useState<string | null>(
         tabs?.[0]?.id ?? null,
     );
@@ -78,10 +77,7 @@ export function MonthlyCountChart({
     }
 
     const activeData = useMemo(() => {
-        if (!tabs || tabs.length === 0) {
-            return data;
-        }
-
+        if (!tabs || tabs.length === 0) return data;
         const selected = tabs.find((tab) => tab.id === selectedTabId);
         return selected?.data ?? tabs[0].data;
     }, [data, selectedTabId, tabs]);
@@ -96,34 +92,25 @@ export function MonthlyCountChart({
         [series],
     );
 
-    const average = useMemo(
-        () => (series.length > 0 ? total / series.length : 0),
-        [series, total],
-    );
-
     const growth = useMemo(() => {
-        if (series.length < 2) {
-            return 0;
-        }
-
+        if (series.length < 2) return 0;
         const last = series[series.length - 1].count;
         const previous = series[series.length - 2].count;
-
-        if (previous === 0) {
-            return last > 0 ? 100 : 0;
-        }
-
+        if (previous === 0) return last > 0 ? 100 : 0;
         return ((last - previous) / previous) * 100;
     }, [series]);
 
-    const chartHeight = 320;
+    const chartHeight = 140;
     const values = series.map((item) => item.count);
     const { topLabel, yAxisLabels } = generateYAxis(values);
     const palette = accentClasses[accent];
 
+    // Quando expandido (6 ou 12M) ocupa 2 colunas no grid xl:grid-cols-3
+    const expanded = selectedMonths > 3;
+
     if (activeData.length === 0) {
         return (
-            <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                     Sem dados para este gráfico.
                 </p>
@@ -132,95 +119,105 @@ export function MonthlyCountChart({
     }
 
     return (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-            <div className="mb-4 flex items-start justify-between">
-                <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+        <div
+            className={`rounded-xl border border-gray-200 bg-white p-3 transition-all dark:border-gray-800 dark:bg-gray-900 ${
+                expanded ? "xl:col-span-2" : ""
+            }`}
+        >
+            {/* Cabeçalho compacto */}
+            <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                    <h3 className="truncate text-sm font-bold text-gray-900 dark:text-gray-100">
                         {title}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
                         {subtitle}
                     </p>
                 </div>
-                <span className="rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                    {selectedMonths}M
+
+                {/* Período — pills compactas */}
+                <div className="flex shrink-0 gap-1">
+                    {MONTH_OPTIONS.map((m) => (
+                        <button
+                            key={m}
+                            type="button"
+                            onClick={() => setSelectedMonths(m)}
+                            className={`rounded-md px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                                selectedMonths === m
+                                    ? `${palette.activeText} bg-gray-100 dark:bg-gray-800`
+                                    : "text-gray-500 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
+                            }`}
+                        >
+                            {m}M
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Mini-stats inline */}
+            <div className="mb-2 flex items-baseline gap-4 text-xs">
+                <span className="font-bold text-gray-900 dark:text-gray-100">
+                    {total}
+                </span>
+                <span className="text-gray-500 dark:text-gray-400">
+                    total {selectedMonths}M
+                </span>
+                <span
+                    className={`ml-auto font-medium ${
+                        growth >= 0
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400"
+                    }`}
+                >
+                    {growth >= 0 ? "+" : ""}
+                    {growth.toFixed(0)}%
                 </span>
             </div>
 
-            <div className="mb-5 flex gap-2">
-                {[3, 5, 12].map((months) => (
-                    <button
-                        key={months}
-                        type="button"
-                        onClick={() => setSelectedMonths(months as 3 | 5 | 12)}
-                        className={`border-b-2 px-3 py-1.5 text-sm font-medium transition-colors ${
-                            selectedMonths === months
-                                ? `${palette.activeText} ${palette.activeBorder}`
-                                : "border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-                        }`}
-                    >
-                        {months}M
-                    </button>
-                ))}
-            </div>
-
-            <div className="mb-5 grid grid-cols-2 gap-4 border-b border-gray-200 pb-5 dark:border-gray-800">
-                <div>
-                    <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Total
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                        {total}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Media mensal
-                    </p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                        {average.toFixed(1)}
-                    </p>
-                </div>
-            </div>
-
+            {/* Gráfico de barras */}
             <div className="relative">
                 <div
-                    className="sm:grid-cols-13 mt-0 grid grid-cols-12 items-end gap-1 md:gap-2"
-                    style={{ height: `${chartHeight}px` }}
+                    className="grid items-end gap-[3px]"
+                    style={{
+                        height: `${chartHeight}px`,
+                        gridTemplateColumns: `24px repeat(${series.length}, 1fr)`,
+                    }}
                 >
+                    {/* Y-axis */}
                     <div
-                        className="mb-6 hidden flex-col justify-between text-xs text-gray-600 dark:text-gray-500 sm:flex col-span-1"
-                        style={{ height: `${chartHeight - 24}px` }}
+                        className="flex flex-col justify-between text-[9px] text-gray-400 dark:text-gray-600"
+                        style={{ height: `${chartHeight - 16}px` }}
                     >
                         {yAxisLabels.map((label) => (
-                            <p key={label} className="text-right">
+                            <p key={label} className="text-right leading-none">
                                 {label}
                             </p>
                         ))}
                     </div>
 
                     {series.map((item, index) => {
-                        const barHeight = (chartHeight / topLabel) * item.count;
-                        const isLastMonth = index === series.length - 1;
+                        const barHeight =
+                            (chartHeight - 16) *
+                            (topLabel > 0 ? item.count / topLabel : 0);
+                        const isLast = index === series.length - 1;
 
                         return (
                             <div
                                 key={`${item.month}-${index}`}
-                                className="group relative flex flex-col items-center gap-2"
+                                className="group relative flex flex-col items-center"
                             >
-                                <div className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+                                {/* Tooltip */}
+                                <div className="pointer-events-none absolute -top-5 left-1/2 z-10 -translate-x-1/2 rounded bg-gray-800 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
                                     {item.count}
                                 </div>
 
                                 <div
-                                    className={`w-full rounded-t-md transition-all duration-300 ${isLastMonth ? palette.latestBar : palette.defaultBar}`}
+                                    className={`w-full rounded-t transition-all duration-200 ${isLast ? palette.latestBar : palette.defaultBar}`}
                                     style={{
                                         height: `${Math.max(2, barHeight)}px`,
-                                        marginTop: "15px",
                                     }}
                                 />
-
-                                <p className="-rotate-45 text-xs text-gray-600 dark:text-gray-500 sm:rotate-0">
+                                <p className="mt-1 text-[9px] leading-none text-gray-500 dark:text-gray-500">
                                     {item.month}
                                 </p>
                             </div>
@@ -229,34 +226,27 @@ export function MonthlyCountChart({
                 </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-800">
-                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-500">
-                    <CalendarIcon className="h-4 w-4" />
-                    Últimos 12 meses
-                </div>
-                <div
-                    className={`text-xs font-medium ${
-                        growth >= 0
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-red-600 dark:text-red-400"
-                    }`}
-                >
-                    {growth >= 0 ? "+" : ""}
-                    {growth.toFixed(1)}% vs mes anterior
-                </div>
+            {/* Rodapé */}
+            <div className="mt-2 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-500">
+                <span className="flex items-center gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    Últimos {selectedMonths} meses
+                </span>
+                <span>vs mês anterior</span>
             </div>
 
+            {/* Tabs de filtro (se existirem) */}
             {tabs && tabs.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
+                <div className="mt-2 flex flex-wrap gap-1 border-t border-gray-100 pt-2 dark:border-gray-800">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             type="button"
                             onClick={() => setSelectedTabId(tab.id)}
-                            className={`min-w-[150px] flex-1 rounded-full border px-3 py-1 text-center text-xs transition-colors ${
+                            className={`rounded-full border px-2 py-0.5 text-[10px] transition-colors ${
                                 selectedTabId === tab.id
                                     ? `${palette.activeText} ${palette.activeBorder}`
-                                    : "border-gray-300 text-gray-600 hover:text-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    : "border-gray-200 text-gray-500 hover:text-gray-700 dark:border-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
                             }`}
                         >
                             {tab.label}

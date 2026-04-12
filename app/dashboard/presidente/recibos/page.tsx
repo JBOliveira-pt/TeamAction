@@ -1,3 +1,4 @@
+// Página de recibos do presidente.
 import { Suspense } from "react";
 import Pagination from "@/app/ui/components/pagination";
 import RecibosTable from "@/app/ui/receipts/table";

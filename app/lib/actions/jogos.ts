@@ -1,12 +1,9 @@
+// Actions de jogos: agendar, editar e eliminar jogos.
 "use server";
 
 import { sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-
-// ========================================
-// Jogos Actions (Modal)
-// ========================================
 
 export async function agendarJogo(
     prevState: { error?: string; success?: boolean } | null,

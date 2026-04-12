@@ -1,3 +1,4 @@
+// Utilitários partilhados das actions: conexão BD, logging, upload de foto e guards.
 import { auth } from "@clerk/nextjs/server";
 import { deleteImageFromR2, uploadImageToR2 } from "../r2-storage";
 import postgres, { type JSONValue } from "postgres";
@@ -39,7 +40,7 @@ export async function logAction(
     }
 }
 
-// Helper function to check elevated permissions
+// Verificar permissões elevadas
 export async function checkAdminPermission() {
     const { userId } = await auth();
     if (!userId) {
@@ -49,7 +50,7 @@ export async function checkAdminPermission() {
     throw new Error("Unauthorized: Elevated access required");
 }
 
-// Maximum photo size: 5MB
+// Tamanho máximo de foto: 5MB
 export const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 
 export async function persistPhotoToR2(
@@ -78,10 +79,10 @@ export async function persistPhotoToR2(
         console.error("Failed to fetch previous image URL:", error);
     }
 
-    // Upload to R2
+    // Upload para R2
     const imageUrl = await uploadImageToR2(file, "user", entityId);
 
-    // Update database with R2 URL
+    // Atualizar base de dados com URL do R2
     await sql`
     UPDATE ${sql(tableName)}
     SET image_url = ${imageUrl}

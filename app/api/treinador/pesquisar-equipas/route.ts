@@ -1,3 +1,4 @@
+// Rota API treinador/pesquisar-equipas: pesquisa equipas independentes por nome para vinculacao.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

@@ -1,3 +1,4 @@
+// Rodapé do site: navegação, recursos, contacto e newsletter.
 "use client";
 
 import React, { useState } from "react";
@@ -92,10 +93,10 @@ export function Footer() {
 
     return (
         <footer className="bg-gradient-to-b from-[#0f172a] to-[#0c1222] text-white">
-            {/* Main Footer — 4 columns */}
+            {/* Rodapé principal — 4 colunas */}
             <div className="mx-auto max-w-7xl px-5 py-14">
                 <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-                    {/* Col 1 — Brand + Navigation */}
+                    {/* Col 1 — Marca + Navegação */}
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <Image
@@ -139,7 +140,7 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Col 2 — Recursos (with profile icons matching navbar) */}
+                    {/* Col 2 — Recursos (ícones de perfil iguais à navbar) */}
                     <div>
                         <h4 className="mb-4 mt-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                             Recursos
@@ -161,7 +162,7 @@ export function Footer() {
                         </nav>
                     </div>
 
-                    {/* Col 3 — Contact */}
+                    {/* Col 3 — Contacto */}
                     <div>
                         <h4 className="mb-4 mt-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">
                             Contacto
@@ -199,9 +200,9 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Col 4 — Newsletter Card */}
+                    {/* Col 4 — Card Newsletter */}
                     <div className="relative overflow-hidden rounded-2xl border border-slate-700/50 bg-white/[0.04] p-5">
-                        {/* Gradient accent top bar (matches feature cards) */}
+                        {/* Barra gradiente no topo */}
                         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
 
                         <h4 className="mt-1 text-sm font-bold text-white">
@@ -258,7 +259,7 @@ export function Footer() {
                 </div>
             </div>
 
-            {/* Copyright */}
+            {/* Direitos de autor */}
             <div className="border-t border-slate-800/80">
                 <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 sm:flex-row">
                     <p className="text-xs text-slate-600">

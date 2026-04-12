@@ -1,3 +1,4 @@
+// Página de logs.
 import {
     fetchInteractionTypes,
     fetchUserActionLogs,
@@ -59,7 +60,7 @@ function getLogTypeBadge(type: string): { label: string; className: string } {
             className:
                 "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
         };
-    // fallback
+    // fallback (tipo genérico)
     return {
         label: type,
         className:
@@ -134,12 +135,12 @@ export default async function AdminLogsPage({
             params.set("interactionType", resolved.interactionType);
         if (resolved.date) params.set("date", resolved.date);
         if (sort === field) {
-            // Toggle direction, or remove sort if already desc
+            // Alternar direção, ou remover ordenação se já desc
             if (dir === "asc") {
                 params.set("sort", field);
                 params.set("dir", "desc");
             }
-            // if desc, don't add sort → removes it
+            // se desc, não adicionar sort → remove-o
         } else {
             params.set("sort", field);
         }

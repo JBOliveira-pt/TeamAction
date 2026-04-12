@@ -1,3 +1,4 @@
+// Actions de equipas: criar, editar, eliminar e gerir treinadores.
 "use server";
 
 import { sql, logAction } from "./_shared";

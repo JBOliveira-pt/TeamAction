@@ -1,3 +1,4 @@
+// Landing page: hero com vídeo, secções de funcionalidades por perfil, planos e rodapé.
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,7 +22,7 @@ export default function LandingPage() {
 
             {/* --- HERO SECTION --- */}
             <section className="relative h-screen w-full overflow-hidden">
-                {/* Video background */}
+                {/* Fundo de vídeo */}
                 <video
                     autoPlay
                     loop
@@ -32,10 +33,10 @@ export default function LandingPage() {
                     <source src={ASSETS.heroVideo} type="video/mp4" />
                 </video>
 
-                {/* Dark overlay */}
+                {/* Camada escura */}
                 <div className="absolute inset-0 bg-black/10" />
 
-                {/* Content */}
+                {/* Conteúdo */}
                 <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 text-center">
                     <Image
                         src={ASSETS.logoFullWhiteNoBgShadow}

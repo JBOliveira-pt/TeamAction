@@ -1,3 +1,4 @@
+// Rota API recibos/[id]/mark-sent: marcar recibo como enviado por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextResponse } from "next/server";

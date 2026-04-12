@@ -1,3 +1,4 @@
+// Página de mensalidades do presidente.
 import { fetchMensalidades, fetchAtletas } from "@/app/lib/data";
 import SuspenderAtletaButton from "./_components/SuspenderAtletaButton.client";
 import RegistarMensalidadeModal from "./_components/RegistarMensalidadeModal.client";

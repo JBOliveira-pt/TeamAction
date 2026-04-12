@@ -1,3 +1,4 @@
+// Componente editar perfil modal.
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
@@ -128,17 +129,17 @@ export default function PerfilInlineEditor({
     const [editingEmail, setEditingEmail] = useState(false);
     const [editingDob, setEditingDob] = useState(false);
 
-    // Form values
+    // Valores do formulário
     const [phone, setPhone] = useState(telefone ? formatPhone(telefone) : "");
     const [postal, setPostal] = useState(codigoPostal ?? "");
     const [ibanVal, setIbanVal] = useState(iban ? formatIban(iban) : "");
     const [nifVal, setNifVal] = useState(nif ? formatNif(nif) : "");
     const [nipcVal, setNipcVal] = useState(nipc ? formatNif(nipc) : "");
 
-    // Validation errors (client-side)
+    // Erros de validação (lado do cliente)
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // Action states
+    // Estados das ações
     const [state, action, isPending] = useActionState<State, FormData>(
         atualizarMeuPerfil,
         null,
@@ -152,7 +153,7 @@ export default function PerfilInlineEditor({
         null,
     );
 
-    // Temporary success toasts
+    // Toasts de sucesso temporários
     const [showSuccess, setShowSuccess] = useState(false);
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
     const [showDobSuccess, setShowDobSuccess] = useState(false);
@@ -209,7 +210,7 @@ export default function PerfilInlineEditor({
         ? new Date(dataNascimento).toLocaleDateString("pt-PT")
         : null;
 
-    // Birth date limits
+    // Limites de data de nascimento
     const today = new Date();
     const maxBirthDate = new Date(
         today.getFullYear() - MIN_SIGNUP_AGE,
@@ -275,7 +276,7 @@ export default function PerfilInlineEditor({
         }
 
         setErrors({});
-        // Normalize values before submit
+        // Normalizar valores antes de submeter
         const normalized = new FormData();
         normalized.set("firstName", fn ?? "");
         normalized.set("lastName", ln ?? "");

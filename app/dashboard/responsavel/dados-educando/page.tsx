@@ -1,3 +1,4 @@
+// Página de dados educando do responsável.
 import { fetchDadosEducando } from "@/app/lib/data/responsavel";
 import EditarDadosEducandoForm from "./_components/EditarDadosEducandoForm.client";
 import { redirect } from "next/navigation";

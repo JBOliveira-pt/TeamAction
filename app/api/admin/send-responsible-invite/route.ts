@@ -1,3 +1,4 @@
+// Rota API admin/send-responsible-invite: admin envia convite por email ao responsavel de um menor.
 import { NextRequest, NextResponse } from "next/server";
 import {
     getAdminSessionFromCookie,

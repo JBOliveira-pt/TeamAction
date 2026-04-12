@@ -1,3 +1,4 @@
+// Componente cliente de jogos (treinador).
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ConvocatoriaModal from "@/app/dashboard/presidente/jogos/_components/ConvocatoriaModal.client";
@@ -159,7 +160,7 @@ function ModalDetalheJogo({
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 flex flex-col max-h-[90vh] overflow-hidden">
-                {/* Header */}
+                {/* Cabeçalho */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-800">
                     <h3 className="text-lg font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
                         📋 Detalhe do Jogo
@@ -309,7 +310,7 @@ function ModalDetalheJogo({
                     </div>
                 </div>
 
-                {/* Footer */}
+                {/* Rodapé */}
                 <div className="p-4 border-t border-gray-100 dark:border-gray-800">
                     <button
                         onClick={onClose}

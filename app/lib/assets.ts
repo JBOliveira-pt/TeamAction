@@ -1,3 +1,4 @@
+// Mapeamento central de URLs de imagens e vídeos (Cloudflare R2).
 const BASE = process.env.NEXT_PUBLIC_R2_IMAGES_URL;
 const VIDEOS_BASE = process.env.NEXT_PUBLIC_R2_IMAGES_URL?.replace(
     "teamaction-images",

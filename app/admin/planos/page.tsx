@@ -1,3 +1,4 @@
+// Página admin de gestão de pedidos de plano.
 import { fetchAdminPedidosPlano } from "@/app/lib/admin-data";
 import { adminResolvePedidoPlanoAction } from "@/app/lib/admin-actions";
 import { AdminPedidoPlanoList } from "@/app/ui/admin/pedido-plano-list";
@@ -91,7 +92,7 @@ export default async function AdminPlanosPage({
                 </div>
             )}
 
-            {/* Filter tabs */}
+            {/* Filtros */}
             <div className="flex gap-2">
                 {["pendente", "todos", "aprovado", "rejeitado"].map((s) => (
                     <a

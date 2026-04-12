@@ -1,3 +1,4 @@
+// Helper de acesso ao dashboard: verifica accountType e redireciona.
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import {

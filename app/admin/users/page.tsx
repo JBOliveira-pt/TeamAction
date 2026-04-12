@@ -1,3 +1,4 @@
+// Página de users.
 import Link from "next/link";
 import { fetchAdminUsers } from "@/app/lib/admin-data";
 import { User, ArrowUpDown } from "lucide-react";
@@ -100,7 +101,7 @@ export default async function AdminUsersPage({
         });
     }
 
-    // Build sort link preserving existing query param
+    // Construir link de ordenação preservando query params existentes
     const buildSortHref = (field: string) => {
         const params = new URLSearchParams();
         if (query) params.set("query", query);

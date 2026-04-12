@@ -1,3 +1,4 @@
+// Página admin de pedidos de alteração de perfil.
 import { fetchAdminPedidosPerfil } from "@/app/lib/admin-data";
 import { adminResolvePedidoPerfilAction } from "@/app/lib/admin-actions";
 import { AdminPedidoPerfilList } from "@/app/ui/admin/pedido-perfil-list";
@@ -92,7 +93,7 @@ export default async function AdminPedidosPage({
                 </div>
             )}
 
-            {/* Filter tabs */}
+            {/* Filtros */}
             <div className="flex gap-2">
                 {["pendente", "todos", "aprovado", "rejeitado"].map((s) => (
                     <a

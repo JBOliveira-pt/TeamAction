@@ -1,3 +1,4 @@
+// Rota API user-actions: regista interacoes do utilizador na plataforma.
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import postgres, { type JSONValue } from "postgres";

@@ -1,3 +1,4 @@
+// Rota API invite/validate: valida token de convite de responsavel e devolve dados associados.
 import { verifyInviteToken } from "@/app/lib/invite-token";
 
 export async function GET(request: Request) {

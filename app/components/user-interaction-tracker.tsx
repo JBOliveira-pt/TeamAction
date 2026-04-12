@@ -1,3 +1,4 @@
+// Rastreador de interações do utilizador (page views e cliques).
 "use client";
 
 import { usePathname } from "next/navigation";
@@ -11,7 +12,7 @@ async function logInteraction(path: string, interactionType: string) {
             body: JSON.stringify({ interactionType, path }),
         });
     } catch {
-        // Ignore tracking errors
+        // Ignorar erros de rastreamento
     }
 }
 

@@ -1,3 +1,4 @@
+// Rota API jogos: listar e criar jogos da organizacao.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

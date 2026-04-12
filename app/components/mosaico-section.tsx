@@ -1,3 +1,4 @@
+// Secção mosaico: zoom scroll-driven sobre grelha de fotos com vídeo central.
 "use client";
 
 import { useEffect, useRef } from "react";

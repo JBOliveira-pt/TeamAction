@@ -1,3 +1,4 @@
+// Componente filters.
 "use client";
 
 import Link from "next/link";

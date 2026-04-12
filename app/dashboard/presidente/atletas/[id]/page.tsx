@@ -1,3 +1,4 @@
+// Página de atletas do presidente.
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { fetchAtletaById, fetchEquipas } from "@/app/lib/data";

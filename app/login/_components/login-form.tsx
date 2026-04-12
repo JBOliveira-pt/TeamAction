@@ -1,3 +1,4 @@
+// Componente login form.
 "use client";
 
 import { Suspense } from "react";

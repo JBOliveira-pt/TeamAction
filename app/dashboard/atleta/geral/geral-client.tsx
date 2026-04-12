@@ -1,3 +1,4 @@
+// Componente geral client.
 "use client";
 
 import { atualizarPerfilAtleta } from "@/app/lib/actions";
@@ -108,7 +109,7 @@ export default function GeralClient({
 
     return (
         <main className="p-6 space-y-6 bg-gray-50 dark:bg-gray-950 min-h-screen">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex items-center justify-between gap-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                     Informações de contato, contratos e dados pessoais em um só
@@ -138,7 +139,7 @@ export default function GeralClient({
                 </div>
             </div>
 
-            {/* Top row */}
+            {/* Linha superior */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <SectionCard
                     icon={<UserCircle size={18} />}
@@ -173,7 +174,7 @@ export default function GeralClient({
                 </SectionCard>
             </div>
 
-            {/* Bottom row */}
+            {/* Linha inferior */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SectionCard
                     icon={<School size={18} />}
@@ -190,7 +191,7 @@ export default function GeralClient({
                 </SectionCard>
             </div>
 
-            {/* Edit Modal */}
+            {/* Modal Editar */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">

@@ -1,3 +1,4 @@
+// Página de estatisticas ao vivo do treinador.
 import EstatisticasAoVivo from "./estatisticas-ao-vivo.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";

@@ -1,3 +1,4 @@
+// Componente cliente de atletas (presidente).
 "use client";
 
 import { useState, useEffect, useRef } from "react";

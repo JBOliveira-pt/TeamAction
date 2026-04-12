@@ -1,3 +1,4 @@
+// Secção Responsável: vídeo scrub e cards de funcionalidades do responsável.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -216,7 +217,7 @@ export function ResponsavelSection() {
         >
             <section className="sticky top-0 h-screen bg-slate-50 overflow-hidden">
                 <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-row-reverse gap-10 items-stretch h-full">
-                    {/* RIGHT: Header panel */}
+                    {/* DIREITA: painel cabeçalho */}
                     <div className="flex-shrink-0 w-[38%] min-w-[320px] max-w-[440px] flex flex-col justify-center py-16">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-50 text-amber-500 text-sm font-semibold mb-6 w-fit">
                             <UserCheck className="h-4 w-4" />
@@ -247,7 +248,7 @@ export function ResponsavelSection() {
                         </p>
                     </div>
 
-                    {/* LEFT: Feature cards — scroll up */}
+                    {/* ESQUERDA: cards de funcionalidades — sobem */}
                     <div className="flex-1 min-w-0 overflow-hidden h-full">
                         <div
                             className="grid grid-cols-1 sm:grid-cols-2 gap-5 will-change-transform py-16"

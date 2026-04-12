@@ -1,3 +1,4 @@
+// Página de condicao fisica do atleta.
 import { fetchAtletaAtual, fetchCondicaoFisica } from "@/app/lib/data";
 import CondicaoFisicaClient from "./condicao-fisica-client";
 

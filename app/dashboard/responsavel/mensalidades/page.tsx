@@ -1,3 +1,4 @@
+// Página de mensalidades do responsável.
 import {
     fetchMensalidadesResponsavel,
     fetchEducandoFederado,

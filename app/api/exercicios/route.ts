@@ -1,3 +1,4 @@
+// Rota API exercicios: listar e criar exercicios de treino com categoria e nivel.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

@@ -1,3 +1,4 @@
+// Dashboard principal do treinador: equipas, staff e estatísticas.
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import postgres from "postgres";

@@ -1,3 +1,4 @@
+// Rota API assiduidade: gerir registos de assiduidade (listar, criar e atualizar presencas).
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

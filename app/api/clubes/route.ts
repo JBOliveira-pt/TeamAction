@@ -1,3 +1,4 @@
+// Rota API clubes: pesquisa clubes por nome para vinculacao de equipa.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

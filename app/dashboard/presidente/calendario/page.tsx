@@ -1,3 +1,4 @@
+// Página de calendario do presidente.
 import {
     fetchJogos,
     fetchEpocaAtiva,

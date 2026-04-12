@@ -1,3 +1,4 @@
+// Página de comunicados do presidente.
 import { fetchComunicados } from "@/app/lib/data";
 import ComunicadoForm from "./_components/ComunicadoForm.client";
 import ComunicadoModal from "./_components/ComunicadoModal.client";

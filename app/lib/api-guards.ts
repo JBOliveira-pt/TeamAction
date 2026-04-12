@@ -1,3 +1,4 @@
+// Guards de API: verificação de autenticação e accountType nas rotas.
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";

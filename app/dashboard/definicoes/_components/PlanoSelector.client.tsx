@@ -1,3 +1,4 @@
+// Componente cliente de  components.
 "use client";
 
 import { solicitarTrocaPlano } from "@/app/lib/actions/planos";

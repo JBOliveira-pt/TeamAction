@@ -1,3 +1,4 @@
+// Rota API account-type: provisão de conta (presidente, treinador, atleta, responsável), criação de org/equipa e vinculação responsável-atleta.
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import crypto from "node:crypto";
@@ -589,7 +590,7 @@ async function ensureUserExistsWithOrganization(
             RETURNING id
         `;
 
-        // User exists (e.g. from webhook) but has no org — update instead of insert
+        // Utilizador já existe (ex.: via webhook) mas sem org — atualizar em vez de inserir
         const existingUser = byClerk[0] || existingByEmail[0];
         if (existingUser) {
             await tx`
@@ -605,7 +606,7 @@ async function ensureUserExistsWithOrganization(
             `;
         }
 
-        // Auto-create equipa mirror for this organization (1:1)
+        // Auto-criar equipa mirror para esta organização (1:1)
         const existingEquipa = await tx`
             SELECT id FROM equipas WHERE organization_id = ${newOrg[0].id} LIMIT 1
         `;
@@ -876,7 +877,7 @@ export async function POST(req: Request) {
             const organizationId = userOrg[0]?.organization_id ?? null;
 
             if (organizationId) {
-                // organizations = multi-tenancy only; update just the name
+                // organizations = multi-tenancy; atualizar apenas o nome
                 await sql`
                     UPDATE organizations
                     SET
@@ -936,7 +937,7 @@ export async function POST(req: Request) {
                     `;
                 }
 
-                // Sync equipa mirror with updated club details
+                // Sincronizar equipa mirror com dados atualizados do clube
                 await sql`
                     UPDATE equipas
                     SET
@@ -1090,7 +1091,7 @@ export async function POST(req: Request) {
                 `;
             }
 
-            // Rename the trainer's mirror team and set treinador_id
+            // Renomear equipa mirror do treinador e definir treinador_id
             const trainerUser = await sql<
                 { id: string; organization_id: string | null }[]
             >`
@@ -1237,7 +1238,7 @@ export async function POST(req: Request) {
         }
 
         if (accountType === "atleta" && athleteProfile) {
-            // Ensure the athlete has a record in the `atletas` table
+            // Garantir que o atleta tem registo na tabela `atletas`
             const athleteUser = await sql<
                 { id: string; organization_id: string | null }[]
             >`
@@ -1250,7 +1251,7 @@ export async function POST(req: Request) {
             let athleteDbId = athleteUser[0]?.id;
             let athleteOrgId = athleteUser[0]?.organization_id;
 
-            // If user exists but has no real organization, create one now
+            // Se o utilizador existe mas não tem organização real, criá-la agora
             const FALLBACK_ORG_UUID = "00000000-0000-0000-0000-000000000000";
             if (
                 athleteDbId &&
@@ -1462,7 +1463,7 @@ export async function POST(req: Request) {
                               AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
                         `.catch(() => {});
 
-                        // Check if the responsible person already has an account
+                        // Verificar se o responsável já tem conta
                         const existingResponsavel = await sql<{ id: string }[]>`
                             SELECT id FROM users
                             WHERE LOWER(email) = LOWER(${athleteProfile.responsibleEmail})
@@ -1495,8 +1496,8 @@ export async function POST(req: Request) {
                             ON CONFLICT DO NOTHING
                         `.catch(() => {});
 
-                        // Send invitation email only if the responsible
-                        // has NOT completed their account yet
+                        // Enviar e-mail de convite apenas se o responsável
+                        // ainda NÃO completou a sua conta
                         if (!responsavelUserId) {
                             try {
                                 await sendResponsibleInviteEmail(
@@ -1511,7 +1512,7 @@ export async function POST(req: Request) {
                                 );
                             }
                         } else {
-                            // Responsible already exists — notify them
+                            // Responsável já existe — notificá-lo
                             await sql`
                                 INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                                 VALUES (
@@ -1526,7 +1527,7 @@ export async function POST(req: Request) {
                                 )
                             `.catch(() => {});
 
-                            // Notify the MINOR athlete to approve the vinculation
+                            // Notificar o atleta MENOR para aprovar a vinculação
                             await sql`
                                 INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                                 VALUES (
@@ -1546,7 +1547,7 @@ export async function POST(req: Request) {
             }
         }
 
-        // When a "responsavel" completes signup, handle linking to minor athlete
+        // Quando um "responsavel" completa o registo, tratar vinculação ao atleta menor
         let pendingValidation = false;
         if (accountType === "responsavel") {
             try {
@@ -1593,15 +1594,15 @@ export async function POST(req: Request) {
                         `;
 
                         if (minorRows.length === 0) {
-                            // Minor has not signed up yet — store the
-                            // responsible's intention so that the link can
-                            // be established later when the minor registers.
+                            // Menor ainda não se registou — guardar a
+                            // intenção do responsável para que o vínculo
+                            // seja estabelecido quando o menor se registar.
                             console.log(
                                 `[ACCOUNT_TYPE] Minor ${responsibleMinorEmail} not found yet. Storing responsible intent for later linking.`,
                             );
                         } else {
                             const minor = minorRows[0];
-                            // Check if link already exists (from athlete-initiated flow)
+                            // Verificar se o vínculo já existe (fluxo iniciado pelo atleta)
                             const existingLink = await sql<{ id: string }[]>`
                                 SELECT id FROM atleta_relacoes_pendentes
                                 WHERE atleta_user_id = ${minor.user_id}
@@ -1611,7 +1612,7 @@ export async function POST(req: Request) {
                             `.catch(() => []);
 
                             if (existingLink.length === 0) {
-                                // Responsible signed up first — create the link request
+                                // Responsável registou-se primeiro — criar pedido de vinculação
                                 await sql`
                                     INSERT INTO atleta_relacoes_pendentes (
                                         id, atleta_user_id, relation_kind, status,
@@ -1626,7 +1627,7 @@ export async function POST(req: Request) {
                                 `;
                             }
 
-                            // Update atleta.encarregado_educacao for the link
+                            // Atualizar atleta.encarregado_educacao para a vinculação
                             await sql`
                                 UPDATE atletas
                                 SET encarregado_educacao = ${currentEmail}, updated_at = NOW()
@@ -1634,7 +1635,7 @@ export async function POST(req: Request) {
                                   AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
                             `.catch(() => {});
 
-                            // Notify the minor athlete about the linking request
+                            // Notificar o atleta menor sobre o pedido de vinculação
                             const minorOrg = await sql<
                                 { organization_id: string | null }[]
                             >`

@@ -1,3 +1,4 @@
+// Opções de modalidades desportivas disponíveis para o presidente.
 export const PRESIDENT_SPORT_OPTIONS = [
     "Basquetebol",
     "Andebol",

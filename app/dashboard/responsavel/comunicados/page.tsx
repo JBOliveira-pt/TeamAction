@@ -1,3 +1,4 @@
+// Página de comunicados do responsável.
 import { fetchComunicadosResponsavel } from "@/app/lib/data";
 import { Bell } from "lucide-react";
 

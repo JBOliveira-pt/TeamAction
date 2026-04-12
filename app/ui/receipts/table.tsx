@@ -1,3 +1,4 @@
+// Componente table.
 import { fetchFilteredRecibos, ReciboFilters } from "@/app/lib/receipts-data";
 import { formatCurrencyPTBR } from "@/app/lib/utils";
 import ReciboStatus from "@/app/ui/receipts/status";
@@ -22,7 +23,7 @@ export default async function RecibosTable({
         <div className="mt-6 flow-root">
             <div className="inline-block min-w-full align-middle">
                 <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden">
-                    {/* Mobile View */}
+                    {/* Vista Mobile */}
                     <div className="md:hidden">
                         {recibos.map((recibo) => (
                             <div
@@ -69,7 +70,7 @@ export default async function RecibosTable({
                         )}
                     </div>
 
-                    {/* Desktop View */}
+                    {/* Vista Desktop */}
                     <table className="hidden min-w-full md:table">
                         <thead className="bg-gray-50 dark:bg-gray-800/50">
                             <tr>

@@ -1,3 +1,4 @@
+// Componente cliente de staff (presidente).
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";

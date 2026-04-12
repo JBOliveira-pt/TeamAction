@@ -1,3 +1,4 @@
+// Componente cliente de staff (treinador).
 "use client";
 
 export type StaffMembro = {

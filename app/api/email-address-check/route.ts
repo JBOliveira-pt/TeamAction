@@ -1,3 +1,4 @@
+// Rota API email-address-check: verifica se um e-mail e valido no Clerk.
 import { clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 

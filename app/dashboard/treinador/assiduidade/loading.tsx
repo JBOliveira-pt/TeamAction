@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção assiduidade (treinador).
 export default function Loading() {
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <div className="h-7 w-48 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -23,7 +24,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Table */}
+            {/* Tabela */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700" />
@@ -42,7 +43,7 @@ export default function Loading() {
                 ))}
             </div>
 
-            {/* Legend */}
+            {/* Legenda */}
             <div className="flex flex-wrap gap-3 mt-4 justify-center">
                 {[1, 2, 3].map((i) => (
                     <div

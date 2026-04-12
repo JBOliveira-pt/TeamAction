@@ -1,3 +1,4 @@
+// Rota API convites-clube/[id]: aceitar ou recusar convite de clube (treinador/atleta).
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
@@ -7,13 +8,13 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 /**
  * PUT /api/convites-clube/[id]
  *
- * Accept or reject a club invite.
+ * Aceitar ou recusar um convite de clube.
  *
  * Body: { estado: 'aceite' | 'recusado' }
  *
- * When accepted:
- * - Treinador: assigned as equipa.treinador_id on the club's equipa
- * - Atleta: atletas record moved to club org/equipa, user.organization_id updated
+ * Quando aceite:
+ * - Treinador: atribuído como equipa.treinador_id na equipa do clube
+ * - Atleta: registo movido para org/equipa do clube, user.organization_id atualizado
  */
 export async function PUT(
     req: NextRequest,
@@ -42,7 +43,7 @@ export async function PUT(
         });
     }
 
-    // Fetch the invite
+    // Buscar o convite
     const conviteRows = await sql<
         {
             id: string;
@@ -65,7 +66,7 @@ export async function PUT(
     if (convite.estado !== "pendente")
         return new Response("Convite já respondido.", { status: 409 });
 
-    // Reject
+    // Recusar
     if (body.estado === "recusado") {
         await sql`
             UPDATE convites_clube
@@ -87,7 +88,7 @@ export async function PUT(
         return Response.json({ ok: true, estado: "recusado" });
     }
 
-    // Check if athlete is a minor — requires responsible approval
+    // Verificar se atleta é menor — requer aprovação do responsável
     if (convite.tipo === "atleta") {
         const atletaInfo = await sql<
             {
@@ -105,14 +106,14 @@ export async function PUT(
         const atletaNome = atletaInfo[0]?.nome ?? "Atleta";
 
         if (isMinor) {
-            // Set state to pendente_responsavel instead of aceite
+            // Definir estado como pendente_responsavel em vez de aceite
             await sql`
                 UPDATE convites_clube
                 SET estado = 'pendente_responsavel', updated_at = NOW()
                 WHERE id = ${id}
             `;
 
-            // Notify the responsible
+            // Notificar o responsável
             if (responsavelEmail) {
                 const responsavelRows = await sql<{ id: string }[]>`
                     SELECT id FROM users WHERE LOWER(email) = LOWER(${responsavelEmail}) LIMIT 1
@@ -144,7 +145,7 @@ export async function PUT(
         }
     }
 
-    // Accept
+    // Aceitar
     await sql`
         UPDATE convites_clube
         SET estado = 'aceite', updated_at = NOW()
@@ -161,14 +162,14 @@ export async function PUT(
         `.catch(() => []);
         const equipaAntigaId = equipaAntigaRows[0]?.id;
 
-        // Assign as trainer on the club's equipa
+        // Atribuir como treinador na equipa do clube
         await sql`
             UPDATE equipas
             SET treinador_id = ${me.id}, updated_at = NOW()
             WHERE id = ${convite.equipa_id}
         `;
 
-        // Move user to the club's organization
+        // Mover utilizador para a organização do clube
         await sql`
             UPDATE users
             SET organization_id = ${convite.clube_org_id}, updated_at = NOW()
@@ -185,7 +186,7 @@ export async function PUT(
               AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
         `.catch(() => {});
 
-        // Update equipa in the trainer's old organization (remove trainer ref if any)
+        // Atualizar equipa na org antiga do treinador (remover referência)
         await sql`
             UPDATE equipas
             SET treinador_id = NULL, updated_at = NOW()
@@ -241,14 +242,14 @@ export async function PUT(
     }
 
     if (convite.tipo === "atleta") {
-        // Move user to the club's organization
+        // Mover utilizador para a organização do clube
         await sql`
             UPDATE users
             SET organization_id = ${convite.clube_org_id}, updated_at = NOW()
             WHERE id = ${me.id}
         `;
 
-        // Move atleta record to club org + equipa
+        // Mover registo de atleta para org/equipa do clube
         await sql`
             UPDATE atletas
             SET organization_id = ${convite.clube_org_id},
@@ -258,7 +259,7 @@ export async function PUT(
         `.catch(() => {});
     }
 
-    // Cancel any other pending invites for this user
+    // Cancelar outros convites pendentes para este utilizador
     await sql`
         UPDATE convites_clube
         SET estado = 'recusado', updated_at = NOW()
@@ -267,7 +268,7 @@ export async function PUT(
           AND id != ${id}
     `.catch(() => {});
 
-    // Notify the club presidente
+    // Notificar o presidente do clube
     const clubeNomeRows = await sql<{ nome: string }[]>`
         SELECT nome FROM equipas WHERE id = ${convite.equipa_id} LIMIT 1
     `;

@@ -1,3 +1,4 @@
+// Actions médicas: criar, editar e resolver registos médicos de atletas.
 "use server";
 
 import { getAthleteMinorPendingBlockError, sql } from "./_shared";

@@ -1,3 +1,4 @@
+// Componente cliente de nutricao (treinador).
 "use client";
 import { useState } from "react";
 import { Leaf, Plus, X } from "lucide-react";
@@ -137,7 +138,7 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                 </div>
             )}
 
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-green-600 dark:text-green-400 flex items-center gap-2">
@@ -156,7 +157,7 @@ export default function Nutricao({ planos: initialPlanos }: { planos: Plano[] })
                 </button>
             </div>
 
-            {/* Stats */}
+            {/* Estatísticas */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {OBJETIVOS.map((obj) => {
                     const count = planos.filter((p) => p.objetivo === obj).length;

@@ -1,3 +1,4 @@
+// Página de registo de conta.
 import CustomSignUpForm from "@/app/ui/signup/custom-signup-form";
 import CompleteAccountTypeForm from "@/app/ui/signup/complete-account-type-form";
 import {

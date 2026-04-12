@@ -1,3 +1,4 @@
+// Componente condicao fisica client.
 "use client";
 
 import { registarMedidaCondicaoFisica } from "@/app/lib/actions";

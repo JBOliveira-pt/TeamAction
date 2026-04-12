@@ -1,3 +1,4 @@
+// Tipos e normalização de account types: presidente, treinador, atleta, responsavel.
 export type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 
 export function normalizeAccountType(value: unknown): AccountType | null {

@@ -1,3 +1,4 @@
+// Componente buttons.
 import Link from "next/link";
 import {
     ArrowDownTrayIcon,

@@ -1,20 +1,19 @@
+// Helpers de autenticação: org do utilizador, permissões e verificação de autoria.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 /**
- * Check if the current user has elevated privileges.
- * Regular Neon users are never treated as elevated users.
- * @returns boolean - always false
+ * Verifica se o utilizador atual tem privilégios elevados.
+ * Utilizadores Neon nunca são tratados como elevados.
  */
 export async function isUserAdmin(): Promise<boolean> {
     return false;
 }
 
 /**
- * Get current user's organization ID
- * @returns string | null - organization ID or null if not found
+ * Obtém o organization_id do utilizador atual.
  */
 export async function getCurrentUserOrgId(): Promise<string | null> {
     try {
@@ -30,14 +29,13 @@ export async function getCurrentUserOrgId(): Promise<string | null> {
 
         return user.length > 0 ? user[0].organization_id : null;
     } catch (error) {
-        console.error("Error fetching organization ID:", error);
+        console.error("Erro ao obter organization ID:", error);
         return null;
     }
 }
 
 /**
- * Get current user's data from database
- * @returns User object or null if not found
+ * Obtém os dados do utilizador atual da base de dados.
  */
 export async function getCurrentUser() {
     try {
@@ -70,27 +68,25 @@ export async function getCurrentUser() {
 
         return user.length > 0 ? user[0] : null;
     } catch (error) {
-        console.error("Error fetching current user:", error);
+        console.error("Erro ao obter utilizador atual:", error);
         return null;
     }
 }
 
 /**
- * Check if current user can edit/delete a resource
- * @param createdBy - UUID of the user who created the resource
- * @returns boolean - true if user is privileged or creator, false otherwise
+ * Verifica se o utilizador atual pode editar/eliminar um recurso.
  */
 export async function canEditResource(
     createdBy: string | null | undefined,
 ): Promise<boolean> {
     try {
-        // Check if current user is privileged
+        // Verificar se o utilizador atual tem privilégios
         const isAdmin = await isUserAdmin();
 
         console.log("[DEBUG] canEditResource - isAdmin:", isAdmin);
         console.log("[DEBUG] canEditResource - createdBy:", createdBy);
 
-        // Privileged users can edit anything
+        // Utilizadores com privilégios podem editar tudo
         if (isAdmin) {
             console.log(
                 "[DEBUG] canEditResource - Privileged access detected, allowing edit",
@@ -98,7 +94,7 @@ export async function canEditResource(
             return true;
         }
 
-        // For non-privileged users, check if current user is creator
+        // Para utilizadores sem privilégios, verificar se é o criador
         const currentUser = await getCurrentUser();
 
         if (!currentUser) {
@@ -106,8 +102,8 @@ export async function canEditResource(
             return false;
         }
 
-        // Users can only edit what they created
-        // If createdBy is null (old resource), only privileged users can edit
+        // Utilizadores só podem editar o que criaram
+        // Se createdBy é null (recurso antigo), só privilégios podem editar
         if (!createdBy) {
             console.log(
                 "[DEBUG] canEditResource - No creator and no privileged access, denying",

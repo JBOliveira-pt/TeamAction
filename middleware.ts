@@ -1,3 +1,4 @@
+// Middleware: autenticação Clerk, proteção de rotas e redirecionamento por tipo de conta.
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 

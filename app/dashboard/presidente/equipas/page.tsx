@@ -1,3 +1,4 @@
+// Página de equipas do presidente.
 import Link from "next/link";
 import {
     fetchEquipas,

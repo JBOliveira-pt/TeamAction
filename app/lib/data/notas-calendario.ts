@@ -1,3 +1,4 @@
+// Queries de notas de calendário pessoal do utilizador.
 import { auth } from "@clerk/nextjs/server";
 import { sql } from "./_shared";
 
@@ -32,7 +33,7 @@ export async function fetchNotasCalendario(): Promise<NotaCalendario[]> {
     }
 }
 
-/** Returns distinct date strings (YYYY-MM-DD) that have at least one note. */
+/** Retorna datas distintas (YYYY-MM-DD) que têm pelo menos uma nota. */
 export async function fetchDatasComNotas(): Promise<string[]> {
     try {
         const { userId: clerkUserId } = await auth();

@@ -1,6 +1,5 @@
+// Queries do dashboard: mensalidades, resumo, staff e estatísticas.
 import { sql, getOrganizationId, requireAccountType } from "./_shared";
-
-// ---------- MENSALIDADES ----------
 
 export async function fetchMensalidades() {
     try {

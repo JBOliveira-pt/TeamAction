@@ -1,3 +1,4 @@
+// Esqueleto de carregamento para loading.tsx.
 export default function Loading() {
     return (
         <div className="p-6 space-y-6 max-w-4xl mx-auto animate-pulse">
@@ -7,7 +8,7 @@ export default function Loading() {
                 <div className="h-4 w-56 bg-gray-200 dark:bg-gray-800 rounded mt-1" />
             </div>
 
-            {/* Info banner placeholder */}
+            {/* Placeholder do banner info */}
             <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4 flex items-start gap-3">
                 <div className="h-5 w-5 rounded bg-blue-200 dark:bg-blue-800 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 space-y-2">

@@ -1,3 +1,4 @@
+// Geração e validação de tokens de convite com expiração.
 import crypto from "node:crypto";
 
 const TOKEN_EXPIRY_HOURS = 72;

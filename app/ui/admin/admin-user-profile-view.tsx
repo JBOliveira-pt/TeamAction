@@ -1,3 +1,4 @@
+// Componente admin user profile view.
 "use client";
 
 import {
@@ -293,7 +294,7 @@ function CardShell({
 }
 
 // ────────────────────────────────────────────────────────────────
-// Main component
+// Componente principal
 // ────────────────────────────────────────────────────────────────
 export function AdminUserProfileView({
     updateAction,
@@ -329,7 +330,7 @@ export function AdminUserProfileView({
     const [federado, setFederado] = useState(atletaData?.federado ?? false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // City auto-fill
+    // Auto-preenchimento de cidade
     const [prevCodigoPostal, setPrevCodigoPostal] = useState(codigoPostal);
     if (codigoPostal !== prevCodigoPostal) {
         setPrevCodigoPostal(codigoPostal);
@@ -385,7 +386,7 @@ export function AdminUserProfileView({
         reader.readAsDataURL(file);
     }
 
-    // Submit interceptors per section
+    // Intercetores de submissão por secção
     function onSubmitPessoais(fd: FormData) {
         const first = String(fd.get("firstName") || "").trim();
         const last = String(fd.get("lastName") || "").trim();

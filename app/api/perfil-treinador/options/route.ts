@@ -1,3 +1,4 @@
+// Rota API perfil-treinador/options: devolve opcoes de modalidades e graus para o perfil de treinador.
 import postgres from "postgres";
 import { ENABLED_SPORTS } from "@/app/lib/president-sport-options";
 

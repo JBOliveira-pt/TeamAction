@@ -1,3 +1,4 @@
+// Rota API sessoes/[id]: atualizar ou eliminar sessao de treino por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

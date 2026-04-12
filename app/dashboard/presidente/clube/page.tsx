@@ -1,3 +1,4 @@
+// Página de clube do presidente.
 import { fetchOrganizacao, fetchEpocaAtiva } from "@/app/lib/data";
 import DefinicoesForm from "./_components/DefinicoesForm.client";
 

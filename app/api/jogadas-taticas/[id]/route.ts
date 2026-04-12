@@ -1,3 +1,4 @@
+// Rota API jogadas-taticas/[id]: atualizar ou eliminar jogada tatica por id.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

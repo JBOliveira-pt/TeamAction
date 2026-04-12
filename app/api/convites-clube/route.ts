@@ -1,3 +1,4 @@
+// Rota API convites-clube: CRUD de convites de clube (presidente envia, utilizador recebe).
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
@@ -7,12 +8,12 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 /**
  * GET /api/convites-clube
  *
- * Returns pending club invites for the current user (as recipient)
- * OR all pending invites for the presidente's club (as sender).
+ * Devolve convites de clube pendentes para o utilizador (como destinatário)
+ * OU todos os convites pendentes do clube do presidente (como remetente).
  *
  * Query params:
- *   ?role=presidente  → list all invites sent from this club
- *   (default)         → list invites the current user received
+ *   ?role=presidente  → listar convites enviados por este clube
+ *   (default)         → listar convites recebidos pelo utilizador
  */
 export async function GET(req: NextRequest) {
     const { userId } = await auth();
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
     const role = req.nextUrl.searchParams.get("role");
 
     if (role === "presidente") {
-        // Presidente view: all invites sent from their club
+        // Vista do presidente: todos os convites enviados pelo seu clube
         const rows = await sql`
             SELECT
                 cc.id,
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
         return Response.json(rows);
     }
 
-    // Default: invites received by the current user
+    // Predefinido: convites recebidos pelo utilizador
     const rows = await sql`
         SELECT
             cc.id,
@@ -78,8 +79,8 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/convites-clube
  *
- * Presidente sends an invite to an external user (treinador or atleta)
- * to join their club's equipa.
+ * Presidente envia convite a um utilizador externo (treinador ou atleta)
+ * para se juntar à equipa do seu clube.
  *
  * Body: { convidado_user_id: string, tipo: 'treinador' | 'atleta' }
  */
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
     const me = user[0];
     if (!me) return new Response("User not found", { status: 404 });
 
-    // Only presidente can send club invites
+    // Apenas o presidente pode enviar convites de clube
     if (me.account_type !== "presidente") {
         return new Response(
             "Apenas o Presidente pode enviar convites de clube.",
@@ -106,7 +107,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Verify this org has a clube
+    // Verificar que esta org tem um clube
     const clubeRows = await sql<{ id: string }[]>`
         SELECT id FROM clubes
         WHERE organization_id = ${me.organization_id}
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    // Get the club's equipa (1:1 mirror)
+    // Obter a equipa do clube (mirror 1:1)
     const equipaRows = await sql<{ id: string; nome: string }[]>`
         SELECT id, nome FROM equipas
         WHERE organization_id = ${me.organization_id}
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Verify invited user exists and matches the expected account_type
+    // Verificar que o utilizador convidado existe e corresponde ao account_type esperado
     const convidadoRows = await sql<
         {
             id: string;
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // For treinador: check if equipa already has a trainer or there's a pending invite
+    // Para treinador: verificar se a equipa já tem treinador ou convite pendente
     if (body.tipo === "treinador") {
         const existingTrainer = await sql<{ treinador_id: string | null }[]>`
             SELECT treinador_id FROM equipas
@@ -205,7 +206,7 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    // Check for existing pending invite for this user
+    // Verificar se já existe convite pendente para este utilizador
     const existingInvite = await sql<{ id: string }[]>`
         SELECT id FROM convites_clube
         WHERE convidado_user_id = ${body.convidado_user_id}
@@ -220,7 +221,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    // Create the invite
+    // Criar o convite
     const [convite] = await sql<{ id: string }[]>`
         INSERT INTO convites_clube (
             clube_org_id, equipa_id, convidado_user_id, tipo, convidado_por
@@ -235,7 +236,7 @@ export async function POST(req: NextRequest) {
         RETURNING id
     `;
 
-    // Create notification for the invited user
+    // Criar notificação para o utilizador convidado
     const tipoLabel = body.tipo === "treinador" ? "treinador" : "atleta";
     await sql`
         INSERT INTO notificacoes (

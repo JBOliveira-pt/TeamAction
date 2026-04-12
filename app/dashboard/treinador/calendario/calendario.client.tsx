@@ -1,3 +1,4 @@
+// Componente cliente de calendario (treinador).
 "use client";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
@@ -122,7 +123,7 @@ export default function Calendario({
 
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-    // Notes state
+    // Estado das notas
     const [notes, setNotes] = useState<CalendarNote[]>([]);
     const [notesLoading, setNotesLoading] = useState(false);
     const [newNota, setNewNota] = useState("");
@@ -131,7 +132,7 @@ export default function Calendario({
         () => new Set(datasComNotas),
     );
 
-    // Group jogos by date key
+    // Agrupar jogos por data
     const jogosByDate = useMemo(() => {
         const map: Record<string, JogoDB[]> = {};
         for (const j of jogos) {
@@ -157,7 +158,7 @@ export default function Calendario({
         : null;
     const epocaFimKey = epoca?.data_fim ? eventDateKey(epoca.data_fim) : null;
 
-    // Month stats
+    // Estatísticas do mês
     const monthStats = useMemo(() => {
         const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
         const nJogos = jogos.filter((j) =>
@@ -171,7 +172,7 @@ export default function Calendario({
 
     const grid = buildGrid(year, month);
 
-    // Navigation
+    // Navegação
     const prevMonth = () => {
         if (month === 0) {
             setMonth(11);
@@ -185,7 +186,7 @@ export default function Calendario({
         } else setMonth((m) => m + 1);
     };
 
-    // Fetch notes when date changes
+    // Buscar notas quando a data muda
     const fetchNotes = useCallback(async (date: string) => {
         setNotesLoading(true);
         try {
@@ -274,7 +275,7 @@ export default function Calendario({
             {selectedDate && selDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg relative border border-blue-100 dark:border-blue-900 max-h-[90vh] overflow-y-auto">
-                        {/* Header */}
+                        {/* Cabe�alho */}
                         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
                             <div className="flex items-center gap-3">
                                 <span className="text-3xl">📅</span>
@@ -323,7 +324,7 @@ export default function Calendario({
                                 </div>
                             )}
 
-                            {/* Redirect buttons (only for future/today) */}
+                            {/* Bot�es de redireccionamento (apenas para futuro/hoje) */}
                             {!selectedIsPast && (
                                 <div className="flex gap-3">
                                     <button
@@ -489,7 +490,7 @@ export default function Calendario({
                                     </div>
                                 )}
 
-                                {/* Add note form (only for future/today) */}
+                                {/* Formul�rio de nota (apenas para futuro/hoje) */}
                                 {!selectedIsPast && (
                                     <form
                                         onSubmit={addNota}
@@ -595,7 +596,7 @@ export default function Calendario({
 
             {/* ── CALENDAR GRID ─────────────────────────────────────────── */}
             <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg shadow-slate-200 dark:shadow-gray-950 overflow-hidden border border-slate-100 dark:border-gray-800">
-                {/* Weekday headers */}
+                {/* Cabe�alhos dias da semana */}
                 <div className="grid grid-cols-7 border-b border-slate-100 dark:border-gray-800">
                     {WEEKDAYS.map((d, i) => (
                         <div
@@ -611,7 +612,7 @@ export default function Calendario({
                     ))}
                 </div>
 
-                {/* Days */}
+                {/* Dias */}
                 {grid.map((week, wi) => (
                     <div
                         key={wi}

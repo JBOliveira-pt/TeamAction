@@ -1,3 +1,4 @@
+// Página de equipas do presidente.
 import { fetchEquipaById } from "@/app/lib/data";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";

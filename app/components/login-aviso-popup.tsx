@@ -1,3 +1,4 @@
+// Popup de aviso exibido após login com notificações não lidas.
 "use client";
 
 import { useEffect, useState } from "react";
@@ -34,7 +35,7 @@ export function LoginAvisoPopup() {
                 sessionStorage.setItem(key, "1");
                 setAviso(avisoNaoLido);
             } catch {
-                // Ignore popup errors
+                // Ignorar erros do popup
             }
         };
 
@@ -49,7 +50,7 @@ export function LoginAvisoPopup() {
                 method: "PATCH",
             });
         } catch {
-            // Ignore mark-as-read errors
+            // Ignorar erros ao marcar como lida
         }
 
         setAviso(null);

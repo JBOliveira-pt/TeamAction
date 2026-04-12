@@ -1,3 +1,4 @@
+// Componente cliente de equipas (presidente).
 "use client";
 
 import { useActionState, useRef, useState, useCallback } from "react";

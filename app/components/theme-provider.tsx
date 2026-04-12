@@ -1,3 +1,4 @@
+// Provider de tema (light/dark) com persistência em localStorage.
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";

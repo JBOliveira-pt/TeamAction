@@ -1,3 +1,4 @@
+// Secção Planos: grelha de preços com animação scroll e destaque no Club Pro.
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -144,7 +145,7 @@ function PlanoCard({
                 transitionDelay: `${index * 120}ms`,
             }}
         >
-            {/* Popular badge */}
+            {/* Badge popular */}
             {plano.popular && (
                 <div className="absolute -top-px left-0 right-0 flex justify-center">
                     <span className="inline-flex items-center gap-1 px-3 py-1 rounded-b-lg bg-gradient-to-r from-violet-500 to-violet-600 text-white text-[11px] font-bold uppercase tracking-wider">
@@ -154,7 +155,7 @@ function PlanoCard({
                 </div>
             )}
 
-            {/* Gradient top bar */}
+            {/* Barra gradiente no topo */}
             <div
                 className={`h-1.5 w-full bg-gradient-to-r ${plano.gradient}`}
             />
@@ -179,12 +180,12 @@ function PlanoCard({
                     </div>
                 </div>
 
-                {/* Description */}
+                {/* Descrição */}
                 <p className="text-sm text-slate-500 leading-relaxed mb-6">
                     {plano.descricao}
                 </p>
 
-                {/* Features */}
+                {/* Funcionalidades */}
                 <ul className="space-y-2.5 mb-8 flex-1">
                     {plano.features.map((f) => (
                         <li
@@ -238,7 +239,7 @@ export function PlanosSection() {
         return () => observer.disconnect();
     }, []);
 
-    /* ── Club Pro float on scroll ── */
+    /* ── Club Pro flutua no scroll ── */
     useEffect(() => {
         const section = sectionRef.current;
         if (!section) return;
@@ -290,13 +291,13 @@ export function PlanosSection() {
                 className="sticky"
                 style={{ top: "38vh", transform: "translateY(-50%)" }}
             >
-                {/* Decorative background */}
+                {/* Fundo decorativo */}
                 <div className="absolute inset-0 -z-10 overflow-hidden">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-violet-100/40 to-blue-100/40 blur-3xl" />
                 </div>
 
                 <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Header */}
+                    {/* Cabeçalho */}
                     <div
                         className="text-center mb-16 transition-all duration-700"
                         style={{
@@ -323,7 +324,7 @@ export function PlanosSection() {
                         </p>
                     </div>
 
-                    {/* Plans grid */}
+                    {/* Grelha de planos */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {planos.map((plano, i) => {
                             const card = (

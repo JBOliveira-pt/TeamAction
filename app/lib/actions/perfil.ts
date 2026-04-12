@@ -1,3 +1,4 @@
+// Actions de perfil: atualizar dados pessoais, desportivos e de saúde.
 "use server";
 
 import { sql } from "./_shared";

@@ -1,3 +1,4 @@
+// Queries do responsável: menor vinculado, convites, pedidos e saúde.
 import { auth } from "@clerk/nextjs/server";
 import { sql } from "./_shared";
 

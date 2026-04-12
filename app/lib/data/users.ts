@@ -1,3 +1,4 @@
+// Queries de utilizadores: listar e pesquisar.
 import { sql, getOrganizationId } from "./_shared";
 import { User } from "../definitions";
 

@@ -1,3 +1,4 @@
+// Dashboard principal do responsável: atletas, jogos, sessões e condição física.
 import {
     fetchAtletaDoResponsavel,
     fetchCondicaoFisicaResponsavel,

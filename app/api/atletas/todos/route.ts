@@ -1,3 +1,4 @@
+// Rota API atletas/todos: lista todos os atletas da organizacao com dados de equipa e avatar.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 

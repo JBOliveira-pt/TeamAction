@@ -1,3 +1,4 @@
+// Dashboard principal do atleta: condição física, jogos e sessões.
 import {
     fetchAtletaAtual,
     fetchCondicaoFisica,

@@ -1,3 +1,4 @@
+// Componente admin header.
 "use client";
 
 import { adminLogoutAction } from "@/app/lib/admin-actions";

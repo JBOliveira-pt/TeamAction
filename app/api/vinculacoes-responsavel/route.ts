@@ -1,3 +1,4 @@
+// Rota API vinculacoes-responsavel: listar e criar pedidos de vinculacao de responsavel.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 

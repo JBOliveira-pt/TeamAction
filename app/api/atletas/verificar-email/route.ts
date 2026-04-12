@@ -1,3 +1,4 @@
+// Rota API atletas/verificar-email: verifica se um email ja esta associado a um utilizador.
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";

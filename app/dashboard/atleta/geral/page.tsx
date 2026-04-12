@@ -1,3 +1,4 @@
+// Página de geral do atleta.
 import { fetchPerfilAtletaGeral } from '@/app/lib/data';
 import GeralClient from './geral-client';
 

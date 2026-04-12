@@ -1,3 +1,4 @@
+// Utilitários partilhados de data: conexão BD, org helpers e guards de acesso.
 import { cache } from "react";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import crypto from "node:crypto";
@@ -162,8 +163,8 @@ export async function maybeCreateResponsavelWelcomeNotice(params: {
     `;
 }
 
-// Cached per-request: avoids repeating the same DB query when multiple
-// data-fetching functions call getOrganizationId() in parallel.
+// Cache por request: evita repetir a mesma query quando várias
+// funções de dados chamam getOrganizationId() em paralelo.
 const _cachedOrgLookup = cache(
     async (clerkUserId: string): Promise<string | null> => {
         const user = await sql<
@@ -173,7 +174,7 @@ const _cachedOrgLookup = cache(
     },
 );
 
-// Helper para pegar organization_id da sessão
+// Obter organization_id da sessão do utilizador
 export async function getOrganizationId(options?: {
     allowAutoProvision?: boolean;
 }): Promise<string> {
@@ -184,8 +185,8 @@ export async function getOrganizationId(options?: {
         throw new Error("User not authenticated");
     }
 
-    // Fetch organization_id from database using clerk_user_id.
-    // If not found (e.g. user recreated in Clerk), fallback by email and repair clerk_user_id.
+    // Buscar organization_id da BD usando clerk_user_id.
+    // Se não encontrado, fallback por email e reparar clerk_user_id.
     try {
         let orgId = await _cachedOrgLookup(userId);
 
@@ -267,7 +268,7 @@ export async function getOrganizationId(options?: {
                             RETURNING id
                         `;
 
-                        // User exists (e.g. from webhook) but has no org — update instead of insert
+                        // User existe (ex: do webhook) mas não tem org — atualizar em vez de inserir
                         const existingUser =
                             existingByClerkId[0] || existingByEmail[0];
                         if (existingUser) {
@@ -285,7 +286,7 @@ export async function getOrganizationId(options?: {
                             `;
                         }
 
-                        // Auto-create equipa mirror for this organization (1:1)
+                        // Auto-criar equipa mirror para esta organização (1:1)
                         await txSql`
                             INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
                             VALUES (
@@ -315,7 +316,7 @@ export async function getOrganizationId(options?: {
             }
         }
 
-        // Keep request logs quiet; only explicit re-link events are logged.
+        // Manter logs silenciosos; apenas re-links explícitos são registados.
 
         if (!orgId) {
             if (isDev) {

@@ -1,3 +1,4 @@
+// Componente cliente de assiduidade (treinador).
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 

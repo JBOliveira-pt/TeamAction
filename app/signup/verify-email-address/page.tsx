@@ -1,3 +1,4 @@
+// Página.
 "use client";
 
 import { useEffect } from "react";

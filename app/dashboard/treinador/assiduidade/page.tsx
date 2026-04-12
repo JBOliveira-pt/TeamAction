@@ -1,3 +1,4 @@
+// Página de assiduidade do treinador.
 import Assiduidade from "./assiduidade.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";

@@ -1,3 +1,4 @@
+// Rota API password-breach-check: verifica se uma password foi comprometida via Have I Been Pwned.
 import { createHash } from "crypto";
 import { NextResponse } from "next/server";
 

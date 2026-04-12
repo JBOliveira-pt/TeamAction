@@ -1,7 +1,6 @@
+// Queries de jogos e calendário (atleta, treinador e responsável).
 import { sql, getOrganizationId } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
-
-// ---------- JOGOS ----------
 
 export async function fetchJogos() {
     try {

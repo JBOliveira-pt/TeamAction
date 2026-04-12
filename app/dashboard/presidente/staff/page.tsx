@@ -1,3 +1,4 @@
+// Página de staff do presidente.
 import { fetchStaff, fetchEquipas, fetchUsersForStaff } from "@/app/lib/data";
 import { AdicionarMembroModal } from "./_components/AdicionarMembroModal.client";
 import { AdicionarTreinadorModal } from "./_components/AdicionarTreinadorModal.client";

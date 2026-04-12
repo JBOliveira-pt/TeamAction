@@ -1,3 +1,4 @@
+// Página de calendario do atleta.
 import {
     fetchAtletaAtual,
     fetchJogosAtleta,

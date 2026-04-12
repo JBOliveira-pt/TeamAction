@@ -1,3 +1,4 @@
+// Página principal do dashboard: redirecionamento por tipo de conta.
 import {
     getDashboardPathForAccountType,
     normalizeAccountType,

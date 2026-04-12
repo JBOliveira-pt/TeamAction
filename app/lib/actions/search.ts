@@ -1,3 +1,4 @@
+// Actions de pesquisa: buscar e convidar atletas/treinadores.
 "use server";
 
 import { sql } from "./_shared";

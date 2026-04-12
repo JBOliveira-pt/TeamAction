@@ -1,3 +1,4 @@
+// Componente cliente de equipa atletas (treinador).
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
@@ -315,7 +316,7 @@ function ModalAdicionarAtleta({
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh]">
-                {/* Header */}
+                {/* Cabe�alho */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
                         <h3 className="font-bold text-gray-900 dark:text-white text-base">
@@ -461,7 +462,7 @@ function ModalAdicionarAtleta({
                     )}
                 </div>
 
-                {/* Footer */}
+                {/* Rodap� */}
                 <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
                     <button
                         onClick={enviarConvite}
@@ -501,14 +502,14 @@ function ModalCriarAtleta({
 }) {
     const [step, setStep] = useState<WizardStep>("choice");
 
-    // Fake athlete form
+    // Formulário atleta fictício
     const [nome, setNome] = useState("");
     const [posicao, setPosicao] = useState("");
     const [numeroCamisola, setNumeroCamisola] = useState("");
     const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
     const [maoDominante, setMaoDominante] = useState("");
 
-    // Real athlete email check
+    // Verificação de email de atleta real
     const [email, setEmail] = useState("");
     const [verificando, setVerificando] = useState(false);
     const [emailResult, setEmailResult] = useState<{
@@ -521,12 +522,12 @@ function ModalCriarAtleta({
         responsavel_ativo?: boolean;
     } | null>(null);
 
-    // Shared
+    // Partilhado
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Auto-verify email
+    // Auto-verificar email
     useEffect(() => {
         if (step !== "email-check") return;
         setEmailResult(null);
@@ -549,7 +550,7 @@ function ModalCriarAtleta({
         };
     }, [email, step]);
 
-    // Pre-fill name from verification when going to invite-internal
+    // Pré-preencher nome a partir da verificação ao ir para invite-internal
     useEffect(() => {
         if (step === "invite-internal" && emailResult?.nome && !nome) {
             setNome(emailResult.nome);
@@ -747,16 +748,36 @@ function ModalCriarAtleta({
                                         }
                                     >
                                         <option value="">Seleciona</option>
-                                        <option value="Guarda-Redes">Guarda-Redes</option>
-                                        <option value="Defesa Central">Defesa Central</option>
-                                        <option value="Defesa Esquerdo">Defesa Esquerdo</option>
-                                        <option value="Defesa Direito">Defesa Direito</option>
-                                        <option value="Médio Defensivo">Médio Defensivo</option>
-                                        <option value="Médio Centro">Médio Centro</option>
-                                        <option value="Médio Ofensivo">Médio Ofensivo</option>
-                                        <option value="Extremo Esquerdo">Extremo Esquerdo</option>
-                                        <option value="Extremo Direito">Extremo Direito</option>
-                                        <option value="Avançado Centro">Avançado Centro</option>
+                                        <option value="Guarda-Redes">
+                                            Guarda-Redes
+                                        </option>
+                                        <option value="Defesa Central">
+                                            Defesa Central
+                                        </option>
+                                        <option value="Defesa Esquerdo">
+                                            Defesa Esquerdo
+                                        </option>
+                                        <option value="Defesa Direito">
+                                            Defesa Direito
+                                        </option>
+                                        <option value="Médio Defensivo">
+                                            Médio Defensivo
+                                        </option>
+                                        <option value="Médio Centro">
+                                            Médio Centro
+                                        </option>
+                                        <option value="Médio Ofensivo">
+                                            Médio Ofensivo
+                                        </option>
+                                        <option value="Extremo Esquerdo">
+                                            Extremo Esquerdo
+                                        </option>
+                                        <option value="Extremo Direito">
+                                            Extremo Direito
+                                        </option>
+                                        <option value="Avançado Centro">
+                                            Avançado Centro
+                                        </option>
                                         <option value="Outro">Outro</option>
                                     </select>
                                 </div>
@@ -1355,7 +1376,10 @@ function ModalEditarAtletaFake({
     const [erro, setErro] = useState("");
 
     const guardar = async () => {
-        if (!nome.trim()) { setErro("O nome é obrigatório."); return; }
+        if (!nome.trim()) {
+            setErro("O nome é obrigatório.");
+            return;
+        }
         setErro("");
         setSaving(true);
         const res = await fetch("/api/treinador/editar-atleta-fake", {
@@ -1365,14 +1389,18 @@ function ModalEditarAtletaFake({
                 atleta_id: atleta.id,
                 nome: nome.trim(),
                 posicao: posicao || null,
-                numero_camisola: numeroCamisola ? parseInt(numeroCamisola) : null,
+                numero_camisola: numeroCamisola
+                    ? parseInt(numeroCamisola)
+                    : null,
                 estado,
                 equipa_id: equipaId || null,
             }),
         });
         setSaving(false);
-        if (res.ok) { onEditado(); onClose(); }
-        else setErro(await res.text());
+        if (res.ok) {
+            onEditado();
+            onClose();
+        } else setErro(await res.text());
     };
 
     return (
@@ -1383,14 +1411,26 @@ function ModalEditarAtletaFake({
                         <h3 className="font-bold text-gray-900 dark:text-white text-base flex items-center gap-2">
                             <span>🤖</span> Editar Atleta Fictício
                         </h3>
-                        <p className="text-xs text-gray-400 mt-0.5">{atleta.nome}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            {atleta.nome}
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-red-500 p-1 rounded-lg transition-colors"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
                         </svg>
                     </button>
                 </div>
@@ -1398,7 +1438,8 @@ function ModalEditarAtletaFake({
                 <div className="overflow-y-auto flex-1 px-5 py-4 flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
                         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
-                            Nome Completo <span className="text-red-400">*</span>
+                            Nome Completo{" "}
+                            <span className="text-red-400">*</span>
                         </label>
                         <input
                             autoFocus
@@ -1409,28 +1450,52 @@ function ModalEditarAtletaFake({
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Posição</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                Posição
+                            </label>
                             <select
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 value={posicao}
                                 onChange={(e) => setPosicao(e.target.value)}
                             >
                                 <option value="">Seleciona</option>
-                                <option value="Guarda-Redes">Guarda-Redes</option>
-                                <option value="Defesa Central">Defesa Central</option>
-                                <option value="Defesa Esquerdo">Defesa Esquerdo</option>
-                                <option value="Defesa Direito">Defesa Direito</option>
-                                <option value="Médio Defensivo">Médio Defensivo</option>
-                                <option value="Médio Centro">Médio Centro</option>
-                                <option value="Médio Ofensivo">Médio Ofensivo</option>
-                                <option value="Extremo Esquerdo">Extremo Esquerdo</option>
-                                <option value="Extremo Direito">Extremo Direito</option>
-                                <option value="Avançado Centro">Avançado Centro</option>
+                                <option value="Guarda-Redes">
+                                    Guarda-Redes
+                                </option>
+                                <option value="Defesa Central">
+                                    Defesa Central
+                                </option>
+                                <option value="Defesa Esquerdo">
+                                    Defesa Esquerdo
+                                </option>
+                                <option value="Defesa Direito">
+                                    Defesa Direito
+                                </option>
+                                <option value="Médio Defensivo">
+                                    Médio Defensivo
+                                </option>
+                                <option value="Médio Centro">
+                                    Médio Centro
+                                </option>
+                                <option value="Médio Ofensivo">
+                                    Médio Ofensivo
+                                </option>
+                                <option value="Extremo Esquerdo">
+                                    Extremo Esquerdo
+                                </option>
+                                <option value="Extremo Direito">
+                                    Extremo Direito
+                                </option>
+                                <option value="Avançado Centro">
+                                    Avançado Centro
+                                </option>
                                 <option value="Outro">Outro</option>
                             </select>
                         </div>
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Nº Camisola</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                Nº Camisola
+                            </label>
                             <input
                                 type="number"
                                 min="1"
@@ -1438,12 +1503,16 @@ function ModalEditarAtletaFake({
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 placeholder="—"
                                 value={numeroCamisola}
-                                onChange={(e) => setNumeroCamisola(e.target.value)}
+                                onChange={(e) =>
+                                    setNumeroCamisola(e.target.value)
+                                }
                             />
                         </div>
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Estado</label>
+                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                            Estado
+                        </label>
                         <select
                             className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
                             value={estado}
@@ -1457,7 +1526,9 @@ function ModalEditarAtletaFake({
                     </div>
                     {equipas.length > 0 && (
                         <div className="flex flex-col gap-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Equipa</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                Equipa
+                            </label>
                             <select
                                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 value={equipaId}
@@ -1465,7 +1536,9 @@ function ModalEditarAtletaFake({
                             >
                                 <option value="">Sem equipa</option>
                                 {equipas.map((e) => (
-                                    <option key={e.id} value={e.id}>{e.nome}</option>
+                                    <option key={e.id} value={e.id}>
+                                        {e.nome}
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -1683,7 +1756,7 @@ export default function EquipaAtletas({
                     onClose={() => setShowAdicionar(false)}
                     onConviteEnviado={(nome) => {
                         showToast(`Convite enviado para ${nome}!`);
-                        // Refresh pending invites
+                        // Atualizar convites pendentes
                         fetch("/api/convites-equipa")
                             .then((r) => (r.ok ? r.json() : []))
                             .then(setConvitesPendentes)
@@ -1809,7 +1882,7 @@ export default function EquipaAtletas({
                 </div>
             )}
 
-            {/* Stats */}
+            {/* Estat�sticas */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 {[
                     {

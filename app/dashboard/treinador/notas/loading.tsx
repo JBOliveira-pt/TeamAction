@@ -1,7 +1,8 @@
+// Esqueleto de carregamento para secção notas (treinador).
 export default function Loading() {
     return (
         <div className="p-6 space-y-6 animate-pulse">
-            {/* Header */}
+            {/* Cabeçalho */}
             <div className="flex items-center justify-between">
                 <div className="space-y-2">
                     <div className="h-7 w-28 rounded-lg bg-gray-200 dark:bg-gray-800" />
@@ -10,7 +11,7 @@ export default function Loading() {
                 <div className="h-9 w-28 rounded-lg bg-gray-200 dark:bg-gray-800" />
             </div>
 
-            {/* Notes grouped by date */}
+            {/* Notas agrupadas por data */}
             {[1, 2].map((group) => (
                 <div key={group} className="space-y-2">
                     <div className="flex items-center gap-2">

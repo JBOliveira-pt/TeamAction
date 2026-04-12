@@ -1,3 +1,4 @@
+// Componente cliente de exercicios (treinador).
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
 
@@ -17,24 +18,25 @@ type Categoria = (typeof CATEGORIAS)[number];
 type Nivel = (typeof NIVEIS)[number];
 
 const CATEGORIA_COLORS: Record<Categoria, string> = {
-    "Técnico": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-    "Tático":  "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-    "Físico":  "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-    "Misto":   "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+    Técnico: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    Tático: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+    Físico: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+    Misto: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
 };
 
 const NIVEL_COLORS: Record<Nivel, string> = {
-    "Fácil":   "bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
-    "Médio":   "bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-200",
-    "Intenso": "bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
-    "Difícil": "bg-red-200 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+    Fácil: "bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+    Médio: "bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-200",
+    Intenso:
+        "bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200",
+    Difícil: "bg-red-200 text-red-800 dark:bg-red-900/40 dark:text-red-200",
 };
 
 const CATEGORIA_ICONS: Record<Categoria, string> = {
-    "Técnico": "🎯",
-    "Tático":  "🛡️",
-    "Físico":  "💪",
-    "Misto":   "🤾",
+    Técnico: "🎯",
+    Tático: "🛡️",
+    Físico: "💪",
+    Misto: "🤾",
 };
 
 type FormState = {
@@ -67,7 +69,8 @@ function CampoTexto({
     return (
         <div className="flex flex-col gap-1">
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                {label}{obrigatorio && <span className="text-red-500 ml-0.5">*</span>}
+                {label}
+                {obrigatorio && <span className="text-red-500 ml-0.5">*</span>}
             </label>
             {children}
             {erro && <p className="text-xs text-red-500">{erro}</p>}
@@ -78,7 +81,7 @@ function CampoTexto({
 const INPUT_CLASS =
     "w-full rounded-xl border px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-teal-400 focus:outline-none transition-all";
 const INPUT_ERRO = "border-red-400";
-const INPUT_OK   = "border-gray-300 dark:border-gray-700";
+const INPUT_OK = "border-gray-300 dark:border-gray-700";
 
 function FormExercicio({
     form,
@@ -112,9 +115,13 @@ function FormExercicio({
                     placeholder="Ex: Remate em Suspensão"
                     className={`${INPUT_CLASS} ${erros.nome ? INPUT_ERRO : INPUT_OK}`}
                     value={form.nome}
-                    onChange={(e) => setForm((v) => ({ ...v, nome: e.target.value }))}
+                    onChange={(e) =>
+                        setForm((v) => ({ ...v, nome: e.target.value }))
+                    }
                 />
-                <p className="text-xs text-gray-400 text-right">{form.nome.length}/100</p>
+                <p className="text-xs text-gray-400 text-right">
+                    {form.nome.length}/100
+                </p>
             </CampoTexto>
 
             <CampoTexto label="Descrição" obrigatorio erro={erros.descricao}>
@@ -124,20 +131,35 @@ function FormExercicio({
                     placeholder="Descreva o objectivo e como executar o exercício"
                     className={`${INPUT_CLASS} resize-none ${erros.descricao ? INPUT_ERRO : INPUT_OK}`}
                     value={form.descricao}
-                    onChange={(e) => setForm((v) => ({ ...v, descricao: e.target.value }))}
+                    onChange={(e) =>
+                        setForm((v) => ({ ...v, descricao: e.target.value }))
+                    }
                 />
-                <p className="text-xs text-gray-400 text-right">{form.descricao.length}/500</p>
+                <p className="text-xs text-gray-400 text-right">
+                    {form.descricao.length}/500
+                </p>
             </CampoTexto>
 
             <div className="grid grid-cols-2 gap-3">
-                <CampoTexto label="Categoria" obrigatorio erro={erros.categoria}>
+                <CampoTexto
+                    label="Categoria"
+                    obrigatorio
+                    erro={erros.categoria}
+                >
                     <select
                         className={`${INPUT_CLASS} ${erros.categoria ? INPUT_ERRO : INPUT_OK}`}
                         value={form.categoria}
-                        onChange={(e) => setForm((v) => ({ ...v, categoria: e.target.value as Categoria }))}
+                        onChange={(e) =>
+                            setForm((v) => ({
+                                ...v,
+                                categoria: e.target.value as Categoria,
+                            }))
+                        }
                     >
                         {CATEGORIAS.map((c) => (
-                            <option key={c} value={c}>{c}</option>
+                            <option key={c} value={c}>
+                                {c}
+                            </option>
                         ))}
                     </select>
                 </CampoTexto>
@@ -146,16 +168,27 @@ function FormExercicio({
                     <select
                         className={`${INPUT_CLASS} ${erros.nivel ? INPUT_ERRO : INPUT_OK}`}
                         value={form.nivel}
-                        onChange={(e) => setForm((v) => ({ ...v, nivel: e.target.value as Nivel }))}
+                        onChange={(e) =>
+                            setForm((v) => ({
+                                ...v,
+                                nivel: e.target.value as Nivel,
+                            }))
+                        }
                     >
                         {NIVEIS.map((n) => (
-                            <option key={n} value={n}>{n}</option>
+                            <option key={n} value={n}>
+                                {n}
+                            </option>
                         ))}
                     </select>
                 </CampoTexto>
             </div>
 
-            <CampoTexto label="Duração (minutos)" obrigatorio erro={erros.duracao_min}>
+            <CampoTexto
+                label="Duração (minutos)"
+                obrigatorio
+                erro={erros.duracao_min}
+            >
                 <input
                     type="number"
                     min={5}
@@ -163,10 +196,14 @@ function FormExercicio({
                     placeholder="Ex: 15"
                     className={`${INPUT_CLASS} ${erros.duracao_min ? INPUT_ERRO : INPUT_OK}`}
                     value={form.duracao_min}
-                    onChange={(e) => setForm((v) => ({ ...v, duracao_min: e.target.value }))}
+                    onChange={(e) =>
+                        setForm((v) => ({ ...v, duracao_min: e.target.value }))
+                    }
                 />
                 {!erros.duracao_min && (
-                    <p className="text-xs text-gray-400">Entre 5 e 120 minutos</p>
+                    <p className="text-xs text-gray-400">
+                        Entre 5 e 120 minutos
+                    </p>
                 )}
             </CampoTexto>
 
@@ -195,7 +232,9 @@ export default function Exercicios() {
     const [loading, setLoading] = useState(true);
 
     const [pesquisa, setPesquisa] = useState("");
-    const [filtroCategoria, setFiltroCategoria] = useState<"Todos" | Categoria>("Todos");
+    const [filtroCategoria, setFiltroCategoria] = useState<"Todos" | Categoria>(
+        "Todos",
+    );
 
     // Modal criar
     const [showCriar, setShowCriar] = useState(false);
@@ -209,17 +248,21 @@ export default function Exercicios() {
     const [errosEdit, setErrosEdit] = useState<Record<string, string>>({});
     const [savingEdit, setSavingEdit] = useState(false);
 
-    // Fetch exercicios
+    // Buscar exercícios
     useEffect(() => {
         fetch("/api/exercicios")
             .then((r) => r.json())
-            .then((data) => { setExercicios(data); setLoading(false); })
+            .then((data) => {
+                setExercicios(data);
+                setLoading(false);
+            })
             .catch(() => setLoading(false));
     }, []);
 
     const exerciciosFiltrados = useMemo(() => {
         return exercicios.filter((e) => {
-            const matchCategoria = filtroCategoria === "Todos" || e.categoria === filtroCategoria;
+            const matchCategoria =
+                filtroCategoria === "Todos" || e.categoria === filtroCategoria;
             const matchPesquisa =
                 pesquisa === "" ||
                 e.nome.toLowerCase().includes(pesquisa.toLowerCase()) ||
@@ -235,8 +278,7 @@ export default function Exercicios() {
             e.nome = "Nome deve ter pelo menos 3 caracteres.";
         if (form.nome.trim().length > 100)
             e.nome = "Nome não pode ter mais de 100 caracteres.";
-        if (!form.descricao.trim())
-            e.descricao = "Descrição obrigatória.";
+        if (!form.descricao.trim()) e.descricao = "Descrição obrigatória.";
         if (form.descricao.trim().length > 500)
             e.descricao = "Descrição não pode ter mais de 500 caracteres.";
         const dur = Number(form.duracao_min);
@@ -249,14 +291,20 @@ export default function Exercicios() {
     async function handleCriar(e: React.FormEvent) {
         e.preventDefault();
         const erros = validar(formCriar);
-        if (Object.keys(erros).length > 0) { setErrosCriar(erros); return; }
+        if (Object.keys(erros).length > 0) {
+            setErrosCriar(erros);
+            return;
+        }
         setErrosCriar({});
         setSavingCriar(true);
         try {
             const res = await fetch("/api/exercicios", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formCriar, duracao_min: Number(formCriar.duracao_min) }),
+                body: JSON.stringify({
+                    ...formCriar,
+                    duracao_min: Number(formCriar.duracao_min),
+                }),
             });
             if (res.ok) {
                 const novo: Exercicio = await res.json();
@@ -288,20 +336,30 @@ export default function Exercicios() {
         e.preventDefault();
         if (!exercicioEdit) return;
         const erros = validar(formEdit);
-        if (Object.keys(erros).length > 0) { setErrosEdit(erros); return; }
+        if (Object.keys(erros).length > 0) {
+            setErrosEdit(erros);
+            return;
+        }
         setErrosEdit({});
         setSavingEdit(true);
         try {
             const res = await fetch(`/api/exercicios/${exercicioEdit.id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formEdit, duracao_min: Number(formEdit.duracao_min) }),
+                body: JSON.stringify({
+                    ...formEdit,
+                    duracao_min: Number(formEdit.duracao_min),
+                }),
             });
             if (res.ok) {
                 setExercicios((prev) =>
                     prev.map((ex) =>
                         ex.id === exercicioEdit.id
-                            ? { ...ex, ...formEdit, duracao_min: Number(formEdit.duracao_min) }
+                            ? {
+                                  ...ex,
+                                  ...formEdit,
+                                  duracao_min: Number(formEdit.duracao_min),
+                              }
                             : ex,
                     ),
                 );
@@ -322,7 +380,6 @@ export default function Exercicios() {
 
     return (
         <div className="w-full min-h-[100vh] bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6">
-
             {/* ── MODAL CRIAR ───────────────────────────────────────────── */}
             {showCriar && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -331,8 +388,12 @@ export default function Exercicios() {
                             <div className="flex items-center gap-3">
                                 <span className="text-2xl">🤾</span>
                                 <div>
-                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Criar Exercício</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Adicione um exercício à biblioteca</p>
+                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
+                                        Criar Exercício
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Adicione um exercício à biblioteca
+                                    </p>
                                 </div>
                             </div>
                             <button
@@ -364,8 +425,12 @@ export default function Exercicios() {
                             <div className="flex items-center gap-3">
                                 <span className="text-2xl">✏️</span>
                                 <div>
-                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">Editar Exercício</h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{exercicioEdit.nome}</p>
+                                    <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
+                                        Editar Exercício
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                                        {exercicioEdit.nome}
+                                    </p>
                                 </div>
                             </div>
                             <button
@@ -387,7 +452,9 @@ export default function Exercicios() {
                         />
                         <div className="px-6 pb-6">
                             <button
-                                onClick={() => eliminarExercicio(exercicioEdit.id)}
+                                onClick={() =>
+                                    eliminarExercicio(exercicioEdit.id)
+                                }
                                 className="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-bold py-2.5 rounded-xl transition-all text-sm border border-red-200 dark:border-red-800"
                             >
                                 Eliminar Exercício
@@ -404,12 +471,17 @@ export default function Exercicios() {
                         <span>🤾</span> Exercícios
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Biblioteca de exercícios · {exercicios.length} exercício{exercicios.length !== 1 ? "s" : ""}
+                        Biblioteca de exercícios · {exercicios.length} exercício
+                        {exercicios.length !== 1 ? "s" : ""}
                     </p>
                 </div>
                 <button
                     className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow transition-all flex items-center gap-2"
-                    onClick={() => { setFormCriar(FORM_VAZIO); setErrosCriar({}); setShowCriar(true); }}
+                    onClick={() => {
+                        setFormCriar(FORM_VAZIO);
+                        setErrosCriar({});
+                        setShowCriar(true);
+                    }}
                 >
                     <span className="text-xl">＋</span> Criar Exercício
                 </button>
@@ -428,7 +500,9 @@ export default function Exercicios() {
                     {(["Todos", ...CATEGORIAS] as const).map((cat) => (
                         <button
                             key={cat}
-                            onClick={() => setFiltroCategoria(cat as "Todos" | Categoria)}
+                            onClick={() =>
+                                setFiltroCategoria(cat as "Todos" | Categoria)
+                            }
                             className={`px-3 py-1.5 rounded-lg font-bold text-sm border transition-all ${
                                 filtroCategoria === cat
                                     ? "bg-teal-600 text-white border-teal-600"
@@ -443,7 +517,9 @@ export default function Exercicios() {
 
             {/* ── GRELHA ────────────────────────────────────────────────── */}
             {loading ? (
-                <div className="text-center py-16 text-gray-400">A carregar exercícios...</div>
+                <div className="text-center py-16 text-gray-400">
+                    A carregar exercícios...
+                </div>
             ) : exerciciosFiltrados.length === 0 ? (
                 <div className="text-center py-16 text-gray-400">
                     {exercicios.length === 0
@@ -461,13 +537,17 @@ export default function Exercicios() {
                             <div className="flex items-start justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <span className="text-2xl shrink-0">
-                                        {CATEGORIA_ICONS[ex.categoria as Categoria] ?? "🤾"}
+                                        {CATEGORIA_ICONS[
+                                            ex.categoria as Categoria
+                                        ] ?? "🤾"}
                                     </span>
                                     <span className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">
                                         {ex.nome}
                                     </span>
                                 </div>
-                                <span className={`shrink-0 px-2 py-1 rounded-lg text-xs font-bold ${CATEGORIA_COLORS[ex.categoria as Categoria] ?? ""}`}>
+                                <span
+                                    className={`shrink-0 px-2 py-1 rounded-lg text-xs font-bold ${CATEGORIA_COLORS[ex.categoria as Categoria] ?? ""}`}
+                                >
                                     {ex.categoria}
                                 </span>
                             </div>
@@ -480,7 +560,9 @@ export default function Exercicios() {
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                     ⏱ {ex.duracao_min} min
                                 </span>
-                                <span className={`px-2 py-1 rounded-lg text-xs font-bold ${NIVEL_COLORS[ex.nivel as Nivel] ?? ""}`}>
+                                <span
+                                    className={`px-2 py-1 rounded-lg text-xs font-bold ${NIVEL_COLORS[ex.nivel as Nivel] ?? ""}`}
+                                >
                                     {ex.nivel}
                                 </span>
                             </div>

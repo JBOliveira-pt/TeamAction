@@ -1,3 +1,4 @@
+// Página de atletas do presidente.
 import Link from "next/link";
 import {
     fetchAtletas,

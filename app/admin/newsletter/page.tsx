@@ -1,3 +1,4 @@
+// Página admin de gestão de subscritores da newsletter.
 import { fetchAdminNewsletterSubscribers } from "@/app/lib/admin-data";
 import { SendThankYouButton } from "./_components/SendThankYouButton.client";
 import { CheckCircle, Mail } from "lucide-react";
@@ -23,7 +24,7 @@ export default async function AdminNewsletterPage() {
                 </p>
             </header>
 
-            {/* Stats */}
+            {/* Estat�sticas */}
             <div className="grid gap-4 sm:grid-cols-3">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
                     <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
@@ -51,7 +52,7 @@ export default async function AdminNewsletterPage() {
                 </div>
             </div>
 
-            {/* Table */}
+            {/* Tabela */}
             {subscribers.length === 0 ? (
                 <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
                     Nenhuma inscrição registada.

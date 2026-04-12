@@ -1,4 +1,5 @@
-﻿"use client";
+// Componente cliente de equipas (presidente).
+"use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { criarEquipa } from "@/app/lib/actions";
@@ -26,15 +27,15 @@ export default function NovaEquipaModal({
     escaloes,
     desporto,
     treinadores,
-    defaultOpen = false,  // ✅ novo prop
+    defaultOpen = false,  // ? novo prop
 }: {
     escaloes: Escalao[];
     desporto: string;
     treinadores: Treinador[];
-    defaultOpen?: boolean;  // ✅ novo prop
+    defaultOpen?: boolean;  // ? novo prop
 }) {
     const disponiveis = treinadores.filter((t) => !t.equipa_id);
-    const [open, setOpen] = useState(defaultOpen);  // ✅ alterado
+    const [open, setOpen] = useState(defaultOpen);  // ? alterado
     const [state, action, isPending] = useActionState<State, FormData>(
         criarEquipa,
         null,
@@ -216,7 +217,7 @@ export default function NovaEquipaModal({
                                 {disponiveis.length === 0 ? (
                                     <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                                         <p className="text-xs text-amber-400 font-medium">
-                                            ⚠️ Nenhum treinador disponível.
+                                            ?? Nenhum treinador disponível.
                                         </p>
                                         <p className="text-xs text-amber-400/80 mt-1">
                                             Adicione primeiro um treinador na

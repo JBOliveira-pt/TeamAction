@@ -1,3 +1,4 @@
+// Esqueleto de carregamento para secção perfil (treinador).
 export default function Loading() {
     return (
         <div className="p-6 space-y-5 max-w-5xl mx-auto animate-pulse">

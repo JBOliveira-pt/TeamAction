@@ -1,4 +1,5 @@
-﻿"use client";
+// Componente medico client.
+"use client";
 
 import {
     adicionarDoencaAtleta,
@@ -129,13 +130,13 @@ function ModalForm({
                             className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="leve">
-                                🟢 Leve — continua disponível
+                                ?? Leve — continua disponível
                             </option>
                             <option value="media">
-                                🟡 Média — fica indisponível
+                                ?? Média — fica indisponível
                             </option>
                             <option value="grave">
-                                🔴 Grave — fica indisponível
+                                ?? Grave — fica indisponível
                             </option>
                         </select>
                     </div>
@@ -534,7 +535,7 @@ export default function MedicoClientWrapper({
 
     return (
         <main className="p-6 space-y-6 bg-gray-50 dark:bg-gray-950 max-h-screen">
-            {/* header */}
+            {/* Cabeçalho */}
 
             <div className="flex items-start justify-between">
                 <div>
@@ -570,7 +571,7 @@ export default function MedicoClientWrapper({
                 </p>
             )}
 
-            {/* stat cards */}
+            {/* Cards de estatísticas */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                     title="Status médico"

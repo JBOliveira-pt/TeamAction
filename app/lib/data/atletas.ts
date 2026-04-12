@@ -1,7 +1,6 @@
+// Queries de atletas: listar, detalhar, relações e vinculações.
 import { sql, getOrganizationId } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
-
-// ---------- ATLETAS ----------
 
 export async function fetchAtletas() {
     try {
@@ -423,7 +422,7 @@ export async function fetchAtletaDoResponsavel() {
         const { userId: clerkUserId } = await auth();
         if (!clerkUserId) return null;
 
-        // Get the guardian's own user record (need their email to find the minor)
+        // Obter registo do responsável (precisa do email para encontrar o menor)
         const [guardian] = await sql<
             { id: string; name: string; email: string }[]
         >`
@@ -431,7 +430,7 @@ export async function fetchAtletaDoResponsavel() {
         `;
         if (!guardian) return null;
 
-        // Find the minor whose encarregado_educacao (atletas) matches the guardian's email
+        // Encontrar o menor cujo encarregado_educacao (atletas) corresponde ao email do responsável
         const [minorUser] = await sql<
             {
                 id: string;
@@ -462,7 +461,7 @@ export async function fetchAtletaDoResponsavel() {
         `;
         if (!minorUser) return null;
 
-        // Get the athlete profile for the minor
+        // Obter perfil de atleta do menor
         const [atleta] = await sql<
             {
                 id: string;

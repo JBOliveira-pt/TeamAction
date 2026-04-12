@@ -1,3 +1,4 @@
+// Componente cliente de biblioteca (treinador).
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";

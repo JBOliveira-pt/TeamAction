@@ -1,3 +1,4 @@
+// Rota API relatorios/assiduidade: gera e devolve relatorio CSV de assiduidade.
 import { gerarRelatorioAssiduidade } from "@/app/lib/actions";
 import { requireApiAccountType } from "@/app/lib/api-guards";
 import { NextResponse } from "next/server";

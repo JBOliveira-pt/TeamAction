@@ -1,3 +1,4 @@
+// Página de avisos.
 import { adminCreateAvisoAction } from "@/app/lib/admin-actions";
 import { fetchAdminUsersForSelect } from "@/app/lib/admin-data";
 import { AdminAvisoForm } from "@/app/ui/admin/aviso-form";
