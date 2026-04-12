@@ -996,3 +996,23 @@ export async function fetchAdminEquipasByOrgFull(
         ORDER BY e.nome ASC
     `;
 }
+
+/* ─────────────── Newsletter Subscribers ─────────────── */
+
+export type AdminNewsletterRow = {
+    id: number;
+    nome: string;
+    email: string;
+    subscribed_at: string;
+    thanked_at: string | null;
+};
+
+export async function fetchAdminNewsletterSubscribers(): Promise<
+    AdminNewsletterRow[]
+> {
+    return sql<AdminNewsletterRow[]>`
+        SELECT id, nome, email, subscribed_at, thanked_at
+        FROM newsletter_subscribers
+        ORDER BY subscribed_at DESC
+    `;
+}

@@ -16,6 +16,7 @@ import {
     CreditCard,
     FileEdit,
     Mail,
+    Newspaper,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -25,6 +26,7 @@ const links = [
     { href: "/admin/planos", label: "Pedidos de Plano", icon: CreditCard },
     { href: "/admin/pedidos", label: "Alterações de Perfil", icon: FileEdit },
     { href: "/admin/convites", label: "Convites", icon: Mail },
+    { href: "/admin/newsletter", label: "Newsletter", icon: Newspaper },
     { href: "/admin/logs", label: "Logs", icon: Logs },
     { href: "/admin/avisos", label: "Avisos", icon: Megaphone },
 ];

@@ -11,6 +11,7 @@ import { AtletaSection } from "@/app/components/atleta-section";
 import { ResponsavelSection } from "@/app/components/responsavel-section";
 import { PlanosSection } from "@/app/components/planos-section";
 import { MosaicoSection } from "@/app/components/mosaico-section";
+import { Footer } from "@/app/components/footer";
 
 export default function LandingPage() {
     return (
@@ -94,25 +95,7 @@ export default function LandingPage() {
             <PlanosSection />
 
             {/* --- FOOTER --- */}
-            <footer className="py-12 border-t border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold">TeamAction</span>
-                    </div>
-                    <p className="text-slate-500 text-sm">
-                        © {new Date().getFullYear()} TeamAction. Todos os
-                        direitos reservados.
-                    </p>
-                    <div className="flex gap-6">
-                        <a
-                            href="https://github.com/JBOliveira-pt/TeamAction"
-                            className="text-slate-400 hover:text-slate-900 transition"
-                        >
-                            <Github className="h-6 w-6" />
-                        </a>
-                    </div>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 }

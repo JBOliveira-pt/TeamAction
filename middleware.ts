@@ -69,6 +69,9 @@ const isPublicRoute = createRouteMatcher([
     "/api/email-address-check(.*)",
     "/api/perfil-treinador/options(.*)",
     "/api/perfil-atleta/options(.*)",
+    "/api/newsletter",
+    "/privacidade",
+    "/termos",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
