@@ -10,17 +10,15 @@ export async function GET() {
         const mes = agora.getMonth() + 1;
         const ano = agora.getFullYear();
 
-        const rows = await sql<
-            {
-                atleta_nome: string;
-                equipa_nome: string | null;
-                mes: number;
-                ano: number;
-                valor: number | null;
-                estado: string;
-                data_pagamento: string | null;
-            }[]
-        >`
+        const rows = await sql<{
+            atleta_nome: string;
+            equipa_nome: string | null;
+            mes: number;
+            ano: number;
+            valor: number | null;
+            estado: string;
+            data_pagamento: string | null;
+        }[]>`
             SELECT
                 atletas.nome        AS atleta_nome,
                 equipas.nome        AS equipa_nome,
@@ -63,11 +61,11 @@ export async function GET() {
             .join("\n");
 
         const nomesFicheiro = `mensalidades-${String(mes).padStart(2, "0")}-${ano}.csv`;
-
-        return new NextResponse(csv, {
+        const csvBuffer = Buffer.from("\uFEFF" + csv, "utf-8");
+        return new NextResponse(csvBuffer, {
             status: 200,
             headers: {
-                "Content-Type": "text/csv; charset=utf-8",
+                "Content-Type": "text/csv; charset=utf-8-sig",
                 "Content-Disposition": `attachment; filename="${nomesFicheiro}"`,
             },
         });

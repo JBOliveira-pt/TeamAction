@@ -14,9 +14,10 @@ export async function GET() {
         }
 
         const csv = await gerarRelatorioAtletas();
-        return new NextResponse(csv, {
+        const csvBuffer = Buffer.from("\uFEFF" + csv, "utf-8");
+        return new NextResponse(csvBuffer, {
             headers: {
-                "Content-Type": "text/csv; charset=utf-8",
+                "Content-Type": "text/csv; charset=utf-8-sig",
                 "Content-Disposition": `attachment; filename="relatorio-atletas-${new Date().toISOString().split("T")[0]}.csv"`,
             },
         });

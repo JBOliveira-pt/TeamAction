@@ -23,7 +23,7 @@ export default function EditarDataModal({
     onSaved?: () => void;
 }) {
     const [open, setOpen] = useState(false);
-    const [dataJogo, setDataJogo] = useState(jogo.data.split("T")[0]);
+    const [dataJogo, setDataJogo] = useState(new Date(jogo.data).toISOString().split("T")[0]);
     const [horaInicio, setHoraInicio] = useState(jogo.hora_inicio ?? "");
     const [horaFim, setHoraFim] = useState(jogo.hora_fim ?? "");
     const [saving, setSaving] = useState(false);
@@ -34,7 +34,7 @@ export default function EditarDataModal({
     } | null>(null);
 
     const resetFields = () => {
-        setDataJogo(jogo.data.split("T")[0]);
+        setDataJogo(new Date(jogo.data).toISOString().split("T")[0]);
         setHoraInicio(jogo.hora_inicio ?? "");
         setHoraFim(jogo.hora_fim ?? "");
         setErro("");

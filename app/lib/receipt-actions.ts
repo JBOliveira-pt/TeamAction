@@ -19,7 +19,7 @@ export async function uploadRecibo(
     const paymentMethod = formData.get("payment_method") as string;
     const issuerIban = formData.get("issuer_iban") as string;
     const receivedDate = formData.get("received_date") as string;
-    const status = (formData.get("status") as string) ?? "pendente";
+    const status = formData.get("status") as string ?? "pendente_envio";
 
     if (!atletaId) return { error: "Atleta é obrigatório." };
     if (!mensalidadeId) return { error: "Mensalidade é obrigatória." };

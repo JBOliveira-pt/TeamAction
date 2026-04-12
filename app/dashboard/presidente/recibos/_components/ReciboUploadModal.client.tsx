@@ -19,9 +19,8 @@ const METODOS = [
 ];
 
 const STATUS_OPTS = [
-    { value: "pendente", label: "Pendente" },
-    { value: "pago", label: "Pago" },
-    { value: "cancelado", label: "Cancelado" },
+    { value: "pendente_envio", label: "Pendente de Envio" },
+    { value: "enviado_atleta", label: "Enviado ao Atleta" },
 ];
 
 export default function ReciboUploadModal({

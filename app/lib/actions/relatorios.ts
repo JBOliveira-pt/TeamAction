@@ -6,7 +6,7 @@ import { auth } from "@clerk/nextjs/server";
 
 export async function gerarRelatorioAtletas() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error("Não autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -15,9 +15,9 @@ export async function gerarRelatorioAtletas() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error("Erro ao obter organização.");
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error("Organização não encontrada.");
 
     const atletas = await sql<
         {
@@ -52,23 +52,23 @@ export async function gerarRelatorioAtletas() {
     // Gerar CSV
     const headers = [
         "Nome",
-        "PosiÃ§Ã£o",
-        "NÂº",
+        "Posição",
+        "Nº",
         "Equipa",
         "Estado",
         "Federado",
-        "NÂº Federado",
+        "Nº Federado",
         "Mensalidade",
     ];
     const rows = atletas.map((a) => [
         a.nome,
-        a.posicao ?? "â€”",
-        a.numero_camisola != null ? `#${a.numero_camisola}` : "â€”",
-        a.equipa_nome ?? "â€”",
+        a.posicao ?? "Não tem",
+        a.numero_camisola != null ? `#${a.numero_camisola}` : "Não tem",
+        a.equipa_nome ?? "Não tem",
         a.estado,
-        a.federado ? "Sim" : "NÃ£o",
-        a.numero_federado ?? "â€”",
-        a.mensalidade_estado ?? "â€”",
+        a.federado ? "Sim" : "Não",
+        a.numero_federado ?? "Não tem",
+        a.mensalidade_estado ?? "Não tem",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
@@ -77,7 +77,7 @@ export async function gerarRelatorioAtletas() {
 
 export async function gerarRelatorioMensalidades() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error("Não autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -86,9 +86,9 @@ export async function gerarRelatorioMensalidades() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error("Erro ao obter organização.");
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error("Organização não encontrada.");
 
     const mensalidades = await sql<
         {
@@ -136,7 +136,7 @@ export async function gerarRelatorioMensalidades() {
     const headers = [
         "Atleta",
         "Equipa",
-        "MÃªs",
+        "Mês",
         "Ano",
         "Valor",
         "Estado",
@@ -144,12 +144,12 @@ export async function gerarRelatorioMensalidades() {
     ];
     const rows = mensalidades.map((m) => [
         m.atleta_nome,
-        m.equipa_nome ?? "â€”",
+        m.equipa_nome ?? "Não tem",
         mesesNomes[m.mes] ?? m.mes,
         m.ano,
-        m.valor != null ? `â‚¬${Number(m.valor).toFixed(2)}` : "â€”",
+        m.valor != null ? `â‚¬${Number(m.valor).toFixed(2)}` : "Não tem",
         m.estado,
-        m.data_pago ? new Date(m.data_pago).toLocaleDateString("pt-PT") : "â€”",
+        m.data_pago ? new Date(m.data_pago).toLocaleDateString("pt-PT") : "Não tem",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
@@ -158,7 +158,7 @@ export async function gerarRelatorioMensalidades() {
 
 export async function gerarRelatorioAssiduidade() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error("Não autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -167,9 +167,9 @@ export async function gerarRelatorioAssiduidade() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error("Erro ao obter organização.");
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error("Organização não encontrada.");
 
     const assiduidade = await sql<
         {
@@ -196,7 +196,7 @@ export async function gerarRelatorioAssiduidade() {
         "Atleta",
         "Equipa",
         "Total Treinos",
-        "PresenÃ§as",
+        "Presenças",
         "Taxa Assiduidade",
     ];
     const rows = assiduidade.map((a) => {
@@ -205,7 +205,7 @@ export async function gerarRelatorioAssiduidade() {
         const taxa = total > 0 ? Math.round((presencas / total) * 100) : 0;
         return [
             a.atleta_nome,
-            a.equipa_nome ?? "â€”",
+            a.equipa_nome ?? "Não tem",
             total,
             presencas,
             `${taxa}%`,
@@ -218,7 +218,7 @@ export async function gerarRelatorioAssiduidade() {
 
 export async function gerarRelatorioStaff() {
     const { userId } = await auth();
-    if (!userId) throw new Error("NÃ£o autenticado.");
+    if (!userId) throw new Error("Não autenticado.");
 
     let organizationId: string | undefined;
     try {
@@ -227,9 +227,9 @@ export async function gerarRelatorioStaff() {
         `;
         organizationId = user[0]?.organization_id;
     } catch {
-        throw new Error("Erro ao obter organizaÃ§Ã£o.");
+        throw new Error("Erro ao obter organização.");
     }
-    if (!organizationId) throw new Error("OrganizaÃ§Ã£o nÃ£o encontrada.");
+    if (!organizationId) throw new Error("Organização não encontrada.");
 
     const staff = await sql<
         {
@@ -253,13 +253,13 @@ export async function gerarRelatorioStaff() {
         ORDER BY staff.funcao, staff.nome ASC
     `;
 
-    const headers = ["Nome", "FunÃ§Ã£o", "Equipa", "Email", "Telefone"];
+    const headers = ["Nome", "Função", "Equipa", "Email", "Telefone"];
     const rows = staff.map((s) => [
         s.nome,
         s.funcao,
-        s.equipa_nome ?? "â€”",
-        s.email ?? "â€”",
-        s.telefone ?? "â€”",
+        s.equipa_nome ?? "Não tem",
+        s.email ?? "Não tem",
+        s.telefone ?? "Não tem",
     ]);
 
     const csv = [headers, ...rows].map((row) => row.join(";")).join("\n");
