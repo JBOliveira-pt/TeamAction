@@ -2,6 +2,8 @@
 "use client";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { getProfilePlaceholder } from "@/app/lib/assets";
 
 export type StaffMembro = {
     id: string;
@@ -36,8 +38,14 @@ export default function StaffPanel({ staff }: { staff: StaffMembro[] }) {
                                 key={s.id}
                                 className="flex items-center gap-2 min-w-0"
                             >
-                                <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xs font-bold flex-shrink-0">
-                                    {s.nome.charAt(0).toUpperCase()}
+                                <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
+                                    <Image
+                                        src={getProfilePlaceholder("treinador")}
+                                        alt={s.nome}
+                                        width={28}
+                                        height={28}
+                                        className="w-full h-full object-cover"
+                                    />
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate whitespace-nowrap">

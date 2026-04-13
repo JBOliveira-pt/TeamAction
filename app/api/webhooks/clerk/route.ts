@@ -83,6 +83,33 @@ export async function POST(req: Request) {
                 `[WEBHOOK] Tentando criar utilizador: ${email} (id: ${id})`,
             );
 
+            // Verificar se existe conta soft-deleted com este email
+            const [softDeleted] = await sql<
+                { id: string; deleted_at: string | null }[]
+            >`
+                SELECT id, deleted_at FROM users
+                WHERE email = ${email} AND deleted_at IS NOT NULL
+                LIMIT 1
+            `;
+
+            if (softDeleted) {
+                // Conta soft-deleted encontrada: religar ao novo Clerk user
+                await sql`
+                    UPDATE users
+                    SET clerk_user_id = ${id},
+                        name = ${name},
+                        image_url = ${image_url || null},
+                        updated_at = NOW()
+                    WHERE id = ${softDeleted.id}
+                `;
+                console.log(
+                    `[WEBHOOK] ♻️ Conta soft-deleted religada: ${email}`,
+                );
+                return new Response("User linked to soft-deleted account", {
+                    status: 200,
+                });
+            }
+
             // Usamos uma transação para garantir integridade
             try {
                 await sql.begin(async (tx: any) => {
@@ -158,136 +185,155 @@ export async function POST(req: Request) {
         if (eventType === "user.deleted") {
             // Buscar o user para obter o id UUID e email (id do webhook é clerk_user_id)
             const [user] = await sql<
-                { id: string; email: string; organization_id: string | null }[]
-            >`SELECT id, email, organization_id FROM users WHERE clerk_user_id = ${id} LIMIT 1`;
+                {
+                    id: string;
+                    email: string;
+                    organization_id: string | null;
+                    deleted_at: string | null;
+                }[]
+            >`SELECT id, email, organization_id, deleted_at FROM users WHERE clerk_user_id = ${id} LIMIT 1`;
 
-            if (user) {
-                await sql.begin(async (tx: any) => {
-                    // --- Cascade delete: apagar todos os dados vinculados ---
+            if (!user) {
+                return new Response("User not found in DB", { status: 200 });
+            }
 
-                    // IDs dos atletas deste user
-                    const atletaRows = await tx`
+            // Se a conta está soft-deleted (self-delete), preservar dados por 30 dias
+            if (user.deleted_at) {
+                // Limpar clerk_user_id para que possa registar-se de novo
+                await sql`
+                    UPDATE users
+                    SET clerk_user_id = NULL, updated_at = NOW()
+                    WHERE id = ${user.id}
+                `;
+                console.log(
+                    `[WEBHOOK] 🗑️ Soft-delete: preservar dados de ${user.email} por 30 dias`,
+                );
+                return new Response("User soft-deleted — data preserved", {
+                    status: 200,
+                });
+            }
+
+            // Hard delete normal (admin ou Clerk direto)
+            await sql.begin(async (tx: any) => {
+                // --- Cascade delete: apagar todos os dados vinculados ---
+
+                // IDs dos atletas deste user
+                const atletaRows = await tx`
                         SELECT id FROM atletas WHERE user_id = ${user.id}
                     `.catch(() => []);
-                    const atletaIds = atletaRows.map(
-                        (a: { id: string }) => a.id,
-                    );
+                const atletaIds = atletaRows.map((a: { id: string }) => a.id);
 
-                    // Dados filhos de atletas
-                    if (atletaIds.length > 0) {
-                        for (const tbl of [
-                            "convocatorias",
-                            "mensalidades",
-                            "estatisticas_jogo",
-                            "assiduidade",
-                            "eventos_jogo",
-                            "avaliacoes_fisicas",
-                            "convites_equipa",
-                            "recibos",
-                        ]) {
-                            await tx`
+                // Dados filhos de atletas
+                if (atletaIds.length > 0) {
+                    for (const tbl of [
+                        "convocatorias",
+                        "mensalidades",
+                        "estatisticas_jogo",
+                        "assiduidade",
+                        "eventos_jogo",
+                        "avaliacoes_fisicas",
+                        "convites_equipa",
+                        "recibos",
+                    ]) {
+                        await tx`
                                 DELETE FROM ${tx(tbl)}
                                 WHERE atleta_id = ANY(${atletaIds})
                             `.catch(() => {});
-                        }
                     }
+                }
 
-                    // Dados diretos do user (DELETE)
-                    for (const [tbl, col] of [
-                        ["atletas", "user_id"],
-                        ["staff", "user_id"],
-                        ["notificacoes", "recipient_user_id"],
-                        ["pedidos_alteracao_perfil", "user_id"],
-                        ["pedidos_plano", "user_id"],
-                        ["notas_atleta", "user_id"],
-                        ["condicao_fisica", "user_id"],
-                        ["user_cursos", "user_id"],
-                        ["calendar_notes", "user_id"],
-                        ["atleta_relacoes_pendentes", "atleta_user_id"],
-                        [
-                            "atleta_relacoes_pendentes",
-                            "alvo_responsavel_user_id",
-                        ],
-                        ["atleta_relacoes_pendentes", "alvo_treinador_user_id"],
-                        ["exercicios", "treinador_id"],
-                        ["sessoes", "treinador_id"],
-                        ["avaliacoes_fisicas", "treinador_id"],
-                        ["jogadas_taticas", "treinador_id"],
-                        ["planos_nutricao", "treinador_id"],
-                        ["convites_equipa", "treinador_id"],
-                        ["convites_clube", "convidado_user_id"],
-                        ["convites_clube", "convidado_por"],
-                        ["comunicados", "criado_por"],
-                        ["documentos", "uploaded_by"],
-                    ] as const) {
-                        await tx`
+                // Dados diretos do user (DELETE)
+                for (const [tbl, col] of [
+                    ["atletas", "user_id"],
+                    ["staff", "user_id"],
+                    ["notificacoes", "recipient_user_id"],
+                    ["pedidos_alteracao_perfil", "user_id"],
+                    ["pedidos_plano", "user_id"],
+                    ["notas_atleta", "user_id"],
+                    ["condicao_fisica", "user_id"],
+                    ["user_cursos", "user_id"],
+                    ["calendar_notes", "user_id"],
+                    ["atleta_relacoes_pendentes", "atleta_user_id"],
+                    ["atleta_relacoes_pendentes", "alvo_responsavel_user_id"],
+                    ["atleta_relacoes_pendentes", "alvo_treinador_user_id"],
+                    ["exercicios", "treinador_id"],
+                    ["sessoes", "treinador_id"],
+                    ["avaliacoes_fisicas", "treinador_id"],
+                    ["jogadas_taticas", "treinador_id"],
+                    ["planos_nutricao", "treinador_id"],
+                    ["convites_equipa", "treinador_id"],
+                    ["convites_clube", "convidado_user_id"],
+                    ["convites_clube", "convidado_por"],
+                    ["comunicados", "criado_por"],
+                    ["documentos", "uploaded_by"],
+                ] as const) {
+                    await tx`
                             DELETE FROM ${tx(tbl)}
                             WHERE ${tx(col)} = ${user.id}
                         `.catch(() => {});
-                    }
+                }
 
-                    // Recibos criados por este user
-                    await tx`
+                // Recibos criados por este user
+                await tx`
                         DELETE FROM recibos WHERE created_by = ${user.id}
                     `.catch(() => {});
 
-                    // Dados partilhados / logs: nullificar referências (preservar registos)
-                    for (const [tbl, col] of [
-                        ["user_action_logs", "user_id"],
-                        ["equipas", "treinador_id"],
-                        ["sessoes", "criado_por"],
-                        ["mensalidades", "updated_by"],
-                        ["recibos", "sent_by_user"],
-                        ["estatisticas_jogo", "created_by"],
-                        ["autorizacoes_log", "autorizado_por"],
-                        ["autorizacoes_log", "autorizado_a"],
-                        ["autorizacoes_log", "resolved_by"],
-                    ] as const) {
-                        await tx`
+                // Dados partilhados / logs: nullificar referências (preservar registos)
+                for (const [tbl, col] of [
+                    ["user_action_logs", "user_id"],
+                    ["equipas", "treinador_id"],
+                    ["sessoes", "criado_por"],
+                    ["mensalidades", "updated_by"],
+                    ["recibos", "sent_by_user"],
+                    ["estatisticas_jogo", "created_by"],
+                    ["autorizacoes_log", "autorizado_por"],
+                    ["autorizacoes_log", "autorizado_a"],
+                    ["autorizacoes_log", "resolved_by"],
+                ] as const) {
+                    await tx`
                             UPDATE ${tx(tbl)}
                             SET ${tx(col)} = NULL
                             WHERE ${tx(col)} = ${user.id}
                         `.catch(() => {});
-                    }
+                }
 
-                    // Medico (ligada por email)
-                    await tx`
+                // Medico (ligada por email)
+                await tx`
                         DELETE FROM medico WHERE email = ${user.email}
                     `.catch(() => {});
 
-                    // Apagar o user
-                    await tx`DELETE FROM users WHERE id = ${user.id}`;
+                // Apagar o user
+                await tx`DELETE FROM users WHERE id = ${user.id}`;
 
-                    // Organização: se era o único membro, apagar org e dados org-scoped
-                    if (user.organization_id) {
-                        const remainingRows = await tx`
+                // Organização: se era o único membro, apagar org e dados org-scoped
+                if (user.organization_id) {
+                    const remainingRows = await tx`
                             SELECT COUNT(*)::text AS count FROM users
                             WHERE organization_id = ${user.organization_id}
                         `.catch(() => [{ count: "1" }]);
-                        const remaining = Number(remainingRows[0]?.count ?? 1);
+                    const remaining = Number(remainingRows[0]?.count ?? 1);
 
-                        if (remaining === 0) {
-                            for (const tbl of [
-                                "notificacoes",
-                                "comunicados",
-                                "documentos",
-                                "epocas",
-                                "clubes",
-                                "pedidos_plano",
-                            ]) {
-                                await tx`
+                    if (remaining === 0) {
+                        for (const tbl of [
+                            "notificacoes",
+                            "comunicados",
+                            "documentos",
+                            "epocas",
+                            "clubes",
+                            "pedidos_plano",
+                        ]) {
+                            await tx`
                                     DELETE FROM ${tx(tbl)}
                                     WHERE organization_id = ${user.organization_id}
                                 `.catch(() => {});
-                            }
-                            await tx`
+                        }
+                        await tx`
                                 DELETE FROM organizations
                                 WHERE id = ${user.organization_id}
                             `.catch(() => {});
-                        }
                     }
-                });
-            }
+                }
+            });
 
             return new Response("User deleted", { status: 200 });
         }

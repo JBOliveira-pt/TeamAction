@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, type ChangeEvent } from "react";
 import Image from "next/image";
-import { User } from "lucide-react";
+import { getProfilePlaceholder } from "@/app/lib/assets";
 
 // --- IBAN (same as signup) ---
 const IBAN_PREFIX = "PT50";
@@ -340,19 +340,16 @@ export function AdminUserEditForm({
             <div>
                 <label className={labelCls}>Foto de perfil</label>
                 <div className="flex items-center gap-4">
-                    {photoPreview ? (
-                        <Image
-                            src={photoPreview}
-                            alt="Preview"
-                            width={48}
-                            height={48}
-                            className="h-12 w-12 rounded-full object-cover"
-                        />
-                    ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-                            <User size={20} />
-                        </div>
-                    )}
+                    <Image
+                        src={
+                            photoPreview ||
+                            getProfilePlaceholder(accountType)
+                        }
+                        alt="Preview"
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-full object-cover"
+                    />
                     <div className="flex-1">
                         <input
                             ref={fileInputRef}

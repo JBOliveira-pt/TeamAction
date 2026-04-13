@@ -6,6 +6,8 @@ import { EditarMembroModal } from "./EditarMembroModal.client";
 import { RemoverMembroModal } from "./RemoverMembroModal.client";
 import { getEscaloesPermitidos } from "@/app/lib/grau-escalao-compat";
 import { ArrowUpDown } from "lucide-react";
+import Image from "next/image";
+import { getProfilePlaceholder } from "@/app/lib/assets";
 
 type StaffRow = {
     id: string;
@@ -190,12 +192,16 @@ export default function StaffTable({
                                         {/* Nome */}
                                         <td className="px-6 py-4 min-w-[220px]">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center flex-shrink-0">
-                                                    <span className="text-xs font-bold text-violet-400">
-                                                        {s.nome
-                                                            .charAt(0)
-                                                            .toUpperCase()}
-                                                    </span>
+                                                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                                    <Image
+                                                        src={getProfilePlaceholder(
+                                                            "treinador",
+                                                        )}
+                                                        alt={s.nome}
+                                                        width={32}
+                                                        height={32}
+                                                        className="w-full h-full object-cover"
+                                                    />
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <p className="font-semibold text-gray-900 dark:text-white truncate">

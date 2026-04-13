@@ -2,7 +2,7 @@
 "use client";
 
 import { DashboardHeader } from "@/app/components/header";
-import { ASSETS } from "@/app/lib/assets";
+import { ASSETS, getProfilePlaceholder } from "@/app/lib/assets";
 import { AccountType } from "@/app/lib/account-type";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -190,6 +190,7 @@ export default function SideNav({ accountType }: SideNavProps) {
         ? {
               ...dbUser,
               role: accountTypeLabel || "Conta",
+              placeholderSrc: getProfilePlaceholder(accountType),
           }
         : {
               name:
@@ -198,6 +199,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                       : "Usuario",
               role: accountTypeLabel || "Conta",
               foto: isLoaded && clerkUser ? clerkUser.imageUrl : undefined,
+              placeholderSrc: getProfilePlaceholder(accountType),
           };
 
     const profileHref =
@@ -400,6 +402,12 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     icon={<NotebookPen size={20} />}
                                     label="Notas"
                                     href="/dashboard/treinador/notas"
+                                    onClick={() => setIsOpen(false)}
+                                />
+                                <NavItem
+                                    icon={<ShieldCheck size={20} />}
+                                    label="Autorizações"
+                                    href="/dashboard/treinador/autorizacoes"
                                     onClick={() => setIsOpen(false)}
                                 />
                             </NavSection>

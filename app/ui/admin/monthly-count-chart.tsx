@@ -105,9 +105,6 @@ export function MonthlyCountChart({
     const { topLabel, yAxisLabels } = generateYAxis(values);
     const palette = accentClasses[accent];
 
-    // Quando expandido (6 ou 12M) ocupa 2 colunas no grid xl:grid-cols-3
-    const expanded = selectedMonths > 3;
-
     if (activeData.length === 0) {
         return (
             <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
@@ -119,11 +116,7 @@ export function MonthlyCountChart({
     }
 
     return (
-        <div
-            className={`rounded-xl border border-gray-200 bg-white p-3 transition-all dark:border-gray-800 dark:bg-gray-900 ${
-                expanded ? "xl:col-span-2" : ""
-            }`}
-        >
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-900">
             {/* Cabeçalho compacto */}
             <div className="mb-2 flex items-center justify-between gap-2">
                 <div className="min-w-0">

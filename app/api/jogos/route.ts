@@ -132,6 +132,27 @@ export async function POST(req: NextRequest) {
     const adversarioClubeId = body.adversario_org_id ?? null;
     const visibilidadePublica = body.visibilidade_publica === true;
 
+    // Validar escalão: adversário da plataforma deve ter mesmo escalão
+    if (adversarioClubeId) {
+        const [minhaEquipa] = await sql<{ escalao: string }[]>`
+            SELECT escalao FROM equipas WHERE id = ${equipaId} LIMIT 1
+        `;
+        if (minhaEquipa) {
+            const advComMesmoEscalao = await sql`
+                SELECT id FROM equipas
+                WHERE organization_id = ${adversarioClubeId}
+                  AND escalao = ${minhaEquipa.escalao}
+                LIMIT 1
+            `;
+            if (advComMesmoEscalao.length === 0) {
+                return new Response(
+                    `O adversário não tem equipa no escalão "${minhaEquipa.escalao}".`,
+                    { status: 400 },
+                );
+            }
+        }
+    }
+
     try {
         const rows = await sql<
             {

@@ -24,7 +24,7 @@ type Jogo = {
     proposta_hora?: string | null;
 };
 
-type Equipa = { id: string; nome: string };
+type Equipa = { id: string; nome: string; escalao?: string };
 
 export default function JogosPageClient({
     jogosIniciais,

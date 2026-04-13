@@ -15,8 +15,8 @@ async function fetchEquipas() {
     const orgId = user[0]?.organization_id;
     if (!orgId) return [];
 
-    return sql<{ id: string; nome: string }[]>`
-        SELECT id, nome FROM equipas
+    return sql<{ id: string; nome: string; escalao: string }[]>`
+        SELECT id, nome, escalao FROM equipas
         WHERE organization_id = ${orgId}
         ORDER BY nome ASC
     `;

@@ -13,6 +13,7 @@ import CursoTreinadorCard from "@/app/ui/components/curso-treinador-card";
 import Image from "next/image";
 import { ShieldCheck, ShieldAlert, Mail, UserCheck } from "lucide-react";
 import InfoDesportivaCard from "@/app/ui/components/info-desportiva-card";
+import { getProfilePlaceholder } from "@/app/lib/assets";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     presidente: "Presidente",
@@ -77,6 +78,9 @@ export default async function PerfilUnificadoPage() {
                         currentImageUrl={avatarUrl}
                         userName={nome}
                         disabled={isMinorAthlete}
+                        placeholderUrl={getProfilePlaceholder(
+                            perfil.account_type,
+                        )}
                     />
 
                     <div className="flex-1 text-center sm:text-left">
@@ -122,26 +126,19 @@ export default async function PerfilUnificadoPage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-                                            {atletaData.guardian.image_url ? (
-                                                <Image
-                                                    src={
-                                                        atletaData.guardian
-                                                            .image_url
-                                                    }
-                                                    alt={
-                                                        atletaData.guardian.name
-                                                    }
-                                                    width={40}
-                                                    height={40}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm font-bold">
-                                                    {atletaData.guardian.name
-                                                        .charAt(0)
-                                                        .toUpperCase()}
-                                                </div>
-                                            )}
+                                            <Image
+                                                src={
+                                                    atletaData.guardian
+                                                        .image_url ||
+                                                    getProfilePlaceholder(
+                                                        "responsavel",
+                                                    )
+                                                }
+                                                alt={atletaData.guardian.name}
+                                                width={40}
+                                                height={40}
+                                                className="w-full h-full object-cover"
+                                            />
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">

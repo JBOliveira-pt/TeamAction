@@ -26,7 +26,11 @@ export default async function JogosPage({
     return (
         <JogosPageClient
             jogosIniciais={jogos}
-            equipas={equipas.map((e) => ({ id: e.id, nome: e.nome }))}
+            equipas={equipas.map((e) => ({
+                id: e.id,
+                nome: e.nome,
+                escalao: e.escalao,
+            }))}
             meuClubeId={dashboard.organizationId}
             epocaNome={dashboard.epocaNome}
             defaultOpen={abrirModal}

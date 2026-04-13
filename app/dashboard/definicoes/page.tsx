@@ -6,6 +6,7 @@ import {
     fetchIsResponsavel,
 } from "@/app/lib/actions/planos";
 import PlanoSelector from "./_components/PlanoSelector.client";
+import DeleteAccountSection from "./_components/DeleteAccountSection.client";
 import { AlertTriangle, Info } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,8 @@ export default async function DefinicoesPage() {
                     }
                 />
             )}
+            {/* Zona de Perigo — eliminação da conta */}
+            <DeleteAccountSection />
         </div>
     );
 }

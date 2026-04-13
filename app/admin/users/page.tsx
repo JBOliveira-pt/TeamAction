@@ -1,8 +1,9 @@
 // Página de users.
 import Link from "next/link";
 import { fetchAdminUsers } from "@/app/lib/admin-data";
-import { User, ArrowUpDown } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import Image from "next/image";
+import { getProfilePlaceholder } from "@/app/lib/assets";
 
 type AccountType = "presidente" | "treinador" | "atleta" | "responsavel";
 
@@ -166,19 +167,18 @@ export default async function AdminUsersPage({
                             >
                                 <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                                     <div className="flex items-center gap-3">
-                                        {user.image_url ? (
-                                            <Image
-                                                src={user.image_url}
-                                                alt={`Foto de ${user.name}`}
-                                                width={32}
-                                                height={32}
-                                                className="h-8 w-8 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-                                                <User size={16} />
-                                            </div>
-                                        )}
+                                        <Image
+                                            src={
+                                                user.image_url ||
+                                                getProfilePlaceholder(
+                                                    user.account_type,
+                                                )
+                                            }
+                                            alt={`Foto de ${user.name}`}
+                                            width={32}
+                                            height={32}
+                                            className="h-8 w-8 rounded-full object-cover"
+                                        />
                                         <span>{user.name}</span>
                                     </div>
                                 </td>

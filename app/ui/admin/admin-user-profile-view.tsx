@@ -9,8 +9,9 @@ import {
     type ReactNode,
 } from "react";
 import Image from "next/image";
-import { Pencil, User, X, Check } from "lucide-react";
+import { Pencil, X, Check } from "lucide-react";
 import { useFormStatus } from "react-dom";
+import { getProfilePlaceholder } from "@/app/lib/assets";
 
 // --- IBAN helpers ---
 const IBAN_PREFIX = "PT50";
@@ -430,19 +431,16 @@ export function AdminUserProfileView({
                 editContent={
                     <>
                         <div className="flex items-center gap-4">
-                            {photoPreview ? (
-                                <Image
-                                    src={photoPreview}
-                                    alt="Preview"
-                                    width={56}
-                                    height={56}
-                                    className="h-14 w-14 rounded-full object-cover"
-                                />
-                            ) : (
-                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-                                    <User size={24} />
-                                </div>
-                            )}
+                            <Image
+                                src={
+                                    photoPreview ||
+                                    getProfilePlaceholder(accountType)
+                                }
+                                alt="Preview"
+                                width={56}
+                                height={56}
+                                className="h-14 w-14 rounded-full object-cover"
+                            />
                             <div className="flex-1">
                                 <input
                                     ref={fileInputRef}
@@ -512,19 +510,16 @@ export function AdminUserProfileView({
                 }
             >
                 <div className="flex items-center gap-3 sm:col-span-2 lg:col-span-3">
-                    {user.image_url ? (
-                        <Image
-                            src={user.image_url}
-                            alt={user.name}
-                            width={48}
-                            height={48}
-                            className="h-12 w-12 rounded-full object-cover"
-                        />
-                    ) : (
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
-                            <User size={20} />
-                        </div>
-                    )}
+                    <Image
+                        src={
+                            user.image_url ||
+                            getProfilePlaceholder(accountType)
+                        }
+                        alt={user.name}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-full object-cover"
+                    />
                     <div>
                         <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
                             {user.name}

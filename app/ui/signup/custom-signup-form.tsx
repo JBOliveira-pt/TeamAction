@@ -34,7 +34,7 @@ import {
     Volleyball,
 } from "lucide-react";
 import Image from "next/image";
-import { ASSETS } from "@/app/lib/assets";
+import { ASSETS, getProfilePlaceholder } from "@/app/lib/assets";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -2394,20 +2394,17 @@ export default function CustomSignUpForm({
                                     Preview
                                 </p>
                                 <div className="flex justify-center">
-                                    {photoPreviewUrl ? (
-                                        <Image
-                                            src={photoPreviewUrl}
-                                            alt="Preview da foto"
-                                            width={64}
-                                            height={64}
-                                            unoptimized
-                                            className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
-                                        />
-                                    ) : (
-                                        <div className="flex h-16 w-16 items-center justify-center rounded-full border border-dashed border-gray-400/70 dark:border-gray-600 bg-slate-900/30">
-                                            <User className="h-7 w-7 text-gray-400" />
-                                        </div>
-                                    )}
+                                    <Image
+                                        src={
+                                            photoPreviewUrl ||
+                                            getProfilePlaceholder(accountType)
+                                        }
+                                        alt="Preview da foto"
+                                        width={64}
+                                        height={64}
+                                        unoptimized={!!photoPreviewUrl}
+                                        className="h-16 w-16 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+                                    />
                                 </div>
                             </div>
                         </div>

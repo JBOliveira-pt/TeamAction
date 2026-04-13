@@ -21,11 +21,11 @@ async function fetchDashboardData() {
     const orgId = user.organization_id;
     const hoje = new Date().toISOString().split("T")[0];
 
-    // Buscar a equipa do treinador (0-1 equipa)
-    const equipaRows = await sql<{ id: string }[]>`
-        SELECT id FROM equipas WHERE treinador_id = ${user.id} LIMIT 1
+    // Buscar todas as equipas do treinador
+    const equipaRows = await sql<{ id: string; nome: string }[]>`
+        SELECT id, nome FROM equipas WHERE treinador_id = ${user.id} ORDER BY nome ASC
     `;
-    const equipaId = equipaRows[0]?.id ?? null;
+    const hasEquipas = equipaRows.length > 0;
 
     const [
         atletasResult,
@@ -34,15 +34,17 @@ async function fetchDashboardData() {
         ultimasSessoesResult,
         assiduidadeResult,
     ] = await Promise.all([
-        // Total atletas ativos da equipa
-        equipaId
+        // Total atletas ativos de todas as equipas do treinador
+        hasEquipas
             ? sql<{ total: number }[]>`
                 SELECT COUNT(*)::int AS total FROM atletas
-                WHERE organization_id = ${orgId} AND equipa_id = ${equipaId} AND estado = 'Ativo'
+                WHERE organization_id = ${orgId}
+                  AND equipa_id IN (SELECT id FROM equipas WHERE treinador_id = ${user.id})
+                  AND estado = 'Ativo'
             `
             : Promise.resolve([{ total: 0 }]),
-        // Próximas sessões da equipa (usamos até 3 para os eventos)
-        equipaId
+        // Próximas sessões (usamos até 3 para os eventos)
+        hasEquipas
             ? sql<
                   {
                       id: string;
@@ -56,8 +58,8 @@ async function fetchDashboardData() {
                 ORDER BY data ASC LIMIT 3
             `
             : Promise.resolve([]),
-        // Próximos jogos da equipa (usamos até 3 para os eventos)
-        equipaId
+        // Próximos jogos de todas as equipas do treinador
+        hasEquipas
             ? sql<
                   {
                       id: string;
@@ -67,20 +69,21 @@ async function fetchDashboardData() {
                   }[]
               >`
                 SELECT id, adversario, data::text, casa_fora FROM jogos
-                WHERE equipa_id = ${equipaId} AND estado = 'agendado' AND data >= ${hoje}::date
+                WHERE equipa_id IN (SELECT id FROM equipas WHERE treinador_id = ${user.id})
+                  AND estado = 'agendado' AND data >= ${hoje}::date
                 ORDER BY data ASC LIMIT 3
             `
             : Promise.resolve([]),
-        // Últimas 3 sessões da equipa
-        equipaId
+        // Últimas 3 sessões
+        hasEquipas
             ? sql<{ id: string; data: string; tipo: string }[]>`
                 SELECT id, data::text, tipo FROM sessoes
                 WHERE treinador_id = ${user.id}
                 ORDER BY data DESC LIMIT 3
             `
             : Promise.resolve([]),
-        // Assiduidade da equipa
-        equipaId
+        // Assiduidade
+        hasEquipas
             ? sql<{ total: number; presencas: number }[]>`
                 SELECT
                     COUNT(*)::int AS total,
@@ -100,7 +103,7 @@ async function fetchDashboardData() {
     const temClube = clubeRows.length > 0;
 
     const staffResult =
-        equipaId && temClube
+        hasEquipas && temClube
             ? await sql<
                   {
                       id: string;
@@ -109,14 +112,14 @@ async function fetchDashboardData() {
                       user_id: string | null;
                   }[]
               >`
-            SELECT id, nome, funcao, user_id FROM staff
-            WHERE equipa_id = ${equipaId}
-            ORDER BY nome ASC
+            SELECT DISTINCT ON (s.user_id, s.nome) s.id, s.nome, s.funcao, s.user_id FROM staff s
+            WHERE s.equipa_id IN (SELECT id FROM equipas WHERE treinador_id = ${user.id})
+            ORDER BY s.user_id, s.nome, s.funcao ASC
         `.catch(() => [])
             : [];
 
-    // Atleta mais assíduo da equipa
-    const atletaDestaqueResult = equipaId
+    // Atleta mais assíduo
+    const atletaDestaqueResult = hasEquipas
         ? await sql<{ nome: string; pct: number }[]>`
             SELECT a.nome,
                    ROUND(100.0 * SUM(CASE WHEN ass.estado = 'P' THEN 1 ELSE 0 END) / NULLIF(COUNT(ass.id), 0))::int AS pct
@@ -185,7 +188,8 @@ async function fetchDashboardData() {
         atletaDestaque,
         proximosEventos,
         staff: staffResult,
-        hasEquipa: equipaId !== null,
+        hasEquipa: hasEquipas,
+        equipas: equipaRows,
         temClube,
     };
 }
@@ -218,6 +222,13 @@ export default async function TreinadorDashboard() {
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             {data?.totalAtletas ?? 0} atletas ativos
+                            {data?.equipas && data.equipas.length > 0 && (
+                                <span>
+                                    {" "}
+                                    · {data.equipas.length} equipa
+                                    {data.equipas.length > 1 ? "s" : ""}
+                                </span>
+                            )}
                         </p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -438,7 +449,10 @@ export default async function TreinadorDashboard() {
                                         atletas ativos
                                     </p>
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                        na equipa atual
+                                        {data.equipas && data.equipas.length > 1
+                                            ? `em ${data.equipas.length} equipas`
+                                            : (data.equipas?.[0]?.nome ??
+                                              "na equipa")}
                                     </p>
                                 </div>
                             </div>

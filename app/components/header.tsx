@@ -27,6 +27,7 @@ interface DashboardHeaderProps {
         name: string;
         role: string;
         foto?: string;
+        placeholderSrc?: string;
     };
 }
 
@@ -126,6 +127,7 @@ export function DashboardHeader({
                         <Avatar
                             src={user?.foto}
                             alt={user?.name || "Avatar"}
+                            placeholderSrc={user?.placeholderSrc}
                             fallback={
                                 user?.name ? getInitials(user.name) : "US"
                             }

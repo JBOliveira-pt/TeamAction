@@ -1,6 +1,7 @@
 // Página de registo de conta.
 import CustomSignUpForm from "@/app/ui/signup/custom-signup-form";
 import CompleteAccountTypeForm from "@/app/ui/signup/complete-account-type-form";
+import ReactivateAccountChoice from "@/app/ui/signup/reactivate-account-choice";
 import {
     getDashboardPathForAccountType,
     normalizeAccountType,
@@ -47,12 +48,45 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         };
         let accountType = normalizeAccountType(metadata.accountType);
 
+        // Verificar se é conta soft-deleted (reativação pendente)
+        const [dbUserFull] = await sql<
+            {
+                id: string;
+                name: string;
+                email: string;
+                account_type: string | null;
+                deleted_at: string | null;
+            }[]
+        >`
+            SELECT id, name, email, account_type, deleted_at
+            FROM users
+            WHERE clerk_user_id = ${userId}
+            LIMIT 1
+        `;
+
+        if (dbUserFull?.deleted_at) {
+            // Conta soft-deleted — mostrar escolha de reativação
+            return (
+                <main className="relative min-h-screen overflow-hidden">
+                    <div
+                        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat"
+                        style={{
+                            backgroundImage: `url('${ASSETS.loginBackground}')`,
+                        }}
+                    />
+                    <div className="relative z-10 min-h-screen p-6 flex items-center justify-center">
+                        <ReactivateAccountChoice
+                            email={dbUserFull.email}
+                            accountType={dbUserFull.account_type}
+                        />
+                    </div>
+                </main>
+            );
+        }
+
         // Fallback: verificar BD quando o JWT ainda não foi atualizado
         if (!accountType) {
-            const atRows = await sql<{ account_type: string | null }[]>`
-                SELECT account_type FROM users WHERE clerk_user_id = ${userId} LIMIT 1
-            `;
-            accountType = normalizeAccountType(atRows[0]?.account_type);
+            accountType = normalizeAccountType(dbUserFull?.account_type);
         }
 
         if (accountType) {
@@ -60,14 +94,10 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         }
 
         // Buscar nome/email da BD local em vez de chamar a API do Clerk
-        const rows = await sql<{ name: string; email: string }[]>`
-            SELECT name, email FROM users WHERE clerk_user_id = ${userId} LIMIT 1
-        `;
-        const dbUser = rows[0];
-        const nameParts = (dbUser?.name || "").split(" ");
+        const nameParts = (dbUserFull?.name || "").split(" ");
         const initialFirstName = nameParts[0] || "";
         const initialLastName = nameParts.slice(1).join(" ") || "";
-        const initialEmail = dbUser?.email || "";
+        const initialEmail = dbUserFull?.email || "";
 
         return (
             <main className="relative min-h-screen overflow-hidden">

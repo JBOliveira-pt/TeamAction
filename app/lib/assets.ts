@@ -19,3 +19,17 @@ export const ASSETS = {
     mosaicoFotos: `${BASE}/mosaico-fotosevideo.png`,
     mosaicoVideo: `${VIDEOS_BASE}/segurandobola-andebol.mp4`,
 };
+
+const PROFILE_PLACEHOLDERS: Record<string, string> = {
+    presidente: `${BASE}/presidente-photo-placeholder.jpg`,
+    treinador: `${BASE}/treinador-photo-placeholder.jpg`,
+    atleta: `${BASE}/atleta-photo-placeholder.jpg`,
+    responsavel: `${BASE}/responsavel-photo-placeholder.jpg`,
+};
+
+export function getProfilePlaceholder(accountType?: string | null): string {
+    return (
+        (accountType && PROFILE_PLACEHOLDERS[accountType]) ||
+        PROFILE_PLACEHOLDERS.atleta
+    );
+}

@@ -39,10 +39,7 @@ export default function EditarEquipaModal({
     escaloes: Escalao[];
     treinadores: Treinador[];
 }) {
-    // Treinadores sem equipa + os já atribuídos a esta equipa
-    const disponiveis = treinadores.filter(
-        (t) => !t.equipa_id || t.equipa_id === equipa.id,
-    );
+    const disponiveis = treinadores;
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
         editarEquipa,

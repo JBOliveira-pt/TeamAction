@@ -3,6 +3,7 @@ import Image from "next/image";
 interface AvatarProps {
     src?: string;
     alt?: string;
+    placeholderSrc?: string;
     fallback?: string;
     className?: string;
 }
@@ -10,16 +11,18 @@ interface AvatarProps {
 export function Avatar({
     src,
     alt = "Avatar",
+    placeholderSrc,
     fallback = "US",
     className = "",
 }: AvatarProps) {
+    const imageSrc = src || placeholderSrc;
     return (
         <div
             className={`relative h-9 w-9 rounded-full overflow-hidden border border-gray-700 bg-gray-800 ${className}`}
         >
-            {src ? (
+            {imageSrc ? (
                 <Image
-                    src={src}
+                    src={imageSrc}
                     alt={alt}
                     fill
                     sizes="36px"

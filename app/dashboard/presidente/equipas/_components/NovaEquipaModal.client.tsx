@@ -27,15 +27,15 @@ export default function NovaEquipaModal({
     escaloes,
     desporto,
     treinadores,
-    defaultOpen = false,  // ? novo prop
+    defaultOpen = false, // ? novo prop
 }: {
     escaloes: Escalao[];
     desporto: string;
     treinadores: Treinador[];
-    defaultOpen?: boolean;  // ? novo prop
+    defaultOpen?: boolean; // ? novo prop
 }) {
-    const disponiveis = treinadores.filter((t) => !t.equipa_id);
-    const [open, setOpen] = useState(defaultOpen);  // ? alterado
+    const disponiveis = treinadores;
+    const [open, setOpen] = useState(defaultOpen); // ? alterado
     const [state, action, isPending] = useActionState<State, FormData>(
         criarEquipa,
         null,

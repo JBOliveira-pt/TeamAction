@@ -286,21 +286,25 @@ export async function getOrganizationId(options?: {
                             `;
                         }
 
-                        // Auto-criar equipa mirror para esta organização (1:1)
-                        await txSql`
-                            INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
-                            VALUES (
-                                gen_random_uuid(),
-                                ${newOrg[0].id},
-                                ${orgName},
-                                'Geral',
-                                'Não definido',
-                                'ativa',
-                                NOW(),
-                                NOW()
-                            )
-                            ON CONFLICT (organization_id) DO NOTHING
+                        // Auto-criar equipa mirror para esta organização (se não existir)
+                        const existingEquipa = await txSql`
+                            SELECT id FROM equipas WHERE organization_id = ${newOrg[0].id} LIMIT 1
                         `;
+                        if (existingEquipa.length === 0) {
+                            await txSql`
+                                INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    ${newOrg[0].id},
+                                    ${orgName},
+                                    'Geral',
+                                    'Não definido',
+                                    'ativa',
+                                    NOW(),
+                                    NOW()
+                                )
+                            `;
+                        }
 
                         return newOrg[0].id;
                     });

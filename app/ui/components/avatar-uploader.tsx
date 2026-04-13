@@ -10,12 +10,14 @@ interface Props {
     currentImageUrl: string | null;
     userName: string;
     disabled?: boolean;
+    placeholderUrl?: string;
 }
 
 export default function AvatarUploader({
     currentImageUrl,
     userName,
     disabled,
+    placeholderUrl,
 }: Props) {
     const [preview, setPreview] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
@@ -23,7 +25,7 @@ export default function AvatarUploader({
     const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
-    const displayUrl = preview || currentImageUrl;
+    const displayUrl = preview || currentImageUrl || placeholderUrl;
 
     async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];

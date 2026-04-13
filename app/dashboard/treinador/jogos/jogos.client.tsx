@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ConvocatoriaModal from "@/app/dashboard/presidente/jogos/_components/ConvocatoriaModal.client";
 
-type Equipa = { id: string; nome: string };
+type Equipa = { id: string; nome: string; escalao: string };
 
 type Jogo = {
     id: string;
@@ -850,7 +850,9 @@ function ModalNovoJogo({
     const [local, setLocal] = useState("");
     const [horaInicio, setHoraInicio] = useState("");
     const [horaFim, setHoraFim] = useState("");
-    const equipaId = equipas[0]?.id ?? "";
+    const [equipaId, setEquipaId] = useState(equipas[0]?.id ?? "");
+    const escalaoSelecionado =
+        equipas.find((e) => e.id === equipaId)?.escalao ?? "";
     const [saving, setSaving] = useState(false);
     const [erroData, setErroData] = useState("");
 
@@ -881,7 +883,9 @@ function ModalNovoJogo({
         if (!clubeSelecionado) return;
         const id = clubeSelecionado.id;
         let cancelled = false;
-        fetch(`/api/equipas?clube_id=${encodeURIComponent(id)}`)
+        const params = new URLSearchParams({ clube_id: id });
+        if (escalaoSelecionado) params.set("escalao", escalaoSelecionado);
+        fetch(`/api/equipas?${params}`)
             .then((r) => (r.ok ? r.json() : []))
             .then((data: { id: string; nome: string }[]) => {
                 if (cancelled) return;
@@ -898,7 +902,7 @@ function ModalNovoJogo({
         return () => {
             cancelled = true;
         };
-    }, [clubeSelecionado]);
+    }, [clubeSelecionado, escalaoSelecionado]);
 
     useEffect(() => {
         if (
@@ -910,8 +914,10 @@ function ModalNovoJogo({
             clearTimeout(searchTimerTreinador.current);
         searchTimerTreinador.current = setTimeout(async () => {
             setBuscandoTreinador(true);
+            const params = new URLSearchParams({ q: pesquisaTreinador.trim() });
+            if (escalaoSelecionado) params.set("escalao", escalaoSelecionado);
             const res = await fetch(
-                `/api/treinador/pesquisar-equipas?q=${encodeURIComponent(pesquisaTreinador.trim())}`,
+                `/api/treinador/pesquisar-equipas?${params}`,
             );
             if (res.ok) setResultadosTreinador(await res.json());
             else setResultadosTreinador([]);
@@ -921,7 +927,7 @@ function ModalNovoJogo({
             if (searchTimerTreinador.current)
                 clearTimeout(searchTimerTreinador.current);
         };
-    }, [pesquisaTreinador, adversarioPossuiClube]);
+    }, [pesquisaTreinador, adversarioPossuiClube, escalaoSelecionado]);
 
     const adversarioFinal = adversarioNaPlataforma
         ? adversarioPossuiClube === true
@@ -1033,6 +1039,44 @@ function ModalNovoJogo({
                 <div className="p-5 flex flex-col gap-5">
                     {passo === 1 && (
                         <>
+                            {equipas.length > 1 && (
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                        Equipa{" "}
+                                        <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        className="w-full rounded-xl border border-gray-300 dark:border-gray-700 px-3 py-2.5 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-amber-400 focus:outline-none"
+                                        value={equipaId}
+                                        onChange={(e) => {
+                                            setEquipaId(e.target.value);
+                                            setClubeSelecionado(null);
+                                            setEquipasAdv([]);
+                                            setEquipaAdvSelecionada(null);
+                                            setSemEquipas(false);
+                                            setEquipaTreinadorSelecionada(null);
+                                            setPesquisaTreinador("");
+                                            setResultadosTreinador([]);
+                                        }}
+                                    >
+                                        {equipas.map((eq) => (
+                                            <option key={eq.id} value={eq.id}>
+                                                {eq.nome} ({eq.escalao})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {escalaoSelecionado && (
+                                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                        {escalaoSelecionado}
+                                    </span>
+                                    Apenas adversários do mesmo escalão
+                                </div>
+                            )}
+
                             <div>
                                 <p className="font-semibold text-gray-800 dark:text-gray-100 text-base">
                                     O adversário está cadastrado na plataforma?

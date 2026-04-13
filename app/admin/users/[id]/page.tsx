@@ -271,16 +271,6 @@ export default async function AdminUserDetailPage({
                 equipas={equipas}
             />
 
-            <div className="grid gap-4 md:grid-cols-2">
-                <AdminAccountTypeChanger
-                    userId={id}
-                    currentType={accountType}
-                    action={adminChangeAccountTypeAction}
-                />
-
-                <AdminDeleteUserDangerZone deleteAction={deleteAction} />
-            </div>
-
             {accountType === "presidente" && clubeData && updateClubeAction && (
                 <AdminClubeEditor
                     clube={clubeData}
@@ -296,6 +286,16 @@ export default async function AdminUserDetailPage({
                     redirectUserId={id}
                 />
             )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <AdminAccountTypeChanger
+                    userId={id}
+                    currentType={accountType}
+                    action={adminChangeAccountTypeAction}
+                />
+
+                <AdminDeleteUserDangerZone deleteAction={deleteAction} />
+            </div>
         </div>
     );
 }
