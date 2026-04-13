@@ -174,11 +174,7 @@ export default function ReciboDetailForm({
                                     Data de Pagamento
                                 </p>
                                 <p className="text-gray-900 dark:text-white">
-                                    {recibo.data_pagamento
-                                        ? formatDateToLocal(
-                                              recibo.data_pagamento,
-                                          )
-                                        : "-"}
+                                    {recibo.data_pagamento ?? "-"}
                                 </p>
                             </div>
                             <div>
