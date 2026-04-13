@@ -29,7 +29,7 @@ type AtletaResultado = {
     image_url: string | null;
 };
 
-type Equipa = { id: string; nome: string };
+type Equipa = { id: string; nome: string; escalao?: string };
 
 type ConvitePendente = {
     id: string;
@@ -561,6 +561,35 @@ function ModalCriarAtleta({
         if (!comEmail && !dataNascimento) {
             setErro("A data de nascimento é obrigatória.");
             return;
+        }
+        if (dataNascimento) {
+            const birth = new Date(dataNascimento);
+            const today = new Date();
+            let idade = today.getFullYear() - birth.getFullYear();
+            const m = today.getMonth() - birth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+                idade--;
+            if (idade < 5) {
+                setErro("O atleta deve ter pelo menos 5 anos de idade.");
+                return;
+            }
+            // Validar idade compatível com escalão da equipa
+            if (equipaId) {
+                const eq = equipas.find((e) => e.id === equipaId);
+                if (eq?.escalao) {
+                    const lower = eq.escalao.toLowerCase().trim();
+                    const subMatch = lower.match(/sub[- ]?(\d+)/);
+                    let limiteEscalao: number | null = null;
+                    if (subMatch) limiteEscalao = parseInt(subMatch[1]);
+                    else if (lower.includes("juniores")) limiteEscalao = 19;
+                    if (limiteEscalao !== null && idade >= limiteEscalao) {
+                        setErro(
+                            `O atleta tem ${idade} anos mas o escalão ${eq.escalao} requer idade inferior a ${limiteEscalao} anos.`,
+                        );
+                        return;
+                    }
+                }
+            }
         }
         setErro("");
         setEnviando(true);

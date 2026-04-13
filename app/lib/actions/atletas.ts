@@ -99,14 +99,32 @@ export async function adicionarAtleta(
     if (!nome) return { error: "Nome é obrigatório." };
     if (!dataNascimento) return { error: "Data de nascimento é obrigatória." };
 
+    // Validar idade mínima de 5 anos
+    {
+        const idade = calcularIdade(dataNascimento);
+        if (idade < 5) {
+            return { error: "O atleta deve ter pelo menos 5 anos de idade." };
+        }
+    }
+
     try {
-        // Validar: federado só é possível se a organização tiver um clube
+        // Verificar se a organização tem um clube
+        const clubeRows = await sql<{ id: string }[]>`
+            SELECT id FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
+        `;
+        const temClube = clubeRows.length > 0;
+
+        // Se tem clube, federado é obrigatório com nº de 6 dígitos
         let federado = rawFederado;
-        if (federado) {
-            const clubeRows = await sql<{ id: string }[]>`
-                SELECT id FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
-            `;
-            if (clubeRows.length === 0) federado = false;
+        if (temClube) {
+            federado = true;
+            if (!numFederado || !/^\d{6}$/.test(numFederado)) {
+                return {
+                    error: "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
+                };
+            }
+        } else if (federado) {
+            federado = false;
         }
         const safeNumFederado = federado ? numFederado : null;
 
@@ -211,16 +229,26 @@ export async function editarAtleta(
     const maoDominante = formData.get("mao_dominante")?.toString() || null;
 
     if (!id) return { error: "ID do atleta em falta." };
-    if (!nome) return { error: "Nome Ã© obrigatÃ³rio." };
+    if (!nome) return { error: "Nome é obrigatório." };
 
     try {
-        // Validar: federado só é possível se a organização tiver um clube
+        // Verificar se a organização tem um clube
+        const clubeRows = await sql<{ id: string }[]>`
+            SELECT id FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
+        `;
+        const temClube = clubeRows.length > 0;
+
+        // Se tem clube, federado é obrigatório com nº de 6 dígitos
         let federado = rawFederado;
-        if (federado) {
-            const clubeRows = await sql<{ id: string }[]>`
-                SELECT id FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
-            `;
-            if (clubeRows.length === 0) federado = false;
+        if (temClube) {
+            federado = true;
+            if (!numFederado || !/^\d{6}$/.test(numFederado)) {
+                return {
+                    error: "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
+                };
+            }
+        } else if (federado) {
+            federado = false;
         }
         const safeNumFederado = federado ? numFederado : null;
 

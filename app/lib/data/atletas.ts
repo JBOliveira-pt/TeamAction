@@ -87,7 +87,7 @@ export async function fetchAtletaById(id: string) {
                 equipas.nome AS equipa_nome,
                 users.email AS user_email,
                 users.telefone AS user_telefone,
-                users.data_nascimento AS user_data_nascimento
+                COALESCE(users.data_nascimento, atletas.data_nascimento) AS user_data_nascimento
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
             LEFT JOIN users ON atletas.user_id = users.id

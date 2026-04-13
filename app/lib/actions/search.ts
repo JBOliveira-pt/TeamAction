@@ -42,8 +42,15 @@ export async function convidarAtleta(
 
     const atletaUserId = formData.get("atleta_user_id")?.toString();
     const equipaId = formData.get("equipa_id")?.toString() || null;
+    const numeroFederado =
+        formData.get("numero_federado")?.toString().trim() || null;
 
     if (!atletaUserId) return { error: "Seleciona um atleta." };
+    if (!numeroFederado || !/^\d{6}$/.test(numeroFederado)) {
+        return {
+            error: "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
+        };
+    }
 
     // Verificar se já existe convite pendente
     const existing = await sql<{ id: string }[]>`
@@ -88,10 +95,12 @@ export async function convidarAtleta(
             INSERT INTO atleta_relacoes_pendentes (
                 id, atleta_user_id, alvo_clube_id, alvo_equipa_id,
                 relation_kind, status, alvo_nome, alvo_email,
+                numero_federado,
                 created_at, updated_at
             ) VALUES (
                 gen_random_uuid(), ${atletaUserId}, ${organizationId}, ${equipaId},
                 'clube', 'pendente', ${orgName}, ${orgEmail},
+                ${numeroFederado},
                 NOW(), NOW()
             )
         `;

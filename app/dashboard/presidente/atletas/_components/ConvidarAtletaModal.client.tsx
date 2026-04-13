@@ -70,11 +70,13 @@ export default function ConvidarAtletaModal({
     const [step, setStep] = useState<WizardStep>("choice");
 
     const [nome, setNome] = useState("");
+    const [dataNascimento, setDataNascimento] = useState("");
     const [posicao, setPosicao] = useState("");
     const [numeroCamisola, setNumeroCamisola] = useState("");
     const [equipaId, setEquipaId] = useState("");
     const [estado, setEstado] = useState("ativo");
     const [maoDominante, setMaoDominante] = useState("");
+    const [numeroFederado, setNumeroFederado] = useState("");
 
     const [email, setEmail] = useState("");
     const [verificando, setVerificando] = useState(false);
@@ -91,6 +93,7 @@ export default function ConvidarAtletaModal({
     } | null>(null);
 
     const [conviteEquipaId, setConviteEquipaId] = useState("");
+    const [conviteNumeroFederado, setConviteNumeroFederado] = useState("");
 
     const [enviando, setEnviando] = useState(false);
     const [erro, setErro] = useState("");
@@ -100,14 +103,17 @@ export default function ConvidarAtletaModal({
         setOpen(false);
         setStep("choice");
         setNome("");
+        setDataNascimento("");
         setPosicao("");
         setNumeroCamisola("");
         setEquipaId("");
         setEstado("ativo");
         setMaoDominante("");
+        setNumeroFederado("");
         setEmail("");
         setEmailResult(null);
         setConviteEquipaId("");
+        setConviteNumeroFederado("");
         setErro("");
     }
 
@@ -138,14 +144,42 @@ export default function ConvidarAtletaModal({
             setErro("O nome é obrigatório.");
             return;
         }
-        if (!equipaId) {
-            setErro("A equipa é obrigatória.");
+        if (!dataNascimento) {
+            setErro("A data de nascimento é obrigatória.");
             return;
+        }
+        // Validar idade mínima de 5 anos
+        const idade = calcularIdade(dataNascimento);
+        if (idade < 5) {
+            setErro("O atleta deve ter pelo menos 5 anos de idade.");
+            return;
+        }
+        if (!numeroFederado.trim() || !/^\d{6}$/.test(numeroFederado.trim())) {
+            setErro(
+                "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
+            );
+            return;
+        }
+        // Validar idade compatível com escalão da equipa
+        if (equipaId) {
+            const equipa = equipas.find((e) => e.id === equipaId);
+            if (equipa?.escalao) {
+                const limiteEscalao = getIdadeLimiteEscalao(equipa.escalao);
+                if (limiteEscalao !== null && idade >= limiteEscalao) {
+                    setErro(
+                        `O atleta tem ${idade} anos mas o escalão ${equipa.escalao} requer idade inferior a ${limiteEscalao} anos.`,
+                    );
+                    return;
+                }
+            }
         }
         setErro("");
         setEnviando(true);
         const formData = new FormData();
         formData.append("nome", nome.trim());
+        formData.append("data_nascimento", dataNascimento);
+        formData.append("federado", "on");
+        formData.append("numero_federado", numeroFederado.trim());
         if (posicao.trim()) formData.append("posicao", posicao.trim());
         if (numeroCamisola) formData.append("numero_camisola", numeroCamisola);
         if (equipaId) formData.append("equipa_id", equipaId);
@@ -172,11 +206,21 @@ export default function ConvidarAtletaModal({
             );
             return;
         }
+        if (
+            !conviteNumeroFederado.trim() ||
+            !/^\d{6}$/.test(conviteNumeroFederado.trim())
+        ) {
+            setErro(
+                "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
+            );
+            return;
+        }
         setErro("");
         setEnviando(true);
         const formData = new FormData();
         formData.append("atleta_user_id", emailResult.user_id);
         if (conviteEquipaId) formData.append("equipa_id", conviteEquipaId);
+        formData.append("numero_federado", conviteNumeroFederado.trim());
 
         const result = await convidarAtleta(null, formData);
         setEnviando(false);
@@ -247,10 +291,23 @@ export default function ConvidarAtletaModal({
                 />
             </div>
 
+            <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    Data de Nascimento <span className="text-red-400">*</span>
+                </label>
+                <input
+                    type="date"
+                    required
+                    value={dataNascimento}
+                    onChange={(e) => setDataNascimento(e.target.value)}
+                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Equipa <span className="text-red-400">*</span>
+                        Equipa
                     </label>
                     <select
                         value={equipaId}
@@ -318,22 +375,42 @@ export default function ConvidarAtletaModal({
                 </div>
             </div>
 
-            <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Mão Dominante
-                </label>
-                <select
-                    value={maoDominante}
-                    onChange={(e) => setMaoDominante(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                    <option value="">Seleciona</option>
-                    {MAOS.map((m) => (
-                        <option key={m.value} value={m.value}>
-                            {m.label}
-                        </option>
-                    ))}
-                </select>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Nº Federado <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={numeroFederado}
+                        onChange={(e) =>
+                            setNumeroFederado(
+                                e.target.value.replace(/\D/g, "").slice(0, 6),
+                            )
+                        }
+                        placeholder="Ex: 123456"
+                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Mão Dominante
+                    </label>
+                    <select
+                        value={maoDominante}
+                        onChange={(e) => setMaoDominante(e.target.value)}
+                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    >
+                        <option value="">Seleciona</option>
+                        {MAOS.map((m) => (
+                            <option key={m.value} value={m.value}>
+                                {m.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
         </>
     );
@@ -444,7 +521,11 @@ export default function ConvidarAtletaModal({
                                     {backButton("choice")}
                                     <button
                                         onClick={criarAtleta}
-                                        disabled={!nome.trim() || enviando}
+                                        disabled={
+                                            !nome.trim() ||
+                                            !dataNascimento ||
+                                            enviando
+                                        }
                                         className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
                                     >
                                         {enviando
@@ -755,6 +836,30 @@ export default function ConvidarAtletaModal({
                                         </select>
                                     </div>
 
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            Nº Federado{" "}
+                                            <span className="text-red-400">
+                                                *
+                                            </span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={6}
+                                            value={conviteNumeroFederado}
+                                            onChange={(e) =>
+                                                setConviteNumeroFederado(
+                                                    e.target.value
+                                                        .replace(/\D/g, "")
+                                                        .slice(0, 6),
+                                                )
+                                            }
+                                            placeholder="Ex: 123456"
+                                            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+
                                     {(() => {
                                         if (
                                             !conviteEquipaId ||
@@ -857,6 +962,9 @@ export default function ConvidarAtletaModal({
                                         disabled={
                                             enviando ||
                                             !conviteEquipaId ||
+                                            !/^\d{6}$/.test(
+                                                conviteNumeroFederado.trim(),
+                                            ) ||
                                             (() => {
                                                 if (
                                                     !conviteEquipaId ||

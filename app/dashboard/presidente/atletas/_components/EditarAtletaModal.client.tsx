@@ -185,37 +185,28 @@ export default function EditarAtletaModal({
                                 </div>
                             </div>
 
-                            {/* Federado + Nº Federado */}
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-3 py-1">
-                                    <input
-                                        id={`federado-${atleta.id}`}
-                                        name="federado"
-                                        type="checkbox"
-                                        defaultChecked={atleta.federado}
-                                        className="w-4 h-4 rounded accent-blue-600"
-                                    />
-                                    <label
-                                        htmlFor={`federado-${atleta.id}`}
-                                        className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                                    >
-                                        Atleta Federado
-                                    </label>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        Nº Federado
-                                    </label>
-                                    <input
-                                        name="numero_federado"
-                                        type="text"
-                                        defaultValue={
-                                            atleta.numero_federado ?? ""
-                                        }
-                                        placeholder="Ex: FPF-12345"
-                                        className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                                    />
-                                </div>
+                            {/* Federado — Nº Federado (6 dígitos) */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    Nº Federado{" "}
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    name="numero_federado"
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    defaultValue={atleta.numero_federado ?? ""}
+                                    placeholder="Ex: 123456"
+                                    pattern="\d{6}"
+                                    title="Deve ter exatamente 6 dígitos"
+                                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                                />
+                                <input
+                                    type="hidden"
+                                    name="federado"
+                                    value="on"
+                                />
                             </div>
 
                             {/* Botões */}

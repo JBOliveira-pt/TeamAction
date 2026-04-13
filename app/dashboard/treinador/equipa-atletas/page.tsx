@@ -43,8 +43,8 @@ async function fetchData() {
             WHERE a.organization_id = ${orgId}
             ORDER BY a.nome ASC
         `,
-        sql<{ id: string; nome: string }[]>`
-            SELECT id, nome FROM equipas
+        sql<{ id: string; nome: string; escalao: string }[]>`
+            SELECT id, nome, escalao FROM equipas
             WHERE organization_id = ${orgId} AND treinador_id = ${internalUserId}
             ORDER BY nome ASC
         `,

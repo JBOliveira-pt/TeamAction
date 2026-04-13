@@ -57,6 +57,21 @@ export async function POST(req: NextRequest) {
             status: 400,
         });
 
+    // Validar idade mínima de 5 anos
+    {
+        const birth = new Date(body.data_nascimento);
+        const today = new Date();
+        let idade = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) idade--;
+        if (idade < 5) {
+            return new Response(
+                "O atleta deve ter pelo menos 5 anos de idade.",
+                { status: 400 },
+            );
+        }
+    }
+
     // Validar que a equipa pertence ao treinador
     if (body.equipa_id) {
         const equipaRows = await sql<{ id: string }[]>`
