@@ -108,6 +108,14 @@ export default function SideNav({ accountType }: SideNavProps) {
         }
 
         fetchUserData();
+
+        function handleAvatarUpdated() {
+            fetchUserData();
+        }
+
+        window.addEventListener("avatar-updated", handleAvatarUpdated);
+        return () =>
+            window.removeEventListener("avatar-updated", handleAvatarUpdated);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoaded, clerkUserId]);
 

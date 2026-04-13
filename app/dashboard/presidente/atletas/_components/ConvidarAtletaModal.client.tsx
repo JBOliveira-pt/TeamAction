@@ -18,7 +18,7 @@ function getIdadeLimiteEscalao(escalao: string): number | null {
     const lower = escalao.toLowerCase().trim();
     const subMatch = lower.match(/sub[- ]?(\d+)/);
     if (subMatch) return parseInt(subMatch[1]);
-    if (lower.includes("juniores")) return 19;
+    if (lower.includes("juniores")) return 21;
     if (lower.includes("seniores") || lower.includes("profissional"))
         return null;
     return null;
@@ -160,10 +160,10 @@ export default function ConvidarAtletaModal({
         if (equipaId) {
             const equipa = equipas.find((e) => e.id === equipaId);
             if (equipa?.escalao) {
-                const limiteEscalao = getIdadeLimiteEscalao(equipa.escalao);
-                if (limiteEscalao !== null && idade >= limiteEscalao) {
+                const limite = getIdadeLimiteEscalao(equipa.escalao);
+                if (limite !== null && idade >= limite) {
                     setErro(
-                        `O atleta tem ${idade} anos mas o escalão ${equipa.escalao} requer idade inferior a ${limiteEscalao} anos.`,
+                        `O atleta tem ${idade} anos mas o escalão ${equipa.escalao} só permite atletas com menos de ${limite} anos.`,
                     );
                     return;
                 }
@@ -857,11 +857,7 @@ export default function ConvidarAtletaModal({
                                     </div>
 
                                     {(() => {
-                                        if (
-                                            !conviteEquipaId ||
-                                            !emailResult?.data_nascimento
-                                        )
-                                            return null;
+                                        if (!conviteEquipaId) return null;
                                         const equipa = equipas.find(
                                             (e) => e.id === conviteEquipaId,
                                         );
@@ -869,81 +865,106 @@ export default function ConvidarAtletaModal({
                                         const limite = getIdadeLimiteEscalao(
                                             equipa.escalao,
                                         );
-                                        if (limite === null) return null;
-                                        const idade = calcularIdade(
-                                            emailResult.data_nascimento,
-                                        );
-                                        if (idade >= limite) {
+
+                                        // Verificar incompatibilidade por data de nascimento
+                                        if (emailResult?.data_nascimento) {
+                                            const idade = calcularIdade(
+                                                emailResult.data_nascimento,
+                                            );
+                                            if (
+                                                limite !== null &&
+                                                idade >= limite
+                                            ) {
+                                                return (
+                                                    <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg flex flex-col gap-1.5">
+                                                        <p className="text-sm font-bold text-red-400">
+                                                            ⛔ Idade
+                                                            incompatível com o
+                                                            escalão
+                                                        </p>
+                                                        <p className="text-xs text-red-400">
+                                                            O atleta tem{" "}
+                                                            <strong>
+                                                                {idade} anos
+                                                            </strong>{" "}
+                                                            mas o escalão{" "}
+                                                            <strong>
+                                                                {equipa.escalao}
+                                                            </strong>{" "}
+                                                            só permite atletas
+                                                            com menos de{" "}
+                                                            <strong>
+                                                                {limite} anos
+                                                            </strong>
+                                                            .
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                        }
+
+                                        // Sem incompatibilidade — mostrar info do responsável / notificação
+                                        if (
+                                            emailResult?.menor_idade &&
+                                            emailResult.responsavel_ativo
+                                        ) {
                                             return (
-                                                <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg flex flex-col gap-1.5">
-                                                    <p className="text-sm font-bold text-red-400">
-                                                        ⛔ Idade incompatível
-                                                        com o escalão
+                                                <div className="px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex flex-col gap-1.5">
+                                                    <p className="text-xs text-blue-400">
+                                                        🔔 O convite será
+                                                        enviado ao responsável{" "}
+                                                        <strong>
+                                                            {
+                                                                emailResult.responsavel_nome
+                                                            }
+                                                        </strong>{" "}
+                                                        (
+                                                        {
+                                                            emailResult.responsavel_email
+                                                        }
+                                                        ) para aprovação.
                                                     </p>
-                                                    <p className="text-xs text-red-400">
-                                                        O atleta tem{" "}
-                                                        <strong>
-                                                            {idade} anos
-                                                        </strong>{" "}
-                                                        mas o escalão{" "}
-                                                        <strong>
-                                                            {equipa.escalao}
-                                                        </strong>{" "}
-                                                        permite no máximo{" "}
-                                                        <strong>
-                                                            {limite} anos
-                                                        </strong>
-                                                        .
+                                                    <p className="text-xs text-blue-500">
+                                                        Só após aprovação do
+                                                        responsável o atleta
+                                                        será federado no clube.
                                                     </p>
                                                 </div>
                                             );
                                         }
-                                        return null;
+                                        if (
+                                            emailResult?.menor_idade &&
+                                            !emailResult?.responsavel_ativo
+                                        ) {
+                                            return (
+                                                <div className="px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex flex-col gap-1.5">
+                                                    <p className="text-xs text-orange-400">
+                                                        ⏳ O pedido ficará
+                                                        pendente até o
+                                                        responsável
+                                                        {emailResult.responsavel_email
+                                                            ? ` (${emailResult.responsavel_email})`
+                                                            : ""}{" "}
+                                                        se registar na
+                                                        plataforma.
+                                                    </p>
+                                                    <p className="text-xs text-orange-500">
+                                                        Quando o responsável
+                                                        entrar, receberá o
+                                                        pedido para aprovação.
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400">
+                                                O atleta receberá uma
+                                                notificação e terá de aceitar o
+                                                convite para ser federado no
+                                                clube.
+                                            </div>
+                                        );
                                     })()}
-
-                                    {emailResult?.menor_idade &&
-                                    emailResult.responsavel_ativo ? (
-                                        <div className="px-4 py-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex flex-col gap-1.5">
-                                            <p className="text-xs text-blue-400">
-                                                🔔 O convite será enviado ao
-                                                responsável{" "}
-                                                <strong>
-                                                    {
-                                                        emailResult.responsavel_nome
-                                                    }
-                                                </strong>{" "}
-                                                ({emailResult.responsavel_email}
-                                                ) para aprovação.
-                                            </p>
-                                            <p className="text-xs text-blue-500">
-                                                Só após aprovação do responsável
-                                                o atleta será federado no clube.
-                                            </p>
-                                        </div>
-                                    ) : emailResult?.menor_idade &&
-                                      !emailResult?.responsavel_ativo ? (
-                                        <div className="px-4 py-3 bg-orange-500/10 border border-orange-500/20 rounded-lg flex flex-col gap-1.5">
-                                            <p className="text-xs text-orange-400">
-                                                ⏳ O pedido ficará pendente até
-                                                o responsável
-                                                {emailResult.responsavel_email
-                                                    ? ` (${emailResult.responsavel_email})`
-                                                    : ""}{" "}
-                                                se registar na plataforma.
-                                            </p>
-                                            <p className="text-xs text-orange-500">
-                                                Quando o responsável entrar,
-                                                receberá o pedido para
-                                                aprovação.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400">
-                                            O atleta receberá uma notificação e
-                                            terá de aceitar o convite para ser
-                                            federado no clube.
-                                        </div>
-                                    )}
 
                                     {erro && (
                                         <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
@@ -981,7 +1002,7 @@ export default function ConvidarAtletaModal({
                                                 return (
                                                     calcularIdade(
                                                         emailResult.data_nascimento!,
-                                                    ) > lim
+                                                    ) >= lim
                                                 );
                                             })()
                                         }

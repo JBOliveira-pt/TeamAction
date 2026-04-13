@@ -26,7 +26,15 @@ const formatData = (dateStr: string) => {
 };
 
 export default async function NotificacoesUnificadas() {
-    const notificacoes = await fetchNotificacoes();
+    let notificacoes: Awaited<ReturnType<typeof fetchNotificacoes>> = [];
+    let fetchError = false;
+
+    try {
+        notificacoes = await fetchNotificacoes();
+    } catch {
+        fetchError = true;
+    }
+
     const naoLidas = notificacoes.filter((n) => !n.lida).length;
 
     return (
@@ -44,7 +52,14 @@ export default async function NotificacoesUnificadas() {
             </div>
 
             <div className="space-y-3">
-                {notificacoes.length === 0 ? (
+                {fetchError ? (
+                    <div className="bg-white dark:bg-gray-900 border border-red-200 dark:border-red-800 rounded-xl px-6 py-12 text-center">
+                        <p className="text-red-400 dark:text-red-500 text-sm">
+                            Não foi possível carregar as notificações. Tenta
+                            novamente mais tarde.
+                        </p>
+                    </div>
+                ) : notificacoes.length === 0 ? (
                     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-6 py-12 text-center">
                         <p className="text-gray-400 dark:text-gray-500 text-sm">
                             Nenhuma notificação ainda.

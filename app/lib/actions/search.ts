@@ -4,6 +4,7 @@
 import { sql } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { getOrganizationId } from "@/app/lib/data";
+import { isIdadePermitidaEscalao } from "@/app/lib/grau-escalao-compat";
 import { revalidatePath } from "next/cache";
 
 export async function searchClubes(
@@ -69,6 +70,35 @@ export async function convidarAtleta(
     `;
     if (existing.length > 0)
         return { error: "Já existe um convite pendente para este atleta." };
+
+    // Validar idade do atleta vs escalão da equipa
+    if (equipaId) {
+        const equipaRow = await sql<{ escalao: string | null }[]>`
+            SELECT escalao FROM equipas WHERE id = ${equipaId} LIMIT 1
+        `;
+        const escalao = equipaRow[0]?.escalao;
+        if (escalao) {
+            const atletaRow = await sql<{ data_nascimento: string | null }[]>`
+                SELECT data_nascimento FROM users
+                WHERE id = ${atletaUserId} LIMIT 1
+            `;
+            const dataNasc = atletaRow[0]?.data_nascimento;
+
+            if (dataNasc) {
+                const birth = new Date(dataNasc);
+                const today = new Date();
+                let idade = today.getFullYear() - birth.getFullYear();
+                const m = today.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+                    idade--;
+                if (!isIdadePermitidaEscalao(idade, escalao)) {
+                    return {
+                        error: `O atleta tem ${idade} anos e não pode ser inscrito numa equipa de escalão ${escalao}.`,
+                    };
+                }
+            }
+        }
+    }
 
     // Req 4: verificar se atleta já está vinculado a um treinador independente
     // (org sem clube) — se sim, avisar que ao aceitar ficará suspenso

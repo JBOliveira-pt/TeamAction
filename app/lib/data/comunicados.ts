@@ -164,8 +164,10 @@ export async function fetchNotificacoes() {
         >`
             SELECT id, titulo, descricao, tipo, lida, created_at
             FROM notificacoes
-            WHERE organization_id = ${organizationId}
-              AND (recipient_user_id IS NULL OR recipient_user_id = ${dbUserId})
+            WHERE (
+                (organization_id = ${organizationId} AND recipient_user_id IS NULL)
+                OR recipient_user_id = ${dbUserId}
+            )
             ORDER BY created_at DESC
             LIMIT 50
         `;

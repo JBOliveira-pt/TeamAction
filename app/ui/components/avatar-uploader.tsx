@@ -63,6 +63,7 @@ export default function AvatarUploader({
 
             // Atualizar componentes do servidor com a nova imagem
             router.refresh();
+            window.dispatchEvent(new Event("avatar-updated"));
         } catch {
             setError("Erro de rede ao fazer upload.");
             setPreview(null);
