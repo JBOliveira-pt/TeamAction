@@ -466,6 +466,12 @@ export default function CompleteAccountTypeForm({
     const [athleteResponsibleEmailOptions, setAthleteResponsibleEmailOptions] =
         useState<AthleteLookupOption[]>([]);
     const [responsibleMinorEmail, setResponsibleMinorEmail] = useState("");
+    const [minorEmailError, setMinorEmailError] = useState<string | null>(null);
+    const minorEmailCheckRef = useRef<number | null>(null);
+    const [responsibleEmailError, setResponsibleEmailError] = useState<
+        string | null
+    >(null);
+    const responsibleEmailCheckRef = useRef<number | null>(null);
     const precheckNoticeTimeoutRef = useRef<number | null>(null);
     const pendingNoticeTimeoutRef = useRef<number | null>(null);
     const precheckNoticeLockedUntilRef = useRef(0);
@@ -813,15 +819,12 @@ export default function CompleteAccountTypeForm({
 
     useEffect(() => {
         if (athleteNeedsResponsible) {
-            if (athleteAddress) {
-                setAthleteAddress("");
-            }
-            if (athletePostalCode) {
-                setAthletePostalCode("");
-            }
-            if (athleteCity) {
-                setAthleteCity("");
-            }
+            setAthleteClubName("");
+            setAthleteTrainerName("");
+            setAthleteTeamName("");
+            setAthleteAddress("");
+            setAthletePostalCode("");
+            setAthleteCity("");
             return;
         }
 
@@ -1254,6 +1257,29 @@ export default function CompleteAccountTypeForm({
             }
 
             if (!athleteNeedsResponsible) {
+                if (
+                    athleteClubName.trim().length > 0 &&
+                    !selectedAthleteClubOption
+                ) {
+                    setError("Selecione um clube existente da lista.");
+                    return;
+                }
+
+                if (
+                    athleteTrainerName.trim().length > 0 &&
+                    !selectedAthleteTrainerOption
+                ) {
+                    setError("Selecione um treinador existente da lista.");
+                    return;
+                }
+
+                if (
+                    athleteTeamName.trim().length > 0 &&
+                    !selectedAthleteTeamOption
+                ) {
+                    setError("Selecione uma equipa existente da lista.");
+                    return;
+                }
                 const normalizedPostalCode =
                     normalizePostalCode(athletePostalCode);
                 if (
@@ -1321,12 +1347,18 @@ export default function CompleteAccountTypeForm({
                 payload.append("peso_kg", pesoKg);
                 payload.append("mao_dominante", maoDominante);
                 payload.append("athlete_modality", athleteModality);
-                payload.append("athlete_club_name", athleteClubName.trim());
+                payload.append(
+                    "athlete_club_name",
+                    athleteNeedsResponsible ? "" : athleteClubName.trim(),
+                );
                 payload.append(
                     "athlete_trainer_name",
-                    athleteTrainerName.trim(),
+                    athleteNeedsResponsible ? "" : athleteTrainerName.trim(),
                 );
-                payload.append("athlete_team_name", athleteTeamName.trim());
+                payload.append(
+                    "athlete_team_name",
+                    athleteNeedsResponsible ? "" : athleteTeamName.trim(),
+                );
                 payload.append(
                     "athlete_postal_code",
                     athleteNeedsResponsible
@@ -1353,15 +1385,24 @@ export default function CompleteAccountTypeForm({
                 );
                 payload.append(
                     "athlete_club_pending_approval",
-                    String(Boolean(selectedAthleteClubOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteClubOption),
+                    ),
                 );
                 payload.append(
                     "athlete_trainer_pending_approval",
-                    String(Boolean(selectedAthleteTrainerOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteTrainerOption),
+                    ),
                 );
                 payload.append(
                     "athlete_team_pending_approval",
-                    String(Boolean(selectedAthleteTeamOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteTeamOption),
+                    ),
                 );
                 payload.append(
                     "athlete_responsible_pending_approval",
@@ -2195,120 +2236,127 @@ export default function CompleteAccountTypeForm({
                             </div>
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-3">
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Clube (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    list="athlete-club-options"
-                                    value={athleteClubName}
-                                    onChange={(event) =>
-                                        setAthleteClubName(event.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Pesquisar clube"
-                                />
-                                <datalist id="athlete-club-options">
-                                    {athleteClubOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.label}
-                                        />
-                                    ))}
-                                </datalist>
-                                {athleteClubName.trim().length > 0 &&
-                                    !selectedAthleteClubOption && (
-                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                                            Não existe clube cadastrado com esse
-                                            nome.
+                        {!athleteNeedsResponsible && (
+                            <div className="grid gap-6 md:grid-cols-3">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Clube (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="athlete-club-options"
+                                        value={athleteClubName}
+                                        onChange={(event) =>
+                                            setAthleteClubName(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Pesquisar clube"
+                                    />
+                                    <datalist id="athlete-club-options">
+                                        {athleteClubOptions.map((option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ))}
+                                    </datalist>
+                                    {athleteClubName.trim().length > 0 &&
+                                        !selectedAthleteClubOption && (
+                                            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                Não existe clube cadastrado com
+                                                esse nome.
+                                            </p>
+                                        )}
+                                    {selectedAthleteClubOption && (
+                                        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                            Pendente de aprovação do clube (
+                                            {selectedAthleteClubOption.label})
                                         </p>
                                     )}
-                                {selectedAthleteClubOption && (
-                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                                        Pendente de aprovação do clube (
-                                        {selectedAthleteClubOption.label})
-                                    </p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Treinador (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    list="athlete-trainer-options"
-                                    value={athleteTrainerName}
-                                    onChange={(event) =>
-                                        setAthleteTrainerName(
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Pesquisar treinador"
-                                />
-                                <datalist id="athlete-trainer-options">
-                                    {athleteTrainerOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.label}
-                                        />
-                                    ))}
-                                </datalist>
-                                {athleteTrainerName.trim().length > 0 &&
-                                    !selectedAthleteTrainerOption && (
-                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                                            Não existe treinador cadastrado com
-                                            esse nome.
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Treinador (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="athlete-trainer-options"
+                                        value={athleteTrainerName}
+                                        onChange={(event) =>
+                                            setAthleteTrainerName(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Pesquisar treinador"
+                                    />
+                                    <datalist id="athlete-trainer-options">
+                                        {athleteTrainerOptions.map((option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ))}
+                                    </datalist>
+                                    {athleteTrainerName.trim().length > 0 &&
+                                        !selectedAthleteTrainerOption && (
+                                            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                Não existe treinador cadastrado
+                                                com esse nome.
+                                            </p>
+                                        )}
+                                    {selectedAthleteTrainerOption && (
+                                        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                            Pendente de aprovação do treinador (
+                                            {selectedAthleteTrainerOption.label}
+                                            )
                                         </p>
                                     )}
-                                {selectedAthleteTrainerOption && (
-                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                                        Pendente de aprovação do treinador (
-                                        {selectedAthleteTrainerOption.label})
-                                    </p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Equipa (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    list="athlete-team-options"
-                                    value={athleteTeamName}
-                                    onChange={(event) =>
-                                        setAthleteTeamName(event.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Pesquisar equipa"
-                                />
-                                <datalist id="athlete-team-options">
-                                    {athleteTeamOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.label}
-                                        />
-                                    ))}
-                                </datalist>
-                                {athleteTeamName.trim().length > 0 &&
-                                    !selectedAthleteTeamOption && (
-                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                                            Não existe equipa cadastrada com
-                                            esse nome.
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Equipa (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="athlete-team-options"
+                                        value={athleteTeamName}
+                                        onChange={(event) =>
+                                            setAthleteTeamName(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Pesquisar equipa"
+                                    />
+                                    <datalist id="athlete-team-options">
+                                        {athleteTeamOptions.map((option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ))}
+                                    </datalist>
+                                    {athleteTeamName.trim().length > 0 &&
+                                        !selectedAthleteTeamOption && (
+                                            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                Não existe equipa cadastrada com
+                                                esse nome.
+                                            </p>
+                                        )}
+                                    {selectedAthleteTeamOption && (
+                                        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                            Pendente de aprovação da equipa (
+                                            {selectedAthleteTeamOption.label})
                                         </p>
                                     )}
-                                {selectedAthleteTeamOption && (
-                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                                        Pendente de aprovação da equipa (
-                                        {selectedAthleteTeamOption.label})
-                                    </p>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {!athleteNeedsResponsible && (
                             <>
@@ -2392,12 +2440,90 @@ export default function CompleteAccountTypeForm({
                                     required
                                     list="athlete-responsible-email-options"
                                     value={athleteResponsibleEmail}
-                                    onChange={(event) =>
-                                        setAthleteResponsibleEmail(
-                                            event.target.value,
+                                    onChange={(event) => {
+                                        const val = event.target.value;
+                                        setAthleteResponsibleEmail(val);
+                                        setResponsibleEmailError(null);
+                                        if (responsibleEmailCheckRef.current) {
+                                            window.clearTimeout(
+                                                responsibleEmailCheckRef.current,
+                                            );
+                                        }
+                                        const trimmed = val
+                                            .trim()
+                                            .toLowerCase();
+                                        if (
+                                            !trimmed ||
+                                            !isValidEmailFormat(trimmed)
                                         )
-                                    }
-                                    className="block w-full rounded-lg border border-red-400/40 bg-slate-900/60 px-3 py-3 text-sm text-white outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 transition-all"
+                                            return;
+                                        if (
+                                            trimmed ===
+                                            emailAddress.trim().toLowerCase()
+                                        ) {
+                                            setResponsibleEmailError(
+                                                "O e-mail do responsável não pode ser igual ao seu e-mail.",
+                                            );
+                                            return;
+                                        }
+                                        responsibleEmailCheckRef.current =
+                                            window.setTimeout(async () => {
+                                                try {
+                                                    const res = await fetch(
+                                                        "/api/vinculacoes-responsavel/validar-responsavel",
+                                                        {
+                                                            method: "POST",
+                                                            headers: {
+                                                                "Content-Type":
+                                                                    "application/json",
+                                                            },
+                                                            body: JSON.stringify(
+                                                                {
+                                                                    email: trimmed,
+                                                                    athleteEmail:
+                                                                        emailAddress
+                                                                            .trim()
+                                                                            .toLowerCase(),
+                                                                },
+                                                            ),
+                                                        },
+                                                    );
+                                                    const data =
+                                                        await res.json();
+                                                    if (!data.valid) {
+                                                        if (
+                                                            data.reason ===
+                                                            "own_email"
+                                                        ) {
+                                                            setResponsibleEmailError(
+                                                                "O e-mail do responsável não pode ser igual ao seu e-mail.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_responsible"
+                                                        ) {
+                                                            setResponsibleEmailError(
+                                                                "O e-mail indicado pertence a um utilizador que não é responsável.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_preregistered"
+                                                        ) {
+                                                            setResponsibleEmailError(
+                                                                "Este responsável não fez pré-cadastro com o seu e-mail de atleta. Peça-lhe que se registe primeiro indicando o seu e-mail.",
+                                                            );
+                                                        }
+                                                    }
+                                                } catch {
+                                                    // network error — will be caught on submit
+                                                }
+                                            }, 600);
+                                    }}
+                                    className={`block w-full rounded-lg border ${
+                                        responsibleEmailError
+                                            ? "border-red-500"
+                                            : "border-red-400/40"
+                                    } bg-slate-900/60 px-3 py-3 text-sm text-white outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 transition-all`}
                                     placeholder="e-mail do responsável"
                                 />
                                 <datalist id="athlete-responsible-email-options">
@@ -2410,7 +2536,12 @@ export default function CompleteAccountTypeForm({
                                         ),
                                     )}
                                 </datalist>
-                                {athleteResponsibleEmail.trim().length > 0 && (
+                                {responsibleEmailError ? (
+                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                        {responsibleEmailError}
+                                    </p>
+                                ) : athleteResponsibleEmail.trim().length >
+                                  0 ? (
                                     <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                                         Pendente de aprovação do responsável de
                                         e-mail{" "}
@@ -2418,7 +2549,7 @@ export default function CompleteAccountTypeForm({
                                             {athleteResponsibleEmail.trim()}
                                         </strong>
                                     </p>
-                                )}
+                                ) : null}
                             </div>
                         )}
                     </div>
@@ -2447,18 +2578,111 @@ export default function CompleteAccountTypeForm({
                                 <input
                                     type="email"
                                     value={responsibleMinorEmail}
-                                    onChange={(e) =>
-                                        setResponsibleMinorEmail(e.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setResponsibleMinorEmail(val);
+                                        setMinorEmailError(null);
+                                        if (minorEmailCheckRef.current) {
+                                            window.clearTimeout(
+                                                minorEmailCheckRef.current,
+                                            );
+                                        }
+                                        const trimmed = val
+                                            .trim()
+                                            .toLowerCase();
+                                        if (
+                                            !trimmed ||
+                                            !isValidEmailFormat(trimmed)
+                                        )
+                                            return;
+                                        if (
+                                            trimmed ===
+                                            emailAddress.trim().toLowerCase()
+                                        ) {
+                                            setMinorEmailError(
+                                                "O e-mail do atleta menor não pode ser igual ao seu e-mail.",
+                                            );
+                                            return;
+                                        }
+                                        minorEmailCheckRef.current =
+                                            window.setTimeout(async () => {
+                                                try {
+                                                    const res = await fetch(
+                                                        "/api/vinculacoes-responsavel/validar-menor",
+                                                        {
+                                                            method: "POST",
+                                                            headers: {
+                                                                "Content-Type":
+                                                                    "application/json",
+                                                            },
+                                                            body: JSON.stringify(
+                                                                {
+                                                                    email: trimmed,
+                                                                    ownEmail:
+                                                                        emailAddress
+                                                                            .trim()
+                                                                            .toLowerCase(),
+                                                                },
+                                                            ),
+                                                        },
+                                                    );
+                                                    const data =
+                                                        await res.json();
+                                                    if (!data.valid) {
+                                                        if (
+                                                            data.reason ===
+                                                            "own_email"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "O e-mail do atleta menor não pode ser igual ao seu e-mail.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_athlete"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "O e-mail indicado pertence a um utilizador que não é atleta.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_minor"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "O e-mail indicado pertence a um atleta que não é menor de idade. Apenas pode vincular-se a atletas menores.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "already_bound"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "Este atleta menor já possui vinculação a outro responsável.",
+                                                            );
+                                                        }
+                                                    }
+                                                } catch {
+                                                    // network error — will be caught on submit
+                                                }
+                                            }, 600);
+                                    }}
+                                    className={`block w-full rounded-lg border ${
+                                        minorEmailError
+                                            ? "border-red-500 dark:border-red-500"
+                                            : "border-gray-300 dark:border-gray-700"
+                                    } bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all`}
                                     placeholder="email.do.atleta@exemplo.pt"
                                 />
                             </div>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                O atleta receberá um pedido de vinculação. Se
-                                ainda não tiver conta, o administrador será
-                                notificado.
-                            </p>
+                            {minorEmailError ? (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {minorEmailError}
+                                </p>
+                            ) : (
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    O atleta receberá um pedido de vinculação.
+                                    Se ainda não tiver conta, o administrador
+                                    será notificado.
+                                </p>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -2759,9 +2983,13 @@ export default function CompleteAccountTypeForm({
                         disabled={
                             isSubmitting ||
                             isDisconnectingCredentials ||
-                            Boolean(successMessage)
+                            Boolean(successMessage) ||
+                            (stage === "responsible-profile" &&
+                                !!minorEmailError) ||
+                            (stage === "athlete-profile" &&
+                                !!responsibleEmailError)
                         }
-                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
+                        className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isDisconnectingCredentials
                             ? "A desassociar..."

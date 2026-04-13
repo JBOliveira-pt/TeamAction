@@ -318,7 +318,6 @@ export async function fetchAdminOverviewStats() {
         viewLogsCount,
         unreadAvisos,
         pendingPlans,
-        pendingProfileChanges,
     ] = await Promise.all([
         sql<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM users`,
         sql<
@@ -337,11 +336,6 @@ export async function fetchAdminOverviewStats() {
             FROM pedidos_plano
             WHERE status = 'pendente'
         `.catch(() => [{ count: 0 }]),
-        sql<{ count: number }[]>`
-            SELECT COUNT(*)::int AS count
-            FROM pedidos_alteracao_perfil
-            WHERE status = 'pendente'
-        `.catch(() => [{ count: 0 }]),
     ]);
 
     return {
@@ -350,7 +344,6 @@ export async function fetchAdminOverviewStats() {
         viewLogs: viewLogsCount[0]?.count ?? 0,
         avisosNaoLidos: unreadAvisos[0]?.count ?? 0,
         pendingPlans: pendingPlans[0]?.count ?? 0,
-        pendingProfileChanges: pendingProfileChanges[0]?.count ?? 0,
     };
 }
 
@@ -712,82 +705,13 @@ export async function fetchAdminPedidosPlano(
 }
 
 // ========================================
-// Pedidos de Alteração de Perfil
-// ========================================
-
-export type AdminPedidoPerfilRow = {
-    id: string;
-    user_id: string;
-    user_name: string;
-    user_email: string;
-    organization_name: string | null;
-    campo: string;
-    valor_atual: string | null;
-    valor_novo: string;
-    status: string;
-    created_at: string;
-};
-
-export async function fetchAdminPedidosPerfil(
-    statusFilter: string = "pendente",
-): Promise<AdminPedidoPerfilRow[]> {
-    const hasTable = await sql<{ exists: boolean }[]>`
-        SELECT EXISTS (
-            SELECT 1 FROM information_schema.tables
-            WHERE table_schema = 'public' AND table_name = 'pedidos_alteracao_perfil'
-        ) AS exists
-    `;
-    if (!hasTable[0]?.exists) return [];
-
-    if (statusFilter === "todos") {
-        return sql<AdminPedidoPerfilRow[]>`
-            SELECT
-                pap.id,
-                pap.user_id,
-                u.name AS user_name,
-                u.email AS user_email,
-                o.name AS organization_name,
-                pap.campo,
-                pap.valor_atual,
-                pap.valor_novo,
-                pap.status,
-                pap.created_at
-            FROM pedidos_alteracao_perfil pap
-            JOIN users u ON u.id = pap.user_id
-            LEFT JOIN organizations o ON o.id = pap.organization_id
-            ORDER BY pap.created_at DESC
-            LIMIT 200
-        `;
-    }
-
-    return sql<AdminPedidoPerfilRow[]>`
-        SELECT
-            pap.id,
-            pap.user_id,
-            u.name AS user_name,
-            u.email AS user_email,
-            o.name AS organization_name,
-            pap.campo,
-            pap.valor_atual,
-            pap.valor_novo,
-            pap.status,
-            pap.created_at
-        FROM pedidos_alteracao_perfil pap
-        JOIN users u ON u.id = pap.user_id
-        LEFT JOIN organizations o ON o.id = pap.organization_id
-        WHERE pap.status = ${statusFilter}
-        ORDER BY pap.created_at DESC
-        LIMIT 200
-    `;
-}
-
-// ========================================
 // Convites Pendentes (clube + equipa)
 // ========================================
 
 export type AdminConviteRow = {
     id: string;
     tipo_convite: string;
+    convidado_user_id: string | null;
     convidado_nome: string;
     convidado_email: string;
     clube_nome: string | null;
@@ -810,6 +734,7 @@ export async function fetchAdminConvitesClubeAll(): Promise<AdminConviteRow[]> {
         SELECT
             cc.id,
             cc.tipo AS tipo_convite,
+            uc.id AS convidado_user_id,
             uc.name AS convidado_nome,
             uc.email AS convidado_email,
             o.name AS clube_nome,
@@ -842,6 +767,7 @@ export async function fetchAdminConvitesEquipaAll(): Promise<
         SELECT
             ce.id,
             'equipa' AS tipo_convite,
+            a_user.id AS convidado_user_id,
             COALESCE(a_user.name, CONCAT('Atleta #', ce.atleta_id)) AS convidado_nome,
             COALESCE(a_user.email, '') AS convidado_email,
             o.name AS clube_nome,

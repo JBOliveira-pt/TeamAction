@@ -6,7 +6,6 @@ import {
     fetchPerfilAtletaGeral,
     fetchCursoTreinador,
 } from "@/app/lib/data";
-import { fetchPedidosAlteracaoPerfil } from "@/app/lib/actions/pedidos-perfil";
 import PerfilInlineEditor from "@/app/ui/components/editar-perfil-modal";
 import AvatarUploader from "@/app/ui/components/avatar-uploader";
 import CursoTreinadorCard from "@/app/ui/components/curso-treinador-card";
@@ -28,8 +27,6 @@ export default async function PerfilUnificadoPage() {
 
     const perfil = await fetchMeuPerfil();
     if (!perfil) redirect("/login");
-
-    const pedidosPendentes = await fetchPedidosAlteracaoPerfil();
 
     const nome =
         clerkUser.fullName ??
@@ -217,10 +214,6 @@ export default async function PerfilUnificadoPage() {
                 accountType={perfil.account_type}
                 orgName={perfil.org_name}
                 membroDesde={membroDesde}
-                pedidosPendentes={pedidosPendentes.map((p) => ({
-                    campo: p.campo,
-                    valor_novo: p.valor_novo,
-                }))}
                 isMinor={!!atletaData?.user?.menor_idade}
             />
         </div>

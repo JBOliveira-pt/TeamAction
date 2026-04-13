@@ -8,14 +8,7 @@ import {
     fetchAdminViewLogsMonthlySeries,
 } from "@/app/lib/admin-data";
 import { MonthlyCountChart } from "@/app/ui/admin/monthly-count-chart";
-import {
-    Users,
-    ClipboardList,
-    FileEdit,
-    BellOff,
-    Activity,
-    Eye,
-} from "lucide-react";
+import { Users, ClipboardList, BellOff, Activity, Eye } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -35,14 +28,6 @@ const cardConfig = [
         bg: "bg-amber-50 dark:bg-amber-950/40",
         iconBg: "bg-amber-100 dark:bg-amber-900/60",
         iconColor: "text-amber-600 dark:text-amber-400",
-    },
-    {
-        key: "pendingProfileChanges",
-        label: "Perfis Pendentes",
-        icon: FileEdit,
-        bg: "bg-violet-50 dark:bg-violet-950/40",
-        iconBg: "bg-violet-100 dark:bg-violet-900/60",
-        iconColor: "text-violet-600 dark:text-violet-400",
     },
     {
         key: "avisosNaoLidos",

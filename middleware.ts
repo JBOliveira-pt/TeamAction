@@ -70,6 +70,8 @@ const isPublicRoute = createRouteMatcher([
     "/api/email-address-check(.*)",
     "/api/perfil-treinador/options(.*)",
     "/api/perfil-atleta/options(.*)",
+    "/api/vinculacoes-responsavel/validar-menor",
+    "/api/vinculacoes-responsavel/validar-responsavel",
     "/api/newsletter",
     "/privacidade",
     "/termos",

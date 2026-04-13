@@ -1,4 +1,4 @@
-// Página de convites.
+// Painel de monitorização com 3 tabs que dá ao administrador visibilidade sobre todos os convites e vinculações pendentes da plataforma. Apenas leitura/monitorização (sem ações de aprovar/rejeitar) e ação de envio de avisos pelo sistema, exceto o botão de reenvio de e-mail com convite à plataforma ao responsável.
 import {
     fetchAdminConvitesClubeAll,
     fetchAdminConvitesEquipaAll,
@@ -124,7 +124,7 @@ export default async function AdminConvitesPage({
                     },
                     {
                         id: "relacoes",
-                        label: "Relações Pendentes",
+                        label: "Relações Atleta-Responsável",
                         count: pendentesRelacoes,
                     },
                 ].map((t) => (
@@ -196,6 +196,15 @@ export default async function AdminConvitesPage({
                                         <TipoBadge tipo={c.tipo_convite} />
                                         <StatusBadge status={c.estado} />
                                     </div>
+                                    {c.estado?.toLowerCase() === "pendente" &&
+                                        c.convidado_user_id && (
+                                            <a
+                                                href={`/admin/avisos?scope=user&userId=${c.convidado_user_id}`}
+                                                className="mt-1 inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+                                            >
+                                                Enviar Aviso
+                                            </a>
+                                        )}
                                 </div>
                             </article>
                         ))
@@ -251,6 +260,15 @@ export default async function AdminConvitesPage({
                                         <TipoBadge tipo="equipa" />
                                         <StatusBadge status={c.estado} />
                                     </div>
+                                    {c.estado?.toLowerCase() === "pendente" &&
+                                        c.convidado_user_id && (
+                                            <a
+                                                href={`/admin/avisos?scope=user&userId=${c.convidado_user_id}`}
+                                                className="mt-1 inline-flex items-center gap-1 rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+                                            >
+                                                Enviar Aviso
+                                            </a>
+                                        )}
                                 </div>
                             </article>
                         ))

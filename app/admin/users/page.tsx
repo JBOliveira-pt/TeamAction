@@ -152,7 +152,7 @@ export default async function AdminUsersPage({
                                     href={buildSortHref("organization")}
                                     className={`inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${sort === "organization" ? "text-blue-600 dark:text-blue-400" : ""}`}
                                 >
-                                    Clube/Equipa
+                                    Clube/Org.
                                     <ArrowUpDown size={14} />
                                 </Link>
                             </th>

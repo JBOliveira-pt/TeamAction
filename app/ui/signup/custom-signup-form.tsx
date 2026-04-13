@@ -483,6 +483,12 @@ export default function CustomSignUpForm({
     const [athleteResponsibleEmailOptions, setAthleteResponsibleEmailOptions] =
         useState<AthleteLookupOption[]>([]);
     const [responsibleMinorEmail, setResponsibleMinorEmail] = useState("");
+    const [minorEmailError, setMinorEmailError] = useState<string | null>(null);
+    const minorEmailCheckRef = useRef<number | null>(null);
+    const [responsibleEmailError, setResponsibleEmailError] = useState<
+        string | null
+    >(null);
+    const responsibleEmailCheckRef = useRef<number | null>(null);
     const emailInputRef = useRef<HTMLInputElement | null>(null);
     const passwordInputRef = useRef<HTMLInputElement | null>(null);
     const emailPrecheckTimeoutRef = useRef<number | null>(null);
@@ -978,15 +984,12 @@ export default function CustomSignUpForm({
 
     useEffect(() => {
         if (athleteNeedsResponsible) {
-            if (athleteAddress) {
-                setAthleteAddress("");
-            }
-            if (athletePostalCode) {
-                setAthletePostalCode("");
-            }
-            if (athleteCity) {
-                setAthleteCity("");
-            }
+            setAthleteClubName("");
+            setAthleteTrainerName("");
+            setAthleteTeamName("");
+            setAthleteAddress("");
+            setAthletePostalCode("");
+            setAthleteCity("");
             return;
         }
 
@@ -1236,22 +1239,27 @@ export default function CustomSignUpForm({
             return "Altura (100-300 cm), Peso (10-300 kg, máx. 2 decimais), Mão dominante e Modalidade são obrigatórios.";
         }
 
-        if (athleteClubName.trim().length > 0 && !selectedAthleteClubOption) {
-            return "Selecione um clube existente da lista.";
-        }
-
-        if (
-            athleteTrainerName.trim().length > 0 &&
-            !selectedAthleteTrainerOption
-        ) {
-            return "Selecione um treinador existente da lista.";
-        }
-
-        if (athleteTeamName.trim().length > 0 && !selectedAthleteTeamOption) {
-            return "Selecione uma equipa existente da lista.";
-        }
-
         if (!athleteNeedsResponsible) {
+            if (
+                athleteClubName.trim().length > 0 &&
+                !selectedAthleteClubOption
+            ) {
+                return "Selecione um clube existente da lista.";
+            }
+
+            if (
+                athleteTrainerName.trim().length > 0 &&
+                !selectedAthleteTrainerOption
+            ) {
+                return "Selecione um treinador existente da lista.";
+            }
+
+            if (
+                athleteTeamName.trim().length > 0 &&
+                !selectedAthleteTeamOption
+            ) {
+                return "Selecione uma equipa existente da lista.";
+            }
             const normalizedPostalCode = normalizePostalCode(athletePostalCode);
             if (
                 normalizedPostalCode.length > 0 &&
@@ -1380,12 +1388,15 @@ export default function CustomSignUpForm({
                               peso_kg: pesoKg,
                               mao_dominante: maoDominante,
                               modality: athleteModality,
-                              clubName:
-                                  selectedAthleteClubOption?.label || null,
-                              trainerName:
-                                  selectedAthleteTrainerOption?.label || null,
-                              teamName:
-                                  selectedAthleteTeamOption?.label || null,
+                              clubName: athleteNeedsResponsible
+                                  ? null
+                                  : selectedAthleteClubOption?.label || null,
+                              trainerName: athleteNeedsResponsible
+                                  ? null
+                                  : selectedAthleteTrainerOption?.label || null,
+                              teamName: athleteNeedsResponsible
+                                  ? null
+                                  : selectedAthleteTeamOption?.label || null,
                               postalCode: athleteNeedsResponsible
                                   ? null
                                   : normalizePostalCode(athletePostalCode) ||
@@ -1404,15 +1415,15 @@ export default function CustomSignUpForm({
                                   athleteResponsibleEmail.trim().length > 0
                                       ? athleteResponsibleEmail.trim()
                                       : null,
-                              clubPendingApproval: Boolean(
-                                  selectedAthleteClubOption,
-                              ),
-                              trainerPendingApproval: Boolean(
-                                  selectedAthleteTrainerOption,
-                              ),
-                              teamPendingApproval: Boolean(
-                                  selectedAthleteTeamOption,
-                              ),
+                              clubPendingApproval:
+                                  !athleteNeedsResponsible &&
+                                  Boolean(selectedAthleteClubOption),
+                              trainerPendingApproval:
+                                  !athleteNeedsResponsible &&
+                                  Boolean(selectedAthleteTrainerOption),
+                              teamPendingApproval:
+                                  !athleteNeedsResponsible &&
+                                  Boolean(selectedAthleteTeamOption),
                               responsiblePendingApproval:
                                   athleteNeedsResponsible &&
                                   athleteResponsibleEmail.trim().length > 0,
@@ -1848,15 +1859,21 @@ export default function CustomSignUpForm({
                 payload.append("athlete_modality", athleteModality);
                 payload.append(
                     "athlete_club_name",
-                    selectedAthleteClubOption?.label || "",
+                    athleteNeedsResponsible
+                        ? ""
+                        : selectedAthleteClubOption?.label || "",
                 );
                 payload.append(
                     "athlete_trainer_name",
-                    selectedAthleteTrainerOption?.label || "",
+                    athleteNeedsResponsible
+                        ? ""
+                        : selectedAthleteTrainerOption?.label || "",
                 );
                 payload.append(
                     "athlete_team_name",
-                    selectedAthleteTeamOption?.label || "",
+                    athleteNeedsResponsible
+                        ? ""
+                        : selectedAthleteTeamOption?.label || "",
                 );
                 payload.append(
                     "athlete_postal_code",
@@ -1882,27 +1899,45 @@ export default function CustomSignUpForm({
                 );
                 payload.append(
                     "athlete_club_is_existing",
-                    String(Boolean(selectedAthleteClubOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteClubOption),
+                    ),
                 );
                 payload.append(
                     "athlete_trainer_is_existing",
-                    String(Boolean(selectedAthleteTrainerOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteTrainerOption),
+                    ),
                 );
                 payload.append(
                     "athlete_team_is_existing",
-                    String(Boolean(selectedAthleteTeamOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteTeamOption),
+                    ),
                 );
                 payload.append(
                     "athlete_club_pending_approval",
-                    String(Boolean(selectedAthleteClubOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteClubOption),
+                    ),
                 );
                 payload.append(
                     "athlete_trainer_pending_approval",
-                    String(Boolean(selectedAthleteTrainerOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteTrainerOption),
+                    ),
                 );
                 payload.append(
                     "athlete_team_pending_approval",
-                    String(Boolean(selectedAthleteTeamOption)),
+                    String(
+                        !athleteNeedsResponsible &&
+                            Boolean(selectedAthleteTeamOption),
+                    ),
                 );
                 payload.append(
                     "athlete_responsible_pending_approval",
@@ -2811,126 +2846,138 @@ export default function CustomSignUpForm({
                             </div>
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-3">
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Clube (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    list="athlete-club-options"
-                                    value={athleteClubName}
-                                    onChange={(event) =>
-                                        setAthleteClubName(event.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Pesquisar clube"
-                                />
-                                <datalist id="athlete-club-options">
-                                    {athleteClubOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.label}
-                                        />
-                                    ))}
-                                </datalist>
-                                {athleteClubName.trim().length > 0 &&
-                                    !selectedAthleteClubOption && (
-                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                                            Não existe clube cadastrado com esse
-                                            nome.
+                        {!athleteNeedsResponsible && (
+                            <div className="grid gap-6 md:grid-cols-3">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Clube (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="athlete-club-options"
+                                        value={athleteClubName}
+                                        onChange={(event) =>
+                                            setAthleteClubName(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Pesquisar clube"
+                                    />
+                                    <datalist id="athlete-club-options">
+                                        {athleteClubOptions.map((option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ))}
+                                    </datalist>
+                                    {athleteClubName.trim().length > 0 &&
+                                        !selectedAthleteClubOption && (
+                                            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                Não existe clube cadastrado com
+                                                esse nome.
+                                            </p>
+                                        )}
+                                    {selectedAthleteClubOption && (
+                                        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                            Pendente de aprovação do clube{" "}
+                                            <strong>
+                                                {
+                                                    selectedAthleteClubOption.label
+                                                }
+                                            </strong>
                                         </p>
                                     )}
-                                {selectedAthleteClubOption && (
-                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                                        Pendente de aprovação do clube{" "}
-                                        <strong>
-                                            {selectedAthleteClubOption.label}
-                                        </strong>
-                                    </p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Treinador (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    list="athlete-trainer-options"
-                                    value={athleteTrainerName}
-                                    onChange={(event) =>
-                                        setAthleteTrainerName(
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Pesquisar treinador"
-                                />
-                                <datalist id="athlete-trainer-options">
-                                    {athleteTrainerOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.label}
-                                        />
-                                    ))}
-                                </datalist>
-                                {athleteTrainerName.trim().length > 0 &&
-                                    !selectedAthleteTrainerOption && (
-                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                                            Não existe treinador cadastrado com
-                                            esse nome.
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Treinador (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="athlete-trainer-options"
+                                        value={athleteTrainerName}
+                                        onChange={(event) =>
+                                            setAthleteTrainerName(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Pesquisar treinador"
+                                    />
+                                    <datalist id="athlete-trainer-options">
+                                        {athleteTrainerOptions.map((option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ))}
+                                    </datalist>
+                                    {athleteTrainerName.trim().length > 0 &&
+                                        !selectedAthleteTrainerOption && (
+                                            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                Não existe treinador cadastrado
+                                                com esse nome.
+                                            </p>
+                                        )}
+                                    {selectedAthleteTrainerOption && (
+                                        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                            Pendente de aprovação do treinador{" "}
+                                            <strong>
+                                                {
+                                                    selectedAthleteTrainerOption.label
+                                                }
+                                            </strong>
                                         </p>
                                     )}
-                                {selectedAthleteTrainerOption && (
-                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                                        Pendente de aprovação do treinador{" "}
-                                        <strong>
-                                            {selectedAthleteTrainerOption.label}
-                                        </strong>
-                                    </p>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
-                                    Equipa (opcional)
-                                </label>
-                                <input
-                                    type="text"
-                                    list="athlete-team-options"
-                                    value={athleteTeamName}
-                                    onChange={(event) =>
-                                        setAthleteTeamName(event.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
-                                    placeholder="Pesquisar equipa"
-                                />
-                                <datalist id="athlete-team-options">
-                                    {athleteTeamOptions.map((option) => (
-                                        <option
-                                            key={option.value}
-                                            value={option.label}
-                                        />
-                                    ))}
-                                </datalist>
-                                {athleteTeamName.trim().length > 0 &&
-                                    !selectedAthleteTeamOption && (
-                                        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                                            Não existe equipa cadastrada com
-                                            esse nome.
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
+                                        Equipa (opcional)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        list="athlete-team-options"
+                                        value={athleteTeamName}
+                                        onChange={(event) =>
+                                            setAthleteTeamName(
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                        placeholder="Pesquisar equipa"
+                                    />
+                                    <datalist id="athlete-team-options">
+                                        {athleteTeamOptions.map((option) => (
+                                            <option
+                                                key={option.value}
+                                                value={option.label}
+                                            />
+                                        ))}
+                                    </datalist>
+                                    {athleteTeamName.trim().length > 0 &&
+                                        !selectedAthleteTeamOption && (
+                                            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                                                Não existe equipa cadastrada com
+                                                esse nome.
+                                            </p>
+                                        )}
+                                    {selectedAthleteTeamOption && (
+                                        <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                            Pendente de aprovação da equipa
+                                            <strong>
+                                                {
+                                                    selectedAthleteTeamOption.label
+                                                }
+                                            </strong>
                                         </p>
                                     )}
-                                {selectedAthleteTeamOption && (
-                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-                                        Pendente de aprovação da equipa
-                                        <strong>
-                                            {selectedAthleteTeamOption.label}
-                                        </strong>
-                                    </p>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {!athleteNeedsResponsible && (
                             <>
@@ -3014,13 +3061,91 @@ export default function CustomSignUpForm({
                                     required
                                     list="athlete-responsible-email-options"
                                     value={athleteResponsibleEmail}
-                                    onChange={(event) =>
-                                        setAthleteResponsibleEmail(
-                                            event.target.value,
+                                    onChange={(event) => {
+                                        const val = event.target.value;
+                                        setAthleteResponsibleEmail(val);
+                                        setResponsibleEmailError(null);
+                                        if (responsibleEmailCheckRef.current) {
+                                            window.clearTimeout(
+                                                responsibleEmailCheckRef.current,
+                                            );
+                                        }
+                                        const trimmed = val
+                                            .trim()
+                                            .toLowerCase();
+                                        if (
+                                            !trimmed ||
+                                            !isValidEmailFormat(trimmed)
                                         )
-                                    }
-                                    className="block w-full rounded-lg border border-red-400/40 bg-slate-900/60 px-3 py-3 text-sm text-white outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 transition-all"
-                                    placeholder="email do responsável"
+                                            return;
+                                        if (
+                                            trimmed ===
+                                            emailAddress.trim().toLowerCase()
+                                        ) {
+                                            setResponsibleEmailError(
+                                                "O e-mail do responsável não pode ser igual ao seu e-mail.",
+                                            );
+                                            return;
+                                        }
+                                        responsibleEmailCheckRef.current =
+                                            window.setTimeout(async () => {
+                                                try {
+                                                    const res = await fetch(
+                                                        "/api/vinculacoes-responsavel/validar-responsavel",
+                                                        {
+                                                            method: "POST",
+                                                            headers: {
+                                                                "Content-Type":
+                                                                    "application/json",
+                                                            },
+                                                            body: JSON.stringify(
+                                                                {
+                                                                    email: trimmed,
+                                                                    athleteEmail:
+                                                                        emailAddress
+                                                                            .trim()
+                                                                            .toLowerCase(),
+                                                                },
+                                                            ),
+                                                        },
+                                                    );
+                                                    const data =
+                                                        await res.json();
+                                                    if (!data.valid) {
+                                                        if (
+                                                            data.reason ===
+                                                            "own_email"
+                                                        ) {
+                                                            setResponsibleEmailError(
+                                                                "O e-mail do responsável não pode ser igual ao seu e-mail.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_responsible"
+                                                        ) {
+                                                            setResponsibleEmailError(
+                                                                "O e-mail indicado pertence a um utilizador que não é responsável.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_preregistered"
+                                                        ) {
+                                                            setResponsibleEmailError(
+                                                                "Este responsável não fez pré-cadastro com o seu e-mail de atleta. Peça-lhe que se registe primeiro indicando o seu e-mail.",
+                                                            );
+                                                        }
+                                                    }
+                                                } catch {
+                                                    // network error — will be caught on submit
+                                                }
+                                            }, 600);
+                                    }}
+                                    className={`block w-full rounded-lg border ${
+                                        responsibleEmailError
+                                            ? "border-red-500"
+                                            : "border-red-400/40"
+                                    } bg-slate-900/60 px-3 py-3 text-sm text-white outline-none focus:border-red-300 focus:ring-1 focus:ring-red-300 transition-all`}
+                                    placeholder="e-mail do responsável"
                                 />
                                 <datalist id="athlete-responsible-email-options">
                                     {athleteResponsibleEmailOptions.map(
@@ -3032,7 +3157,12 @@ export default function CustomSignUpForm({
                                         ),
                                     )}
                                 </datalist>
-                                {athleteResponsibleEmail.trim().length > 0 && (
+                                {responsibleEmailError ? (
+                                    <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                                        {responsibleEmailError}
+                                    </p>
+                                ) : athleteResponsibleEmail.trim().length >
+                                  0 ? (
                                     <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                                         Pendente de aprovação do responsável de
                                         e-mail{" "}
@@ -3040,7 +3170,7 @@ export default function CustomSignUpForm({
                                             {athleteResponsibleEmail.trim()}
                                         </strong>
                                     </p>
-                                )}
+                                ) : null}
                             </div>
                         )}
 
@@ -3060,8 +3190,12 @@ export default function CustomSignUpForm({
                             </button>
                             <button
                                 type="submit"
-                                disabled={!isLoaded || isSubmitting}
-                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
+                                disabled={
+                                    !isLoaded ||
+                                    isSubmitting ||
+                                    !!responsibleEmailError
+                                }
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {isSubmitting
                                     ? "A criar conta..."
@@ -3370,18 +3504,112 @@ export default function CustomSignUpForm({
                                     type="email"
                                     required
                                     value={responsibleMinorEmail}
-                                    onChange={(e) =>
-                                        setResponsibleMinorEmail(e.target.value)
-                                    }
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setResponsibleMinorEmail(val);
+                                        setMinorEmailError(null);
+                                        if (minorEmailCheckRef.current) {
+                                            window.clearTimeout(
+                                                minorEmailCheckRef.current,
+                                            );
+                                        }
+                                        const trimmed = val
+                                            .trim()
+                                            .toLowerCase();
+                                        if (
+                                            !trimmed ||
+                                            !isValidEmailFormat(trimmed)
+                                        )
+                                            return;
+                                        if (
+                                            trimmed ===
+                                            emailAddress.trim().toLowerCase()
+                                        ) {
+                                            setMinorEmailError(
+                                                "O e-mail do atleta menor não pode ser igual ao seu e-mail.",
+                                            );
+                                            return;
+                                        }
+                                        minorEmailCheckRef.current =
+                                            window.setTimeout(async () => {
+                                                try {
+                                                    const res = await fetch(
+                                                        "/api/vinculacoes-responsavel/validar-menor",
+                                                        {
+                                                            method: "POST",
+                                                            headers: {
+                                                                "Content-Type":
+                                                                    "application/json",
+                                                            },
+                                                            body: JSON.stringify(
+                                                                {
+                                                                    email: trimmed,
+                                                                    ownEmail:
+                                                                        emailAddress
+                                                                            .trim()
+                                                                            .toLowerCase(),
+                                                                },
+                                                            ),
+                                                        },
+                                                    );
+                                                    const data =
+                                                        await res.json();
+                                                    if (!data.valid) {
+                                                        if (
+                                                            data.reason ===
+                                                            "own_email"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "O e-mail do atleta menor não pode ser igual ao seu e-mail.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_athlete"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "O e-mail indicado pertence a um utilizador que não é atleta.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "not_minor"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "O e-mail indicado pertence a um atleta que não é menor de idade. Apenas pode vincular-se a atletas menores.",
+                                                            );
+                                                        } else if (
+                                                            data.reason ===
+                                                            "already_bound"
+                                                        ) {
+                                                            setMinorEmailError(
+                                                                "Este atleta menor já possui vinculação a outro responsável.",
+                                                            );
+                                                        }
+                                                    }
+                                                } catch {
+                                                    // network error — will be caught on submit
+                                                }
+                                            }, 600);
+                                    }}
+                                    className={`block w-full rounded-lg border ${
+                                        minorEmailError
+                                            ? "border-red-500 dark:border-red-500"
+                                            : "border-gray-300 dark:border-gray-700"
+                                    } bg-emerald-50/30 dark:bg-gray-800 pl-10 pr-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all`}
                                     placeholder="email.do.atleta@exemplo.pt"
                                 />
                             </div>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                O atleta deve estar cadastrado na plataforma.
-                                Ele receberá um pedido de vinculação para
-                                aceitar ou recusar.
-                            </p>
+                            {minorEmailError ? (
+                                <p className="text-xs text-red-500 mt-1">
+                                    {minorEmailError}
+                                </p>
+                            ) : (
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    O atleta receberá um pedido de vinculação
+                                    para aceitar ou recusar. Se não estiver na
+                                    plataforma, ele receberá um convite para
+                                    criar a sua conta.
+                                </p>
+                            )}
                         </div>
 
                         {errorMessage && (
@@ -3400,8 +3628,12 @@ export default function CustomSignUpForm({
                             </button>
                             <button
                                 type="submit"
-                                disabled={!isLoaded || isSubmitting}
-                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:opacity-60"
+                                disabled={
+                                    !isLoaded ||
+                                    isSubmitting ||
+                                    !!minorEmailError
+                                }
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-700/35 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {isSubmitting
                                     ? "A criar conta..."

@@ -2,16 +2,11 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import {
-    atualizarMeuPerfil,
-    solicitarAlteracaoEmail,
-    solicitarAlteracaoDataNascimento,
-} from "@/app/lib/actions";
+import { atualizarMeuPerfil } from "@/app/lib/actions";
 import {
     Pencil,
     X,
     AlertTriangle,
-    Clock,
     User,
     Mail,
     MapPin,
@@ -21,11 +16,6 @@ import {
 } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
-
-interface PedidoPendente {
-    campo: string;
-    valor_novo: string;
-}
 
 interface Props {
     firstName: string;
@@ -43,20 +33,16 @@ interface Props {
     accountType: string | null;
     orgName: string | null;
     membroDesde: string;
-    pedidosPendentes?: PedidoPendente[];
     isMinor?: boolean;
 }
 
 /* ── Constantes de validação (mesmas do signup) ── */
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 const POSTAL_CODE_REGEX = /^\d{4}-\d{3}$/;
 const PHONE_DIGITS_LENGTH = 9;
 const PORTUGAL_PHONE_PREFIX = "(351) ";
 const IBAN_PREFIX = "PT50";
 const IBAN_BODY_DIGITS_LENGTH = 21;
 const NIF_DIGITS_LENGTH = 9;
-const MIN_SIGNUP_AGE = 5;
-const MAX_SIGNUP_AGE = 120;
 
 /* ── Helpers de formatação (mesmas do signup) ── */
 function extractPortuguesePhoneDigits(value: string): string {
@@ -122,12 +108,9 @@ export default function PerfilInlineEditor({
     accountType,
     orgName,
     membroDesde,
-    pedidosPendentes = [],
     isMinor = false,
 }: Props) {
     const [editing, setEditing] = useState(false);
-    const [editingEmail, setEditingEmail] = useState(false);
-    const [editingDob, setEditingDob] = useState(false);
 
     // Valores do formulário
     const [phone, setPhone] = useState(telefone ? formatPhone(telefone) : "");
@@ -144,19 +127,9 @@ export default function PerfilInlineEditor({
         atualizarMeuPerfil,
         null,
     );
-    const [emailState, emailAction, isEmailPending] = useActionState<
-        State,
-        FormData
-    >(solicitarAlteracaoEmail, null);
-    const [dobState, dobAction, isDobPending] = useActionState<State, FormData>(
-        solicitarAlteracaoDataNascimento,
-        null,
-    );
 
     // Toasts de sucesso temporários
     const [showSuccess, setShowSuccess] = useState(false);
-    const [showEmailSuccess, setShowEmailSuccess] = useState(false);
-    const [showDobSuccess, setShowDobSuccess] = useState(false);
 
     useEffect(() => {
         if (state?.success) {
@@ -172,60 +145,10 @@ export default function PerfilInlineEditor({
         }
     }, [state]);
 
-    useEffect(() => {
-        if (emailState?.success) {
-            const show = setTimeout(() => {
-                setEditingEmail(false);
-                setShowEmailSuccess(true);
-            }, 0);
-            const hide = setTimeout(() => setShowEmailSuccess(false), 3000);
-            return () => {
-                clearTimeout(show);
-                clearTimeout(hide);
-            };
-        }
-    }, [emailState]);
-
-    useEffect(() => {
-        if (dobState?.success) {
-            const show = setTimeout(() => {
-                setEditingDob(false);
-                setShowDobSuccess(true);
-            }, 0);
-            const hide = setTimeout(() => setShowDobSuccess(false), 3000);
-            return () => {
-                clearTimeout(show);
-                clearTimeout(hide);
-            };
-        }
-    }, [dobState]);
-
-    const emailPendente = pedidosPendentes.find((p) => p.campo === "email");
-    const dobPendente = pedidosPendentes.find(
-        (p) => p.campo === "data_nascimento",
-    );
-
     const accountLabel = ACCOUNT_TYPE_LABELS[accountType ?? ""] ?? "Utilizador";
     const nascimentoFormatted = dataNascimento
         ? new Date(dataNascimento).toLocaleDateString("pt-PT")
         : null;
-
-    // Limites de data de nascimento
-    const today = new Date();
-    const maxBirthDate = new Date(
-        today.getFullYear() - MIN_SIGNUP_AGE,
-        today.getMonth(),
-        today.getDate(),
-    )
-        .toISOString()
-        .slice(0, 10);
-    const minBirthDate = new Date(
-        today.getFullYear() - MAX_SIGNUP_AGE,
-        today.getMonth(),
-        today.getDate(),
-    )
-        .toISOString()
-        .slice(0, 10);
 
     function validateAndSubmit(formData: FormData) {
         const newErrors: Record<string, string> = {};
@@ -304,46 +227,8 @@ export default function PerfilInlineEditor({
         action(normalized);
     }
 
-    function validateEmailAndSubmit(formData: FormData) {
-        const newEmail = formData.get("novo_email")?.toString().trim() ?? "";
-        if (!EMAIL_REGEX.test(newEmail)) {
-            setErrors({ novo_email: "Informe um e-mail válido." });
-            return;
-        }
-        setErrors({});
-        emailAction(formData);
-    }
-
     return (
         <div className="space-y-4">
-            {/* Avisos de pedidos pendentes */}
-            {pedidosPendentes.length > 0 && (
-                <div className="space-y-2">
-                    {pedidosPendentes.map((p, i) => (
-                        <div
-                            key={i}
-                            className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl"
-                        >
-                            <Clock
-                                size={18}
-                                className="text-amber-500 mt-0.5 shrink-0"
-                            />
-                            <div>
-                                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                                    Pedido de alteração em análise
-                                </p>
-                                <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-                                    {p.campo === "email"
-                                        ? `Alteração de email para ${p.valor_novo}`
-                                        : `Alteração da data de nascimento para ${new Date(p.valor_novo).toLocaleDateString("pt-PT")}`}{" "}
-                                    — aguarda aprovação do administrador.
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
             {/* Sucesso/Erro da edição geral */}
             {showSuccess && (
                 <div className="px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-sm text-emerald-600 dark:text-emerald-400 animate-fade-out">
@@ -550,161 +435,25 @@ export default function PerfilInlineEditor({
                 )}
             </Section>
 
-            {/* ── EMAIL + DATA DE NASCIMENTO lado a lado ── */}
+            {/* ── EMAIL + DATA DE NASCIMENTO (somente leitura) ── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* EMAIL */}
                 <Section
                     icon={<Mail size={18} className="text-blue-500" />}
                     title="Email"
-                    canEdit={!isMinor && !emailPendente}
-                    editing={editingEmail}
-                    onToggle={() => {
-                        setEditingEmail((v) => !v);
-                        setErrors({});
-                    }}
                 >
-                    {editingEmail && !emailPendente ? (
-                        <div className="col-span-2 space-y-3">
-                            <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                <AlertTriangle
-                                    size={16}
-                                    className="text-amber-500 mt-0.5 shrink-0"
-                                />
-                                <p className="text-xs text-amber-700 dark:text-amber-400">
-                                    A alteração de email requer aprovação do
-                                    administrador por questões de segurança.
-                                </p>
-                            </div>
-                            <form
-                                action={validateEmailAndSubmit}
-                                className="space-y-3"
-                            >
-                                <ReadOnlyField
-                                    label="Email atual"
-                                    value={email}
-                                />
-                                <Field
-                                    label="Novo email"
-                                    name="novo_email"
-                                    type="email"
-                                    required
-                                    placeholder="novo@exemplo.com"
-                                    error={errors.novo_email}
-                                />
-                                {emailState?.error && (
-                                    <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
-                                        {emailState.error}
-                                    </p>
-                                )}
-                                {showEmailSuccess && (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg animate-fade-out">
-                                        Pedido enviado com sucesso!
-                                    </p>
-                                )}
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setEditingEmail(false);
-                                            setErrors({});
-                                        }}
-                                        className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isEmailPending}
-                                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                                    >
-                                        {isEmailPending
-                                            ? "A enviar..."
-                                            : "Solicitar alteração"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    ) : (
-                        <InfoRow label="Email" value={email} />
-                    )}
+                    <InfoRow label="Email" value={email} />
                 </Section>
 
                 {/* DATA DE NASCIMENTO */}
                 <Section
                     icon={<Calendar size={18} className="text-blue-500" />}
                     title="Data de Nascimento"
-                    canEdit={!isMinor && !dobPendente}
-                    editing={editingDob}
-                    onToggle={() => {
-                        setEditingDob((v) => !v);
-                        setErrors({});
-                    }}
                 >
-                    {editingDob && !dobPendente ? (
-                        <div className="col-span-2 space-y-3">
-                            <div className="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg">
-                                <Calendar
-                                    size={16}
-                                    className="text-gray-500 mt-0.5 shrink-0"
-                                />
-                                <p className="text-xs text-gray-600 dark:text-gray-400">
-                                    Se a nova data resultar em idade inferior a
-                                    18 anos, a alteração será enviada ao
-                                    administrador para aprovação.
-                                </p>
-                            </div>
-                            <form action={dobAction} className="space-y-3">
-                                <ReadOnlyField
-                                    label="Data de nascimento atual"
-                                    value={
-                                        nascimentoFormatted ?? "Não definida"
-                                    }
-                                />
-                                <Field
-                                    label="Nova data de nascimento"
-                                    name="nova_data_nascimento"
-                                    type="date"
-                                    required
-                                    min={minBirthDate}
-                                    max={maxBirthDate}
-                                />
-                                {dobState?.error && (
-                                    <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-2 rounded-lg">
-                                        {dobState.error}
-                                    </p>
-                                )}
-                                {showDobSuccess && (
-                                    <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg animate-fade-out">
-                                        Data de nascimento atualizada com
-                                        sucesso!
-                                    </p>
-                                )}
-                                <div className="flex gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditingDob(false)}
-                                        className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isDobPending}
-                                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                                    >
-                                        {isDobPending
-                                            ? "A guardar..."
-                                            : "Atualizar"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    ) : (
-                        <InfoRow
-                            label="Data de Nascimento"
-                            value={nascimentoFormatted}
-                        />
-                    )}
+                    <InfoRow
+                        label="Data de Nascimento"
+                        value={nascimentoFormatted}
+                    />
                 </Section>
             </div>
 

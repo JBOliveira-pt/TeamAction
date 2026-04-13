@@ -1517,6 +1517,84 @@ export async function POST(req: Request) {
                             `.catch(() => {});
                         }
                     }
+
+                    // Verificar se algum responsável já fez pré-cadastro
+                    // indicando o e-mail deste atleta menor (via alvo_atleta_email).
+                    // Se sim, preencher atleta_user_id e notificar o atleta.
+                    const preRegisteredIntent = await sql<
+                        {
+                            id: string;
+                            alvo_responsavel_user_id: string;
+                            alvo_email: string;
+                        }[]
+                    >`
+                        SELECT id, alvo_responsavel_user_id, alvo_email
+                        FROM atleta_relacoes_pendentes
+                        WHERE LOWER(alvo_atleta_email) = LOWER(${currentEmail})
+                          AND relation_kind = 'responsavel'
+                          AND status = 'pendente'
+                          AND atleta_user_id IS NULL
+                    `.catch(() => []);
+
+                    for (const intent of preRegisteredIntent) {
+                        // Verificar se já não existe uma relação duplicada
+                        // (criada pelo bloco acima quando o atleta indicou o responsável)
+                        const alreadyLinked = await sql<{ id: string }[]>`
+                            SELECT id FROM atleta_relacoes_pendentes
+                            WHERE atleta_user_id = ${athleteUserId}
+                              AND alvo_responsavel_user_id = ${intent.alvo_responsavel_user_id}
+                              AND relation_kind = 'responsavel'
+                            LIMIT 1
+                        `.catch(() => []);
+
+                        if (alreadyLinked.length > 0) {
+                            // Relação já existe — apagar o registo de intenção
+                            await sql`
+                                DELETE FROM atleta_relacoes_pendentes
+                                WHERE id = ${intent.id}
+                            `.catch(() => {});
+                        } else {
+                            // Preencher o atleta_user_id no registo de intenção
+                            await sql`
+                                UPDATE atleta_relacoes_pendentes
+                                SET atleta_user_id = ${athleteUserId},
+                                    updated_at = NOW()
+                                WHERE id = ${intent.id}
+                            `.catch(() => {});
+
+                            // Notificar o atleta menor
+                            const intentResponsavelName = await sql<
+                                { full_name: string }[]
+                            >`
+                                SELECT CONCAT(first_name, ' ', last_name) AS full_name
+                                FROM users WHERE id = ${intent.alvo_responsavel_user_id} LIMIT 1
+                            `.catch(() => []);
+
+                            const respName =
+                                intentResponsavelName[0]?.full_name ??
+                                intent.alvo_email;
+
+                            const athleteOrg = await sql<
+                                { organization_id: string | null }[]
+                            >`
+                                SELECT organization_id FROM users WHERE id = ${athleteUserId} LIMIT 1
+                            `.catch(() => []);
+
+                            await sql`
+                                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    ${athleteOrg[0]?.organization_id ?? "00000000-0000-0000-0000-000000000000"},
+                                    ${athleteUserId},
+                                    'Pedido de Vinculação — Responsável',
+                                    ${`${respName} (${intent.alvo_email}) registou-se como responsável e indicou o seu e-mail. Aceda às notificações para aceitar ou recusar o pedido.`},
+                                    'vinculacao_responsavel',
+                                    false,
+                                    NOW()
+                                )
+                            `.catch(() => {});
+                        }
+                    }
                 }
             }
         }
@@ -1574,6 +1652,20 @@ export async function POST(req: Request) {
                             console.log(
                                 `[ACCOUNT_TYPE] Minor ${responsibleMinorEmail} not found yet. Storing responsible intent for later linking.`,
                             );
+                            await sql`
+                                INSERT INTO atleta_relacoes_pendentes (
+                                    id, atleta_user_id, relation_kind, status,
+                                    alvo_email, alvo_responsavel_user_id,
+                                    alvo_atleta_email,
+                                    created_at, updated_at
+                                ) VALUES (
+                                    gen_random_uuid(), NULL, 'responsavel', 'pendente',
+                                    ${currentEmail}, ${responsavelDbId},
+                                    ${responsibleMinorEmail},
+                                    NOW(), NOW()
+                                )
+                                ON CONFLICT DO NOTHING
+                            `.catch(() => {});
                         } else {
                             const minor = minorRows[0];
                             // Verificar se o vínculo já existe (fluxo iniciado pelo atleta)

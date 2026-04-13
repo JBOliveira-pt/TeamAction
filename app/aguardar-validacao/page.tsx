@@ -90,22 +90,23 @@ export default async function AguardarValidacaoPage() {
                         <h1 className="text-xl font-bold text-white">
                             Aguardando Validação do Atleta
                         </h1>
-                        <p className="text-sm text-slate-300 leading-relaxed">
-                            Sua conta será concluída assim que o atleta valide
-                            sua relação.
-                        </p>
-                        <p className="text-xs text-slate-400">
-                            O atleta recebeu uma notificação para aceitar ou
-                            recusar o pedido de vinculação. Assim que o atleta
-                            aceitar, poderá aceder à plataforma normalmente.
+                        <p className="text-sm text-justify text-slate-300 px-4 leading-snug">
+                            Se o atleta já está na plataforma, aguarde ele
+                            aceitar ou recusar o seu pedido de vinculação. Se
+                            ele ainda não tem conta, peça para ele se inscrever
+                            usando o e-mail indicado ou aguarde ele receber um
+                            e-mail do Administrador.
                         </p>
                     </div>
 
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+                    <div className="w-fit mx-auto rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
                         <p className="text-sm text-amber-300 font-medium">
                             ⏳ Vinculação pendente
                         </p>
                     </div>
+                    <p className="text-xs mt-[-1.5rem] text-slate-500">
+                        Verificada automaticamente a cada 10s
+                    </p>
 
                     <AguardarValidacaoClient />
                 </div>

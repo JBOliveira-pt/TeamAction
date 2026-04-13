@@ -8,6 +8,8 @@ export const dynamic = "force-dynamic";
 type SearchParams = {
     success?: string;
     error?: string;
+    scope?: string;
+    userId?: string;
 };
 
 function getAlertFromParams(searchParams?: SearchParams) {
@@ -91,7 +93,12 @@ export default async function AdminAvisosPage({
                 </div>
             )}
 
-            <AdminAvisoForm users={users} action={adminCreateAvisoAction} />
+            <AdminAvisoForm
+                users={users}
+                action={adminCreateAvisoAction}
+                defaultScope={resolvedSearchParams?.scope}
+                defaultUserId={resolvedSearchParams?.userId}
+            />
         </div>
     );
 }

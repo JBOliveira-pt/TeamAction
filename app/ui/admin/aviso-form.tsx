@@ -34,12 +34,16 @@ function SubmitAvisoButton() {
 export function AdminAvisoForm({
     users,
     action,
+    defaultScope,
+    defaultUserId,
 }: {
     users: AdminUserOption[];
     action: (formData: FormData) => Promise<void>;
+    defaultScope?: string;
+    defaultUserId?: string;
 }) {
     const [showModal, setShowModal] = useState(false);
-    const [scope, setScope] = useState("all");
+    const [scope, setScope] = useState(defaultScope || "all");
     const [preview, setPreview] = useState<AvisoPreview | null>(null);
     const formRef = useRef<HTMLFormElement>(null);
     const allowSubmitRef = useRef(false);
@@ -129,6 +133,7 @@ export function AdminAvisoForm({
                         </label>
                         <select
                             name="userId"
+                            defaultValue={defaultUserId || ""}
                             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                         >
                             <option value="">-- Nenhum --</option>

@@ -36,8 +36,6 @@ export { aprovarPerfilAtleta } from "./perfil";
 export { atualizarMeuPerfil } from "./perfil";
 export { atualizarInfoDesportiva } from "./perfil";
 export { solicitarTrocaPlano } from "./planos";
-export { solicitarAlteracaoEmail } from "./pedidos-perfil";
-export { solicitarAlteracaoDataNascimento } from "./pedidos-perfil";
 export { editarAtleta } from "./atletas";
 export { eliminarAtletaFicticio } from "./atletas";
 export { desvincularAtletaReal } from "./atletas";

@@ -247,7 +247,6 @@ export async function POST(req: Request) {
                     ["atletas", "user_id"],
                     ["staff", "user_id"],
                     ["notificacoes", "recipient_user_id"],
-                    ["pedidos_alteracao_perfil", "user_id"],
                     ["pedidos_plano", "user_id"],
                     ["notas_atleta", "user_id"],
                     ["condicao_fisica", "user_id"],
