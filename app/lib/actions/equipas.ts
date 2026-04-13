@@ -272,6 +272,87 @@ export async function criarEquipaTreinador(
     }
 }
 
+export async function editarEquipaTreinador(
+    _prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    let organizationId: string;
+    try {
+        organizationId = await getOrganizationId();
+    } catch {
+        return { error: "Não foi possível identificar a organização." };
+    }
+
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return { error: "Sessão expirada." };
+
+    const id = formData.get("id") as string;
+    const nome = formData.get("nome") as string;
+    const escalao = formData.get("escalao") as string;
+    const estado = formData.get("estado") as string;
+
+    if (!id || !nome?.trim() || !escalao?.trim() || !estado?.trim()) {
+        return { error: "Preenche todos os campos obrigatórios." };
+    }
+
+    try {
+        const [trainerUser] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkId} LIMIT 1
+        `;
+        if (!trainerUser) return { error: "Utilizador não encontrado." };
+
+        // Verificar que a equipa pertence ao treinador
+        const [equipa] = await sql<{ id: string }[]>`
+            SELECT id FROM equipas
+            WHERE id = ${id}
+              AND organization_id = ${organizationId}
+              AND treinador_id = ${trainerUser.id}
+            LIMIT 1
+        `;
+        if (!equipa) return { error: "Equipa não encontrada." };
+
+        // Impedir edição de equipas atribuídas pelo clube (possuem staff record)
+        const [staffRecord] = await sql<{ id: string }[]>`
+            SELECT id FROM staff
+            WHERE equipa_id = ${id}
+              AND organization_id = ${organizationId}
+              AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+            LIMIT 1
+        `;
+        if (staffRecord) {
+            return {
+                error: "Não é possível editar equipas atribuídas pelo clube.",
+            };
+        }
+
+        await sql`
+            UPDATE equipas
+            SET nome = ${nome.trim()}, escalao = ${escalao.trim()}, estado = ${estado}, updated_at = NOW()
+            WHERE id = ${id}
+              AND organization_id = ${organizationId}
+              AND treinador_id = ${trainerUser.id}
+        `;
+
+        await logAction(
+            clerkId,
+            "equipa_update",
+            "/dashboard/treinador/equipas",
+            {
+                equipa_id: id,
+                nome: nome.trim(),
+                escalao: escalao.trim(),
+                estado,
+            },
+        );
+
+        revalidatePath("/dashboard/treinador/equipas");
+        return { success: true };
+    } catch (error) {
+        console.error("Database Error:", error);
+        return { error: "Erro ao editar equipa. Tenta novamente." };
+    }
+}
+
 export async function editarEquipa(
     _prevState: { error?: string; success?: boolean } | null,
     formData: FormData,

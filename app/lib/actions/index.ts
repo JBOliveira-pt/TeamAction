@@ -8,6 +8,7 @@ export { eliminarPedidoFederacao } from "./comunicados";
 export { uploadDocumento } from "./comunicados";
 export { criarEquipa } from "./equipas";
 export { criarEquipaTreinador } from "./equipas";
+export { editarEquipaTreinador } from "./equipas";
 export { editarEquipa } from "./equipas";
 export { eliminarEquipa } from "./equipas";
 export { adicionarAtleta } from "./atletas";

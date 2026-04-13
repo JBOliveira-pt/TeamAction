@@ -1455,6 +1455,14 @@ export async function POST(req: Request) {
                         const responsavelUserId =
                             existingResponsavel[0]?.id ?? null;
 
+                        // Se o responsável já tem conta, vincular
+                        // automaticamente (aceite); caso contrário,
+                        // fica pendente até o responsável se registar.
+                        const autoAccepted = !!responsavelUserId;
+                        const relationStatus = autoAccepted
+                            ? "aceite"
+                            : "pendente";
+
                         await sql`
                             INSERT INTO atleta_relacoes_pendentes (
                                 atleta_user_id,
@@ -1468,7 +1476,7 @@ export async function POST(req: Request) {
                             VALUES (
                                 ${athleteUserId},
                                 'responsavel',
-                                'pendente',
+                                ${relationStatus},
                                 ${athleteProfile.responsibleEmail},
                                 ${responsavelUserId},
                                 NOW(),
@@ -1493,30 +1501,31 @@ export async function POST(req: Request) {
                                 );
                             }
                         } else {
-                            // Responsável já existe — notificá-lo
+                            // Responsável já existe — vinculação automática.
+                            // Notificar ambas as partes sobre a vinculação aceite.
                             await sql`
                                 INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                                 VALUES (
                                     gen_random_uuid(),
                                     (SELECT COALESCE(organization_id, '00000000-0000-0000-0000-000000000000') FROM users WHERE id = ${responsavelUserId} LIMIT 1),
                                     ${responsavelUserId},
-                                    'Pedido de Vinculação — Atleta',
-                                    ${`O atleta ${fullName} registou-se como menor de idade e indicou o seu e-mail como responsável. Aguarde que o atleta aceite o pedido de vinculação.`},
+                                    'Vinculação Aceite — Atleta',
+                                    ${`O atleta ${fullName} registou-se como menor de idade e indicou o seu e-mail como responsável. A vinculação foi estabelecida automaticamente.`},
                                     'vinculacao_responsavel',
                                     false,
                                     NOW()
                                 )
                             `.catch(() => {});
 
-                            // Notificar o atleta MENOR para aprovar a vinculação
+                            // Notificar o atleta MENOR sobre a vinculação aceite
                             await sql`
                                 INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                                 VALUES (
                                     gen_random_uuid(),
                                     ${athleteOrgId ?? "00000000-0000-0000-0000-000000000000"},
                                     ${athleteUserId},
-                                    'Pedido de Vinculação — Responsável',
-                                    ${`O responsável ${athleteProfile.responsibleEmail} pretende vincular-se ao seu perfil. Aceda às notificações para aceitar ou recusar este pedido.`},
+                                    'Vinculação Aceite — Responsável',
+                                    ${`O responsável ${athleteProfile.responsibleEmail} foi vinculado automaticamente ao seu perfil.`},
                                     'vinculacao_responsavel',
                                     false,
                                     NOW()
@@ -1584,8 +1593,10 @@ export async function POST(req: Request) {
                         } else {
                             const minor = minorRows[0];
                             // Verificar se o vínculo já existe (fluxo iniciado pelo atleta)
-                            const existingLink = await sql<{ id: string }[]>`
-                                SELECT id FROM atleta_relacoes_pendentes
+                            const existingLink = await sql<
+                                { id: string; status: string }[]
+                            >`
+                                SELECT id, status FROM atleta_relacoes_pendentes
                                 WHERE atleta_user_id = ${minor.user_id}
                                   AND relation_kind = 'responsavel'
                                   AND LOWER(alvo_email) = LOWER(${currentEmail})
@@ -1593,19 +1604,31 @@ export async function POST(req: Request) {
                             `.catch(() => []);
 
                             if (existingLink.length === 0) {
-                                // Responsável registou-se primeiro — criar pedido de vinculação
+                                // Responsável registou-se primeiro — criar como aceite
+                                // (indicação mútua: responsável indicou o menor).
                                 await sql`
                                     INSERT INTO atleta_relacoes_pendentes (
                                         id, atleta_user_id, relation_kind, status,
                                         alvo_email, alvo_responsavel_user_id,
                                         created_at, updated_at
                                     ) VALUES (
-                                        gen_random_uuid(), ${minor.user_id}, 'responsavel', 'pendente',
+                                        gen_random_uuid(), ${minor.user_id}, 'responsavel', 'aceite',
                                         ${currentEmail}, ${responsavelDbId},
                                         NOW(), NOW()
                                     )
                                     ON CONFLICT DO NOTHING
                                 `;
+                            } else if (existingLink[0].status === "pendente") {
+                                // Já existe relação pendente criada pelo
+                                // atleta — indicação mútua confirmada,
+                                // aceitar automaticamente.
+                                await sql`
+                                    UPDATE atleta_relacoes_pendentes
+                                    SET status = 'aceite',
+                                        alvo_responsavel_user_id = ${responsavelDbId},
+                                        updated_at = NOW()
+                                    WHERE id = ${existingLink[0].id}
+                                `.catch(() => {});
                             }
 
                             // Atualizar atleta.encarregado_educacao para a vinculação
@@ -1616,7 +1639,7 @@ export async function POST(req: Request) {
                                   AND (encarregado_educacao IS NULL OR encarregado_educacao = '')
                             `.catch(() => {});
 
-                            // Notificar o atleta menor sobre o pedido de vinculação
+                            // Notificar o atleta menor sobre a vinculação aceite
                             const minorOrg = await sql<
                                 { organization_id: string | null }[]
                             >`
@@ -1629,8 +1652,8 @@ export async function POST(req: Request) {
                                     gen_random_uuid(),
                                     ${minorOrg[0]?.organization_id ?? "00000000-0000-0000-0000-000000000000"},
                                     ${minor.user_id},
-                                    'Pedido de Vinculação — Responsável',
-                                    ${`${fullName} (${currentEmail}) registou-se como responsável e pretende vincular-se ao seu perfil. Pode aceitar ou recusar este pedido.`},
+                                    'Vinculação Aceite — Responsável',
+                                    ${`${fullName} (${currentEmail}) registou-se como responsável e foi vinculado automaticamente ao seu perfil.`},
                                     'vinculacao_responsavel',
                                     false,
                                     NOW()

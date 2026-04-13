@@ -404,12 +404,6 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     href="/dashboard/treinador/notas"
                                     onClick={() => setIsOpen(false)}
                                 />
-                                <NavItem
-                                    icon={<ShieldCheck size={20} />}
-                                    label="Autorizações"
-                                    href="/dashboard/treinador/autorizacoes"
-                                    onClick={() => setIsOpen(false)}
-                                />
                             </NavSection>
                             <NavSection label="Plantel">
                                 <NavItem

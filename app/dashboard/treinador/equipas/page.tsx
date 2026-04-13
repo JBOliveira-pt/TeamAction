@@ -1,6 +1,7 @@
 // Página de equipas do treinador.
 import { fetchEscaloes, fetchDesportoOrg } from "@/app/lib/data";
 import NovaEquipaModal from "./_components/NovaEquipaModal.client";
+import EditarEquipaModal from "./_components/EditarEquipaModal.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
@@ -40,10 +41,17 @@ async function fetchEquipasTreinador() {
             estado: string;
             desporto: string;
             total_atletas: number;
+            is_club_team: boolean;
         }[]
     >`
         SELECT e.id, e.nome, e.escalao, e.estado, e.desporto,
-               COUNT(a.id) AS total_atletas
+               COUNT(a.id) AS total_atletas,
+               EXISTS (
+                   SELECT 1 FROM staff s
+                   WHERE s.equipa_id = e.id
+                     AND s.organization_id = ${orgId}
+                     AND s.funcao IN ('Treinador Principal', 'Treinador Adjunto')
+               ) AS is_club_team
         FROM equipas e
         LEFT JOIN atletas a ON a.equipa_id = e.id
         WHERE e.organization_id = ${orgId} AND e.treinador_id = ${internalUserId}
@@ -86,7 +94,10 @@ export default async function EquipasTreinadorPage({
     ]);
 
     const abrirModal = params?.new === "true";
-    const totalAtletas = equipas.reduce((acc, e) => acc + Number(e.total_atletas), 0);
+    const totalAtletas = equipas.reduce(
+        (acc, e) => acc + Number(e.total_atletas),
+        0,
+    );
     const equipasAtivas = equipas.filter((e) => e.estado === "ativa").length;
 
     return (
@@ -144,7 +155,8 @@ export default async function EquipasTreinadorPage({
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
                 {equipas.length === 0 ? (
                     <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10">
-                        Nenhuma equipa registada ainda. Cria a tua primeira equipa!
+                        Nenhuma equipa registada ainda. Cria a tua primeira
+                        equipa!
                     </p>
                 ) : (
                     <table className="w-full text-sm">
@@ -154,6 +166,7 @@ export default async function EquipasTreinadorPage({
                                 <th className="text-left px-6 py-4">Escalão</th>
                                 <th className="text-left px-6 py-4">Atletas</th>
                                 <th className="text-left px-6 py-4">Estado</th>
+                                <th className="text-left px-6 py-4">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -177,6 +190,26 @@ export default async function EquipasTreinadorPage({
                                         >
                                             {estadoLabel[e.estado] ?? e.estado}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {!e.is_club_team ? (
+                                            <EditarEquipaModal
+                                                equipa={{
+                                                    id: e.id,
+                                                    nome: e.nome,
+                                                    escalao: e.escalao,
+                                                    estado: e.estado,
+                                                }}
+                                                escaloes={escaloes}
+                                            />
+                                        ) : (
+                                            <span
+                                                className="text-xs text-gray-400 dark:text-gray-500"
+                                                title="Equipa atribuída pelo clube — só o presidente pode editar"
+                                            >
+                                                —
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
