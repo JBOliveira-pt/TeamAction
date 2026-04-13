@@ -524,6 +524,7 @@ async function ensureUserExistsWithOrganization(
     currentUser: any,
     uploadedImageUrl?: string | null,
     hashedPassword?: string,
+    accountType?: string,
 ) {
     const email = currentUser.emailAddresses[0]?.emailAddress;
     const fullName =
@@ -606,24 +607,26 @@ async function ensureUserExistsWithOrganization(
             `;
         }
 
-        // Auto-criar equipa mirror para esta organização (1:1)
-        const existingEquipa = await tx`
-            SELECT id FROM equipas WHERE organization_id = ${newOrg[0].id} LIMIT 1
-        `;
-        if (existingEquipa.length === 0) {
-            await tx`
-                INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
-                VALUES (
-                    gen_random_uuid(),
-                    ${newOrg[0].id},
-                    ${orgName},
-                    'Geral',
-                    'Não definido',
-                    'ativa',
-                    NOW(),
-                    NOW()
-                )
+        // Auto-criar equipa mirror para esta organização (1:1) — exceto treinadores
+        if (accountType !== "treinador") {
+            const existingEquipa = await tx`
+                SELECT id FROM equipas WHERE organization_id = ${newOrg[0].id} LIMIT 1
             `;
+            if (existingEquipa.length === 0) {
+                await tx`
+                    INSERT INTO equipas (id, organization_id, nome, escalao, desporto, estado, created_at, updated_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${newOrg[0].id},
+                        ${orgName},
+                        'Geral',
+                        'Não definido',
+                        'ativa',
+                        NOW(),
+                        NOW()
+                    )
+                `;
+            }
         }
     });
 }
@@ -855,6 +858,7 @@ export async function POST(req: Request) {
             currentUser,
             uploadedImageUrl,
             hashedPassword,
+            accountType,
         );
 
         await sql`
@@ -1088,29 +1092,6 @@ export async function POST(req: Request) {
                     UPDATE users
                     SET pais = ${trainerProfile.country}, updated_at = NOW()
                     WHERE clerk_user_id = ${userId}
-                `;
-            }
-
-            // Renomear equipa mirror do treinador e definir treinador_id
-            const trainerUser = await sql<
-                { id: string; organization_id: string | null }[]
-            >`
-                SELECT id, organization_id FROM users
-                WHERE clerk_user_id = ${userId} LIMIT 1
-            `;
-            const trainerDbUserId = trainerUser[0]?.id;
-            const trainerOrgId = trainerUser[0]?.organization_id;
-
-            if (trainerOrgId) {
-                const teamName = `Equipa de ${fullName}`;
-                await sql`
-                    UPDATE equipas
-                    SET
-                        nome = ${teamName},
-                        treinador_id = ${trainerDbUserId || null},
-                        desporto = ${trainerProfile.modality},
-                        updated_at = NOW()
-                    WHERE organization_id = ${trainerOrgId}
                 `;
             }
         }

@@ -10,9 +10,12 @@ import {
     Building2,
     UserCheck,
     UserPlus,
+    LayoutDashboard,
+    LogOut,
     Menu,
     X,
 } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import { ASSETS } from "@/app/lib/assets";
 
 const profileLinks = [
@@ -49,6 +52,7 @@ const profileLinks = [
 export function LandingNavbar() {
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const { isSignedIn, signOut } = useAuth();
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -126,19 +130,41 @@ export function LandingNavbar() {
 
                         {/* Direita: botões Auth */}
                         <div className="hidden lg:flex items-center gap-3">
-                            <Link
-                                href="/login"
-                                className="px-5 py-2.5 rounded-full text-1rem font-semibold text-[#27365D]-100 hover:text-blue-400 transition-colors duration-200"
-                            >
-                                Log in
-                            </Link>
-                            <Link
-                                href="/signup"
-                                className="flex items-center gap-2 px-7 py-2.5 rounded-[0.8rem] text-sm font-semibold bg-blue-800 text-white hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
-                            >
-                                <UserPlus className="h-4 w-4" />
-                                Sign up
-                            </Link>
+                            {isSignedIn ? (
+                                <>
+                                    <button
+                                        onClick={() =>
+                                            signOut({ redirectUrl: "/" })
+                                        }
+                                        className="px-5 py-2.5 rounded-full text-1rem font-semibold text-[#27365D]-100 hover:text-red-500 transition-colors duration-200 cursor-pointer"
+                                    >
+                                        Log out
+                                    </button>
+                                    <Link
+                                        href="/dashboard"
+                                        className="flex items-center gap-2 px-7 py-2.5 rounded-[0.8rem] text-sm font-semibold bg-blue-800 text-white hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
+                                    >
+                                        <LayoutDashboard className="h-4 w-4" />
+                                        Dashboard
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <Link
+                                        href="/login"
+                                        className="px-5 py-2.5 rounded-full text-1rem font-semibold text-[#27365D]-100 hover:text-blue-400 transition-colors duration-200"
+                                    >
+                                        Log in
+                                    </Link>
+                                    <Link
+                                        href="/signup"
+                                        className="flex items-center gap-2 px-7 py-2.5 rounded-[0.8rem] text-sm font-semibold bg-blue-800 text-white hover:bg-blue-500 transition-all duration-200 shadow-lg shadow-blue-600/25 hover:shadow-blue-500/30"
+                                    >
+                                        <UserPlus className="h-4 w-4" />
+                                        Sign up
+                                    </Link>
+                                </>
+                            )}
                         </div>
 
                         {/* Hamburger mobile */}
@@ -200,20 +226,43 @@ export function LandingNavbar() {
 
                     {/* Botões Auth */}
                     <div className="border-t border-slate-200/60 pt-8 flex flex-col gap-3">
-                        <Link
-                            href="/login"
-                            onClick={() => setMobileOpen(false)}
-                            className="w-full text-center px-5 py-3.5 rounded-2xl text-sm font-semibold text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors"
-                        >
-                            Log in
-                        </Link>
-                        <Link
-                            href="/signup"
-                            onClick={() => setMobileOpen(false)}
-                            className="w-full text-center px-5 py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/25"
-                        >
-                            Sign up
-                        </Link>
+                        {isSignedIn ? (
+                            <>
+                                <Link
+                                    href="/dashboard"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="w-full text-center px-5 py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/25"
+                                >
+                                    Dashboard
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        setMobileOpen(false);
+                                        signOut({ redirectUrl: "/" });
+                                    }}
+                                    className="w-full text-center px-5 py-3.5 rounded-2xl text-sm font-semibold text-slate-700 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors cursor-pointer"
+                                >
+                                    Log out
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    href="/login"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="w-full text-center px-5 py-3.5 rounded-2xl text-sm font-semibold text-slate-700 border border-slate-200 hover:bg-slate-50 transition-colors"
+                                >
+                                    Log in
+                                </Link>
+                                <Link
+                                    href="/signup"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="w-full text-center px-5 py-3.5 rounded-2xl text-sm font-semibold bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/25"
+                                >
+                                    Sign up
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

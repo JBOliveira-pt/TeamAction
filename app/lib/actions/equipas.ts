@@ -190,6 +190,78 @@ export async function criarEquipa(
     }
 }
 
+export async function criarEquipaTreinador(
+    _prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    let organizationId: string;
+
+    try {
+        organizationId = await getOrganizationId();
+    } catch (error) {
+        console.error("Failed to resolve organization for creating team:", error);
+        return { error: "Não foi possível identificar a organização. Tenta novamente." };
+    }
+
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return { error: "Sessão expirada." };
+
+    const nome = formData.get("nome") as string;
+    const escalao = formData.get("escalao") as string;
+    const desporto = formData.get("desporto") as string;
+    const estado = formData.get("estado") as string;
+
+    if (!nome?.trim() || !escalao?.trim() || !estado?.trim()) {
+        return { error: "Preenche todos os campos obrigatórios." };
+    }
+
+    try {
+        const [trainerUser] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkId} LIMIT 1
+        `;
+        if (!trainerUser) return { error: "Utilizador não encontrado." };
+
+        const epocas = await sql<{ id: string }[]>`
+            SELECT id FROM epocas
+            WHERE organization_id = ${organizationId} AND ativa = true
+            LIMIT 1
+        `;
+        const epocaId = epocas[0]?.id ?? null;
+
+        await sql`
+            INSERT INTO equipas (nome, escalao, desporto, estado, epoca_id, organization_id, treinador_id, created_at, updated_at)
+            VALUES (
+                ${nome.trim()}, ${escalao.trim()}, ${(desporto || "").trim()},
+                ${estado}, ${epocaId}, ${organizationId}, ${trainerUser.id}, NOW(), NOW()
+            )
+        `;
+
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${organizationId},
+                'Nova equipa criada',
+                ${`Equipa ${nome.trim()} (${escalao.trim()}) foi criada com sucesso.`},
+                'Info',
+                NOW()
+            )
+        `;
+
+        await logAction(clerkId, "equipa_create", "/dashboard/treinador/equipas", {
+            nome: nome.trim(),
+            escalao: escalao.trim(),
+            desporto: (desporto || "").trim(),
+            estado,
+        });
+        revalidatePath("/dashboard/treinador/equipas");
+        return { success: true };
+    } catch (error) {
+        console.error("Database Error:", error);
+        return { error: "Erro ao criar equipa. Tenta novamente." };
+    }
+}
+
 export async function editarEquipa(
     _prevState: { error?: string; success?: boolean } | null,
     formData: FormData,

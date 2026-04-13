@@ -414,8 +414,14 @@ export default function SideNav({ accountType }: SideNavProps) {
                             <NavSection label="Plantel">
                                 <NavItem
                                     icon={<Users size={20} />}
-                                    label="Equipa"
-                                    href="/dashboard/treinador/equipa-atletas"
+                                    label="Equipas"
+                                    href="/dashboard/treinador/equipas"
+                                    onClick={() => setIsOpen(false)}
+                                />
+                                <NavItem
+                                    icon={<Users size={20} />}
+                                    label="Atletas"
+                                    href="/dashboard/treinador/atletas"
                                     onClick={() => setIsOpen(false)}
                                 />
                                 <NavItem

@@ -431,10 +431,10 @@ export default async function TreinadorDashboard() {
                                 Plantel
                             </h3>
                             <Link
-                                href="/dashboard/treinador/equipa-atletas"
+                                href="/dashboard/treinador/equipas"
                                 className="text-xs text-blue-500 hover:underline"
                             >
-                                Ver equipa →
+                                Ver equipas →
                             </Link>
                         </div>
                         {data?.hasEquipa ? (
