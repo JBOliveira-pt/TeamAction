@@ -473,7 +473,7 @@ export default function SideNav({ accountType }: SideNavProps) {
                                     onClick={() => setIsOpen(false)}
                                 />
                             </NavSection>
-                            <NavSection label="Atletas">
+                            <NavSection label="Saúde">
                                 <NavItem
                                     icon={<Activity size={20} />}
                                     label="Condição Física"

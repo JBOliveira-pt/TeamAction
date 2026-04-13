@@ -199,8 +199,13 @@ export async function criarEquipaTreinador(
     try {
         organizationId = await getOrganizationId();
     } catch (error) {
-        console.error("Failed to resolve organization for creating team:", error);
-        return { error: "Não foi possível identificar a organização. Tenta novamente." };
+        console.error(
+            "Failed to resolve organization for creating team:",
+            error,
+        );
+        return {
+            error: "Não foi possível identificar a organização. Tenta novamente.",
+        };
     }
 
     const { userId: clerkId } = await auth();
@@ -248,12 +253,17 @@ export async function criarEquipaTreinador(
             )
         `;
 
-        await logAction(clerkId, "equipa_create", "/dashboard/treinador/equipas", {
-            nome: nome.trim(),
-            escalao: escalao.trim(),
-            desporto: (desporto || "").trim(),
-            estado,
-        });
+        await logAction(
+            clerkId,
+            "equipa_create",
+            "/dashboard/treinador/equipas",
+            {
+                nome: nome.trim(),
+                escalao: escalao.trim(),
+                desporto: (desporto || "").trim(),
+                estado,
+            },
+        );
         revalidatePath("/dashboard/treinador/equipas");
         return { success: true };
     } catch (error) {

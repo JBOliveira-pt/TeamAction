@@ -341,10 +341,7 @@ export function AdminUserEditForm({
                 <label className={labelCls}>Foto de perfil</label>
                 <div className="flex items-center gap-4">
                     <Image
-                        src={
-                            photoPreview ||
-                            getProfilePlaceholder(accountType)
-                        }
+                        src={photoPreview || getProfilePlaceholder(accountType)}
                         alt="Preview"
                         width={48}
                         height={48}

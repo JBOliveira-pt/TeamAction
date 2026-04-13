@@ -273,7 +273,7 @@ export default function CondicaoFisica({
                 <div>
                     <h2 className="text-2xl font-bold text-orange-600 dark:text-orange-400 flex items-center gap-2">
                         <Activity size={24} className="text-orange-500" />
-                        Condição Física
+                        Saúde
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Avaliações físicas do plantel — velocidade, impulsão,
