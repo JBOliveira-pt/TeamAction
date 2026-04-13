@@ -57,7 +57,7 @@ function PageHeader({ subtitle }: { subtitle: string }) {
 export default function Staff({ hasClub, staff }: Props) {
     if (!hasClub) {
         return (
-            <div className="p-6 space-y-6">
+            <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 space-y-6">
                 <PageHeader subtitle="Equipa técnica do clube" />
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-12 text-center space-y-3">
                     <div className="text-4xl">🏛️</div>
@@ -75,7 +75,7 @@ export default function Staff({ hasClub, staff }: Props) {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 space-y-6">
             <PageHeader
                 subtitle={`${staff.length} ${staff.length === 1 ? "membro" : "membros"} na equipa técnica`}
             />

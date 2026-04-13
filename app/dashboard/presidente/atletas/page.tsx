@@ -7,8 +7,20 @@ import {
 } from "@/app/lib/data";
 import ConvidarAtletaModal from "./_components/ConvidarAtletaModal.client";
 import EditarAtletaModal from "./_components/EditarAtletaModal.client";
+import RemoverAtletaModal from "./_components/RemoverAtletaModal.client";
+import { getEscalaoMaximoParaIdade } from "@/app/lib/grau-escalao-compat";
 
 export const dynamic = "force-dynamic";
+
+function calcularIdade(dataNascimento: string | null): number | null {
+    if (!dataNascimento) return null;
+    const nascimento = new Date(dataNascimento);
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const m = hoje.getMonth() - nascimento.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
+    return idade;
+}
 
 const estadoStyle: Record<string, string> = {
     ativo: "bg-emerald-500/10 text-emerald-400",
@@ -190,6 +202,9 @@ export default async function AtletasPage({
                                 <th className="text-left px-6 py-4">Posição</th>
                                 <th className="text-left px-6 py-4">Equipa</th>
                                 <th className="text-left px-6 py-4">
+                                    Escalão Máx.
+                                </th>
+                                <th className="text-left px-6 py-4">
                                     Mensalidade
                                 </th>
                                 <th className="text-left px-6 py-4">Estado</th>
@@ -223,6 +238,28 @@ export default async function AtletasPage({
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
                                         {a.equipa_nome ?? "—"}
                                     </td>
+                                    <td className="px-6 py-4">
+                                        {(() => {
+                                            const idade = calcularIdade(
+                                                a.data_nascimento,
+                                            );
+                                            if (idade === null)
+                                                return (
+                                                    <span className="text-gray-400">
+                                                        —
+                                                    </span>
+                                                );
+                                            const escalao =
+                                                getEscalaoMaximoParaIdade(
+                                                    idade,
+                                                );
+                                            return (
+                                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-violet-500/10 text-violet-400">
+                                                    {escalao}
+                                                </span>
+                                            );
+                                        })()}
+                                    </td>
                                     <td
                                         className={`px-6 py-4 font-medium ${mensalidadeStyle[a.mensalidade_estado ?? ""] ?? "text-gray-400"}`}
                                     >
@@ -238,12 +275,22 @@ export default async function AtletasPage({
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <Link
-                                            href={`/dashboard/presidente/atletas/${a.id}`}
-                                            className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
-                                        >
-                                            Ver perfil →
-                                        </Link>
+                                        <div className="flex items-center gap-3">
+                                            <EditarAtletaModal
+                                                atleta={a}
+                                                equipas={equipas.map((e) => ({
+                                                    id: e.id,
+                                                    nome: e.nome,
+                                                }))}
+                                            />
+                                            <RemoverAtletaModal atleta={a} />
+                                            <Link
+                                                href={`/dashboard/presidente/atletas/${a.id}`}
+                                                className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
+                                            >
+                                                Ver perfil →
+                                            </Link>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

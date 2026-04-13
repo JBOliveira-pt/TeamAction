@@ -79,30 +79,6 @@ const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 // --- Athlete options ---
-const POSICOES_FUTEBOL = [
-    "Guarda-Redes",
-    "Defesa Central",
-    "Defesa Esquerdo",
-    "Defesa Direito",
-    "Médio Defensivo",
-    "Médio Centro",
-    "Médio Ofensivo",
-    "Extremo Esquerdo",
-    "Extremo Direito",
-    "Avançado Centro",
-    "Outro",
-];
-const POSICOES_ANDEBOL = [
-    "Guarda-Redes",
-    "Central",
-    "Lateral Esquerdo",
-    "Lateral Direito",
-    "Ponta Esquerdo",
-    "Ponta Direito",
-    "Pivot",
-];
-const ALL_POSICOES = [...new Set([...POSICOES_FUTEBOL, ...POSICOES_ANDEBOL])];
-
 const MAOS = [
     { value: "direita", label: "Direita" },
     { value: "esquerda", label: "Esquerda" },
@@ -180,7 +156,15 @@ export function AdminUserEditForm({
     );
     const [cidade, setCidade] = useState(user.cidade || "");
     const [federado, setFederado] = useState(atletaData?.federado ?? false);
+    const [allPosicoes, setAllPosicoes] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        fetch("/api/posicoes")
+            .then((r) => (r.ok ? r.json() : []))
+            .then(setAllPosicoes)
+            .catch(() => {});
+    }, []);
 
     const isAtleta = accountType === "atleta";
     const isTreinador = accountType === "treinador";
@@ -549,7 +533,7 @@ export function AdminUserEditForm({
                                 className={inputCls}
                             >
                                 <option value="">— Sem posição —</option>
-                                {ALL_POSICOES.map((p) => (
+                                {allPosicoes.map((p) => (
                                     <option key={p} value={p}>
                                         {p}
                                     </option>

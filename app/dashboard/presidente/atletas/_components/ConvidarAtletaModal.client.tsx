@@ -33,19 +33,7 @@ function calcularIdade(dataNascimento: string): number {
     return age;
 }
 
-const POSICOES = [
-    "Guarda-Redes",
-    "Defesa Central",
-    "Defesa Esquerdo",
-    "Defesa Direito",
-    "Médio Defensivo",
-    "Médio Centro",
-    "Médio Ofensivo",
-    "Extremo Esquerdo",
-    "Extremo Direito",
-    "Avançado Centro",
-    "Outro",
-];
+const POSICOES_FALLBACK: string[] = [];
 
 const ESTADOS = [
     { value: "ativo", label: "Ativo" },
@@ -67,7 +55,15 @@ export default function ConvidarAtletaModal({
     defaultOpen?: boolean; // ✅ novo prop
 }) {
     const [open, setOpen] = useState(defaultOpen); // ✅ alterado
+    const [posicoes, setPosicoes] = useState<string[]>(POSICOES_FALLBACK);
     const [step, setStep] = useState<WizardStep>("choice");
+
+    useEffect(() => {
+        fetch("/api/posicoes")
+            .then((r) => (r.ok ? r.json() : []))
+            .then(setPosicoes)
+            .catch(() => {});
+    }, []);
 
     const [nome, setNome] = useState("");
     const [dataNascimento, setDataNascimento] = useState("");
@@ -352,7 +348,7 @@ export default function ConvidarAtletaModal({
                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                     >
                         <option value="">Seleciona</option>
-                        {POSICOES.map((p) => (
+                        {posicoes.map((p) => (
                             <option key={p} value={p}>
                                 {p}
                             </option>

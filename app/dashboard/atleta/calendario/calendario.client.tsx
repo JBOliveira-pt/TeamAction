@@ -29,12 +29,12 @@ type CalendarNote = {
     created_at: string;
 };
 
-const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "S�b"];
+const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const MONTHS = [
     "Janeiro",
     "Fevereiro",
-    "Mar�o",
+    "Março",
     "Abril",
     "Maio",
     "Junho",
@@ -70,11 +70,11 @@ function formatFullDate(key: string) {
     const weekday = [
         "Domingo",
         "Segunda",
-        "Ter�a",
+        "Terça",
         "Quarta",
         "Quinta",
         "Sexta",
-        "S�bado",
+        "Sábado",
     ][date.getDay()];
     return { weekday, day: parseInt(d), month: MONTHS[+m - 1], year: y };
 }
@@ -144,7 +144,7 @@ export default function Calendario({
         return map;
     }, [sessoes]);
 
-    // Estat�sticas do m�s
+    // Estatísticas do mês
     const monthStats = useMemo(() => {
         const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
         const mJogos = jogos.filter((j) =>
@@ -254,10 +254,10 @@ export default function Calendario({
             {selectedDate && selDate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg relative border border-blue-100 dark:border-blue-900 max-h-[90vh] overflow-y-auto">
-                        {/* Cabe�alho */}
+                        {/* Cabeçalho */}
                         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
                             <div className="flex items-center gap-3">
-                                <span className="text-3xl">??</span>
+                                <span className="text-3xl">📅</span>
                                 <div>
                                     <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">
                                         {selDate.weekday}, {selDate.day} de{" "}
@@ -273,7 +273,7 @@ export default function Calendario({
                                 onClick={closeModal}
                                 aria-label="Fechar"
                             >
-                                �
+                                ✕
                             </button>
                         </div>
 
@@ -295,7 +295,7 @@ export default function Calendario({
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800"
                                             >
                                                 <span className="text-xl shrink-0">
-                                                    ??
+                                                    0
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
@@ -305,7 +305,7 @@ export default function Calendario({
                                                         {j.casa_fora === "casa"
                                                             ? "Em Casa"
                                                             : "Fora"}{" "}
-                                                        � {j.equipa_nome}
+                                                        ✕ {j.equipa_nome}
                                                     </p>
                                                 </div>
                                                 <span
@@ -331,7 +331,7 @@ export default function Calendario({
                                 )}
                             </div>
 
-                            {/* Sess�es de treino */}
+                            {/* Sessões de treino */}
                             <div>
                                 <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-3 uppercase tracking-wide">
                                     Treinos
@@ -348,7 +348,7 @@ export default function Calendario({
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800"
                                             >
                                                 <span className="text-xl shrink-0">
-                                                    ??
+                                                    0
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
@@ -357,7 +357,7 @@ export default function Calendario({
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                                         {s.duracao_min} min
                                                         {s.observacoes
-                                                            ? ` � ${s.observacoes}`
+                                                            ? ` ✕ ${s.observacoes}`
                                                             : ""}
                                                     </p>
                                                 </div>
@@ -388,7 +388,7 @@ export default function Calendario({
                                                 className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
                                             >
                                                 <span className="text-lg shrink-0 mt-0.5">
-                                                    ??
+                                                    0
                                                 </span>
                                                 <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
                                                     {n.nota}
@@ -401,7 +401,7 @@ export default function Calendario({
                                                     className="shrink-0 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none disabled:opacity-50 disabled:cursor-not-allowed"
                                                     aria-label="Eliminar nota"
                                                 >
-                                                    �
+                                                    ✕
                                                 </button>
                                             </div>
                                         ))}
@@ -409,8 +409,8 @@ export default function Calendario({
                                 )}
                                 {contaPendente ? (
                                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                                        Conta pendente: aguarda valida��o do
-                                        respons�vel.
+                                        Conta pendente: aguarda validação do
+                                        responsável.
                                     </p>
                                 ) : (
                                     <form
@@ -448,17 +448,17 @@ export default function Calendario({
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Calend�rio
+                        Calendário
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Jogos e treinos da equipa
                         {(monthStats.jogos > 0 || monthStats.sessoes > 0) && (
                             <span className="ml-2 text-gray-400 dark:text-gray-500">
                                 {monthStats.jogos > 0 &&
-                                    `� ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
+                                    `• ${monthStats.jogos} jogo${monthStats.jogos !== 1 ? "s" : ""}`}
                                 {monthStats.sessoes > 0 &&
-                                    ` � ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`}{" "}
-                                este m�s
+                                    ` • ${monthStats.sessoes} treino${monthStats.sessoes !== 1 ? "s" : ""}`}{" "}
+                                este mês
                             </span>
                         )}
                     </p>
@@ -467,9 +467,9 @@ export default function Calendario({
                     <button
                         onClick={prevMonth}
                         className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all shadow-sm"
-                        aria-label="M�s anterior"
+                        aria-label="Mês anterior"
                     >
-                        ?
+                        ‹
                     </button>
                     <span className="font-bold text-gray-800 dark:text-gray-200 text-base min-w-[160px] text-center px-2">
                         {MONTHS[month]} {year}
@@ -477,9 +477,9 @@ export default function Calendario({
                     <button
                         onClick={nextMonth}
                         className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl font-bold hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all shadow-sm"
-                        aria-label="Pr�ximo m�s"
+                        aria-label="Próximo mês"
                     >
-                        ?
+                        ›
                     </button>
                 </div>
             </div>
@@ -489,26 +489,26 @@ export default function Calendario({
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
                     <span className="w-3 h-3 rounded-full bg-rose-500" />
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        ?? Jogos
+                        0 Jogos
                     </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
                     <span className="w-3 h-3 rounded-full bg-violet-500" />
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        ??? Treinos
+                        0 Treinos
                     </span>
                 </div>
                 <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-2xl px-4 py-2 shadow-sm border border-slate-100 dark:border-gray-800">
                     <span className="w-3 h-3 rounded-full bg-blue-500" />
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        ?? Notas
+                        0 Notas
                     </span>
                 </div>
             </div>
 
             {/* ---------------------- CALENDAR GRID ---------------------- */}
             <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-lg shadow-slate-200 dark:shadow-gray-950 overflow-hidden border border-slate-100 dark:border-gray-800 flex-1 flex flex-col min-h-0">
-                {/* Cabe�alhos dias da semana */}
+                {/* Cabeçalhos dias da semana */}
                 <div className="grid grid-cols-7 border-b border-slate-100 dark:border-gray-800 shrink-0">
                     {WEEKDAYS.map((d, i) => (
                         <div
@@ -642,7 +642,7 @@ export default function Calendario({
                                                                 ??
                                                             </span>
                                                             <span className="truncate">
-                                                                Anota��o
+                                                                Anotação
                                                             </span>
                                                         </div>
                                                     )}

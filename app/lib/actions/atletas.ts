@@ -320,3 +320,259 @@ export async function editarAtleta(
     revalidatePath("/dashboard/presidente/atletas");
     return { success: true };
 }
+
+/**
+ * Elimina um atleta fictício (sem user_id) pelo presidente.
+ */
+export async function eliminarAtletaFicticio(
+    atletaId: string,
+): Promise<{ error?: string; success?: boolean }> {
+    const { userId } = await auth();
+    if (!userId) return { error: "Não autenticado." };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<
+            { organization_id: string }[]
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: "Erro ao obter organização." };
+    }
+    if (!organizationId) return { error: "Organização não encontrada." };
+
+    try {
+        const [atleta] = await sql<
+            { id: string; user_id: string | null; nome: string }[]
+        >`
+            SELECT id, user_id, nome FROM atletas
+            WHERE id = ${atletaId} AND organization_id = ${organizationId}
+            LIMIT 1
+        `;
+        if (!atleta) return { error: "Atleta não encontrado." };
+        if (atleta.user_id)
+            return {
+                error: "Este atleta tem conta real. Use a opção de desvincular.",
+            };
+
+        await sql`DELETE FROM atletas WHERE id = ${atletaId} AND organization_id = ${organizationId}`;
+
+        await logAction(
+            userId,
+            "atleta_delete_ficticio",
+            "/dashboard/presidente/atletas",
+            {
+                atletaId,
+                nome: atleta.nome,
+            },
+        );
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao eliminar atleta." };
+    }
+
+    revalidatePath("/dashboard/presidente/atletas");
+    revalidatePath("/dashboard/treinador/equipa-atletas");
+    return { success: true };
+}
+
+/**
+ * Desvincula um atleta real do clube (presidente).
+ * O registo é removido e o atleta recebe notificação.
+ */
+export async function desvincularAtletaReal(
+    atletaId: string,
+): Promise<{ error?: string; success?: boolean }> {
+    const { userId } = await auth();
+    if (!userId) return { error: "Não autenticado." };
+
+    let organizationId: string | undefined;
+    try {
+        const user = await sql<
+            { organization_id: string }[]
+        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+        organizationId = user[0]?.organization_id;
+    } catch {
+        return { error: "Erro ao obter organização." };
+    }
+    if (!organizationId) return { error: "Organização não encontrada." };
+
+    try {
+        const [atleta] = await sql<
+            { id: string; user_id: string | null; nome: string }[]
+        >`
+            SELECT id, user_id, nome FROM atletas
+            WHERE id = ${atletaId} AND organization_id = ${organizationId}
+            LIMIT 1
+        `;
+        if (!atleta) return { error: "Atleta não encontrado." };
+        if (!atleta.user_id)
+            return {
+                error: "Este atleta é fictício. Use a opção de eliminar.",
+            };
+
+        // Buscar nome do clube para a notificação
+        const [clube] = await sql<{ nome: string }[]>`
+            SELECT nome FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
+        `;
+        const clubeNome = clube?.nome ?? "o clube";
+
+        await sql`DELETE FROM atletas WHERE id = ${atletaId} AND organization_id = ${organizationId}`;
+
+        // Notificar o atleta
+        await sql`
+            INSERT INTO notificacoes (id, user_id, titulo, descricao, tipo, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${atleta.user_id},
+                'Desvinculado do clube',
+                ${`Foste desvinculado de ${clubeNome}. Caso tenhas dúvidas, contacta o responsável do clube.`},
+                'Aviso',
+                NOW()
+            )
+        `;
+
+        await logAction(
+            userId,
+            "atleta_desvincular",
+            "/dashboard/presidente/atletas",
+            {
+                atletaId,
+                nome: atleta.nome,
+            },
+        );
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao desvincular atleta." };
+    }
+
+    revalidatePath("/dashboard/presidente/atletas");
+    revalidatePath("/dashboard/treinador/equipa-atletas");
+    return { success: true };
+}
+
+/**
+ * Elimina um atleta fictício (sem user_id) pelo treinador.
+ */
+export async function eliminarAtletaFicicioTreinador(
+    atletaId: string,
+): Promise<{ error?: string; success?: boolean }> {
+    const { userId } = await auth();
+    if (!userId) return { error: "Não autenticado." };
+
+    try {
+        const [treinador] = await sql<
+            { id: string; organization_id: string }[]
+        >`
+            SELECT id, organization_id FROM users
+            WHERE clerk_user_id = ${userId}
+            LIMIT 1
+        `;
+        if (!treinador) return { error: "Treinador não encontrado." };
+
+        const [atleta] = await sql<
+            { id: string; user_id: string | null; nome: string }[]
+        >`
+            SELECT id, user_id, nome FROM atletas
+            WHERE id = ${atletaId} AND organization_id = ${treinador.organization_id}
+            LIMIT 1
+        `;
+        if (!atleta) return { error: "Atleta não encontrado." };
+        if (atleta.user_id)
+            return {
+                error: "Este atleta tem conta real. Use a opção de desvincular.",
+            };
+
+        await sql`DELETE FROM atletas WHERE id = ${atletaId} AND organization_id = ${treinador.organization_id}`;
+
+        await logAction(
+            userId,
+            "atleta_delete_ficticio_treinador",
+            "/dashboard/treinador/equipa-atletas",
+            {
+                atletaId,
+                nome: atleta.nome,
+            },
+        );
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao eliminar atleta." };
+    }
+
+    revalidatePath("/dashboard/treinador/equipa-atletas");
+    revalidatePath("/dashboard/presidente/atletas");
+    return { success: true };
+}
+
+/**
+ * Desvincula um atleta real pelo treinador.
+ * Remove o registo e notifica o atleta.
+ */
+export async function desvincularAtletaRealTreinador(
+    atletaId: string,
+): Promise<{ error?: string; success?: boolean }> {
+    const { userId } = await auth();
+    if (!userId) return { error: "Não autenticado." };
+
+    try {
+        const [treinador] = await sql<
+            { id: string; organization_id: string }[]
+        >`
+            SELECT id, organization_id FROM users
+            WHERE clerk_user_id = ${userId}
+            LIMIT 1
+        `;
+        if (!treinador) return { error: "Treinador não encontrado." };
+
+        const [atleta] = await sql<
+            { id: string; user_id: string | null; nome: string }[]
+        >`
+            SELECT id, user_id, nome FROM atletas
+            WHERE id = ${atletaId} AND organization_id = ${treinador.organization_id}
+            LIMIT 1
+        `;
+        if (!atleta) return { error: "Atleta não encontrado." };
+        if (!atleta.user_id)
+            return {
+                error: "Este atleta é fictício. Use a opção de eliminar.",
+            };
+
+        // Buscar nome do clube para a notificação
+        const [clube] = await sql<{ nome: string }[]>`
+            SELECT nome FROM clubes WHERE organization_id = ${treinador.organization_id} LIMIT 1
+        `;
+        const clubeNome = clube?.nome ?? "o clube";
+
+        await sql`DELETE FROM atletas WHERE id = ${atletaId} AND organization_id = ${treinador.organization_id}`;
+
+        // Notificar o atleta
+        await sql`
+            INSERT INTO notificacoes (id, user_id, titulo, descricao, tipo, created_at)
+            VALUES (
+                gen_random_uuid(),
+                ${atleta.user_id},
+                'Desvinculado do clube',
+                ${`Foste desvinculado de ${clubeNome} pelo treinador. Caso tenhas dúvidas, contacta o responsável do clube.`},
+                'Aviso',
+                NOW()
+            )
+        `;
+
+        await logAction(
+            userId,
+            "atleta_desvincular_treinador",
+            "/dashboard/treinador/equipa-atletas",
+            {
+                atletaId,
+                nome: atleta.nome,
+            },
+        );
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao desvincular atleta." };
+    }
+
+    revalidatePath("/dashboard/treinador/equipa-atletas");
+    revalidatePath("/dashboard/presidente/atletas");
+    return { success: true };
+}

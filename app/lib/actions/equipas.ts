@@ -288,10 +288,9 @@ export async function editarEquipaTreinador(
 
     const id = formData.get("id") as string;
     const nome = formData.get("nome") as string;
-    const escalao = formData.get("escalao") as string;
     const estado = formData.get("estado") as string;
 
-    if (!id || !nome?.trim() || !escalao?.trim() || !estado?.trim()) {
+    if (!id || !nome?.trim() || !estado?.trim()) {
         return { error: "Preenche todos os campos obrigatórios." };
     }
 
@@ -302,8 +301,10 @@ export async function editarEquipaTreinador(
         if (!trainerUser) return { error: "Utilizador não encontrado." };
 
         // Verificar que a equipa pertence ao treinador
-        const [equipa] = await sql<{ id: string }[]>`
-            SELECT id FROM equipas
+        const [equipa] = await sql<
+            { id: string; nome: string; estado: string }[]
+        >`
+            SELECT id, nome, estado FROM equipas
             WHERE id = ${id}
               AND organization_id = ${organizationId}
               AND treinador_id = ${trainerUser.id}
@@ -325,13 +326,36 @@ export async function editarEquipaTreinador(
             };
         }
 
+        const nomeAnterior = equipa.nome;
+        const estadoAnterior = equipa.estado;
+        const nomeAlterado = nome.trim() !== nomeAnterior;
+        const estadoAlterado = estado !== estadoAnterior;
+
         await sql`
             UPDATE equipas
-            SET nome = ${nome.trim()}, escalao = ${escalao.trim()}, estado = ${estado}, updated_at = NOW()
+            SET nome = ${nome.trim()}, estado = ${estado}, updated_at = NOW()
             WHERE id = ${id}
               AND organization_id = ${organizationId}
               AND treinador_id = ${trainerUser.id}
         `;
+
+        // Notificar atletas reais (com user_id) sobre a alteração
+        if (nomeAlterado || estadoAlterado) {
+            const partes: string[] = [];
+            if (nomeAlterado)
+                partes.push(`nome alterado para "${nome.trim()}"`);
+            if (estadoAlterado) partes.push(`estado alterado para "${estado}"`);
+            const descricao = `A equipa "${nomeAnterior}" foi atualizada: ${partes.join(", ")}.`;
+
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                SELECT gen_random_uuid(), ${organizationId}, a.user_id,
+                       'Equipa Atualizada', ${descricao}, 'Info', false, NOW()
+                FROM atletas a
+                WHERE a.equipa_id = ${id}
+                  AND a.user_id IS NOT NULL
+            `.catch(() => {});
+        }
 
         await logAction(
             clerkId,
@@ -340,7 +364,6 @@ export async function editarEquipaTreinador(
             {
                 equipa_id: id,
                 nome: nome.trim(),
-                escalao: escalao.trim(),
                 estado,
             },
         );
@@ -350,6 +373,85 @@ export async function editarEquipaTreinador(
     } catch (error) {
         console.error("Database Error:", error);
         return { error: "Erro ao editar equipa. Tenta novamente." };
+    }
+}
+
+export async function eliminarEquipaTreinador(
+    id: string,
+): Promise<{ error?: string; success?: boolean }> {
+    let organizationId: string;
+    try {
+        organizationId = await getOrganizationId();
+    } catch {
+        return { error: "Não foi possível identificar a organização." };
+    }
+
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return { error: "Sessão expirada." };
+
+    try {
+        const [trainerUser] = await sql<{ id: string }[]>`
+            SELECT id FROM users WHERE clerk_user_id = ${clerkId} LIMIT 1
+        `;
+        if (!trainerUser) return { error: "Utilizador não encontrado." };
+
+        const [equipa] = await sql<{ id: string; nome: string }[]>`
+            SELECT id, nome FROM equipas
+            WHERE id = ${id}
+              AND organization_id = ${organizationId}
+              AND treinador_id = ${trainerUser.id}
+            LIMIT 1
+        `;
+        if (!equipa) return { error: "Equipa não encontrada." };
+
+        // Impedir eliminação de equipas atribuídas pelo clube
+        const [staffRecord] = await sql<{ id: string }[]>`
+            SELECT id FROM staff
+            WHERE equipa_id = ${id}
+              AND organization_id = ${organizationId}
+              AND funcao IN ('Treinador Principal', 'Treinador Adjunto')
+            LIMIT 1
+        `;
+        if (staffRecord) {
+            return {
+                error: "Não é possível eliminar equipas atribuídas pelo clube.",
+            };
+        }
+
+        const nomeEquipa = equipa.nome;
+
+        // Notificar atletas reais antes de desassociar
+        await sql`
+            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+            SELECT gen_random_uuid(), ${organizationId}, a.user_id,
+                   'Equipa Eliminada',
+                   ${`A equipa "${nomeEquipa}" foi eliminada pelo treinador. Permaneces associado(a) ao treinador, mas sem equipa atribuída.`},
+                   'Aviso', false, NOW()
+            FROM atletas a
+            WHERE a.equipa_id = ${id}
+              AND a.user_id IS NOT NULL
+        `.catch(() => {});
+
+        // Desassociar atletas da equipa (mantêm-se no treinador)
+        await sql`UPDATE atletas SET equipa_id = NULL, updated_at = NOW() WHERE equipa_id = ${id}`;
+
+        await sql`DELETE FROM equipas WHERE id = ${id} AND organization_id = ${organizationId} AND treinador_id = ${trainerUser.id}`;
+
+        await logAction(
+            clerkId,
+            "equipa_delete",
+            "/dashboard/treinador/equipas",
+            {
+                equipa_id: id,
+                nome: nomeEquipa,
+            },
+        );
+
+        revalidatePath("/dashboard/treinador/equipas");
+        return { success: true };
+    } catch (error) {
+        console.error("Database Error:", error);
+        return { error: "Erro ao eliminar equipa. Tenta novamente." };
     }
 }
 

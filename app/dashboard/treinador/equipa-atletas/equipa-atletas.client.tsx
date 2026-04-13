@@ -3,8 +3,19 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { getProfilePlaceholder } from "@/app/lib/assets";
+import { getEscalaoMaximoParaIdade } from "@/app/lib/grau-escalao-compat";
 
 const ATLETA_PLACEHOLDER = getProfilePlaceholder("atleta");
+
+function calcularIdade(dataNascimento: string | null): number | null {
+    if (!dataNascimento) return null;
+    const nascimento = new Date(dataNascimento);
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const m = hoje.getMonth() - nascimento.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nascimento.getDate())) idade--;
+    return idade;
+}
 
 type Atleta = {
     id: string;
@@ -15,6 +26,7 @@ type Atleta = {
     equipa_id: string | null;
     equipa_nome: string | null;
     user_id: string | null;
+    data_nascimento: string | null;
 };
 
 type AtletaResultado = {
@@ -488,10 +500,12 @@ type WizardStep =
 
 function ModalCriarAtleta({
     equipas,
+    posicoesBD,
     onClose,
     onCriado,
 }: {
     equipas: Equipa[];
+    posicoesBD: string[];
     onClose: () => void;
     onCriado: (nome: string, suspenso: boolean) => void;
 }) {
@@ -558,7 +572,7 @@ function ModalCriarAtleta({
             setErro("O nome é obrigatório.");
             return;
         }
-        if (!comEmail && !dataNascimento) {
+        if (!dataNascimento) {
             setErro("A data de nascimento é obrigatória.");
             return;
         }
@@ -793,37 +807,11 @@ function ModalCriarAtleta({
                                         }
                                     >
                                         <option value="">Seleciona</option>
-                                        <option value="Guarda-Redes">
-                                            Guarda-Redes
-                                        </option>
-                                        <option value="Defesa Central">
-                                            Defesa Central
-                                        </option>
-                                        <option value="Defesa Esquerdo">
-                                            Defesa Esquerdo
-                                        </option>
-                                        <option value="Defesa Direito">
-                                            Defesa Direito
-                                        </option>
-                                        <option value="Médio Defensivo">
-                                            Médio Defensivo
-                                        </option>
-                                        <option value="Médio Centro">
-                                            Médio Centro
-                                        </option>
-                                        <option value="Médio Ofensivo">
-                                            Médio Ofensivo
-                                        </option>
-                                        <option value="Extremo Esquerdo">
-                                            Extremo Esquerdo
-                                        </option>
-                                        <option value="Extremo Direito">
-                                            Extremo Direito
-                                        </option>
-                                        <option value="Avançado Centro">
-                                            Avançado Centro
-                                        </option>
-                                        <option value="Outro">Outro</option>
+                                        {posicoesBD.map((p) => (
+                                            <option key={p} value={p}>
+                                                {p}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col gap-1">
@@ -1158,6 +1146,21 @@ function ModalCriarAtleta({
                                     onChange={(e) => setNome(e.target.value)}
                                 />
                             </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Data de Nascimento{" "}
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    value={dataNascimento}
+                                    onChange={(e) =>
+                                        setDataNascimento(e.target.value)
+                                    }
+                                />
+                            </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="flex flex-col gap-1">
                                     <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
@@ -1258,7 +1261,9 @@ function ModalCriarAtleta({
                         <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
                             <button
                                 onClick={() => criarAtleta(true)}
-                                disabled={!nome.trim() || enviando}
+                                disabled={
+                                    !nome.trim() || !dataNascimento || enviando
+                                }
                                 className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white shadow transition-all disabled:opacity-40 disabled:cursor-not-allowed ${emailResult?.menor_idade && !emailResult?.responsavel_ativo ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}`}
                             >
                                 {enviando
@@ -1313,6 +1318,21 @@ function ModalCriarAtleta({
                                     placeholder="Nome completo do atleta"
                                     value={nome}
                                     onChange={(e) => setNome(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
+                                    Data de Nascimento{" "}
+                                    <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    required
+                                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    value={dataNascimento}
+                                    onChange={(e) =>
+                                        setDataNascimento(e.target.value)
+                                    }
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -1382,7 +1402,9 @@ function ModalCriarAtleta({
                         <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
                             <button
                                 onClick={() => criarAtleta(true)}
-                                disabled={!nome.trim() || enviando}
+                                disabled={
+                                    !nome.trim() || !dataNascimento || enviando
+                                }
                                 className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed shadow transition-all"
                             >
                                 {enviando
@@ -1402,11 +1424,13 @@ function ModalCriarAtleta({
 function ModalEditarAtletaFake({
     atleta,
     equipas,
+    posicoesBD,
     onClose,
     onEditado,
 }: {
     atleta: Atleta;
     equipas: Equipa[];
+    posicoesBD: string[];
     onClose: () => void;
     onEditado: () => void;
 }) {
@@ -1504,37 +1528,11 @@ function ModalEditarAtletaFake({
                                 onChange={(e) => setPosicao(e.target.value)}
                             >
                                 <option value="">Seleciona</option>
-                                <option value="Guarda-Redes">
-                                    Guarda-Redes
-                                </option>
-                                <option value="Defesa Central">
-                                    Defesa Central
-                                </option>
-                                <option value="Defesa Esquerdo">
-                                    Defesa Esquerdo
-                                </option>
-                                <option value="Defesa Direito">
-                                    Defesa Direito
-                                </option>
-                                <option value="Médio Defensivo">
-                                    Médio Defensivo
-                                </option>
-                                <option value="Médio Centro">
-                                    Médio Centro
-                                </option>
-                                <option value="Médio Ofensivo">
-                                    Médio Ofensivo
-                                </option>
-                                <option value="Extremo Esquerdo">
-                                    Extremo Esquerdo
-                                </option>
-                                <option value="Extremo Direito">
-                                    Extremo Direito
-                                </option>
-                                <option value="Avançado Centro">
-                                    Avançado Centro
-                                </option>
-                                <option value="Outro">Outro</option>
+                                {posicoesBD.map((p) => (
+                                    <option key={p} value={p}>
+                                        {p}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1628,6 +1626,9 @@ export default function EquipaAtletas({
     const [showCriarAtleta, setShowCriarAtleta] = useState(false);
     const [atletaModal, setAtletaModal] = useState<Atleta | null>(null);
     const [atletaEditar, setAtletaEditar] = useState<Atleta | null>(null);
+    const [atletaRemover, setAtletaRemover] = useState<Atleta | null>(null);
+    const [removendo, setRemovendo] = useState(false);
+    const [erroRemover, setErroRemover] = useState<string | null>(null);
     const [convitesPendentes, setConvitesPendentes] = useState<
         ConvitePendente[]
     >([]);
@@ -1635,6 +1636,7 @@ export default function EquipaAtletas({
         msg: string;
         tipo: "ok" | "erro";
     } | null>(null);
+    const [posicoesBD, setPosicoesBD] = useState<string[]>([]);
 
     const showToast = useCallback((msg: string, tipo: "ok" | "erro" = "ok") => {
         setToast({ msg, tipo });
@@ -1645,6 +1647,10 @@ export default function EquipaAtletas({
         fetch("/api/convites-equipa")
             .then((r) => (r.ok ? r.json() : []))
             .then(setConvitesPendentes)
+            .catch(() => {});
+        fetch("/api/posicoes")
+            .then((r) => (r.ok ? r.json() : []))
+            .then(setPosicoesBD)
             .catch(() => {});
     }, []);
 
@@ -1683,9 +1689,112 @@ export default function EquipaAtletas({
                 <ModalEditarAtletaFake
                     atleta={atletaEditar}
                     equipas={equipas}
+                    posicoesBD={posicoesBD}
                     onClose={() => setAtletaEditar(null)}
                     onEditado={() => window.location.reload()}
                 />
+            )}
+
+            {/* Modal confirmar eliminar/desvincular atleta */}
+            {atletaRemover && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                            {!atletaRemover.user_id
+                                ? "Eliminar Atleta"
+                                : "Desvincular Atleta"}
+                        </h3>
+                        <div
+                            className={`rounded-xl p-3 ${
+                                !atletaRemover.user_id
+                                    ? "bg-red-500/10 border border-red-500/20"
+                                    : "bg-orange-500/10 border border-orange-500/20"
+                            }`}
+                        >
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {!atletaRemover.user_id ? (
+                                    <>
+                                        Tens a certeza que queres eliminar o
+                                        atleta fictício{" "}
+                                        <strong>{atletaRemover.nome}</strong>?
+                                        Esta ação é irreversível.
+                                    </>
+                                ) : (
+                                    <>
+                                        Tens a certeza que queres desvincular{" "}
+                                        <strong>{atletaRemover.nome}</strong>? O
+                                        atleta será notificado.
+                                    </>
+                                )}
+                            </p>
+                        </div>
+                        {erroRemover && (
+                            <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
+                                {erroRemover}
+                            </div>
+                        )}
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setAtletaRemover(null);
+                                    setErroRemover(null);
+                                }}
+                                disabled={removendo}
+                                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setRemovendo(true);
+                                    setErroRemover(null);
+                                    try {
+                                        const endpoint = !atletaRemover.user_id
+                                            ? "/api/treinador/eliminar-atleta"
+                                            : "/api/treinador/desvincular-atleta";
+                                        const res = await fetch(endpoint, {
+                                            method: "POST",
+                                            headers: {
+                                                "Content-Type":
+                                                    "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                                atleta_id: atletaRemover.id,
+                                            }),
+                                        });
+                                        if (res.ok) {
+                                            setAtletaRemover(null);
+                                            showToast(
+                                                !atletaRemover.user_id
+                                                    ? `${atletaRemover.nome} eliminado.`
+                                                    : `${atletaRemover.nome} desvinculado.`,
+                                            );
+                                            window.location.reload();
+                                        } else {
+                                            setErroRemover(await res.text());
+                                        }
+                                    } catch {
+                                        setErroRemover("Erro de rede.");
+                                    } finally {
+                                        setRemovendo(false);
+                                    }
+                                }}
+                                disabled={removendo}
+                                className={`px-5 py-2 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    !atletaRemover.user_id
+                                        ? "bg-red-600 hover:bg-red-700"
+                                        : "bg-orange-600 hover:bg-orange-700"
+                                }`}
+                            >
+                                {removendo
+                                    ? "A processar..."
+                                    : !atletaRemover.user_id
+                                      ? "Eliminar"
+                                      : "Desvincular"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Modal ver atleta */}
@@ -1784,6 +1893,22 @@ export default function EquipaAtletas({
                                 </button>
                             )}
                             <button
+                                onClick={() => {
+                                    setAtletaRemover(atletaModal);
+                                    setAtletaModal(null);
+                                    setErroRemover(null);
+                                }}
+                                className={`flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all ${
+                                    !atletaModal.user_id
+                                        ? "bg-red-600 hover:bg-red-700"
+                                        : "bg-orange-600 hover:bg-orange-700"
+                                }`}
+                            >
+                                {!atletaModal.user_id
+                                    ? "Eliminar"
+                                    : "Desvincular"}
+                            </button>
+                            <button
                                 onClick={() => setAtletaModal(null)}
                                 className="flex-1 px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                             >
@@ -1829,6 +1954,7 @@ export default function EquipaAtletas({
             {showCriarAtleta && (
                 <ModalCriarAtleta
                     equipas={equipas}
+                    posicoesBD={posicoesBD}
                     onClose={() => setShowCriarAtleta(false)}
                     onCriado={(nome, suspenso) => {
                         if (suspenso) {
@@ -1849,7 +1975,7 @@ export default function EquipaAtletas({
             <div className="mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-blue-700 dark:text-blue-400 flex items-center gap-3">
-                        <span>👥</span> Equipa
+                        <span>👥</span> Atletas
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {atletasIniciais.length} atletas registados
@@ -2017,11 +2143,26 @@ export default function EquipaAtletas({
                                 >
                                     {atleta.estado}
                                 </span>
-                                {atleta.equipa_nome && (
-                                    <span className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[100px]">
-                                        {atleta.equipa_nome}
-                                    </span>
-                                )}
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {(() => {
+                                        const idade = calcularIdade(
+                                            atleta.data_nascimento,
+                                        );
+                                        if (idade === null) return null;
+                                        return (
+                                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-500/10 text-violet-400 whitespace-nowrap">
+                                                {getEscalaoMaximoParaIdade(
+                                                    idade,
+                                                )}
+                                            </span>
+                                        );
+                                    })()}
+                                    {atleta.equipa_nome && (
+                                        <span className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[100px]">
+                                            {atleta.equipa_nome}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}

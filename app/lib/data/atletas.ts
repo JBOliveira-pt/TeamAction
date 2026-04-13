@@ -20,6 +20,7 @@ export async function fetchAtletas() {
                 numero_federado: string | null;
                 mao_dominante: string | null;
                 user_id: string | null;
+                data_nascimento: string | null;
             }[]
         >`
             SELECT
@@ -32,6 +33,7 @@ export async function fetchAtletas() {
                 atletas.numero_federado,
                 atletas.mao_dominante,
                 atletas.user_id,
+                atletas.data_nascimento,
                 equipas.nome AS equipa_nome,
                 equipas.id   AS equipa_id,
                 mensalidades.estado AS mensalidade_estado

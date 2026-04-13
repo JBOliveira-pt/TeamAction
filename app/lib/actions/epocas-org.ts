@@ -69,6 +69,98 @@ export async function criarEpoca(
     return { success: true };
 }
 
+export async function editarEpoca(
+    prevState: { error?: string; success?: boolean } | null,
+    formData: FormData,
+): Promise<{ error?: string; success?: boolean } | null> {
+    const { userId: clerkId } = await auth();
+    let organizationId: string;
+    try {
+        organizationId = await getOrganizationId();
+    } catch {
+        return { error: "Não foi possível identificar a organização." };
+    }
+
+    const epocaId = formData.get("epoca_id")?.toString();
+    const dataInicio = formData.get("data_inicio")?.toString();
+    const dataFim = formData.get("data_fim")?.toString();
+
+    if (!epocaId) return { error: "Época não identificada." };
+    if (!dataInicio) return { error: "Data de início é obrigatória." };
+    if (!dataFim) return { error: "Data de fim é obrigatória." };
+    if (dataFim <= dataInicio)
+        return { error: "A data de fim deve ser posterior à data de início." };
+
+    try {
+        // Verificar que a época pertence à organização
+        const [epoca] = await sql<
+            {
+                id: string;
+                nome: string;
+                data_inicio: string;
+                data_fim: string;
+            }[]
+        >`
+            SELECT id, nome, data_inicio, data_fim FROM epocas
+            WHERE id = ${epocaId} AND organization_id = ${organizationId}
+            LIMIT 1
+        `;
+        if (!epoca) return { error: "Época não encontrada." };
+
+        const oldInicio = epoca.data_inicio.toString().slice(0, 10);
+        const oldFim = epoca.data_fim.toString().slice(0, 10);
+
+        // Nada mudou
+        if (oldInicio === dataInicio && oldFim === dataFim) {
+            return { success: true };
+        }
+
+        await sql`
+            UPDATE epocas
+            SET data_inicio = ${dataInicio}, data_fim = ${dataFim}, updated_at = NOW()
+            WHERE id = ${epocaId} AND organization_id = ${organizationId}
+        `;
+
+        // Notificar treinadores e atletas federados ao clube
+        const destinatarios = await sql<{ id: string }[]>`
+            SELECT DISTINCT u.id FROM users u
+            WHERE u.organization_id = ${organizationId}
+              AND u.account_type IN ('treinador', 'atleta')
+        `;
+
+        const formatPT = (d: string) => {
+            const [y, m, day] = d.split("-");
+            return `${day}/${m}/${y}`;
+        };
+
+        const desc = `As datas da época "${epoca.nome}" foram alteradas: ${formatPT(dataInicio)} – ${formatPT(dataFim)}.`;
+
+        if (destinatarios.length > 0) {
+            await Promise.all(
+                destinatarios.map(
+                    (u) =>
+                        sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (gen_random_uuid(), ${organizationId}, ${u.id}, 'Datas da época alteradas', ${desc}, 'Info', false, NOW())
+                    `,
+                ),
+            );
+        }
+    } catch (error) {
+        console.error(error);
+        return { error: "Erro ao editar época." };
+    }
+
+    await logAction(clerkId, "epoca_edit", "/dashboard/presidente/epoca", {
+        epocaId,
+        dataInicio,
+        dataFim,
+    });
+    revalidatePath("/dashboard/presidente/epoca");
+    revalidatePath("/dashboard/presidente/notificacoes");
+    return { success: true };
+}
+
 export async function atualizarOrganizacao(
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData,

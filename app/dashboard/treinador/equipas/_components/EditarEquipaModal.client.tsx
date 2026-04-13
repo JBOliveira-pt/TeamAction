@@ -6,7 +6,6 @@ import { editarEquipaTreinador } from "@/app/lib/actions";
 import { Pencil, X } from "lucide-react";
 
 type State = { error?: string; success?: boolean } | null;
-type Escalao = { id: number; nome: string };
 
 const ESTADOS = [
     { value: "ativa", label: "Ativa" },
@@ -16,7 +15,6 @@ const ESTADOS = [
 
 export default function EditarEquipaModal({
     equipa,
-    escaloes,
 }: {
     equipa: {
         id: string;
@@ -24,7 +22,6 @@ export default function EditarEquipaModal({
         escalao: string;
         estado: string;
     };
-    escaloes: Escalao[];
 }) {
     const [open, setOpen] = useState(false);
     const [state, action, isPending] = useActionState<State, FormData>(
@@ -115,27 +112,11 @@ export default function EditarEquipaModal({
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1">
                                         <label className={labelClass}>
-                                            Escalão{" "}
-                                            <span className="text-red-400">
-                                                *
-                                            </span>
+                                            Escalão
                                         </label>
-                                        <select
-                                            name="escalao"
-                                            required
-                                            defaultValue={equipa.escalao}
-                                            className={inputClass}
-                                        >
-                                            <option value="">Seleciona</option>
-                                            {escaloes.map((e) => (
-                                                <option
-                                                    key={e.id}
-                                                    value={e.nome}
-                                                >
-                                                    {e.nome}
-                                                </option>
-                                            ))}
-                                        </select>
+                                        <p className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/50 rounded-lg">
+                                            {equipa.escalao}
+                                        </p>
                                     </div>
                                     <div className="space-y-1">
                                         <label className={labelClass}>

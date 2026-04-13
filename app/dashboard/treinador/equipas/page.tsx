@@ -2,6 +2,7 @@
 import { fetchEscaloes, fetchDesportoOrg } from "@/app/lib/data";
 import NovaEquipaModal from "./_components/NovaEquipaModal.client";
 import EditarEquipaModal from "./_components/EditarEquipaModal.client";
+import EliminarEquipaModal from "./_components/EliminarEquipaModal.client";
 import postgres from "postgres";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
@@ -101,11 +102,11 @@ export default async function EquipasTreinadorPage({
     const equipasAtivas = equipas.filter((e) => e.estado === "ativa").length;
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Equipas
+                    <h1 className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-3">
+                        <span>⚽</span> Equipas
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {desporto && (
@@ -193,15 +194,23 @@ export default async function EquipasTreinadorPage({
                                     </td>
                                     <td className="px-6 py-4">
                                         {!e.is_club_team ? (
-                                            <EditarEquipaModal
-                                                equipa={{
-                                                    id: e.id,
-                                                    nome: e.nome,
-                                                    escalao: e.escalao,
-                                                    estado: e.estado,
-                                                }}
-                                                escaloes={escaloes}
-                                            />
+                                            <div className="flex items-center gap-1">
+                                                <EditarEquipaModal
+                                                    equipa={{
+                                                        id: e.id,
+                                                        nome: e.nome,
+                                                        escalao: e.escalao,
+                                                        estado: e.estado,
+                                                    }}
+                                                />
+                                                <EliminarEquipaModal
+                                                    equipaId={e.id}
+                                                    equipaNome={e.nome}
+                                                    totalAtletas={Number(
+                                                        e.total_atletas,
+                                                    )}
+                                                />
+                                            </div>
                                         ) : (
                                             <span
                                                 className="text-xs text-gray-400 dark:text-gray-500"

@@ -9,20 +9,6 @@ type State = { error?: string; success?: boolean } | null;
 
 type Equipa = { id: string; nome: string };
 
-const POSICOES = [
-    "Guarda-Redes",
-    "Defesa Central",
-    "Defesa Esquerdo",
-    "Defesa Direito",
-    "Médio Defensivo",
-    "Médio Centro",
-    "Médio Ofensivo",
-    "Extremo Esquerdo",
-    "Extremo Direito",
-    "Avançado Centro",
-    "Outro",
-];
-
 const ESTADOS = [
     { value: "ativo", label: "Ativo" },
     { value: "suspenso", label: "Suspenso" },
@@ -41,11 +27,19 @@ export default function AdicionarAtletaModal({
     equipas: Equipa[];
 }) {
     const [open, setOpen] = useState(false);
+    const [posicoes, setPosicoes] = useState<string[]>([]);
     const [state, action, isPending] = useActionState<State, FormData>(
         adicionarAtleta,
         null,
     );
     const formRef = useRef<HTMLFormElement>(null);
+
+    useEffect(() => {
+        fetch("/api/posicoes")
+            .then((r) => (r.ok ? r.json() : []))
+            .then(setPosicoes)
+            .catch(() => {});
+    }, []);
 
     const [prevState, setPrevState] = useState(state);
     if (state !== prevState) {
@@ -180,7 +174,7 @@ export default function AdicionarAtletaModal({
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         <option value="">Seleciona</option>
-                                        {POSICOES.map((p) => (
+                                        {posicoes.map((p) => (
                                             <option key={p} value={p}>
                                                 {p}
                                             </option>

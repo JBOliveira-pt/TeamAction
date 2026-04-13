@@ -52,11 +52,19 @@ export async function convidarAtleta(
         };
     }
 
+    // Buscar clube
+    const clubeRow = await sql<{ id: string; nome: string }[]>`
+        SELECT id, nome FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
+    `;
+    const clubeId = clubeRow[0]?.id;
+    if (!clubeId) return { error: "Clube não encontrado." };
+    const clubeNome = clubeRow[0].nome;
+
     // Verificar se já existe convite pendente
     const existing = await sql<{ id: string }[]>`
         SELECT id FROM atleta_relacoes_pendentes
         WHERE atleta_user_id = ${atletaUserId}
-        AND alvo_clube_id    = ${organizationId}
+        AND alvo_clube_id    = ${clubeId}
         AND status           = 'pendente'
     `;
     if (existing.length > 0)
@@ -79,14 +87,11 @@ export async function convidarAtleta(
         }
     }
 
-    // Buscar info do clube
-    const clube = await sql<{ nome: string }[]>`
-        SELECT nome FROM clubes WHERE organization_id = ${organizationId} LIMIT 1
-    `;
+    // Buscar nome da org (fallback)
     const org = await sql<{ name: string }[]>`
         SELECT name FROM organizations WHERE id = ${organizationId} LIMIT 1
     `;
-    const orgName = clube[0]?.nome ?? org[0]?.name ?? "Clube";
+    const orgName = clubeNome ?? org[0]?.name ?? "Clube";
     const orgEmail = "";
 
     // Criar convite
@@ -98,7 +103,7 @@ export async function convidarAtleta(
                 numero_federado,
                 created_at, updated_at
             ) VALUES (
-                gen_random_uuid(), ${atletaUserId}, ${organizationId}, ${equipaId},
+                gen_random_uuid(), ${atletaUserId}, ${clubeId}, ${equipaId},
                 'clube', 'pendente', ${orgName}, ${orgEmail},
                 ${numeroFederado},
                 NOW(), NOW()

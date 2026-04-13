@@ -1,7 +1,7 @@
 // Componente cliente de atletas (presidente).
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { editarAtleta } from "@/app/lib/actions";
 import { X } from "lucide-react";
 
@@ -20,20 +20,6 @@ type Atleta = {
     mao_dominante: string | null;
 };
 
-const POSICOES = [
-    "Guarda-Redes",
-    "Defesa Central",
-    "Defesa Esquerdo",
-    "Defesa Direito",
-    "Médio Defensivo",
-    "Médio Centro",
-    "Médio Ofensivo",
-    "Extremo Esquerdo",
-    "Extremo Direito",
-    "Avançado Centro",
-    "Outro",
-];
-
 const ESTADOS = [
     { value: "ativo", label: "Ativo" },
     { value: "suspenso", label: "Suspenso" },
@@ -48,11 +34,19 @@ export default function EditarAtletaModal({
     equipas: Equipa[];
 }) {
     const [open, setOpen] = useState(false);
+    const [posicoes, setPosicoes] = useState<string[]>([]);
     const [state, action, isPending] = useActionState<State, FormData>(
         editarAtleta,
         null,
     );
     const formRef = useRef<HTMLFormElement>(null);
+
+    useEffect(() => {
+        fetch("/api/posicoes")
+            .then((r) => (r.ok ? r.json() : []))
+            .then(setPosicoes)
+            .catch(() => {});
+    }, []);
 
     const [prevState, setPrevState] = useState(state);
     if (state !== prevState) {
@@ -107,6 +101,11 @@ export default function EditarAtletaModal({
                             className="space-y-4"
                         >
                             <input type="hidden" name="id" value={atleta.id} />
+                            <input
+                                type="hidden"
+                                name="nome"
+                                value={atleta.nome}
+                            />
 
                             {/* Equipa + Estado */}
                             <div className="grid grid-cols-2 gap-3">
@@ -161,7 +160,7 @@ export default function EditarAtletaModal({
                                         className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
                                     >
                                         <option value="">Seleciona</option>
-                                        {POSICOES.map((p) => (
+                                        {posicoes.map((p) => (
                                             <option key={p} value={p}>
                                                 {p}
                                             </option>

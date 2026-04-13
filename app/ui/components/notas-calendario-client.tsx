@@ -115,12 +115,12 @@ export default function NotasCalendarioClient({
     const grouped = groupByDate(initialNotas);
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="w-full min-h-full bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 space-y-6">
             {/* Cabe�alho */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Notas
+                    <h1 className="text-2xl font-bold text-violet-700 dark:text-violet-400 flex items-center gap-3">
+                        <span>📝</span> Notas
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {initialNotas.length} anotaç

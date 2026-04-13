@@ -91,6 +91,18 @@ export function isIdadePermitidaEscalao(
     return idade < limite;
 }
 
+/** Retorna o escalão máximo que um atleta pode pertencer com base na sua idade. */
+export function getEscalaoMaximoParaIdade(idade: number): string {
+    // Percorre do escalão mais alto com limite para o mais baixo
+    for (let i = ESCALOES_ORDENADOS.length - 1; i >= 0; i--) {
+        const escalao = ESCALOES_ORDENADOS[i];
+        const limite = ESCALAO_IDADE_MAX[escalao];
+        if (limite === null) continue; // Seniores — pular, seguir para os limitados
+        if (idade < limite) return escalao;
+    }
+    return "Seniores";
+}
+
 /** Limites de composição de equipa. */
 export const MAX_ATLETAS_POR_EQUIPA = 14;
 export const MIN_JOGADORES_CAMPO = 6;
