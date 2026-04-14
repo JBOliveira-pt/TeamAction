@@ -187,8 +187,7 @@ export default function EditarAtletaModal({
                             {/* Federado — Nº Federado (6 dígitos) */}
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                    Nº Federado{" "}
-                                    <span className="text-red-400">*</span>
+                                    Nº Federado
                                 </label>
                                 <input
                                     name="numero_federado"
@@ -197,8 +196,6 @@ export default function EditarAtletaModal({
                                     maxLength={6}
                                     defaultValue={atleta.numero_federado ?? ""}
                                     placeholder="Ex: 123456"
-                                    pattern="\d{6}"
-                                    title="Deve ter exatamente 6 dígitos"
                                     className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
                                 />
                                 <input

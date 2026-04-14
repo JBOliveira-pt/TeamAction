@@ -5,6 +5,7 @@ import { sql, logAction } from "./_shared";
 import { auth } from "@clerk/nextjs/server";
 import { getOrganizationId } from "@/app/lib/data";
 import { revalidatePath } from "next/cache";
+import { isEscalaoPermitido } from "@/app/lib/grau-escalao-compat";
 
 export async function criarEquipa(
     _prevState: { error?: string; success?: boolean } | null,
@@ -225,6 +226,25 @@ export async function criarEquipaTreinador(
             SELECT id FROM users WHERE clerk_user_id = ${clerkId} LIMIT 1
         `;
         if (!trainerUser) return { error: "Utilizador não encontrado." };
+
+        // Validar se o curso do treinador cobre o escalão selecionado
+        const cursoRows = await sql<{ level_id: number }[]>`
+            SELECT g.id AS level_id
+            FROM user_cursos uc
+            INNER JOIN cursos c ON c.id = uc.curso_id
+            INNER JOIN graus_tecnicos g ON g.id = c.level_id
+            WHERE uc.user_id = ${trainerUser.id}
+            ORDER BY g.id DESC
+            LIMIT 1
+        `;
+        if (cursoRows.length > 0) {
+            const grauId = cursoRows[0].level_id;
+            if (!isEscalaoPermitido(grauId, escalao.trim())) {
+                return {
+                    error: "O seu curso não cobre o escalão selecionado.",
+                };
+            }
+        }
 
         const epocas = await sql<{ id: string }[]>`
             SELECT id FROM epocas

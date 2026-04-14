@@ -15,8 +15,6 @@ import {
 import {
     COUNTRY_OPTIONS,
     type SelectOption,
-    TRAINER_AMATEUR_COURSE_LABEL,
-    TRAINER_AMATEUR_COURSE_VALUE,
     isValidNationality,
 } from "@/app/lib/trainer-profile-options";
 import {
@@ -449,9 +447,7 @@ export default function CustomSignUpForm({
     const [presidentCity, setPresidentCity] = useState("");
     const [trainerModality, setTrainerModality] = useState("");
     const [trainerNationality, setTrainerNationality] = useState("");
-    const [trainerCourseModality, setTrainerCourseModality] = useState(
-        TRAINER_AMATEUR_COURSE_VALUE,
-    );
+    const [trainerCourseModality, setTrainerCourseModality] = useState("");
     const [trainerTechnicalLevel, setTrainerTechnicalLevel] = useState("");
     const [trainerCourseModalityOptions, setTrainerCourseModalityOptions] =
         useState<SelectOption[]>([]);
@@ -708,7 +704,7 @@ export default function CustomSignUpForm({
 
     const trainerTechnicalLevelOptions = useMemo(
         () =>
-            trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE
+            trainerCourseModality
                 ? trainerTechnicalLevelOptionsByModality[
                       trainerCourseModality
                   ] || []
@@ -806,13 +802,6 @@ export default function CustomSignUpForm({
     }, []);
 
     useEffect(() => {
-        if (trainerCourseModality === TRAINER_AMATEUR_COURSE_VALUE) {
-            if (trainerTechnicalLevel) {
-                setTrainerTechnicalLevel("");
-            }
-            return;
-        }
-
         if (
             trainerTechnicalLevel &&
             !trainerTechnicalLevelOptions.some(
@@ -1196,25 +1185,23 @@ export default function CustomSignUpForm({
             return "Curso IPJD/PNFT é obrigatório.";
         }
 
-        if (trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE) {
-            const selectedCourseModality = trainerCourseModalityOptions.find(
-                (option) => option.value === trainerCourseModality,
-            );
-            if (!selectedCourseModality) {
-                return "Selecione um curso IPJD/PNFT válido.";
-            }
+        const selectedCourseModality = trainerCourseModalityOptions.find(
+            (option) => option.value === trainerCourseModality,
+        );
+        if (!selectedCourseModality) {
+            return "Selecione um curso IPJD/PNFT válido.";
+        }
 
-            if (!trainerTechnicalLevel.trim()) {
-                return "Grau Técnico é obrigatório para curso IPJD/PNFT.";
-            }
+        if (!trainerTechnicalLevel.trim()) {
+            return "Grau Técnico é obrigatório.";
+        }
 
-            if (
-                !trainerTechnicalLevelOptions.some(
-                    (option) => option.value === trainerTechnicalLevel,
-                )
-            ) {
-                return "A combinação de curso e grau técnico é inválida.";
-            }
+        if (
+            !trainerTechnicalLevelOptions.some(
+                (option) => option.value === trainerTechnicalLevel,
+            )
+        ) {
+            return "A combinação de curso e grau técnico é inválida.";
         }
 
         const normalizedPostalCode = normalizePostalCode(trainerPostalCode);
@@ -1334,39 +1321,21 @@ export default function CustomSignUpForm({
                         ? {
                               modality: trainerModality.trim(),
                               nationality: trainerNationality.trim(),
-                              courseType:
-                                  trainerCourseModality ===
-                                  TRAINER_AMATEUR_COURSE_VALUE
-                                      ? "amador"
-                                      : "ipjd_pnft",
-                              courseModalityId:
-                                  trainerCourseModality ===
-                                  TRAINER_AMATEUR_COURSE_VALUE
-                                      ? null
-                                      : Number(trainerCourseModality),
+                              courseType: "ipjd_pnft",
+                              courseModalityId: Number(trainerCourseModality),
                               courseModalityName:
-                                  trainerCourseModality ===
-                                  TRAINER_AMATEUR_COURSE_VALUE
-                                      ? null
-                                      : trainerCourseModalityOptions.find(
-                                            (option) =>
-                                                option.value ===
-                                                trainerCourseModality,
-                                        )?.label || null,
-                              technicalLevelId:
-                                  trainerCourseModality ===
-                                  TRAINER_AMATEUR_COURSE_VALUE
-                                      ? null
-                                      : Number(trainerTechnicalLevel),
+                                  trainerCourseModalityOptions.find(
+                                      (option) =>
+                                          option.value ===
+                                          trainerCourseModality,
+                                  )?.label || null,
+                              technicalLevelId: Number(trainerTechnicalLevel),
                               technicalLevel:
-                                  trainerCourseModality ===
-                                  TRAINER_AMATEUR_COURSE_VALUE
-                                      ? null
-                                      : trainerTechnicalLevelOptions.find(
-                                            (option) =>
-                                                option.value ===
-                                                trainerTechnicalLevel,
-                                        ) || null,
+                                  trainerTechnicalLevelOptions.find(
+                                      (option) =>
+                                          option.value ===
+                                          trainerTechnicalLevel,
+                                  ) || null,
                               phone:
                                   extractPortuguesePhoneDigits(trainerPhone)
                                       .length > 0
@@ -3290,11 +3259,7 @@ export default function CustomSignUpForm({
                                     }
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                 >
-                                    <option
-                                        value={TRAINER_AMATEUR_COURSE_VALUE}
-                                    >
-                                        {TRAINER_AMATEUR_COURSE_LABEL}
-                                    </option>
+                                    <option value="">Selecione o curso</option>
                                     {trainerCourseModalityOptions.map(
                                         (option) => (
                                             <option
@@ -3308,8 +3273,7 @@ export default function CustomSignUpForm({
                                 </select>
                             </div>
 
-                            {trainerCourseModality !==
-                                TRAINER_AMATEUR_COURSE_VALUE && (
+                            {trainerCourseModality && (
                                 <div className="space-y-1">
                                     <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                         Grau Técnico

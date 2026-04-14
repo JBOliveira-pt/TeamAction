@@ -61,6 +61,19 @@ export async function convidarAtleta(
     if (!clubeId) return { error: "Clube não encontrado." };
     const clubeNome = clubeRow[0].nome;
 
+    // Validar unicidade do nº federado dentro da organização
+    const duplicadoFederado = await sql<{ id: string }[]>`
+        SELECT id FROM atletas
+        WHERE organization_id = ${organizationId}
+          AND numero_federado = ${numeroFederado}
+        LIMIT 1
+    `;
+    if (duplicadoFederado.length > 0) {
+        return {
+            error: `Já existe um atleta com o nº federado ${numeroFederado} neste clube.`,
+        };
+    }
+
     // Verificar se já existe convite pendente
     const existing = await sql<{ id: string }[]>`
         SELECT id FROM atleta_relacoes_pendentes

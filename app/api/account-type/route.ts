@@ -9,10 +9,7 @@ import {
     ENABLED_SPORTS,
     normalizePresidentSport,
 } from "@/app/lib/president-sport-options";
-import {
-    TRAINER_AMATEUR_COURSE_VALUE,
-    isValidNationality,
-} from "@/app/lib/trainer-profile-options";
+import { isValidNationality } from "@/app/lib/trainer-profile-options";
 import { sendResponsibleInviteEmail } from "@/app/lib/send-responsible-invite";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
@@ -52,12 +49,12 @@ type PresidentProfileInput = {
 type TrainerProfileInput = {
     modality: string;
     nationality: string;
-    courseType: "amador" | "ipjd_pnft";
-    courseModalityId: number | null;
-    courseModalityName: string | null;
-    technicalLevelId: number | null;
-    technicalLevelCode: string | null;
-    technicalLevelName: string | null;
+    cursoId: number;
+    courseModalityId: number;
+    courseModalityName: string;
+    technicalLevelId: number;
+    technicalLevelCode: string;
+    technicalLevelName: string;
     technicalLevelDescription: string | null;
     phone: string | null;
     nif: string | null;
@@ -234,89 +231,78 @@ async function parseTrainerProfile(formData: FormData): Promise<{
         return { error: "Curso IPJD/PNFT é obrigatório para Treinador." };
     }
 
-    let courseType: "amador" | "ipjd_pnft" = "amador";
-    let courseModalityId: number | null = null;
-    let courseModalityName: string | null = null;
-    let technicalLevelId: number | null = null;
-    let technicalLevelCode: string | null = null;
-    let technicalLevelName: string | null = null;
-    let technicalLevelDescription: string | null = null;
-
-    if (courseModalityIdRaw !== TRAINER_AMATEUR_COURSE_VALUE) {
-        courseType = "ipjd_pnft";
-
-        const parsedCourseModalityId = Number(courseModalityIdRaw);
-        if (!Number.isInteger(parsedCourseModalityId)) {
-            return { error: "Curso IPJD/PNFT inválido para Treinador." };
-        }
-
-        if (!technicalLevelIdRaw) {
-            return {
-                error: "Grau Técnico é obrigatório quando existe vínculo ao IPJD/PNFT.",
-            };
-        }
-
-        const parsedTechnicalLevelId = Number(technicalLevelIdRaw);
-        if (!Number.isInteger(parsedTechnicalLevelId)) {
-            return { error: "Grau Técnico inválido para Treinador." };
-        }
-
-        const modalityRows = await sql<{ id: number; name: string }[]>`
-            SELECT id, name
-            FROM modalidades
-            WHERE id = ${parsedCourseModalityId}
-            LIMIT 1
-        `;
-
-        const modality = modalityRows[0];
-        if (!modality) {
-            return { error: "Curso IPJD/PNFT inválido para Treinador." };
-        }
-
-        if (!ENABLED_SPORTS.has(modality.name)) {
-            return {
-                error: "Esta modalidade de curso ainda não está disponível na plataforma.",
-            };
-        }
-
-        const technicalLevelRows = await sql<
-            {
-                id: number;
-                code: string;
-                name: string;
-                description: string;
-            }[]
-        >`
-            SELECT id, code, name, description
-            FROM graus_tecnicos
-            WHERE id = ${parsedTechnicalLevelId}
-            LIMIT 1
-        `;
-
-        const technicalLevel = technicalLevelRows[0];
-        if (!technicalLevel) {
-            return { error: "Grau Técnico inválido para Treinador." };
-        }
-
-        const courseRows = await sql<{ id: number }[]>`
-            SELECT id
-            FROM cursos
-            WHERE modality_id = ${parsedCourseModalityId}
-              AND level_id = ${parsedTechnicalLevelId}
-            LIMIT 1
-        `;
-
-        if (courseRows.length === 0) {
-            return { error: "Combinação de curso e grau técnico inválida." };
-        }
-
-        courseModalityId = parsedCourseModalityId;
-        courseModalityName = modality.name;
-        technicalLevelId = parsedTechnicalLevelId;
-        technicalLevelCode = technicalLevel.code;
-        technicalLevelName = technicalLevel.name;
-        technicalLevelDescription = technicalLevel.description;
+    const parsedCourseModalityId = Number(courseModalityIdRaw);
+    if (!Number.isInteger(parsedCourseModalityId)) {
+        return { error: "Curso IPJD/PNFT inválido para Treinador." };
     }
+
+    if (!technicalLevelIdRaw) {
+        return {
+            error: "Grau Técnico é obrigatório para Treinador.",
+        };
+    }
+
+    const parsedTechnicalLevelId = Number(technicalLevelIdRaw);
+    if (!Number.isInteger(parsedTechnicalLevelId)) {
+        return { error: "Grau Técnico inválido para Treinador." };
+    }
+
+    const modalityRows = await sql<{ id: number; name: string }[]>`
+        SELECT id, name
+        FROM modalidades
+        WHERE id = ${parsedCourseModalityId}
+        LIMIT 1
+    `;
+
+    const courseModality = modalityRows[0];
+    if (!courseModality) {
+        return { error: "Curso IPJD/PNFT inválido para Treinador." };
+    }
+
+    if (!ENABLED_SPORTS.has(courseModality.name)) {
+        return {
+            error: "Esta modalidade de curso ainda não está disponível na plataforma.",
+        };
+    }
+
+    const technicalLevelRows = await sql<
+        {
+            id: number;
+            code: string;
+            name: string;
+            description: string;
+        }[]
+    >`
+        SELECT id, code, name, description
+        FROM graus_tecnicos
+        WHERE id = ${parsedTechnicalLevelId}
+        LIMIT 1
+    `;
+
+    const technicalLevel = technicalLevelRows[0];
+    if (!technicalLevel) {
+        return { error: "Grau Técnico inválido para Treinador." };
+    }
+
+    const courseRows = await sql<{ id: number }[]>`
+        SELECT id
+        FROM cursos
+        WHERE modality_id = ${parsedCourseModalityId}
+          AND level_id = ${parsedTechnicalLevelId}
+        LIMIT 1
+    `;
+
+    if (courseRows.length === 0) {
+        return { error: "Combinação de curso e grau técnico inválida." };
+    }
+
+    const cursoId = courseRows[0].id;
+    const courseModalityId = parsedCourseModalityId;
+    const courseModalityName = courseModality.name;
+    const technicalLevelId = parsedTechnicalLevelId;
+    const technicalLevelCode = technicalLevel.code;
+    const technicalLevelName = technicalLevel.name;
+    const technicalLevelDescription = technicalLevel.description;
 
     if (postalCode && !POSTAL_CODE_REGEX.test(postalCode)) {
         return {
@@ -334,7 +320,7 @@ async function parseTrainerProfile(formData: FormData): Promise<{
         value: {
             modality,
             nationality,
-            courseType,
+            cursoId,
             courseModalityId,
             courseModalityName,
             technicalLevelId,
@@ -1093,6 +1079,24 @@ export async function POST(req: Request) {
                     SET pais = ${trainerProfile.country}, updated_at = NOW()
                     WHERE clerk_user_id = ${userId}
                 `;
+            }
+
+            // Inserir curso na tabela user_cursos
+            {
+                const trainerUser = await sql<
+                    { id: string; organization_id: string }[]
+                >`
+                    SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+                `;
+                if (trainerUser[0]) {
+                    await sql`
+                        DELETE FROM user_cursos WHERE user_id = ${trainerUser[0].id}
+                    `.catch(() => {});
+                    await sql`
+                        INSERT INTO user_cursos (id, user_id, curso_id, organization_id, created_at)
+                        VALUES (gen_random_uuid(), ${trainerUser[0].id}, ${trainerProfile.cursoId}, ${trainerUser[0].organization_id}, NOW())
+                    `;
+                }
             }
         }
 

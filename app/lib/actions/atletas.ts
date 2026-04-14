@@ -114,19 +114,39 @@ export async function adicionarAtleta(
         `;
         const temClube = clubeRows.length > 0;
 
-        // Se tem clube, federado é obrigatório com nº de 6 dígitos
+        // Se tem clube e forneceu nº federado, validar formato (6 dígitos).
+        // Atletas fictícios podem não ter nº federado.
         let federado = rawFederado;
         if (temClube) {
-            federado = true;
-            if (!numFederado || !/^\d{6}$/.test(numFederado)) {
-                return {
-                    error: "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
-                };
+            if (numFederado) {
+                federado = true;
+                if (!/^\d{6}$/.test(numFederado)) {
+                    return {
+                        error: "O nº de federado deve ter exatamente 6 dígitos.",
+                    };
+                }
+            } else {
+                federado = false;
             }
         } else if (federado) {
             federado = false;
         }
         const safeNumFederado = federado ? numFederado : null;
+
+        // Validar unicidade do nº federado dentro da organização
+        if (safeNumFederado) {
+            const duplicado = await sql<{ id: string }[]>`
+                SELECT id FROM atletas
+                WHERE organization_id = ${organizationId}
+                  AND numero_federado = ${safeNumFederado}
+                LIMIT 1
+            `;
+            if (duplicado.length > 0) {
+                return {
+                    error: `Já existe um atleta com o nº federado ${safeNumFederado} neste clube.`,
+                };
+            }
+        }
 
         // Validar atribuição à equipa (max 14 + idade via data_nascimento do atleta)
         if (equipaId) {
@@ -238,19 +258,40 @@ export async function editarAtleta(
         `;
         const temClube = clubeRows.length > 0;
 
-        // Se tem clube, federado é obrigatório com nº de 6 dígitos
+        // Se tem clube e forneceu nº federado, validar formato (6 dígitos).
+        // Atletas fictícios podem não ter nº federado.
         let federado = rawFederado;
         if (temClube) {
-            federado = true;
-            if (!numFederado || !/^\d{6}$/.test(numFederado)) {
-                return {
-                    error: "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
-                };
+            if (numFederado) {
+                federado = true;
+                if (!/^\d{6}$/.test(numFederado)) {
+                    return {
+                        error: "O nº de federado deve ter exatamente 6 dígitos.",
+                    };
+                }
+            } else {
+                federado = false;
             }
         } else if (federado) {
             federado = false;
         }
         const safeNumFederado = federado ? numFederado : null;
+
+        // Validar unicidade do nº federado dentro da organização
+        if (safeNumFederado) {
+            const duplicado = await sql<{ id: string }[]>`
+                SELECT id FROM atletas
+                WHERE organization_id = ${organizationId}
+                  AND numero_federado = ${safeNumFederado}
+                  AND id != ${id}
+                LIMIT 1
+            `;
+            if (duplicado.length > 0) {
+                return {
+                    error: `Já existe um atleta com o nº federado ${safeNumFederado} neste clube.`,
+                };
+            }
+        }
 
         // Se está a mudar de equipa, validar unicidade + limite + idade
         if (equipaId) {
@@ -421,13 +462,15 @@ export async function desvincularAtletaReal(
 
         // Notificar o atleta
         await sql`
-            INSERT INTO notificacoes (id, user_id, titulo, descricao, tipo, created_at)
+            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
             VALUES (
                 gen_random_uuid(),
+                ${organizationId},
                 ${atleta.user_id},
                 'Desvinculado do clube',
                 ${`Foste desvinculado de ${clubeNome}. Caso tenhas dúvidas, contacta o responsável do clube.`},
                 'Aviso',
+                false,
                 NOW()
             )
         `;
@@ -547,13 +590,15 @@ export async function desvincularAtletaRealTreinador(
 
         // Notificar o atleta
         await sql`
-            INSERT INTO notificacoes (id, user_id, titulo, descricao, tipo, created_at)
+            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
             VALUES (
                 gen_random_uuid(),
+                ${treinador.organization_id},
                 ${atleta.user_id},
                 'Desvinculado do clube',
                 ${`Foste desvinculado de ${clubeNome} pelo treinador. Caso tenhas dúvidas, contacta o responsável do clube.`},
                 'Aviso',
+                false,
                 NOW()
             )
         `;

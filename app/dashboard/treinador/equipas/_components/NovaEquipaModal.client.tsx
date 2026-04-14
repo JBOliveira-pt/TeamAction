@@ -29,17 +29,26 @@ export default function NovaEquipaModal({
         null,
     );
     const formRef = useRef<HTMLFormElement>(null);
+    const [localError, setLocalError] = useState<string | null>(null);
 
     const [prevState, setPrevState] = useState(state);
     if (state !== prevState) {
         setPrevState(state);
         if (state?.success) {
             setOpen(false);
+            setLocalError(null);
+        } else if (state?.error) {
+            setLocalError(state.error);
         }
     }
     useEffect(() => {
         if (state?.success) formRef.current?.reset();
     }, [state]);
+
+    function handleClose() {
+        setOpen(false);
+        setLocalError(null);
+    }
 
     const inputClass =
         "w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors";
@@ -58,7 +67,7 @@ export default function NovaEquipaModal({
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        onClick={() => setOpen(false)}
+                        onClick={handleClose}
                     />
 
                     <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-6 space-y-5">
@@ -67,7 +76,7 @@ export default function NovaEquipaModal({
                                 Nova Equipa
                             </h2>
                             <button
-                                onClick={() => setOpen(false)}
+                                onClick={handleClose}
                                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                                 <X size={18} />
@@ -85,9 +94,9 @@ export default function NovaEquipaModal({
                             </div>
                         )}
 
-                        {state?.error && (
+                        {localError && (
                             <div className="px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-400">
-                                {state.error}
+                                {localError}
                             </div>
                         )}
 
@@ -170,7 +179,7 @@ export default function NovaEquipaModal({
                             <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
                                 <button
                                     type="button"
-                                    onClick={() => setOpen(false)}
+                                    onClick={handleClose}
                                     className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                                 >
                                     Cancelar

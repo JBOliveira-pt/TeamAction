@@ -145,7 +145,7 @@ type Section =
     | null;
 
 type Props = {
-    updateAction: (formData: FormData) => Promise<void>;
+    updateAction: (formData: FormData) => Promise<void | { error: string }>;
     accountType: string | null;
     accountTypeBadge: { label: string; className: string };
     user: UserData;
@@ -216,7 +216,7 @@ function CardShell({
     onCancel: () => void;
     children: ReactNode;
     editContent: ReactNode;
-    action: (formData: FormData) => Promise<void>;
+    action: (formData: FormData) => Promise<void | { error: string }>;
     onSubmit?: (formData: FormData) => void;
 }) {
     const isEditing = editing === sectionKey;

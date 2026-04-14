@@ -2,6 +2,10 @@
 import { auth } from "@clerk/nextjs/server";
 import postgres from "postgres";
 import { NextRequest } from "next/server";
+import {
+    MIN_GUARDA_REDES,
+    MIN_JOGADORES_CAMPO,
+} from "@/app/lib/grau-escalao-compat";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
@@ -132,6 +136,24 @@ export async function POST(req: NextRequest) {
     const adversarioClubeId = body.adversario_org_id ?? null;
     const visibilidadePublica = body.visibilidade_publica === true;
 
+    // Validar plantel mínimo da minha equipa: 1 GR + 6 jogadores de campo
+    const [minhaEquipaRoster] = await sql<{ gr: string; campo: string }[]>`
+        SELECT
+            COUNT(*) FILTER (WHERE posicao = 'Guarda-Redes') AS gr,
+            COUNT(*) FILTER (WHERE posicao IS NOT NULL AND posicao <> 'Guarda-Redes') AS campo
+        FROM atletas
+        WHERE equipa_id = ${equipaId}
+          AND organization_id = ${user.organization_id}
+    `;
+    const grCount = Number(minhaEquipaRoster?.gr ?? 0);
+    const campoCount = Number(minhaEquipaRoster?.campo ?? 0);
+    if (grCount < MIN_GUARDA_REDES || campoCount < MIN_JOGADORES_CAMPO) {
+        return new Response(
+            `A tua equipa precisa de pelo menos ${MIN_GUARDA_REDES} guarda-redes e ${MIN_JOGADORES_CAMPO} jogadores de campo para agendar um jogo. Atualmente tens ${grCount} guarda-redes e ${campoCount} jogadores de campo.`,
+            { status: 400 },
+        );
+    }
+
     // Validar escalão: adversário da plataforma deve ter mesmo escalão
     if (adversarioClubeId) {
         const [minhaEquipa] = await sql<{ escalao: string }[]>`
@@ -150,6 +172,25 @@ export async function POST(req: NextRequest) {
                     { status: 400 },
                 );
             }
+        }
+
+        // Validar plantel mínimo da equipa adversária
+        const [advRoster] = await sql<{ gr: string; campo: string }[]>`
+            SELECT
+                COUNT(*) FILTER (WHERE a.posicao = 'Guarda-Redes') AS gr,
+                COUNT(*) FILTER (WHERE a.posicao IS NOT NULL AND a.posicao <> 'Guarda-Redes') AS campo
+            FROM atletas a
+            JOIN equipas e ON e.id = a.equipa_id
+            WHERE e.organization_id = ${adversarioClubeId}
+            LIMIT 1
+        `;
+        const advGr = Number(advRoster?.gr ?? 0);
+        const advCampo = Number(advRoster?.campo ?? 0);
+        if (advGr < MIN_GUARDA_REDES || advCampo < MIN_JOGADORES_CAMPO) {
+            return new Response(
+                `A equipa adversária não tem plantel suficiente para agendar um jogo (necessário pelo menos ${MIN_GUARDA_REDES} guarda-redes e ${MIN_JOGADORES_CAMPO} jogadores de campo).`,
+                { status: 400 },
+            );
         }
     }
 

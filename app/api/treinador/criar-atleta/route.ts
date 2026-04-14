@@ -125,6 +125,9 @@ export async function POST(req: NextRequest) {
     let linkedUserId: string | null = null;
     let suspenso = false;
     let emailUserFound = false;
+    let isMenor = false;
+    let responsavelUserId: string | null = null;
+    let responsavelEmail: string | null = null;
 
     // Se foi fornecido um email, verificar se existe na plataforma
     if (body.email?.trim()) {
@@ -134,15 +137,54 @@ export async function POST(req: NextRequest) {
                 id: string;
                 organization_id: string | null;
                 account_type: string | null;
+                data_nascimento: string | null;
             }[]
         >`
-            SELECT id, organization_id, account_type FROM users WHERE LOWER(email) = ${emailNorm} LIMIT 1
+            SELECT id, organization_id, account_type, data_nascimento FROM users WHERE LOWER(email) = ${emailNorm} LIMIT 1
         `;
 
         if (userRows.length > 0) {
             emailUserFound = true;
             const atletaUser = userRows[0];
             linkedUserId = atletaUser.id;
+
+            // Verificar se é menor de idade (via atletas.menor_idade ou cálculo de idade)
+            const [atletaRow] = await sql<
+                {
+                    menor_idade: boolean | null;
+                    encarregado_educacao: string | null;
+                }[]
+            >`
+                SELECT menor_idade, encarregado_educacao FROM atletas
+                WHERE user_id = ${atletaUser.id} LIMIT 1
+            `.catch(() => [{ menor_idade: null, encarregado_educacao: null }]);
+
+            if (atletaRow?.menor_idade === true) {
+                isMenor = true;
+                responsavelEmail = atletaRow.encarregado_educacao ?? null;
+            } else if (atletaUser.data_nascimento) {
+                const birth = new Date(atletaUser.data_nascimento);
+                const today = new Date();
+                let idade = today.getFullYear() - birth.getFullYear();
+                const m = today.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birth.getDate()))
+                    idade--;
+                if (idade < 18) {
+                    isMenor = true;
+                    responsavelEmail = atletaRow?.encarregado_educacao ?? null;
+                }
+            }
+
+            // Se menor, buscar user_id do responsável
+            if (isMenor && responsavelEmail) {
+                const [respUser] = await sql<{ id: string }[]>`
+                    SELECT id FROM users
+                    WHERE LOWER(email) = ${responsavelEmail.trim().toLowerCase()}
+                      AND account_type = 'responsavel'
+                    LIMIT 1
+                `.catch(() => []);
+                responsavelUserId = respUser?.id ?? null;
+            }
 
             // Verificar se esse utilizador está vinculado a um clube diferente
             if (
@@ -161,25 +203,32 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    const estado = suspenso ? "Suspenso" : "Ativo";
+    const estado = suspenso ? "Suspenso" : isMenor ? "Pendente" : "Ativo";
+
+    // Para menores, NÃO atribuir equipa_id diretamente — fica pendente até aprovação do responsável
+    const equipaIdParaInsert = isMenor ? null : (body.equipa_id ?? null);
 
     const [novoAtleta] = await sql<{ id: string }[]>`
         INSERT INTO atletas (
             id, nome, posicao, numero_camisola,
             equipa_id, estado, federado, mao_dominante,
-            organization_id, user_id, data_nascimento, created_at, updated_at
+            organization_id, user_id, data_nascimento,
+            menor_idade, encarregado_educacao,
+            created_at, updated_at
         ) VALUES (
             gen_random_uuid(),
             ${body.nome.trim()},
             ${body.posicao ?? null},
             ${body.numero_camisola ?? null},
-            ${body.equipa_id ?? null},
+            ${equipaIdParaInsert},
             ${estado},
             false,
             ${body.mao_dominante ?? null},
             ${treinador.organization_id},
             ${linkedUserId},
             ${body.data_nascimento ?? null},
+            ${isMenor || null},
+            ${responsavelEmail},
             NOW(), NOW()
         )
         RETURNING id
@@ -202,35 +251,86 @@ export async function POST(req: NextRequest) {
     } else if (body.email?.trim() && emailUserFound && linkedUserId) {
         // User existe na plataforma — enviar convite de vinculação à equipa
         if (body.equipa_id) {
-            await sql`
-                INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
-                VALUES (
-                    gen_random_uuid(),
-                    ${treinador.organization_id},
-                    ${treinador.id},
-                    ${treinador.name},
-                    ${novoAtleta.id},
-                    ${body.equipa_id},
-                    ${body.equipa_nome ?? null},
-                    'pendente',
-                    NOW(), NOW()
-                )
-            `.catch(() => {});
+            if (isMenor) {
+                // Menor: convite vai diretamente para pendente_responsavel
+                await sql`
+                    INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${treinador.organization_id},
+                        ${treinador.id},
+                        ${treinador.name},
+                        ${novoAtleta.id},
+                        ${body.equipa_id},
+                        ${body.equipa_nome ?? null},
+                        'pendente_responsavel',
+                        NOW(), NOW()
+                    )
+                `.catch(() => {});
 
-            // Notificação direcionada ao atleta
-            await sql`
-                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
-                VALUES (
-                    gen_random_uuid(),
-                    ${treinador.organization_id},
-                    ${linkedUserId},
-                    ${`Convite para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
-                    ${`O treinador "${treinador.name}" adicionou-o como atleta e enviou um convite de vinculação.`},
-                    'convite_equipa',
-                    false,
-                    NOW()
-                )
-            `.catch(() => {});
+                if (responsavelUserId) {
+                    // Notificação ao responsável para aprovar
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (
+                            gen_random_uuid(),
+                            ${treinador.organization_id},
+                            ${responsavelUserId},
+                            ${`Aprovação necessária: convite para equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                            ${`O treinador "${treinador.name}" pretende adicionar o atleta menor "${body.nome.trim()}" à equipa. Como encarregado de educação, a sua aprovação é necessária.`},
+                            'convite_equipa',
+                            false,
+                            NOW()
+                        )
+                    `.catch(() => {});
+                } else {
+                    // Responsável não está na plataforma — notificar o atleta para informar o responsável
+                    await sql`
+                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        VALUES (
+                            gen_random_uuid(),
+                            ${treinador.organization_id},
+                            ${linkedUserId},
+                            ${`Convite pendente para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                            ${`O treinador "${treinador.name}" pretende adicioná-lo à equipa. Como é menor de idade, o seu encarregado de educação precisa aprovar o convite. Peça ao seu responsável para se registar na plataforma.`},
+                            'convite_equipa',
+                            false,
+                            NOW()
+                        )
+                    `.catch(() => {});
+                }
+            } else {
+                // Adulto: fluxo normal — convite pendente para o atleta
+                await sql`
+                    INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${treinador.organization_id},
+                        ${treinador.id},
+                        ${treinador.name},
+                        ${novoAtleta.id},
+                        ${body.equipa_id},
+                        ${body.equipa_nome ?? null},
+                        'pendente',
+                        NOW(), NOW()
+                    )
+                `.catch(() => {});
+
+                // Notificação direcionada ao atleta
+                await sql`
+                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                    VALUES (
+                        gen_random_uuid(),
+                        ${treinador.organization_id},
+                        ${linkedUserId},
+                        ${`Convite para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                        ${`O treinador "${treinador.name}" adicionou-o como atleta e enviou um convite de vinculação.`},
+                        'convite_equipa',
+                        false,
+                        NOW()
+                    )
+                `.catch(() => {});
+            }
         }
 
         // Notificação normal

@@ -166,18 +166,42 @@ export async function POST(req: Request) {
                 unsafe_metadata?.accountType ?? public_metadata?.accountType,
             );
 
+            // Não sobrescrever image_url se o utilizador já tem uma foto custom (R2)
+            const [existing] = await sql<{ image_url: string | null }[]>`
+                SELECT image_url FROM users WHERE clerk_user_id = ${id} LIMIT 1
+            `;
+            const hasCustomAvatar =
+                existing?.image_url &&
+                !existing.image_url.includes("img.clerk.com");
+
             if (accountType) {
-                await sql`
-        UPDATE users
-        SET name = ${name}, image_url = ${image_url}, updated_at = NOW()
-        WHERE clerk_user_id = ${id}
-      `;
+                if (hasCustomAvatar) {
+                    await sql`
+                        UPDATE users
+                        SET name = ${name}, updated_at = NOW()
+                        WHERE clerk_user_id = ${id}
+                    `;
+                } else {
+                    await sql`
+                        UPDATE users
+                        SET name = ${name}, image_url = ${image_url}, updated_at = NOW()
+                        WHERE clerk_user_id = ${id}
+                    `;
+                }
             } else {
-                await sql`
-        UPDATE users 
-        SET name = ${name}, image_url = ${image_url}, updated_at = NOW() 
-        WHERE clerk_user_id = ${id}
-      `;
+                if (hasCustomAvatar) {
+                    await sql`
+                        UPDATE users
+                        SET name = ${name}, updated_at = NOW()
+                        WHERE clerk_user_id = ${id}
+                    `;
+                } else {
+                    await sql`
+                        UPDATE users
+                        SET name = ${name}, image_url = ${image_url}, updated_at = NOW()
+                        WHERE clerk_user_id = ${id}
+                    `;
+                }
             }
             return new Response("User updated", { status: 200 });
         }

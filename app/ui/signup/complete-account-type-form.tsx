@@ -31,8 +31,6 @@ import {
 import {
     COUNTRY_OPTIONS,
     type SelectOption,
-    TRAINER_AMATEUR_COURSE_LABEL,
-    TRAINER_AMATEUR_COURSE_VALUE,
     isValidNationality,
 } from "@/app/lib/trainer-profile-options";
 
@@ -432,9 +430,7 @@ export default function CompleteAccountTypeForm({
     const [presidentCity, setPresidentCity] = useState("");
     const [trainerModality, setTrainerModality] = useState("");
     const [trainerNationality, setTrainerNationality] = useState("");
-    const [trainerCourseModality, setTrainerCourseModality] = useState(
-        TRAINER_AMATEUR_COURSE_VALUE,
-    );
+    const [trainerCourseModality, setTrainerCourseModality] = useState("");
     const [trainerTechnicalLevel, setTrainerTechnicalLevel] = useState("");
     const [trainerCourseModalityOptions, setTrainerCourseModalityOptions] =
         useState<SelectOption[]>([]);
@@ -554,7 +550,7 @@ export default function CompleteAccountTypeForm({
 
     const trainerTechnicalLevelOptions = useMemo(
         () =>
-            trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE
+            trainerCourseModality
                 ? trainerTechnicalLevelOptionsByModality[
                       trainerCourseModality
                   ] || []
@@ -641,13 +637,6 @@ export default function CompleteAccountTypeForm({
     }, []);
 
     useEffect(() => {
-        if (trainerCourseModality === TRAINER_AMATEUR_COURSE_VALUE) {
-            if (trainerTechnicalLevel) {
-                setTrainerTechnicalLevel("");
-            }
-            return;
-        }
-
         if (
             trainerTechnicalLevel &&
             !trainerTechnicalLevelOptions.some(
@@ -1194,7 +1183,7 @@ export default function CompleteAccountTypeForm({
                 return;
             }
 
-            if (trainerCourseModality !== TRAINER_AMATEUR_COURSE_VALUE) {
+            {
                 const selectedCourseModality =
                     trainerCourseModalityOptions.find(
                         (option) => option.value === trainerCourseModality,
@@ -1206,9 +1195,7 @@ export default function CompleteAccountTypeForm({
                 }
 
                 if (!trainerTechnicalLevel.trim()) {
-                    setError(
-                        "Grau Técnico é obrigatório para curso IPJD/PNFT.",
-                    );
+                    setError("Grau Técnico é obrigatório.");
                     return;
                 }
 
@@ -2769,11 +2756,7 @@ export default function CompleteAccountTypeForm({
                                     }
                                     className="block w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-emerald-50/30 dark:bg-gray-800 px-3 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                                 >
-                                    <option
-                                        value={TRAINER_AMATEUR_COURSE_VALUE}
-                                    >
-                                        {TRAINER_AMATEUR_COURSE_LABEL}
-                                    </option>
+                                    <option value="">Selecione o curso</option>
                                     {trainerCourseModalityOptions.map(
                                         (option) => (
                                             <option
@@ -2787,8 +2770,7 @@ export default function CompleteAccountTypeForm({
                                 </select>
                             </div>
 
-                            {trainerCourseModality !==
-                                TRAINER_AMATEUR_COURSE_VALUE && (
+                            {trainerCourseModality && (
                                 <div className="space-y-1">
                                     <label className="block text-sm font-medium text-gray-400 dark:text-gray-300">
                                         Grau Técnico

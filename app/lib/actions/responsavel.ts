@@ -82,7 +82,12 @@ export async function aprovarConviteEquipa(
 
         if (convite.equipa_id) {
             await sql`
-                UPDATE atletas SET equipa_id = ${convite.equipa_id}
+                UPDATE atletas SET equipa_id = ${convite.equipa_id}, estado = 'Ativo', updated_at = NOW()
+                WHERE id = ${convite.atleta_id}
+            `.catch(() => {});
+        } else {
+            await sql`
+                UPDATE atletas SET estado = 'Ativo', updated_at = NOW()
                 WHERE id = ${convite.atleta_id}
             `.catch(() => {});
         }

@@ -85,9 +85,12 @@ export async function POST(req: NextRequest) {
             nome: string;
             user_id: string | null;
             organization_id: string;
+            menor_idade: boolean | null;
+            encarregado_educacao: string | null;
+            data_nascimento: string | null;
         }[]
     >`
-        SELECT id, nome, user_id, organization_id FROM atletas
+        SELECT id, nome, user_id, organization_id, menor_idade, encarregado_educacao, data_nascimento FROM atletas
         WHERE id = ${body.atleta_id} LIMIT 1
     `;
     const atleta = atletaRows[0];
@@ -109,12 +112,12 @@ export async function POST(req: NextRequest) {
 
     await ensureTable();
 
-    // Check if already has a pending invite
+    // Check if already has a pending invite (incluindo pendente_responsavel)
     const existing = await sql<{ id: string }[]>`
         SELECT id FROM convites_equipa
         WHERE atleta_id = ${body.atleta_id}
           AND organization_id = ${me.organization_id}
-          AND estado = 'pendente'
+          AND estado IN ('pendente', 'pendente_responsavel')
         LIMIT 1
     `;
     if (existing.length > 0)
@@ -141,14 +144,80 @@ export async function POST(req: NextRequest) {
     const equipaId = body.equipa_id || null;
     const equipaNome = body.equipa_nome?.trim() || null;
 
+    // Determinar se atleta é menor de idade
+    let isMenor = false;
+    if (atleta.menor_idade === true) {
+        isMenor = true;
+    } else if (atleta.data_nascimento) {
+        const birth = new Date(atleta.data_nascimento);
+        const today = new Date();
+        let idade = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) idade--;
+        if (idade < 18) {
+            isMenor = true;
+            // Garantir que menor_idade está set no registo do atleta para fetchAprovacoesPendentes()
+            await sql`
+                UPDATE atletas SET menor_idade = true, updated_at = NOW()
+                WHERE id = ${body.atleta_id} AND (menor_idade IS NULL OR menor_idade = false)
+            `.catch(() => {});
+        }
+    }
+
+    // Buscar user_id do responsável (se menor)
+    let responsavelUserId: string | null = null;
+    if (isMenor && atleta.encarregado_educacao) {
+        const [respUser] = await sql<{ id: string }[]>`
+            SELECT id FROM users
+            WHERE LOWER(email) = ${atleta.encarregado_educacao.trim().toLowerCase()}
+              AND account_type = 'responsavel'
+            LIMIT 1
+        `.catch(() => []);
+        responsavelUserId = respUser?.id ?? null;
+    }
+
+    const conviteEstado = isMenor ? "pendente_responsavel" : "pendente";
+
     const [convite] = await sql<{ id: string }[]>`
-        INSERT INTO convites_equipa (organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome)
-        VALUES (${me.organization_id}, ${me.id}, ${me.name}, ${body.atleta_id}, ${equipaId}, ${equipaNome})
+        INSERT INTO convites_equipa (organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado)
+        VALUES (${me.organization_id}, ${me.id}, ${me.name}, ${body.atleta_id}, ${equipaId}, ${equipaNome}, ${conviteEstado})
         RETURNING id
     `;
 
-    // Create targeted notification for the athlete (if they have a user account)
-    if (atleta.user_id) {
+    if (isMenor) {
+        if (responsavelUserId) {
+            // Notificação ao responsável para aprovar
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${me.organization_id},
+                    ${responsavelUserId},
+                    ${`Aprovação necessária: convite para equipa${equipaNome ? ` ${equipaNome}` : ""}`},
+                    ${`O treinador "${me.name}" pretende adicionar o atleta menor "${atleta.nome}" à equipa. Como encarregado de educação, a sua aprovação é necessária.`},
+                    'convite_equipa',
+                    false,
+                    NOW()
+                )
+            `.catch(() => {});
+        } else if (atleta.user_id) {
+            // Responsável não na plataforma — notificar atleta
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${me.organization_id},
+                    ${atleta.user_id},
+                    ${`Convite pendente para a equipa${equipaNome ? ` ${equipaNome}` : ""}`},
+                    ${`O treinador "${me.name}" pretende adicioná-lo à equipa. Como é menor de idade, o seu encarregado de educação precisa aprovar o convite. Peça ao seu responsável para se registar na plataforma.`},
+                    'convite_equipa',
+                    false,
+                    NOW()
+                )
+            `.catch(() => {});
+        }
+    } else if (atleta.user_id) {
+        // Adulto: notificação direta ao atleta
         const titulo = `Convite para a equipa${equipaNome ? ` ${equipaNome}` : ""}`;
         const descricao = `Parabéns! O treinador "${me.name}" quer que se junte à equipa${equipaNome ? ` "${equipaNome}"` : ""} como atleta!`;
 

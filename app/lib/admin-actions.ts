@@ -379,7 +379,7 @@ export async function adminLogoutAction(): Promise<void> {
 export async function adminUpdateUserAction(
     userId: string,
     formData: FormData,
-): Promise<void> {
+): Promise<void | { error: string }> {
     await requireAdminSession();
 
     const section = String(formData.get("_section") || "").trim() || null;
@@ -652,6 +652,26 @@ export async function adminUpdateUserAction(
                     if (clubeRows.length === 0) safeFederado = false;
                 } else if (federado && !currentUser.organization_id) {
                     safeFederado = false;
+                }
+
+                // Validar unicidade do nº federado dentro da organização
+                if (
+                    safeFederado &&
+                    numeroFederado &&
+                    currentUser.organization_id
+                ) {
+                    const duplicado = await sql<{ id: string }[]>`
+                        SELECT id FROM atletas
+                        WHERE organization_id = ${currentUser.organization_id}
+                          AND numero_federado = ${numeroFederado}
+                          AND id != ${atletaId}
+                        LIMIT 1
+                    `;
+                    if (duplicado.length > 0) {
+                        return {
+                            error: `Já existe um atleta com o nº federado ${numeroFederado} neste clube.`,
+                        };
+                    }
                 }
 
                 await sql`

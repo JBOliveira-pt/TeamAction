@@ -150,10 +150,8 @@ export default function ConvidarAtletaModal({
             setErro("O atleta deve ter pelo menos 5 anos de idade.");
             return;
         }
-        if (!numeroFederado.trim() || !/^\d{6}$/.test(numeroFederado.trim())) {
-            setErro(
-                "O nº de federado é obrigatório e deve ter exatamente 6 dígitos.",
-            );
+        if (numeroFederado.trim() && !/^\d{6}$/.test(numeroFederado.trim())) {
+            setErro("O nº de federado deve ter exatamente 6 dígitos.");
             return;
         }
         // Validar idade compatível com escalão da equipa
@@ -174,8 +172,10 @@ export default function ConvidarAtletaModal({
         const formData = new FormData();
         formData.append("nome", nome.trim());
         formData.append("data_nascimento", dataNascimento);
-        formData.append("federado", "on");
-        formData.append("numero_federado", numeroFederado.trim());
+        if (numeroFederado.trim()) {
+            formData.append("federado", "on");
+            formData.append("numero_federado", numeroFederado.trim());
+        }
         if (posicao.trim()) formData.append("posicao", posicao.trim());
         if (numeroCamisola) formData.append("numero_camisola", numeroCamisola);
         if (equipaId) formData.append("equipa_id", equipaId);
@@ -374,7 +374,7 @@ export default function ConvidarAtletaModal({
             <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Nº Federado <span className="text-red-400">*</span>
+                        Nº Federado
                     </label>
                     <input
                         type="text"

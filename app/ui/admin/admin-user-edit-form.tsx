@@ -111,7 +111,7 @@ type StaffData = {
 };
 
 type Props = {
-    updateAction: (formData: FormData) => Promise<void>;
+    updateAction: (formData: FormData) => Promise<void | { error: string }>;
     accountType: string | null;
     user: {
         name: string;
