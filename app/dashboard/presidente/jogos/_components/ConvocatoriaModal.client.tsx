@@ -9,6 +9,7 @@ type Atleta = {
     nome: string;
     posicao: string | null;
     numero_camisola: number | null;
+    estado?: string;
 };
 
 type Convocado = {
@@ -98,15 +99,22 @@ export default function ConvocatoriaModal({
                     })),
                 );
             } else {
-                // Sem convocatória existente — todos os atletas como convocado por defeito
+                // Sem convocatória existente — mapear estado do atleta para estado da convocatória
                 setConvocados(
-                    atletasData.map((a) => ({
-                        atleta_id: a.id,
-                        estado: "convocado",
-                        nome: a.nome,
-                        posicao: a.posicao,
-                        numero_camisola: a.numero_camisola,
-                    })),
+                    atletasData.map((a) => {
+                        let estadoConvoc = "convocado";
+                        const est = (a.estado ?? "").toLowerCase();
+                        if (est === "lesionado") estadoConvoc = "lesionado";
+                        else if (est === "suspenso")
+                            estadoConvoc = "dispensado";
+                        return {
+                            atleta_id: a.id,
+                            estado: estadoConvoc,
+                            nome: a.nome,
+                            posicao: a.posicao,
+                            numero_camisola: a.numero_camisola,
+                        };
+                    }),
                 );
             }
         } catch {

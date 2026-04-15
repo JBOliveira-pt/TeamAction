@@ -66,6 +66,34 @@ export async function PUT(
             });
     }
 
+    // Validar que a data/hora não está no passado
+    if (body.data) {
+        const agora = new Date();
+        const hojeMeia = new Date();
+        hojeMeia.setHours(0, 0, 0, 0);
+        const novaData = new Date(body.data);
+        novaData.setHours(0, 0, 0, 0);
+        if (novaData < hojeMeia) {
+            return new Response(
+                "Não é possível remarcar para uma data passada.",
+                { status: 400 },
+            );
+        }
+        const hojeISO = hojeMeia.toISOString().split("T")[0];
+        if (body.data === hojeISO && body.hora_inicio) {
+            const [h, m] = body.hora_inicio.split(":").map(Number);
+            if (
+                h < agora.getHours() ||
+                (h === agora.getHours() && m <= agora.getMinutes())
+            ) {
+                return new Response(
+                    "Não é possível remarcar para uma hora já passada.",
+                    { status: 400 },
+                );
+            }
+        }
+    }
+
     // Buscar dados antigos se vamos alterar data/hora (para notificação)
     let oldGame: {
         data: string;
@@ -256,6 +284,80 @@ export async function DELETE(
             }
         }
     }
+
+    // ── Buscar dados do jogo para notificações ──
+    const jogoInfo = await sql<
+        {
+            adversario: string;
+            data: string;
+            equipa_id: string | null;
+            organization_id: string;
+        }[]
+    >`
+        SELECT adversario, data::text, equipa_id, organization_id
+        FROM jogos WHERE id = ${id} AND organization_id = ${user.organization_id}
+    `;
+    if (jogoInfo.length === 0)
+        return new Response("Not found", { status: 404 });
+
+    const jInfo = jogoInfo[0];
+    const dataFormatadaNotif = new Date(jInfo.data).toLocaleDateString(
+        "pt-PT",
+        { day: "2-digit", month: "short", year: "numeric" },
+    );
+
+    // ── Notificar atletas convocados (com user_id real) ──
+    const convocados = await sql<{ user_id: string | null }[]>`
+        SELECT a.user_id
+        FROM convocatorias c
+        JOIN atletas a ON a.id = c.atleta_id
+        WHERE c.jogo_id = ${id} AND a.user_id IS NOT NULL
+    `;
+    if (convocados.length > 0) {
+        const atletaUserIds = convocados
+            .map((c) => c.user_id)
+            .filter((uid): uid is string => uid !== null);
+        if (atletaUserIds.length > 0) {
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                SELECT
+                    gen_random_uuid(),
+                    ${jInfo.organization_id},
+                    uid,
+                    ${"Jogo eliminado"},
+                    ${`O jogo contra ${jInfo.adversario} de ${dataFormatadaNotif} foi eliminado.`},
+                    'jogo',
+                    false,
+                    NOW()
+                FROM unnest(${atletaUserIds}::uuid[]) AS uid
+            `;
+        }
+    }
+
+    // ── Notificar treinador da equipa (se presidente está a apagar) ──
+    if (user.account_type === "presidente" && jInfo.equipa_id) {
+        const treinadorRow = await sql<{ treinador_id: string | null }[]>`
+            SELECT treinador_id FROM equipas WHERE id = ${jInfo.equipa_id} LIMIT 1
+        `;
+        if (treinadorRow.length > 0 && treinadorRow[0].treinador_id) {
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${jInfo.organization_id},
+                    ${treinadorRow[0].treinador_id},
+                    ${"Jogo eliminado"},
+                    ${`O jogo contra ${jInfo.adversario} de ${dataFormatadaNotif} foi eliminado pelo presidente.`},
+                    'jogo',
+                    false,
+                    NOW()
+                )
+            `;
+        }
+    }
+
+    // ── Apagar convocatórias associadas ──
+    await sql`DELETE FROM convocatorias WHERE jogo_id = ${id}`;
 
     const deleted = await sql`
         DELETE FROM jogos

@@ -29,9 +29,10 @@ export async function GET(req: NextRequest) {
             nome: string;
             posicao: string | null;
             numero_camisola: number | null;
+            estado: string;
         }[]
     >`
-        SELECT id, nome, posicao, numero_camisola
+        SELECT id, nome, posicao, numero_camisola, estado
         FROM atletas
         WHERE equipa_id = ${equipaId} AND organization_id = ${user.organization_id}
         ORDER BY nome ASC

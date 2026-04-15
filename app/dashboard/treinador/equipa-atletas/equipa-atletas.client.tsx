@@ -9,6 +9,8 @@ import {
 } from "@/app/lib/grau-escalao-compat";
 
 const ATLETA_PLACEHOLDER = getProfilePlaceholder("atleta");
+const FAKE_ATLETA_PLACEHOLDER =
+    "https://pub-5de44bde848c4dbcabd75025afe46c7e.r2.dev/teamaction-images/atleta-photo-placeholder.jpg";
 
 function calcularIdade(dataNascimento: string | null): number | null {
     if (!dataNascimento) return null;
@@ -30,6 +32,7 @@ type Atleta = {
     equipa_nome: string | null;
     user_id: string | null;
     data_nascimento: string | null;
+    image_url: string | null;
 };
 
 type AtletaResultado = {
@@ -1850,17 +1853,31 @@ export default function EquipaAtletas({
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 font-extrabold text-base">
-                                    {atletaModal.nome.charAt(0)}
+                                <div className="relative w-9 h-9 flex-shrink-0">
+                                    <Image
+                                        src={
+                                            atletaModal.image_url ||
+                                            (!atletaModal.user_id
+                                                ? FAKE_ATLETA_PLACEHOLDER
+                                                : ATLETA_PLACEHOLDER)
+                                        }
+                                        alt={atletaModal.nome}
+                                        width={36}
+                                        height={36}
+                                        className="w-9 h-9 rounded-xl object-cover"
+                                    />
+                                    {!atletaModal.user_id && (
+                                        <span
+                                            className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[8px]"
+                                            title="Fictício"
+                                        >
+                                            🤖
+                                        </span>
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-gray-900 dark:text-white text-base">
                                         {atletaModal.nome}
-                                        {!atletaModal.user_id && (
-                                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                                                🤖 Fictício
-                                            </span>
-                                        )}
                                     </h3>
                                     <p className="text-xs text-gray-400">
                                         {atletaModal.posicao ?? "—"}
@@ -2162,17 +2179,31 @@ export default function EquipaAtletas({
                             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all cursor-pointer group"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 text-xl font-extrabold flex-shrink-0 group-hover:scale-105 transition-transform">
-                                    {atleta.nome.charAt(0)}
+                                <div className="relative w-12 h-12 flex-shrink-0 group-hover:scale-105 transition-transform">
+                                    <Image
+                                        src={
+                                            atleta.image_url ||
+                                            (!atleta.user_id
+                                                ? FAKE_ATLETA_PLACEHOLDER
+                                                : ATLETA_PLACEHOLDER)
+                                        }
+                                        alt={atleta.nome}
+                                        width={48}
+                                        height={48}
+                                        className="w-12 h-12 rounded-full object-cover"
+                                    />
+                                    {!atleta.user_id && (
+                                        <span
+                                            className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-gray-800 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[10px]"
+                                            title="Fictício"
+                                        >
+                                            🤖
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="min-w-0">
                                     <div className="font-bold text-sm text-gray-900 dark:text-white truncate">
                                         {atleta.nome}
-                                        {!atleta.user_id && (
-                                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                                                🤖
-                                            </span>
-                                        )}
                                     </div>
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
                                         {atleta.posicao ?? "—"}

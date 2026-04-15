@@ -600,14 +600,17 @@ function ModalEditarData({
     const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!dataJogo) return;
+        const agora = new Date();
+        const hojeFresh = new Date();
+        hojeFresh.setHours(0, 0, 0, 0);
+        const hojeFreshISO = hojeFresh.toISOString().split("T")[0];
         const d = new Date(dataJogo);
         d.setHours(0, 0, 0, 0);
-        if (d < hoje) {
+        if (d < hojeFresh) {
             setErro("Não é possível remarcar para uma data passada.");
             return;
         }
-        if (dataJogo === hojeISO && horaInicio) {
-            const agora = new Date();
+        if (dataJogo === hojeFreshISO && horaInicio) {
             const [h, m] = horaInicio.split(":").map(Number);
             if (
                 h < agora.getHours() ||
@@ -1660,6 +1663,8 @@ export default function Jogos({
     const [modalResultado, setModalResultado] = useState<Jogo | null>(null);
     const [modalEditarData, setModalEditarData] = useState<Jogo | null>(null);
     const [modalDetalhe, setModalDetalhe] = useState<Jogo | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
     const [toast, setToast] = useState<{
         msg: string;
         tipo: "ok" | "erro";
@@ -1765,6 +1770,20 @@ export default function Jogos({
             showToast("Resultado registado!");
         } else {
             showToast("Erro ao registar resultado.", "erro");
+        }
+    };
+
+    /* ── Eliminar jogo ── */
+    const eliminarJogo = async (id: string) => {
+        setDeleting(true);
+        const res = await fetch(`/api/jogos/${id}`, { method: "DELETE" });
+        setDeleting(false);
+        if (res.ok) {
+            setJogos((prev) => prev.filter((j) => j.id !== id));
+            setConfirmDelete(null);
+            showToast("Jogo eliminado com sucesso!");
+        } else {
+            showToast("Erro ao eliminar jogo.", "erro");
         }
     };
 
@@ -2154,6 +2173,49 @@ export default function Jogos({
                                                                 data={j.data}
                                                             />
                                                         )}
+                                                    {j.estado === "agendado" &&
+                                                        !jogoTerminado &&
+                                                        (confirmDelete ===
+                                                        j.id ? (
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() =>
+                                                                        eliminarJogo(
+                                                                            j.id,
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        deleting
+                                                                    }
+                                                                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-all whitespace-nowrap"
+                                                                >
+                                                                    {deleting
+                                                                        ? "…"
+                                                                        : "Confirmar"}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() =>
+                                                                        setConfirmDelete(
+                                                                            null,
+                                                                        )
+                                                                    }
+                                                                    className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all whitespace-nowrap"
+                                                                >
+                                                                    Não
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={() =>
+                                                                    setConfirmDelete(
+                                                                        j.id,
+                                                                    )
+                                                                }
+                                                                className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all whitespace-nowrap"
+                                                            >
+                                                                🗑️ Eliminar
+                                                            </button>
+                                                        ))}
                                                 </div>
                                             </td>
                                         </tr>

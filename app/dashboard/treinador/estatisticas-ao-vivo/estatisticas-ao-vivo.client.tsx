@@ -70,6 +70,47 @@ const TIPO_BADGE: Record<string, string> = {
     Substituição: "bg-purple-600",
 };
 
+const TIPO_CARD: Record<
+    string,
+    { border: string; text: string; count: string }
+> = {
+    "Golo Feito": {
+        border: "border-l-green-500",
+        text: "text-green-600 dark:text-green-400",
+        count: "text-green-700 dark:text-green-300",
+    },
+    "Golo Sofrido": {
+        border: "border-l-red-500",
+        text: "text-red-500 dark:text-red-400",
+        count: "text-red-600 dark:text-red-300",
+    },
+    Assistência: {
+        border: "border-l-blue-500",
+        text: "text-blue-600 dark:text-blue-400",
+        count: "text-blue-700 dark:text-blue-300",
+    },
+    Falta: {
+        border: "border-l-orange-500",
+        text: "text-orange-500 dark:text-orange-400",
+        count: "text-orange-600 dark:text-orange-300",
+    },
+    "Cartão Amarelo": {
+        border: "border-l-yellow-500",
+        text: "text-yellow-600 dark:text-yellow-400",
+        count: "text-yellow-700 dark:text-yellow-300",
+    },
+    "Cartão Vermelho": {
+        border: "border-l-red-600",
+        text: "text-red-600 dark:text-red-400",
+        count: "text-red-700 dark:text-red-300",
+    },
+    Substituição: {
+        border: "border-l-purple-500",
+        text: "text-purple-600 dark:text-purple-400",
+        count: "text-purple-700 dark:text-purple-300",
+    },
+};
+
 const ESTADO_BADGE: Record<string, string> = {
     agendado:
         "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -277,21 +318,26 @@ export default function EstatisticasAoVivo({
                 <>
                     {/* Contadores por tipo */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                        {TIPOS_EVENTO.map((tipo) => (
-                            <div
-                                key={tipo}
-                                className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow text-center border border-gray-200 dark:border-gray-700"
-                            >
+                        {TIPOS_EVENTO.map((tipo) => {
+                            const card = TIPO_CARD[tipo];
+                            return (
                                 <div
-                                    className={`inline-block px-2 py-0.5 rounded text-xs text-white font-bold mb-2 ${TIPO_BADGE[tipo]}`}
+                                    key={tipo}
+                                    className={`bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-center border border-gray-200 dark:border-gray-700 border-l-[3px] ${card?.border ?? "border-l-gray-400"}`}
                                 >
-                                    {tipo}
+                                    <div
+                                        className={`text-[11px] font-semibold mb-1.5 ${card?.text ?? "text-gray-500"}`}
+                                    >
+                                        {tipo}
+                                    </div>
+                                    <div
+                                        className={`text-2xl font-bold ${card?.count ?? "text-gray-900 dark:text-white"}`}
+                                    >
+                                        {statsByTipo[tipo]}
+                                    </div>
                                 </div>
-                                <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                                    {statsByTipo[tipo]}
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Tabela de eventos */}

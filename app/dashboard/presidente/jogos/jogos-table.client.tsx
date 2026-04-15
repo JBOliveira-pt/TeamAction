@@ -168,7 +168,31 @@ function getResultado(j: Jogo) {
 
 export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
     const [filtroEquipa, setFiltroEquipa] = useState("Todas");
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [toast, setToast] = useState<{
+        msg: string;
+        tipo: "ok" | "erro";
+    } | null>(null);
     const router = useRouter();
+
+    const showToast = (msg: string, tipo: "ok" | "erro" = "ok") => {
+        setToast({ msg, tipo });
+        setTimeout(() => setToast(null), 2500);
+    };
+
+    const eliminarJogo = async (id: string) => {
+        setDeleting(true);
+        const res = await fetch(`/api/jogos/${id}`, { method: "DELETE" });
+        setDeleting(false);
+        if (res.ok) {
+            setConfirmDelete(null);
+            showToast("Jogo eliminado com sucesso!");
+            router.refresh();
+        } else {
+            showToast("Erro ao eliminar jogo.", "erro");
+        }
+    };
 
     const equipasUnicas = [
         "Todas",
@@ -188,6 +212,13 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
 
     return (
         <div className="space-y-6">
+            {toast && (
+                <div
+                    className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[300] px-5 py-3 rounded-2xl shadow-xl font-semibold text-sm flex items-center gap-2 ${toast.tipo === "ok" ? "bg-green-600 text-white" : "bg-red-600 text-white"}`}
+                >
+                    {toast.tipo === "ok" ? "✓" : "✕"} {toast.msg}
+                </div>
+            )}
             {/* Cards resumo */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5">
@@ -463,6 +494,48 @@ export default function JogosTable({ jogos }: { jogos: Jogo[] }) {
                                                             data={j.data}
                                                         />
                                                     )}
+                                                {j.estado === "agendado" &&
+                                                    !jogoTerminado &&
+                                                    (confirmDelete === j.id ? (
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() =>
+                                                                    eliminarJogo(
+                                                                        j.id,
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    deleting
+                                                                }
+                                                                className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 disabled:opacity-50 transition-all whitespace-nowrap"
+                                                            >
+                                                                {deleting
+                                                                    ? "…"
+                                                                    : "Confirmar"}
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    setConfirmDelete(
+                                                                        null,
+                                                                    )
+                                                                }
+                                                                className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all whitespace-nowrap"
+                                                            >
+                                                                Não
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() =>
+                                                                setConfirmDelete(
+                                                                    j.id,
+                                                                )
+                                                            }
+                                                            className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 transition-all whitespace-nowrap"
+                                                        >
+                                                            🗑️ Eliminar
+                                                        </button>
+                                                    ))}
                                             </div>
                                         </td>
                                     </tr>
