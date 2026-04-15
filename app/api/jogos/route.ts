@@ -139,8 +139,8 @@ export async function POST(req: NextRequest) {
     // Validar plantel mínimo da minha equipa: 1 GR + 6 jogadores de campo
     const [minhaEquipaRoster] = await sql<{ gr: string; campo: string }[]>`
         SELECT
-            COUNT(*) FILTER (WHERE posicao = 'Guarda-Redes') AS gr,
-            COUNT(*) FILTER (WHERE posicao IS NOT NULL AND posicao <> 'Guarda-Redes') AS campo
+            COUNT(*) FILTER (WHERE posicao = 'Guarda-redes') AS gr,
+            COUNT(*) FILTER (WHERE posicao IS NOT NULL AND posicao <> 'Guarda-redes') AS campo
         FROM atletas
         WHERE equipa_id = ${equipaId}
           AND organization_id = ${user.organization_id}
@@ -177,8 +177,8 @@ export async function POST(req: NextRequest) {
         // Validar plantel mínimo da equipa adversária
         const [advRoster] = await sql<{ gr: string; campo: string }[]>`
             SELECT
-                COUNT(*) FILTER (WHERE a.posicao = 'Guarda-Redes') AS gr,
-                COUNT(*) FILTER (WHERE a.posicao IS NOT NULL AND a.posicao <> 'Guarda-Redes') AS campo
+                COUNT(*) FILTER (WHERE a.posicao = 'Guarda-redes') AS gr,
+                COUNT(*) FILTER (WHERE a.posicao IS NOT NULL AND a.posicao <> 'Guarda-redes') AS campo
             FROM atletas a
             JOIN equipas e ON e.id = a.equipa_id
             WHERE e.organization_id = ${adversarioClubeId}
