@@ -1620,6 +1620,10 @@ export async function POST(req: Request) {
                     formData.get("responsible_minor_email") || "",
                 ).trim();
 
+                console.log(
+                    `[ACCOUNT_TYPE][RESP] Flow start: userId=${userId}, currentEmail=${currentEmail}, responsavelDbId=${responsavelDbId ?? "NOT_FOUND"}, responsibleMinorEmail=${responsibleMinorEmail || "EMPTY"}`,
+                );
+
                 if (responsavelDbId) {
                     // 1. Preencher alvo_responsavel_user_id em quaisquer relações pendentes criadas pelo atleta menor (caso exista)
                     const hasPendingTable = await hasTable(
@@ -1663,25 +1667,29 @@ export async function POST(req: Request) {
                             // intenção do responsável para que o vínculo
                             // seja estabelecido quando o menor se registar.
                             console.log(
-                                `[ACCOUNT_TYPE] Minor ${responsibleMinorEmail} not found yet. Storing responsible intent for later linking.`,
+                                `[ACCOUNT_TYPE] Minor ${responsibleMinorEmail} not found yet. Storing responsible intent for later linking. responsavelDbId=${responsavelDbId}`,
                             );
-                            await sql`
-                                INSERT INTO atleta_relacoes_pendentes (
-                                    id, atleta_user_id, relation_kind, status,
-                                    alvo_email, alvo_responsavel_user_id,
-                                    created_at, updated_at
-                                ) VALUES (
-                                    gen_random_uuid(), NULL, 'responsavel', 'pendente',
-                                    ${responsibleMinorEmail}, ${responsavelDbId},
-                                    NOW(), NOW()
-                                )
-                                ON CONFLICT DO NOTHING
-                            `.catch((err) =>
+                            try {
+                                await sql`
+                                    INSERT INTO atleta_relacoes_pendentes (
+                                        id, atleta_user_id, relation_kind, status,
+                                        alvo_email, alvo_responsavel_user_id,
+                                        created_at, updated_at
+                                    ) VALUES (
+                                        gen_random_uuid(), NULL, 'responsavel', 'pendente',
+                                        ${responsibleMinorEmail}, ${responsavelDbId},
+                                        NOW(), NOW()
+                                    )
+                                `;
+                                console.log(
+                                    `[ACCOUNT_TYPE] ✅ Responsible intent saved: alvo_email=${responsibleMinorEmail}, alvo_responsavel_user_id=${responsavelDbId}`,
+                                );
+                            } catch (insertErr) {
                                 console.error(
-                                    "[ACCOUNT_TYPE] Failed to INSERT responsible intent (minor not yet registered):",
-                                    err,
-                                ),
-                            );
+                                    "[ACCOUNT_TYPE] ❌ Failed to INSERT responsible intent (minor not yet registered):",
+                                    insertErr,
+                                );
+                            }
                         } else {
                             const minor = minorRows[0];
                             // Verificar se o vínculo já existe (fluxo iniciado pelo atleta)

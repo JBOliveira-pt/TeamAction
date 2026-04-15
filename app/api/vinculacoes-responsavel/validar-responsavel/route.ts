@@ -49,33 +49,9 @@ export async function POST(request: Request) {
             });
         }
 
-        // 4. User is a responsável — check if they pre-registered with this athlete's email
-        if (athleteEmail) {
-            // Check atleta_relacoes_pendentes for a record where this responsável
-            // indicated the athlete's email (responsável-initiated flow)
-            const preRegistered = await sql<{ id: string }[]>`
-                SELECT arp.id
-                FROM atleta_relacoes_pendentes arp
-                LEFT JOIN users u_atleta ON u_atleta.id = arp.atleta_user_id
-                WHERE arp.alvo_responsavel_user_id = ${user.id}
-                  AND arp.relation_kind = 'responsavel'
-                  AND (
-                      LOWER(u_atleta.email) = LOWER(${athleteEmail})
-                      OR (arp.atleta_user_id IS NULL AND LOWER(arp.alvo_email) = LOWER(${athleteEmail}))
-                  )
-                LIMIT 1
-            `;
-
-            if (preRegistered.length > 0) {
-                return NextResponse.json({ valid: true });
-            }
-
-            return NextResponse.json({
-                valid: false,
-                reason: "not_preregistered",
-            });
-        }
-
+        // 4. Responsável existe na tabela users — permitir vinculação.
+        // A segurança real está no passo de confirmação: o responsável
+        // aceita ou recusa o pedido via /api/vinculacoes-responsavel.
         return NextResponse.json({ valid: true });
     } catch (error) {
         console.error(
