@@ -61,7 +61,7 @@ export async function POST(request: Request) {
                   AND arp.relation_kind = 'responsavel'
                   AND (
                       LOWER(u_atleta.email) = LOWER(${athleteEmail})
-                      OR LOWER(arp.alvo_atleta_email) = LOWER(${athleteEmail})
+                      OR (arp.atleta_user_id IS NULL AND LOWER(arp.alvo_email) = LOWER(${athleteEmail}))
                   )
                 LIMIT 1
             `;

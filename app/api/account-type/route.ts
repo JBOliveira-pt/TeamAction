@@ -1523,21 +1523,24 @@ export async function POST(req: Request) {
                     }
 
                     // Verificar se algum responsável já fez pré-cadastro
-                    // indicando o e-mail deste atleta menor (via alvo_atleta_email).
+                    // indicando o e-mail deste atleta menor (via alvo_email com atleta_user_id NULL).
                     // Se sim, preencher atleta_user_id e notificar o atleta.
                     const preRegisteredIntent = await sql<
                         {
                             id: string;
                             alvo_responsavel_user_id: string;
                             alvo_email: string;
+                            responsavel_email: string | null;
                         }[]
                     >`
-                        SELECT id, alvo_responsavel_user_id, alvo_email
-                        FROM atleta_relacoes_pendentes
-                        WHERE LOWER(alvo_atleta_email) = LOWER(${currentEmail})
-                          AND relation_kind = 'responsavel'
-                          AND status = 'pendente'
-                          AND atleta_user_id IS NULL
+                        SELECT arp.id, arp.alvo_responsavel_user_id, arp.alvo_email,
+                               u_resp.email AS responsavel_email
+                        FROM atleta_relacoes_pendentes arp
+                        LEFT JOIN users u_resp ON u_resp.id = arp.alvo_responsavel_user_id
+                        WHERE LOWER(arp.alvo_email) = LOWER(${currentEmail})
+                          AND arp.relation_kind = 'responsavel'
+                          AND arp.status = 'pendente'
+                          AND arp.atleta_user_id IS NULL
                     `.catch(() => []);
 
                     for (const intent of preRegisteredIntent) {
@@ -1574,9 +1577,11 @@ export async function POST(req: Request) {
                                 FROM users WHERE id = ${intent.alvo_responsavel_user_id} LIMIT 1
                             `.catch(() => []);
 
+                            const respEmail =
+                                intent.responsavel_email ?? intent.alvo_email;
                             const respName =
                                 intentResponsavelName[0]?.full_name ??
-                                intent.alvo_email;
+                                respEmail;
 
                             const athleteOrg = await sql<
                                 { organization_id: string | null }[]
@@ -1591,7 +1596,7 @@ export async function POST(req: Request) {
                                     ${athleteOrg[0]?.organization_id ?? "00000000-0000-0000-0000-000000000000"},
                                     ${athleteUserId},
                                     'Pedido de Vinculação — Responsável',
-                                    ${`${respName} (${intent.alvo_email}) registou-se como responsável e indicou o seu e-mail. Aceda às notificações para aceitar ou recusar o pedido.`},
+                                    ${`${respName} (${respEmail}) registou-se como responsável e indicou o seu e-mail. Aceda às notificações para aceitar ou recusar o pedido.`},
                                     'vinculacao_responsavel',
                                     false,
                                     NOW()
@@ -1616,8 +1621,7 @@ export async function POST(req: Request) {
                 ).trim();
 
                 if (responsavelDbId) {
-                    // 1. Always update existing athlete-initiated pending relations
-                    //    (minor signed up first), storing the responsible user_id.
+                    // 1. Preencher alvo_responsavel_user_id em quaisquer relações pendentes criadas pelo atleta menor (caso exista)
                     const hasPendingTable = await hasTable(
                         "atleta_relacoes_pendentes",
                     );
@@ -1629,10 +1633,15 @@ export async function POST(req: Request) {
                             WHERE relation_kind = 'responsavel'
                               AND status = 'pendente'
                               AND LOWER(alvo_email) = LOWER(${currentEmail})
-                        `.catch(() => {});
+                        `.catch((err) =>
+                            console.error(
+                                "[ACCOUNT_TYPE] Failed to update existing pending relations:",
+                                err,
+                            ),
+                        );
                     }
 
-                    // 2. If minor email provided (self-initiated flow), validate + link
+                    // 2. Se o responsável indicou o e-mail de um menor, verificar se já existe um atleta com esse e-mail como encarregado_educacao. Se sim, criar relação pendente (se ainda não existir) e notificar o atleta. Se não, guardar a intenção para quando o menor se registar.
                     if (responsibleMinorEmail) {
                         const minorRows = await sql<
                             {
@@ -1660,16 +1669,19 @@ export async function POST(req: Request) {
                                 INSERT INTO atleta_relacoes_pendentes (
                                     id, atleta_user_id, relation_kind, status,
                                     alvo_email, alvo_responsavel_user_id,
-                                    alvo_atleta_email,
                                     created_at, updated_at
                                 ) VALUES (
                                     gen_random_uuid(), NULL, 'responsavel', 'pendente',
-                                    ${currentEmail}, ${responsavelDbId},
-                                    ${responsibleMinorEmail},
+                                    ${responsibleMinorEmail}, ${responsavelDbId},
                                     NOW(), NOW()
                                 )
                                 ON CONFLICT DO NOTHING
-                            `.catch(() => {});
+                            `.catch((err) =>
+                                console.error(
+                                    "[ACCOUNT_TYPE] Failed to INSERT responsible intent (minor not yet registered):",
+                                    err,
+                                ),
+                            );
                         } else {
                             const minor = minorRows[0];
                             // Verificar se o vínculo já existe (fluxo iniciado pelo atleta)
@@ -1708,7 +1720,12 @@ export async function POST(req: Request) {
                                     SET alvo_responsavel_user_id = ${responsavelDbId},
                                         updated_at = NOW()
                                     WHERE id = ${existingLink[0].id}
-                                `.catch(() => {});
+                                `.catch((err) =>
+                                    console.error(
+                                        "[ACCOUNT_TYPE] Failed to UPDATE existing pending link:",
+                                        err,
+                                    ),
+                                );
                             }
 
                             // NÃO atualizar encarregado_educacao automaticamente.
