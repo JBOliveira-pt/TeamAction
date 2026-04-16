@@ -209,20 +209,19 @@ export default function NovaEquipaModal({
                                     <span className="text-sm font-semibold text-gray-900 dark:text-white">
                                         Treinador
                                     </span>
-                                    <span className="text-xs text-red-400">
-                                        *
+                                    <span className="text-xs text-gray-400">
+                                        (opcional)
                                     </span>
                                 </div>
 
                                 {disponiveis.length === 0 ? (
                                     <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                                         <p className="text-xs text-amber-400 font-medium">
-                                            ?? Nenhum treinador disponível.
+                                            Nenhum treinador disponível.
                                         </p>
                                         <p className="text-xs text-amber-400/80 mt-1">
-                                            Adicione primeiro um treinador na
-                                            página <strong>Staff</strong> antes
-                                            de criar uma equipa.
+                                            Podes criar a equipa agora e
+                                            associar um treinador depois.
                                         </p>
                                     </div>
                                 ) : (

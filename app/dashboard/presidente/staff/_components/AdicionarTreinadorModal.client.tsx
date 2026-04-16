@@ -2,7 +2,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { adicionarMembro, getEscaloesByUserAction } from "@/app/lib/actions";
+import {
+    adicionarMembro,
+    getEscaloesByUserAction,
+    verificarConvitePendenteTreinador,
+} from "@/app/lib/actions";
 import {
     GRAUS_TECNICOS,
     getEscaloesPermitidos,
@@ -46,6 +50,13 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
     // Escalões do treinador encontrado
     const [escaloesTreinador, setEscaloesTreinador] = useState<string[]>([]);
     const [loadingEscaloes, setLoadingEscaloes] = useState(false);
+
+    // Convite pendente já existente
+    const [convitePendente, setConvitePendente] = useState<{
+        pendente: boolean;
+        funcao?: string;
+        equipa_nome?: string;
+    } | null>(null);
 
     // Submissão
     const [enviando, setEnviando] = useState(false);
@@ -100,6 +111,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         setEmail("");
         setEmailResult(null);
         setEscaloesTreinador([]);
+        setConvitePendente(null);
         setErro("");
     }
 
@@ -108,6 +120,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
         if (step !== "email-check") return;
         setEmailResult(null);
         setEscaloesTreinador([]);
+        setConvitePendente(null);
         if (timer.current) clearTimeout(timer.current);
         const emailTrimmed = email.trim().toLowerCase();
         if (!emailTrimmed.includes("@") || emailTrimmed.length < 5) return;
@@ -120,7 +133,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                 if (res.ok) {
                     const data = await res.json();
                     setEmailResult(data);
-                    // Se encontrou treinador, buscar escalões
+                    // Se encontrou treinador, buscar escalões e verificar convite pendente
                     if (
                         data.existe &&
                         data.user_id &&
@@ -128,10 +141,12 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                     ) {
                         setLoadingEscaloes(true);
                         try {
-                            const esc = await getEscaloesByUserAction(
-                                data.user_id,
-                            );
+                            const [esc, pendente] = await Promise.all([
+                                getEscaloesByUserAction(data.user_id),
+                                verificarConvitePendenteTreinador(data.user_id),
+                            ]);
                             setEscaloesTreinador(esc);
+                            setConvitePendente(pendente);
                         } finally {
                             setLoadingEscaloes(false);
                         }
@@ -304,7 +319,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                         onClick={handleClose}
                     />
 
-                    <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+                    <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl flex flex-col min-h-[90vh]">
                         {/* ═══════ STEP 1: CHOICE ═══════ */}
                         {step === "choice" && (
                             <>
@@ -523,7 +538,10 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
 
                                     <div className="space-y-1">
                                         <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            E-mail do treinador
+                                            E-mail do treinador{" "}
+                                            <span className="text-red-400">
+                                                *
+                                            </span>
                                         </label>
                                         <input
                                             autoFocus
@@ -612,6 +630,45 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                                     </p>
                                                 </div>
 
+                                                {/* Convite pendente */}
+                                                {convitePendente?.pendente && (
+                                                    <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex flex-col gap-1">
+                                                        <p className="text-sm font-bold text-amber-400">
+                                                            ⚠️ Convite pendente
+                                                        </p>
+                                                        <p className="text-xs text-amber-400">
+                                                            Já existe um convite
+                                                            pendente para este
+                                                            treinador
+                                                            {convitePendente.funcao && (
+                                                                <>
+                                                                    {" "}
+                                                                    como{" "}
+                                                                    <strong>
+                                                                        {
+                                                                            convitePendente.funcao
+                                                                        }
+                                                                    </strong>
+                                                                </>
+                                                            )}
+                                                            {convitePendente.equipa_nome && (
+                                                                <>
+                                                                    {" "}
+                                                                    na equipa{" "}
+                                                                    <strong>
+                                                                        {
+                                                                            convitePendente.equipa_nome
+                                                                        }
+                                                                    </strong>
+                                                                </>
+                                                            )}
+                                                            . Aguarda a resposta
+                                                            antes de enviar
+                                                            outro.
+                                                        </p>
+                                                    </div>
+                                                )}
+
                                                 {/* Escalões */}
                                                 {loadingEscaloes ? (
                                                     <div className="flex items-center gap-2 px-3 py-2">
@@ -671,10 +728,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                                         treinadorSemCurso) && (
                                                         <div className="space-y-1">
                                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                                                Equipa{" "}
-                                                                <span className="text-red-400">
-                                                                    *
-                                                                </span>
+                                                                Equipa
                                                             </label>
                                                             {equipasFiltradas.length ===
                                                             0 ? (
@@ -737,7 +791,7 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                             </div>
                                         )}
 
-                                    {/* N�o encontrado */}
+                                    {/* Não encontrado */}
                                     {!verificando &&
                                         emailResult &&
                                         !emailResult.existe && (
@@ -766,7 +820,8 @@ export function AdicionarTreinadorModal({ equipas }: { equipas: Equipa[] }) {
                                     {!verificando &&
                                         emailResult?.existe &&
                                         emailResult.account_type ===
-                                            "treinador" && (
+                                            "treinador" &&
+                                        !convitePendente?.pendente && (
                                             <button
                                                 onClick={enviarConviteInterno}
                                                 disabled={enviando}

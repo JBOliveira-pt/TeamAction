@@ -137,14 +137,23 @@ export async function POST(req: NextRequest) {
     const visibilidadePublica = body.visibilidade_publica === true;
 
     // Validar plantel mínimo da minha equipa: 1 GR + 6 jogadores de campo
-    const [minhaEquipaRoster] = await sql<{ gr: string; campo: string }[]>`
+    const [minhaEquipaRoster] = await sql<
+        { gr: string; campo: string; treinador_id: string | null }[]
+    >`
         SELECT
             COUNT(*) FILTER (WHERE posicao = 'Guarda-redes') AS gr,
-            COUNT(*) FILTER (WHERE posicao IS NOT NULL AND posicao <> 'Guarda-redes') AS campo
+            COUNT(*) FILTER (WHERE posicao IS NOT NULL AND posicao <> 'Guarda-redes') AS campo,
+            (SELECT treinador_id FROM equipas WHERE id = ${equipaId}) AS treinador_id
         FROM atletas
         WHERE equipa_id = ${equipaId}
           AND organization_id = ${user.organization_id}
     `;
+    if (!minhaEquipaRoster?.treinador_id) {
+        return new Response(
+            "Esta equipa não tem treinador associado. Associa um treinador antes de agendar jogos.",
+            { status: 400 },
+        );
+    }
     const grCount = Number(minhaEquipaRoster?.gr ?? 0);
     const campoCount = Number(minhaEquipaRoster?.campo ?? 0);
     if (grCount < MIN_GUARDA_REDES || campoCount < MIN_JOGADORES_CAMPO) {

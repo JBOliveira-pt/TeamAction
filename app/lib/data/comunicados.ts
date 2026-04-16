@@ -103,9 +103,15 @@ export async function fetchDocumentos() {
 
 export async function fetchNotificacoes() {
     try {
-        const organizationId = await getOrganizationId({
-            allowAutoProvision: false,
-        });
+        let organizationId: string | null = null;
+        try {
+            organizationId = await getOrganizationId({
+                allowAutoProvision: false,
+            });
+        } catch {
+            // Trainer sem organização própria — continuar apenas com recipient_user_id
+        }
+
         const { userId, sessionId } = await auth();
 
         if (!userId) {
@@ -124,7 +130,7 @@ export async function fetchNotificacoes() {
             return [];
         }
 
-        if (sessionId) {
+        if (sessionId && organizationId) {
             try {
                 await maybeCreateMinorAthleteTemporaryProfileNotice({
                     organizationId,
@@ -165,8 +171,12 @@ export async function fetchNotificacoes() {
             SELECT id, titulo, descricao, tipo, lida, created_at
             FROM notificacoes
             WHERE (
-                (organization_id = ${organizationId} AND recipient_user_id IS NULL)
-                OR recipient_user_id = ${dbUserId}
+                ${
+                    organizationId
+                        ? sql`(organization_id = ${organizationId} AND recipient_user_id IS NULL) OR`
+                        : sql``
+                }
+                recipient_user_id = ${dbUserId}
             )
             ORDER BY created_at DESC
             LIMIT 50

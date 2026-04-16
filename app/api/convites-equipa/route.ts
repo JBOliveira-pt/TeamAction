@@ -5,7 +5,10 @@ import { NextRequest } from "next/server";
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
+const _g = globalThis as unknown as { __convitesEquipaTableOk?: boolean };
+
 async function ensureTable() {
+    if (_g.__convitesEquipaTableOk) return;
     await sql`
         CREATE TABLE IF NOT EXISTS convites_equipa (
             id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -20,6 +23,7 @@ async function ensureTable() {
             updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `;
+    _g.__convitesEquipaTableOk = true;
 }
 
 export async function GET() {
@@ -31,8 +35,6 @@ export async function GET() {
     `;
     const me = user[0];
     if (!me) return new Response("User not found", { status: 404 });
-
-    await ensureTable();
 
     const rows = await sql<
         {

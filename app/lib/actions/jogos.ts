@@ -36,6 +36,19 @@ export async function agendarJogo(
     if (!adversario) return { error: "Adversário obrigatório." };
     if (!data) return { error: "Data obrigatória." };
 
+    // Validar que a equipa tem treinador para poder agendar jogo
+    if (equipaId) {
+        const [eq] = await sql<{ treinador_id: string | null }[]>`
+            SELECT treinador_id FROM equipas WHERE id = ${equipaId} AND organization_id = ${organizationId} LIMIT 1
+        `;
+        if (!eq) return { error: "Equipa não encontrada." };
+        if (!eq.treinador_id) {
+            return {
+                error: "Esta equipa não tem treinador associado. Associa um treinador antes de agendar jogos.",
+            };
+        }
+    }
+
     try {
         await sql`
             INSERT INTO jogos (

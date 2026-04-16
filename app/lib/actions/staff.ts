@@ -8,6 +8,36 @@ import { isEscalaoPermitido } from "@/app/lib/grau-escalao-compat";
 
 const FUNCOES_TREINADOR = ["Treinador Principal", "Treinador Adjunto"];
 
+export async function verificarConvitePendenteTreinador(
+    targetUserId: string,
+): Promise<{ pendente: boolean; funcao?: string; equipa_nome?: string }> {
+    const { userId } = await auth();
+    if (!userId) return { pendente: false };
+
+    const [me] = await sql<{ organization_id: string }[]>`
+        SELECT organization_id FROM users WHERE clerk_user_id = ${userId}
+    `;
+    if (!me?.organization_id) return { pendente: false };
+
+    const [row] = await sql<{ funcao: string; equipa_nome: string | null }[]>`
+        SELECT s.funcao, e.nome AS equipa_nome
+        FROM staff s
+        LEFT JOIN equipas e ON e.id = s.equipa_id
+        WHERE s.user_id = ${targetUserId}
+          AND s.organization_id = ${me.organization_id}
+          AND s.estado = 'pendente'
+        LIMIT 1
+    `;
+    if (row) {
+        return {
+            pendente: true,
+            funcao: row.funcao,
+            equipa_nome: row.equipa_nome ?? undefined,
+        };
+    }
+    return { pendente: false };
+}
+
 export async function adicionarMembro(
     prevState: { error?: string; success?: boolean } | null,
     formData: FormData,
@@ -16,16 +46,19 @@ export async function adicionarMembro(
     if (!userId) return { error: "Não autenticado." };
 
     let organizationId: string | undefined;
+    let presidenteDbId: string | undefined;
     try {
         const user = await sql<
-            { organization_id: string }[]
-        >`SELECT organization_id FROM users WHERE clerk_user_id = ${userId}`;
+            { id: string; organization_id: string }[]
+        >`SELECT id, organization_id FROM users WHERE clerk_user_id = ${userId}`;
         organizationId = user[0]?.organization_id;
+        presidenteDbId = user[0]?.id;
     } catch {
         return { error: "Erro ao obter organização." };
     }
 
-    if (!organizationId) return { error: "Organização não encontrada." };
+    if (!organizationId || !presidenteDbId)
+        return { error: "Organização não encontrada." };
 
     const nome = formData.get("nome")?.toString().trim();
     const funcao = formData.get("funcao")?.toString() || null;
@@ -45,6 +78,22 @@ export async function adicionarMembro(
         return {
             error: "É obrigatório selecionar um utilizador da plataforma para treinadores reais.",
         };
+    }
+
+    // Validação: impedir convite duplicado para o mesmo treinador real na organização
+    if (isTreinador && treinadorMode === "real" && userIdStaff) {
+        const [jaPendente] = await sql<{ id: string }[]>`
+            SELECT id FROM staff
+            WHERE user_id = ${userIdStaff}
+              AND organization_id = ${organizationId}
+              AND estado = 'pendente'
+            LIMIT 1
+        `;
+        if (jaPendente) {
+            return {
+                error: "Já existe um convite pendente para este treinador neste clube.",
+            };
+        }
     }
 
     // Validação: unicidade de Treinador Principal e Treinador Adjunto por equipa
@@ -121,6 +170,48 @@ export async function adicionarMembro(
             VALUES (gen_random_uuid(), ${nome}, ${funcao}, ${equipaId}, ${resolvedUserId}, ${organizationId}, ${estado}, ${grauTecnicoId}, NOW(), NOW())
         `;
 
+        // Se treinador real, criar convite_clube + notificação pessoal
+        if (
+            isTreinador &&
+            treinadorMode === "real" &&
+            userIdStaff &&
+            equipaId
+        ) {
+            // Buscar clube da organização
+            const [clube] = await sql<
+                { id: string; organization_id: string }[]
+            >`
+                SELECT id, organization_id FROM clubes
+                WHERE organization_id = ${organizationId} LIMIT 1
+            `;
+
+            if (clube) {
+                await sql`
+                    INSERT INTO convites_clube (id, clube_org_id, convidado_user_id, convidado_por, equipa_id, tipo, estado, created_at, updated_at)
+                    VALUES (gen_random_uuid(), ${clube.organization_id}, ${userIdStaff}, ${presidenteDbId}, ${equipaId}, 'treinador', 'pendente', NOW(), NOW())
+                `;
+            } else {
+                console.error(
+                    "[adicionarMembro] Clube não encontrado para organization_id:",
+                    organizationId,
+                );
+            }
+
+            await sql`
+                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                VALUES (
+                    gen_random_uuid(),
+                    ${organizationId},
+                    ${userIdStaff},
+                    'Convite para clube',
+                    ${`Foste convidado para ser ${funcao} numa equipa do clube.`},
+                    'convite_clube',
+                    false,
+                    NOW()
+                )
+            `;
+        }
+
         // Se treinador fake com email, verificar existência e criar convite/notificação
         if (isTreinador && treinadorMode === "fake" && treinadorEmailFake) {
             const [existingUser] = await sql<
@@ -134,11 +225,24 @@ export async function adicionarMembro(
 
             if (existingUser) {
                 // Treinador existe — criar convite de vinculação ao clube
-                await sql`
-                    INSERT INTO convites_clube (id, clube_id, clube_org_id, convidado_user_id, tipo, estado, created_at, updated_at)
-                    SELECT gen_random_uuid(), c.id, c.organization_id, ${existingUser.id}, 'treinador', 'pendente', NOW(), NOW()
-                    FROM clubes c WHERE c.organization_id = ${organizationId} LIMIT 1
+                const [clubeFake] = await sql<
+                    { id: string; organization_id: string }[]
+                >`
+                    SELECT id, organization_id FROM clubes
+                    WHERE organization_id = ${organizationId} LIMIT 1
                 `;
+
+                if (clubeFake) {
+                    await sql`
+                        INSERT INTO convites_clube (id, clube_org_id, convidado_user_id, convidado_por, equipa_id, tipo, estado, created_at, updated_at)
+                        VALUES (gen_random_uuid(), ${clubeFake.organization_id}, ${existingUser.id}, ${presidenteDbId}, ${equipaId}, 'treinador', 'pendente', NOW(), NOW())
+                    `;
+                } else {
+                    console.error(
+                        "[adicionarMembro fake] Clube não encontrado para organization_id:",
+                        organizationId,
+                    );
+                }
 
                 // Vincular user_id no staff row para uso posterior na aceitação
                 await sql`
@@ -156,7 +260,7 @@ export async function adicionarMembro(
                     INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                     VALUES (
                         gen_random_uuid(),
-                        ${existingUser.id},
+                        ${organizationId},
                         ${existingUser.id},
                         'Convite para clube',
                         ${`Foste convidado para ser ${funcao} no clube.`},
@@ -168,13 +272,14 @@ export async function adicionarMembro(
             } else {
                 // Treinador não existe — notificar admin
                 await sql`
-                    INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+                    INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
                     VALUES (
                         gen_random_uuid(),
                         ${organizationId},
                         'Treinador não encontrado na plataforma',
                         ${`O presidente tentou associar o treinador "${nome}" (${treinadorEmailFake}) como ${funcao}, mas o email não está registado. É necessário enviar convite manualmente.`},
                         'Alerta',
+                        false,
                         NOW()
                     )
                 `;
@@ -192,13 +297,14 @@ export async function adicionarMembro(
 
         // Notificação automática
         await sql`
-            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, created_at)
+            INSERT INTO notificacoes (id, organization_id, titulo, descricao, tipo, lida, created_at)
             VALUES (
                 gen_random_uuid(),
                 ${organizationId},
                 'Novo membro de staff adicionado',
                 ${`${nome} foi adicionado como ${funcao}${equipaId ? ` na equipa ${equipaNome}` : ""}.`},
                 'Info',
+                false,
                 NOW()
             )
         `;

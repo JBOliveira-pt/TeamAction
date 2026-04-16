@@ -14,6 +14,7 @@ export { editarEquipa } from "./equipas";
 export { eliminarEquipa } from "./equipas";
 export { adicionarAtleta } from "./atletas";
 export { adicionarMembro } from "./staff";
+export { verificarConvitePendenteTreinador } from "./staff";
 export { agendarJogo } from "./jogos";
 export { criarEpoca, editarEpoca } from "./epocas-org";
 export { atualizarOrganizacao } from "./epocas-org";
