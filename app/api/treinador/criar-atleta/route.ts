@@ -205,34 +205,84 @@ export async function POST(req: NextRequest) {
 
     const estado = suspenso ? "Suspenso" : isMenor ? "Pendente" : "Ativo";
 
-    // Para menores, NÃO atribuir equipa_id diretamente — fica pendente até aprovação do responsável
-    const equipaIdParaInsert = isMenor ? null : (body.equipa_id ?? null);
+    // Se o atleta já existe na plataforma (user com conta), reutilizar o registo existente
+    let atletaId: string;
+    let atletaJaExistia = false;
 
-    const [novoAtleta] = await sql<{ id: string }[]>`
-        INSERT INTO atletas (
-            id, nome, posicao, numero_camisola,
-            equipa_id, estado, federado, mao_dominante,
-            organization_id, user_id, data_nascimento,
-            menor_idade, encarregado_educacao,
-            created_at, updated_at
-        ) VALUES (
-            gen_random_uuid(),
-            ${body.nome.trim()},
-            ${body.posicao ?? null},
-            ${body.numero_camisola ?? null},
-            ${equipaIdParaInsert},
-            ${estado},
-            false,
-            ${body.mao_dominante ?? null},
-            ${treinador.organization_id},
-            ${linkedUserId},
-            ${body.data_nascimento ?? null},
-            ${isMenor || null},
-            ${responsavelEmail},
-            NOW(), NOW()
-        )
-        RETURNING id
-    `;
+    if (linkedUserId) {
+        const [existente] = await sql<{ id: string }[]>`
+            SELECT id FROM atletas WHERE user_id = ${linkedUserId} LIMIT 1
+        `;
+        if (existente) {
+            atletaId = existente.id;
+            atletaJaExistia = true;
+            // Atualizar dados complementares se necessário
+            await sql`
+                UPDATE atletas SET
+                    posicao = COALESCE(${body.posicao ?? null}, posicao),
+                    numero_camisola = COALESCE(${body.numero_camisola ?? null}, numero_camisola),
+                    mao_dominante = COALESCE(${body.mao_dominante ?? null}, mao_dominante),
+                    updated_at = NOW()
+                WHERE id = ${atletaId}
+            `;
+        } else {
+            // User existe mas não tem registo atleta — criar sem equipa_id (fica pendente)
+            const [novo] = await sql<{ id: string }[]>`
+                INSERT INTO atletas (
+                    id, nome, posicao, numero_camisola,
+                    equipa_id, estado, federado, mao_dominante,
+                    organization_id, user_id, data_nascimento,
+                    menor_idade, encarregado_educacao,
+                    created_at, updated_at
+                ) VALUES (
+                    gen_random_uuid(),
+                    ${body.nome.trim()},
+                    ${body.posicao ?? null},
+                    ${body.numero_camisola ?? null},
+                    ${null},
+                    ${estado},
+                    false,
+                    ${body.mao_dominante ?? null},
+                    ${treinador.organization_id},
+                    ${linkedUserId},
+                    ${body.data_nascimento ?? null},
+                    ${isMenor || null},
+                    ${responsavelEmail},
+                    NOW(), NOW()
+                )
+                RETURNING id
+            `;
+            atletaId = novo.id;
+        }
+    } else {
+        // Atleta fictício (sem conta na plataforma) — criar normalmente com equipa_id
+        const [novo] = await sql<{ id: string }[]>`
+            INSERT INTO atletas (
+                id, nome, posicao, numero_camisola,
+                equipa_id, estado, federado, mao_dominante,
+                organization_id, user_id, data_nascimento,
+                menor_idade, encarregado_educacao,
+                created_at, updated_at
+            ) VALUES (
+                gen_random_uuid(),
+                ${body.nome.trim()},
+                ${body.posicao ?? null},
+                ${body.numero_camisola ?? null},
+                ${body.equipa_id ?? null},
+                ${estado},
+                false,
+                ${body.mao_dominante ?? null},
+                ${treinador.organization_id},
+                ${null},
+                ${body.data_nascimento ?? null},
+                ${isMenor || null},
+                ${responsavelEmail},
+                NOW(), NOW()
+            )
+            RETURNING id
+        `;
+        atletaId = novo.id;
+    }
 
     // Notificação ao admin se atleta ficou suspenso por conflito
     if (suspenso) {
@@ -260,7 +310,7 @@ export async function POST(req: NextRequest) {
                         ${treinador.organization_id},
                         ${treinador.id},
                         ${treinador.name},
-                        ${novoAtleta.id},
+                        ${atletaId},
                         ${body.equipa_id},
                         ${body.equipa_nome ?? null},
                         'pendente_responsavel',
@@ -308,7 +358,7 @@ export async function POST(req: NextRequest) {
                         ${treinador.organization_id},
                         ${treinador.id},
                         ${treinador.name},
-                        ${novoAtleta.id},
+                        ${atletaId},
                         ${body.equipa_id},
                         ${body.equipa_nome ?? null},
                         'pendente',
@@ -376,5 +426,5 @@ export async function POST(req: NextRequest) {
         `.catch(() => {});
     }
 
-    return Response.json({ id: novoAtleta.id, suspenso }, { status: 201 });
+    return Response.json({ id: atletaId, suspenso }, { status: 201 });
 }

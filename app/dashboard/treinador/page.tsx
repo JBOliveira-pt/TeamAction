@@ -27,6 +27,12 @@ async function fetchDashboardData() {
     `;
     const hasEquipas = equipaRows.length > 0;
 
+    // Verificar se o treinador está vinculado a um clube
+    const clubeRows = await sql<{ id: string }[]>`
+        SELECT id FROM clubes WHERE organization_id = ${orgId} LIMIT 1
+    `.catch(() => []);
+    const temClube = clubeRows.length > 0;
+
     const [
         atletasResult,
         proximaSessaoResult,
@@ -34,15 +40,19 @@ async function fetchDashboardData() {
         ultimasSessoesResult,
         assiduidadeResult,
     ] = await Promise.all([
-        // Total atletas ativos de todas as equipas do treinador
-        hasEquipas
+        // Total atletas: do clube (se vinculado) ou das equipas do treinador
+        temClube
             ? sql<{ total: number }[]>`
                 SELECT COUNT(*)::int AS total FROM atletas
                 WHERE organization_id = ${orgId}
-                  AND equipa_id IN (SELECT id FROM equipas WHERE treinador_id = ${user.id})
-                  AND estado = 'Ativo'
             `
-            : Promise.resolve([{ total: 0 }]),
+            : hasEquipas
+              ? sql<{ total: number }[]>`
+                  SELECT COUNT(*)::int AS total FROM atletas
+                  WHERE organization_id = ${orgId}
+                    AND equipa_id IN (SELECT id FROM equipas WHERE treinador_id = ${user.id})
+              `
+              : Promise.resolve([{ total: 0 }]),
         // Próximas sessões (usamos até 3 para os eventos)
         hasEquipas
             ? sql<
@@ -95,12 +105,6 @@ async function fetchDashboardData() {
             `
             : Promise.resolve([{ total: 0, presencas: 0 }]),
     ]).catch(() => [null, null, null, null, null]);
-
-    // Verificar se o treinador está vinculado a um clube
-    const clubeRows = await sql<{ id: string }[]>`
-        SELECT id FROM clubes WHERE organization_id = ${orgId} LIMIT 1
-    `.catch(() => []);
-    const temClube = clubeRows.length > 0;
 
     const staffResult =
         hasEquipas && temClube
@@ -221,7 +225,7 @@ export default async function TreinadorDashboard() {
                             👋
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {data?.totalAtletas ?? 0} atletas ativos
+                            {data?.totalAtletas ?? 0} atletas
                             {data?.equipas && data.equipas.length > 0 && (
                                 <span>
                                     {" "}
@@ -446,7 +450,7 @@ export default async function TreinadorDashboard() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        atletas ativos
+                                        atletas
                                     </p>
                                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
                                         {data.equipas && data.equipas.length > 1
