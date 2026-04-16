@@ -144,8 +144,20 @@ export async function POST(req: NextRequest) {
         `;
 
         if (userRows.length > 0) {
-            emailUserFound = true;
             const atletaUser = userRows[0];
+
+            // Só permitir vinculação a contas do tipo atleta
+            if (
+                atletaUser.account_type &&
+                atletaUser.account_type !== "atleta"
+            ) {
+                return new Response(
+                    "O email fornecido pertence a uma conta que não é do tipo atleta. Não é possível vincular.",
+                    { status: 409 },
+                );
+            }
+
+            emailUserFound = true;
             linkedUserId = atletaUser.id;
 
             // Verificar se é menor de idade (via atletas.menor_idade ou cálculo de idade)

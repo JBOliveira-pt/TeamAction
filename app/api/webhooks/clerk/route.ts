@@ -325,6 +325,18 @@ export async function POST(req: Request) {
                         DELETE FROM medico WHERE email = ${user.email}
                     `.catch(() => {});
 
+                // Clubes: limpar presidente_user_id
+                await tx`
+                        UPDATE clubes SET presidente_user_id = NULL
+                        WHERE presidente_user_id = ${user.id}
+                    `.catch(() => {});
+
+                // Organizações: limpar owner_id
+                await tx`
+                        UPDATE organizations SET owner_id = NULL
+                        WHERE owner_id = ${user.id}
+                    `.catch(() => {});
+
                 // Apagar o user
                 await tx`DELETE FROM users WHERE id = ${user.id}`;
 

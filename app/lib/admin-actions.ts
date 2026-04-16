@@ -269,6 +269,12 @@ export async function cascadeDeleteUser(
         await tx`DELETE FROM medico WHERE email = ${userEmail}`;
     }
 
+    // 8b) Clubes: limpar presidente_user_id (clube é partilhado, não se apaga)
+    await nullifyColumnIfExists(tx, "clubes", "presidente_user_id", userId);
+
+    // 8c) Organizações: limpar owner_id (org pode ter outros membros)
+    await nullifyColumnIfExists(tx, "organizations", "owner_id", userId);
+
     // 9) Finalmente, apagar o registo do user
     await tx`DELETE FROM users WHERE id = ${userId}`;
 
