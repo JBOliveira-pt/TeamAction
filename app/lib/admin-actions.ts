@@ -275,6 +275,42 @@ export async function cascadeDeleteUser(
     // 8c) Organizações: limpar owner_id (org pode ter outros membros)
     await nullifyColumnIfExists(tx, "organizations", "owner_id", userId);
 
+    // 8d) Catch-all: descobrir TODAS as FKs que apontam para users(id) e
+    //     limpar qualquer referência residual que não tenha sido tratada acima.
+    //     Isto garante que o DELETE nunca falha por FK violation.
+    try {
+        const fkRefs = await tx<{ table_name: string; column_name: string }[]>`
+            SELECT kcu.table_name, kcu.column_name
+            FROM information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu
+              ON tc.constraint_name = kcu.constraint_name
+              AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage ccu
+              ON ccu.constraint_name = tc.constraint_name
+              AND ccu.table_schema = tc.table_schema
+            WHERE tc.constraint_type = 'FOREIGN KEY'
+              AND ccu.table_name = 'users'
+              AND ccu.column_name = 'id'
+              AND tc.table_schema = 'public'
+        `;
+        for (const ref of fkRefs) {
+            // Tentar nullificar primeiro (se a coluna for nullable)
+            await tx`
+                UPDATE ${tx(ref.table_name)}
+                SET ${tx(ref.column_name)} = NULL
+                WHERE ${tx(ref.column_name)} = ${userId}
+            `.catch(async () => {
+                // Se NOT NULL, apagar as linhas
+                await tx`
+                    DELETE FROM ${tx(ref.table_name)}
+                    WHERE ${tx(ref.column_name)} = ${userId}
+                `.catch(() => {});
+            });
+        }
+    } catch {
+        // information_schema query pode falhar em alguns ambientes — não bloquear
+    }
+
     // 9) Finalmente, apagar o registo do user
     await tx`DELETE FROM users WHERE id = ${userId}`;
 

@@ -45,10 +45,33 @@ export async function responderConviteEquipaAtleta(
         WHERE id = ${conviteId}
     `;
 
-    if (decisao === "aceitar" && convite.equipa_id) {
+    if (decisao === "aceitar") {
+        // Atualizar organization_id e equipa do atleta para a org do convite
+        if (convite.equipa_id) {
+            await sql`
+                UPDATE atletas
+                SET organization_id = ${convite.organization_id},
+                    equipa_id = ${convite.equipa_id},
+                    estado = 'Ativo',
+                    updated_at = NOW()
+                WHERE id = ${atleta.id}
+            `.catch(() => {});
+        } else {
+            await sql`
+                UPDATE atletas
+                SET organization_id = ${convite.organization_id},
+                    estado = 'Ativo',
+                    updated_at = NOW()
+                WHERE id = ${atleta.id}
+            `.catch(() => {});
+        }
+
+        // Atualizar organization_id do user para ficar na mesma org do treinador
         await sql`
-            UPDATE atletas SET equipa_id = ${convite.equipa_id}
-            WHERE id = ${atleta.id}
+            UPDATE users
+            SET organization_id = ${convite.organization_id},
+                updated_at = NOW()
+            WHERE id = ${user.id}
         `.catch(() => {});
     }
 
