@@ -120,7 +120,7 @@ function FeatureCard({
                     observer.disconnect();
                 }
             },
-            { threshold: 0.15 },
+            { threshold: 0.1 },
         );
         observer.observe(el);
         return () => observer.disconnect();
@@ -228,7 +228,7 @@ export function PresidenteSection() {
     }, []);
 
     // Scroll dos cards: progress mapeia para translate vertical
-    const cardsTranslateY = progress * 330;
+    const cardsTranslateY = progress * 260;
 
     return (
         <div

@@ -62,7 +62,7 @@ export default function LandingPage() {
             {/* --- TAGLINE SCROLL --- */}
             <ScrollTagline />
 
-            {/* --- ROADMAP SECTION --- */}
+            {/* --- BACKGROUND FIXO DA QUADRA --- */}
             <section
                 id="sobre"
                 className="relative py-100 text-white"
@@ -75,7 +75,7 @@ export default function LandingPage() {
                 }}
             ></section>
 
-            {/* --- FEATURES --- */}
+            {/* --- RECURSOS --- */}
 
             {/* --- CLUBE / PRESIDENTE --- */}
             <PresidenteSection />
