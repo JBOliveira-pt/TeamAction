@@ -47,7 +47,7 @@ export default function LandingPage() {
                         priority
                     />
                     <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
-                        A gestão esportiva <br />
+                        A gestão desportiva <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-b from-[#27365D] to-blue-700">
                             levada a sério
                         </span>
