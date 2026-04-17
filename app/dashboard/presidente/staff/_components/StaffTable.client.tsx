@@ -18,6 +18,7 @@ type StaffRow = {
     equipa_escalao: string | null;
     user_id: string | null;
     user_email: string | null;
+    image_url: string | null;
     estado: string;
     created_at: string;
     grau_id: number | null;
@@ -192,32 +193,42 @@ export default function StaffTable({
                                         {/* Nome */}
                                         <td className="px-6 py-4 min-w-[220px]">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                                <div className="relative w-8 h-8 flex-shrink-0">
                                                     <Image
-                                                        src={getProfilePlaceholder(
-                                                            "treinador",
-                                                        )}
+                                                        src={
+                                                            s.user_id
+                                                                ? s.image_url ||
+                                                                  getProfilePlaceholder(
+                                                                      "treinador",
+                                                                  )
+                                                                : getProfilePlaceholder(
+                                                                      "treinador",
+                                                                  )
+                                                        }
                                                         alt={s.nome}
                                                         width={32}
                                                         height={32}
-                                                        className="w-full h-full object-cover"
+                                                        className="w-8 h-8 rounded-full object-cover"
                                                     />
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-semibold text-gray-900 dark:text-white truncate">
-                                                        {s.nome}
-                                                    </p>
                                                     {!s.user_id && (
-                                                        <span className="shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                                                            🤖 Fictício
+                                                        <span
+                                                            className="absolute -bottom-0.5 -right-0.5 text-xs leading-none"
+                                                            title="Fictício"
+                                                        >
+                                                            🤖
                                                         </span>
                                                     )}
                                                 </div>
-                                                {s.user_email && (
-                                                    <p className="text-xs text-gray-400">
-                                                        {s.user_email}
+                                                <div className="flex flex-col">
+                                                    <p className="font-semibold text-gray-900 dark:text-white truncate">
+                                                        {s.nome}
                                                     </p>
-                                                )}
+                                                    {s.user_email && (
+                                                        <p className="text-xs text-gray-400">
+                                                            {s.user_email}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
 

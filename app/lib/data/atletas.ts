@@ -21,6 +21,7 @@ export async function fetchAtletas() {
                 mao_dominante: string | null;
                 user_id: string | null;
                 data_nascimento: string | null;
+                image_url: string | null;
             }[]
         >`
             SELECT
@@ -36,9 +37,11 @@ export async function fetchAtletas() {
                 atletas.data_nascimento,
                 equipas.nome AS equipa_nome,
                 equipas.id   AS equipa_id,
-                mensalidades.estado AS mensalidade_estado
+                mensalidades.estado AS mensalidade_estado,
+                u.image_url
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
+            LEFT JOIN users u ON u.id = atletas.user_id
             LEFT JOIN mensalidades ON mensalidades.atleta_id = atletas.id
                 AND mensalidades.mes = EXTRACT(MONTH FROM CURRENT_DATE)
                 AND mensalidades.ano = EXTRACT(YEAR FROM CURRENT_DATE)

@@ -1,5 +1,6 @@
 // Página de atletas do presidente.
 import Link from "next/link";
+import Image from "next/image";
 import {
     fetchAtletas,
     fetchEquipas,
@@ -9,6 +10,9 @@ import ConvidarAtletaModal from "./_components/ConvidarAtletaModal.client";
 import EditarAtletaModal from "./_components/EditarAtletaModal.client";
 import RemoverAtletaModal from "./_components/RemoverAtletaModal.client";
 import { getEscalaoMaximoParaIdade } from "@/app/lib/grau-escalao-compat";
+import { getProfilePlaceholder } from "@/app/lib/assets";
+
+const ATLETA_PLACEHOLDER = getProfilePlaceholder("atleta");
 
 export const dynamic = "force-dynamic";
 
@@ -218,13 +222,30 @@ export default async function AtletasPage({
                                     className="border-b border-gray-100 dark:border-gray-800/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
                                 >
                                     <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
-                                        <div className="flex items-center gap-2">
-                                            {a.nome}
-                                            {!a.user_id && (
-                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-                                                    🤖 Fictício
-                                                </span>
-                                            )}
+                                        <div className="flex items-center gap-3">
+                                            <div className="relative w-9 h-9 shrink-0">
+                                                <Image
+                                                    src={
+                                                        a.user_id
+                                                            ? a.image_url ||
+                                                              ATLETA_PLACEHOLDER
+                                                            : ATLETA_PLACEHOLDER
+                                                    }
+                                                    alt={a.nome}
+                                                    width={36}
+                                                    height={36}
+                                                    className="w-9 h-9 rounded-full object-cover"
+                                                />
+                                                {!a.user_id && (
+                                                    <span
+                                                        className="absolute -bottom-0.5 -right-0.5 text-xs leading-none"
+                                                        title="Fictício"
+                                                    >
+                                                        🤖
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span>{a.nome}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">

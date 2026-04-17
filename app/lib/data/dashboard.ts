@@ -96,6 +96,7 @@ export async function fetchStaff() {
             equipa_escalao: string | null;
             user_id: string | null;
             user_email: string | null;
+            image_url: string | null;
             estado: string;
             created_at: string;
             grau_id: number | null;
@@ -105,7 +106,7 @@ export async function fetchStaff() {
     SELECT
       s.id, s.nome, s.funcao,
       s.equipa_id, e.nome AS equipa_nome, e.escalao AS equipa_escalao,
-      s.user_id, u.email AS user_email,
+      s.user_id, u.email AS user_email, u.image_url,
       s.estado,
       s.created_at,
       COALESCE(

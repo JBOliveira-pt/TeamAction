@@ -119,7 +119,7 @@ function FeatureCard({
     return (
         <div
             ref={cardRef}
-            className="group relative rounded-2xl border border-slate-100 bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
+            className="group relative rounded-2xl border border-slate-200/60 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
             style={{
                 opacity: visible ? 1 : 0,
                 transform: visible ? "translateY(0)" : "translateY(40px)",
@@ -127,7 +127,7 @@ function FeatureCard({
             }}
         >
             <div className={`h-1 w-full bg-gradient-to-r ${feature.color}`} />
-            <div className="p-7">
+            <div className="p-7 backdrop-blur-[2px] bg-white/80">
                 <div
                     className={`w-12 h-12 ${feature.bgLight} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}
                 >

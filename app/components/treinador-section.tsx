@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
     CalendarDays,
     ClipboardList,
@@ -12,8 +13,9 @@ import {
     Users,
     Bell,
     Salad,
-    ImageIcon,
 } from "lucide-react";
+
+const R2_BASE = process.env.NEXT_PUBLIC_R2_IMAGES_URL;
 
 const features = [
     {
@@ -24,6 +26,7 @@ const features = [
         color: "from-emerald-500 to-emerald-600",
         bgLight: "bg-emerald-50",
         iconColor: "text-emerald-600",
+        image: `${R2_BASE}/Treinador-PlanejadorDeSessoes.png`,
     },
     {
         icon: BookOpen,
@@ -33,6 +36,7 @@ const features = [
         color: "from-blue-500 to-blue-600",
         bgLight: "bg-blue-50",
         iconColor: "text-blue-600",
+        image: `${R2_BASE}/Treinador-BibliotecaDeExercicios.png`,
     },
     {
         icon: Users,
@@ -42,6 +46,7 @@ const features = [
         color: "from-indigo-500 to-indigo-600",
         bgLight: "bg-indigo-50",
         iconColor: "text-indigo-600",
+        image: `${R2_BASE}/Treinador-GestaoDeElenco.png`,
     },
     {
         icon: Gamepad2,
@@ -51,6 +56,7 @@ const features = [
         color: "from-violet-500 to-violet-600",
         bgLight: "bg-violet-50",
         iconColor: "text-violet-600",
+        image: `${R2_BASE}/Treinador-QuadroTaticoDigital.png`,
     },
     {
         icon: BarChart3,
@@ -60,6 +66,7 @@ const features = [
         color: "from-orange-500 to-orange-600",
         bgLight: "bg-orange-50",
         iconColor: "text-orange-600",
+        image: `${R2_BASE}/Treinador-EstatisticasaoVivo.png`,
     },
     {
         icon: Dumbbell,
@@ -69,6 +76,7 @@ const features = [
         color: "from-rose-500 to-rose-600",
         bgLight: "bg-rose-50",
         iconColor: "text-rose-600",
+        image: `${R2_BASE}/Treinador-AvaliacoesFisicas.png`,
     },
     {
         icon: Salad,
@@ -78,6 +86,7 @@ const features = [
         color: "from-amber-500 to-amber-600",
         bgLight: "bg-amber-50",
         iconColor: "text-amber-600",
+        image: `${R2_BASE}/Treinador-PlanosdeNutricao.png`,
     },
     {
         icon: Bell,
@@ -87,6 +96,7 @@ const features = [
         color: "from-cyan-500 to-cyan-600",
         bgLight: "bg-cyan-50",
         iconColor: "text-cyan-600",
+        image: `${R2_BASE}/Treinador-NotificacoeseConvocatorias.png`,
     },
 ];
 
@@ -119,7 +129,7 @@ function FeatureCard({
     return (
         <div
             ref={cardRef}
-            className="group relative rounded-2xl border border-slate-100 bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
+            className="group relative rounded-2xl border border-slate-200/60 bg-white/60 backdrop-blur-sm shadow-sm overflow-hidden transition-all duration-500 hover:shadow-2xl hover:-translate-y-1"
             style={{
                 opacity: visible ? 1 : 0,
                 transform: visible ? "translateY(0)" : "translateY(40px)",
@@ -127,7 +137,7 @@ function FeatureCard({
             }}
         >
             <div className={`h-1 w-full bg-gradient-to-r ${feature.color}`} />
-            <div className="p-7">
+            <div className="p-7 backdrop-blur-[2px] bg-white/80">
                 <div
                     className={`w-12 h-12 ${feature.bgLight} rounded-xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}
                 >
@@ -139,12 +149,24 @@ function FeatureCard({
                 <p className="text-sm text-slate-500 leading-relaxed mb-5">
                     {feature.description}
                 </p>
-                <div className="relative w-full aspect-video rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 group-hover:border-slate-300 transition-colors">
-                    <ImageIcon className="h-8 w-8" />
-                    <span className="text-xs font-medium text-slate-400">
-                        Imagem / Vídeo
-                    </span>
-                </div>
+                {feature.image ? (
+                    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-slate-50 border border-slate-200 shadow-sm">
+                        <Image
+                            src={feature.image}
+                            alt={feature.title}
+                            fill
+                            className="object-contain group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/10 to-transparent pointer-events-none" />
+                    </div>
+                ) : (
+                    <div className="relative w-full aspect-video rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 group-hover:border-slate-300 transition-colors">
+                        <span className="text-xs font-medium text-slate-400">
+                            Em breve
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );
