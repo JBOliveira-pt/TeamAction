@@ -2,8 +2,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
-    TrendingUp,
     CalendarDays,
     Bell,
     Dumbbell,
@@ -11,18 +11,19 @@ import {
     Trophy,
     ShieldCheck,
     Volleyball,
-    ImageIcon,
 } from "lucide-react";
+import { ASSETS } from "@/app/lib/assets";
 
 const features = [
     {
-        icon: TrendingUp,
-        title: "Evolução de Performance",
+        icon: Trophy,
+        title: "Jogos & Estatísticas",
         description:
-            "Visualize o seu progresso técnico e físico através de gráficos claros e metas definidas pela comissão técnica.",
-        color: "from-blue-500 to-blue-600",
-        bgLight: "bg-blue-50",
-        iconColor: "text-blue-600",
+            "Consulte os seus números: golos, assistências, minutos jogados e o desempenho da equipa em cada jogo.",
+        color: "from-orange-500 to-orange-600",
+        bgLight: "bg-orange-50",
+        iconColor: "text-orange-600",
+        image: ASSETS.atletaJogosEstatisticas,
     },
     {
         icon: CalendarDays,
@@ -32,6 +33,7 @@ const features = [
         color: "from-indigo-500 to-indigo-600",
         bgLight: "bg-indigo-50",
         iconColor: "text-indigo-600",
+        image: ASSETS.atletaAgendaCalendario,
     },
     {
         icon: Bell,
@@ -41,6 +43,7 @@ const features = [
         color: "from-amber-500 to-amber-600",
         bgLight: "bg-amber-50",
         iconColor: "text-amber-600",
+        image: ASSETS.atletaConvocatorias,
     },
     {
         icon: Dumbbell,
@@ -50,6 +53,7 @@ const features = [
         color: "from-emerald-500 to-emerald-600",
         bgLight: "bg-emerald-50",
         iconColor: "text-emerald-600",
+        image: ASSETS.atletaAvaliacoesFisicas,
     },
     {
         icon: Heart,
@@ -59,15 +63,7 @@ const features = [
         color: "from-rose-500 to-rose-600",
         bgLight: "bg-rose-50",
         iconColor: "text-rose-600",
-    },
-    {
-        icon: Trophy,
-        title: "Jogos & Estatísticas",
-        description:
-            "Consulte os seus números: golos, assistências, minutos jogados e o desempenho da equipa em cada jogo.",
-        color: "from-orange-500 to-orange-600",
-        bgLight: "bg-orange-50",
-        iconColor: "text-orange-600",
+        image: ASSETS.atletaSaudeBemEstar,
     },
     {
         icon: ShieldCheck,
@@ -77,6 +73,7 @@ const features = [
         color: "from-violet-500 to-violet-600",
         bgLight: "bg-violet-50",
         iconColor: "text-violet-600",
+        image: ASSETS.atletaAutorizacoesFederativas,
     },
 ];
 
@@ -129,11 +126,14 @@ function FeatureCard({
                 <p className="text-sm text-slate-500 leading-relaxed mb-5">
                     {feature.description}
                 </p>
-                <div className="relative w-full aspect-video rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 group-hover:border-slate-300 transition-colors">
-                    <ImageIcon className="h-8 w-8" />
-                    <span className="text-xs font-medium text-slate-400">
-                        Imagem / Vídeo
-                    </span>
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                    <Image
+                        src={feature.image}
+                        alt={feature.title}
+                        fill
+                        className="object-fit"
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                    />
                 </div>
             </div>
         </div>
@@ -226,7 +226,7 @@ export function AtletaSection() {
                             </div>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight text-left">
                                 No centro
-                                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-700">
+                                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-700 leading-[4rem]">
                                     do jogo
                                 </span>
                             </h2>

@@ -133,7 +133,7 @@ export async function fetchCondicaoFisica(): Promise<
 
 export type AutorizacaoAtleta = {
     id: string;
-    tipo: "convite_equipa" | "convite_clube";
+    tipo: "convite_equipa" | "convite_clube" | "convite_treinador";
     titulo: string;
     descricao: string;
     created_at: string;
@@ -205,6 +205,32 @@ export async function fetchAutorizacoesAtleta(): Promise<AutorizacaoAtleta[]> {
             tipo: "convite_clube",
             titulo: `Federação ao Clube "${c.alvo_nome}"`,
             descricao: `O clube "${c.alvo_nome}" convidou-te para te juntares.`,
+            created_at: c.created_at,
+        });
+    }
+
+    // 3. Convites de treinador pendentes (atleta indicou treinador no registo)
+    const convitesTreinadorRows = await sql<
+        {
+            id: string;
+            alvo_nome: string;
+            created_at: string;
+        }[]
+    >`
+        SELECT id, alvo_nome, created_at::text
+        FROM atleta_relacoes_pendentes
+        WHERE atleta_user_id = ${user.id}
+          AND relation_kind = 'treinador'
+          AND status = 'pendente'
+        ORDER BY created_at DESC
+    `.catch(() => []);
+
+    for (const c of convitesTreinadorRows) {
+        results.push({
+            id: c.id,
+            tipo: "convite_treinador",
+            titulo: `Vinculação ao Treinador "${c.alvo_nome}"`,
+            descricao: `Pedido de vinculação ao treinador "${c.alvo_nome}" pendente de aprovação.`,
             created_at: c.created_at,
         });
     }

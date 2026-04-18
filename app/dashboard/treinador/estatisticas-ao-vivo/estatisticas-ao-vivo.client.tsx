@@ -1,7 +1,7 @@
 // Componente cliente de estatisticas ao vivo (treinador).
 "use client";
 import { useState, useEffect } from "react";
-import { BarChart2, Plus, X } from "lucide-react";
+import { BarChart2, Clock, Plus, X } from "lucide-react";
 
 type Jogo = {
     id: string;
@@ -142,6 +142,13 @@ export default function EstatisticasAoVivo({
         observacoes: "",
     });
 
+    const [showMinutosModal, setShowMinutosModal] = useState(false);
+    const [savingMinutos, setSavingMinutos] = useState(false);
+    const [minutosForm, setMinutosForm] = useState({
+        atleta_id: "",
+        minutos_jogados: "",
+    });
+
     const jogoSelecionado = jogos.find((j) => j.id === jogoId);
     const jaComecou = jogoSelecionado ? jogoJaComecou(jogoSelecionado) : false;
     const isMine = jogoSelecionado?.is_mine ?? false;
@@ -204,6 +211,42 @@ export default function EstatisticasAoVivo({
         }
     }
 
+    async function handleMinutosSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (!jogoId || !minutosForm.atleta_id || !minutosForm.minutos_jogados)
+            return;
+        setSavingMinutos(true);
+        try {
+            const res = await fetch("/api/eventos-jogo", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    jogo_id: jogoId,
+                    tipo: "Minutos Jogados",
+                    atleta_id: minutosForm.atleta_id,
+                    minutos_jogados: parseInt(minutosForm.minutos_jogados),
+                }),
+            });
+            if (!res.ok) throw new Error(await res.text());
+            setShowMinutosModal(false);
+            setMinutosForm({ atleta_id: "", minutos_jogados: "" });
+            const updated = await fetch(
+                `/api/eventos-jogo?jogo_id=${jogoId}`,
+            ).then((r) => r.json());
+            setEventos(Array.isArray(updated) ? updated : []);
+            showToast("Minutos jogados registados com sucesso.");
+        } catch (err: unknown) {
+            showToast(
+                err instanceof Error
+                    ? err.message
+                    : "Erro ao registar minutos.",
+                false,
+            );
+        } finally {
+            setSavingMinutos(false);
+        }
+    }
+
     const statsByTipo = TIPOS_EVENTO.reduce<Record<string, number>>(
         (acc, t) => {
             acc[t] = eventos.filter((e) => e.tipo === t).length;
@@ -234,13 +277,22 @@ export default function EstatisticasAoVivo({
                         cartões e substituições.
                     </p>
                 </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    disabled={!podeRegistar}
-                    className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
-                >
-                    <Plus size={18} /> Registar Evento
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowModal(true)}
+                        disabled={!podeRegistar}
+                        className="px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                    >
+                        <Plus size={18} /> Registar Evento
+                    </button>
+                    <button
+                        onClick={() => setShowMinutosModal(true)}
+                        disabled={!podeRegistar}
+                        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-sm shadow transition-all flex items-center gap-2"
+                    >
+                        <Clock size={18} /> Registar Min. Jogados
+                    </button>
+                </div>
             </div>
 
             {/* Selector de Jogo */}
@@ -517,6 +569,96 @@ export default function EstatisticasAoVivo({
                                 <button
                                     type="button"
                                     onClick={() => setShowModal(false)}
+                                    className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-lg text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Registar Minutos Jogados */}
+            {showMinutosModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                Registar Minutos Jogados
+                            </h3>
+                            <button
+                                onClick={() => setShowMinutosModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form
+                            onSubmit={handleMinutosSubmit}
+                            className="p-5 flex flex-col gap-4"
+                        >
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Atleta *
+                                </label>
+                                <select
+                                    value={minutosForm.atleta_id}
+                                    onChange={(e) =>
+                                        setMinutosForm((f) => ({
+                                            ...f,
+                                            atleta_id: e.target.value,
+                                        }))
+                                    }
+                                    required
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="">
+                                        — Selecionar atleta —
+                                    </option>
+                                    {atletas.map((a) => (
+                                        <option key={a.id} value={a.id}>
+                                            {a.nome}
+                                            {a.numero_camisola
+                                                ? ` (#${a.numero_camisola})`
+                                                : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Minutos Jogados *
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={120}
+                                    value={minutosForm.minutos_jogados}
+                                    onChange={(e) =>
+                                        setMinutosForm((f) => ({
+                                            ...f,
+                                            minutos_jogados: e.target.value,
+                                        }))
+                                    }
+                                    required
+                                    placeholder="ex: 90"
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100"
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-1">
+                                <button
+                                    type="submit"
+                                    disabled={savingMinutos}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-2 rounded-lg text-sm transition-all"
+                                >
+                                    {savingMinutos
+                                        ? "A guardar..."
+                                        : "Registar"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMinutosModal(false)}
                                     className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold py-2 rounded-lg text-sm"
                                 >
                                     Cancelar

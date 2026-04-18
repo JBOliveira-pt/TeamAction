@@ -1,6 +1,6 @@
 // Página de autorizacoes do atleta.
 import { fetchAutorizacoesAtleta } from "@/app/lib/data";
-import { ShieldCheck, Users, Building2 } from "lucide-react";
+import { ShieldCheck, Users, Building2, Megaphone } from "lucide-react";
 import AutorizacaoAtletaCard from "./autorizacao-card.client";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,7 @@ export default async function AtletaAutorizacoesPage() {
     const iconMap: Record<string, React.ReactNode> = {
         convite_equipa: <Users size={16} className="text-blue-500" />,
         convite_clube: <Building2 size={16} className="text-purple-500" />,
+        convite_treinador: <Megaphone size={16} className="text-emerald-500" />,
     };
 
     return (

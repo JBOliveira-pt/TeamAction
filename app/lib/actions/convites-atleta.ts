@@ -138,3 +138,76 @@ export async function responderConviteClubeAtleta(
     revalidatePath("/dashboard/atleta/autorizacoes");
     return null;
 }
+
+export async function responderConviteTreinadorAtleta(
+    relacaoId: string,
+    decisao: "aceitar" | "rejeitar",
+): Promise<{ error?: string } | null> {
+    const { userId } = await auth();
+    if (!userId) return { error: "Não autenticado." };
+
+    const [user] = await sql<{ id: string }[]>`
+        SELECT id FROM users WHERE clerk_user_id = ${userId} LIMIT 1
+    `;
+    if (!user) return { error: "Utilizador não encontrado." };
+
+    const [relacao] = await sql<
+        {
+            id: string;
+            alvo_treinador_user_id: string | null;
+            alvo_nome: string;
+        }[]
+    >`
+        SELECT id, alvo_treinador_user_id::text, alvo_nome
+        FROM atleta_relacoes_pendentes
+        WHERE id = ${relacaoId}
+          AND atleta_user_id = ${user.id}
+          AND relation_kind = 'treinador'
+          AND status = 'pendente'
+        LIMIT 1
+    `;
+    if (!relacao) return { error: "Convite não encontrado ou já respondido." };
+
+    if (decisao === "rejeitar") {
+        await sql`
+            UPDATE atleta_relacoes_pendentes SET status = 'recusado', updated_at = NOW()
+            WHERE id = ${relacaoId}
+        `;
+    } else {
+        await sql`
+            UPDATE atleta_relacoes_pendentes SET status = 'aceite', updated_at = NOW()
+            WHERE id = ${relacaoId}
+        `;
+
+        // Se o treinador tem uma organização, mover o atleta para lá
+        if (relacao.alvo_treinador_user_id) {
+            const [treinadorUser] = await sql<
+                { organization_id: string | null }[]
+            >`
+                SELECT organization_id FROM users
+                WHERE id = ${relacao.alvo_treinador_user_id}
+                LIMIT 1
+            `.catch(() => []);
+
+            if (treinadorUser?.organization_id) {
+                await sql`
+                    UPDATE users
+                    SET organization_id = ${treinadorUser.organization_id},
+                        updated_at = NOW()
+                    WHERE id = ${user.id}
+                `.catch(() => {});
+
+                await sql`
+                    UPDATE atletas
+                    SET organization_id = ${treinadorUser.organization_id},
+                        estado = 'Ativo',
+                        updated_at = NOW()
+                    WHERE user_id = ${user.id}
+                `.catch(() => {});
+            }
+        }
+    }
+
+    revalidatePath("/dashboard/atleta/autorizacoes");
+    return null;
+}

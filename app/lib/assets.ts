@@ -18,6 +18,12 @@ export const ASSETS = {
     heroVideo: `${VIDEOS_BASE}/quadra-andebol-loop.mp4`,
     mosaicoFotos: `${BASE}/mosaico-fotosevideo.png`,
     mosaicoVideo: `${VIDEOS_BASE}/segurandobola-andebol.mp4`,
+    atletaJogosEstatisticas: `${BASE}/Atleta-JogoseEstatisticas.png`,
+    atletaAgendaCalendario: `${BASE}/Atleta-AgendaeCalendario.png`,
+    atletaConvocatorias: `${BASE}/Atleta-ConvocatoriasEmTempoReal.png`,
+    atletaAvaliacoesFisicas: `${BASE}/Atleta-AvaliacoesFisicas.png`,
+    atletaSaudeBemEstar: `${BASE}/Atleta-SaudeBemEstar.png`,
+    atletaAutorizacoesFederativas: `${BASE}/Atleta-AutorizacoesFederativas.png`,
 };
 
 const PROFILE_PLACEHOLDERS: Record<string, string> = {

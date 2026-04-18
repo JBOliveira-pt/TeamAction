@@ -1362,6 +1362,38 @@ export async function POST(req: Request) {
                             )
                             ON CONFLICT DO NOTHING
                         `.catch(() => {});
+
+                        // Notificar o presidente do clube sobre o pedido
+                        if (clubId) {
+                            const presidentRows = await sql<
+                                {
+                                    presidente_user_id: string;
+                                    organization_id: string;
+                                }[]
+                            >`
+                                SELECT presidente_user_id, organization_id::text
+                                FROM clubes
+                                WHERE id = ${clubId}
+                                  AND presidente_user_id IS NOT NULL
+                                LIMIT 1
+                            `.catch(() => []);
+                            const president = presidentRows[0];
+                            if (president) {
+                                await sql`
+                                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                    VALUES (
+                                        gen_random_uuid(),
+                                        ${president.organization_id},
+                                        ${president.presidente_user_id},
+                                        'Pedido de Vinculação — Atleta',
+                                        ${`O atleta "${fullName}" registou-se e indicou o clube "${athleteProfile.clubName}". Aceda à plataforma para aceitar ou recusar o pedido.`},
+                                        'vinculacao_clube',
+                                        false,
+                                        NOW()
+                                    )
+                                `.catch(() => {});
+                            }
+                        }
                     }
 
                     if (
@@ -1374,6 +1406,8 @@ export async function POST(req: Request) {
                             WHERE LOWER(name) = LOWER(${athleteProfile.trainerName})
                             LIMIT 1
                         `;
+
+                        const trainerId = trainerRows[0]?.id ?? null;
 
                         await sql`
                             INSERT INTO atleta_relacoes_pendentes (
@@ -1390,12 +1424,29 @@ export async function POST(req: Request) {
                                 'treinador',
                                 'pendente',
                                 ${athleteProfile.trainerName},
-                                ${trainerRows[0]?.id ?? null},
+                                ${trainerId},
                                 NOW(),
                                 NOW()
                             )
                             ON CONFLICT DO NOTHING
                         `.catch(() => {});
+
+                        // Notificar o treinador sobre o pedido de vinculação
+                        if (trainerId) {
+                            await sql`
+                                INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                                VALUES (
+                                    gen_random_uuid(),
+                                    (SELECT COALESCE(organization_id, '00000000-0000-0000-0000-000000000000') FROM users WHERE id = ${trainerId} LIMIT 1),
+                                    ${trainerId},
+                                    'Pedido de Vinculação — Atleta',
+                                    ${`O atleta "${fullName}" registou-se e indicou-o como treinador. Aceda à plataforma para aceitar ou recusar o pedido.`},
+                                    'vinculacao_treinador',
+                                    false,
+                                    NOW()
+                                )
+                            `.catch(() => {});
+                        }
                     }
 
                     if (

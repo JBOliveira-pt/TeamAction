@@ -294,18 +294,26 @@ export async function cascadeDeleteUser(
               AND tc.table_schema = 'public'
         `;
         for (const ref of fkRefs) {
-            // Tentar nullificar primeiro (se a coluna for nullable)
-            await tx`
-                UPDATE ${tx(ref.table_name)}
-                SET ${tx(ref.column_name)} = NULL
-                WHERE ${tx(ref.column_name)} = ${userId}
-            `.catch(async () => {
-                // Se NOT NULL, apagar as linhas
+            // Verificar se a coluna é nullable antes de decidir a acção
+            const [col] = await tx`
+                SELECT is_nullable
+                FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name  = ${ref.table_name}
+                  AND column_name = ${ref.column_name}
+            `;
+            if (col?.is_nullable === "YES") {
+                await tx`
+                    UPDATE ${tx(ref.table_name)}
+                    SET ${tx(ref.column_name)} = NULL
+                    WHERE ${tx(ref.column_name)} = ${userId}
+                `;
+            } else {
                 await tx`
                     DELETE FROM ${tx(ref.table_name)}
                     WHERE ${tx(ref.column_name)} = ${userId}
-                `.catch(() => {});
-            });
+                `;
+            }
         }
     } catch {
         // information_schema query pode falhar em alguns ambientes — não bloquear
@@ -372,7 +380,7 @@ async function deleteByTableColumnIn(
     `;
 }
 
-/** SET column = NULL onde column = userId */
+/** SET column = NULL onde column = userId (ignora colunas NOT NULL) */
 async function nullifyColumnIfExists(
     tx: SqlExecutor,
     tableName: string,
@@ -383,6 +391,17 @@ async function nullifyColumnIfExists(
     if (!hasT) return;
     const hasC = await columnExists(tx, tableName, columnName);
     if (!hasC) return;
+
+    // Skip columns that have a NOT NULL constraint
+    const [{ is_nullable }] = await tx`
+        SELECT is_nullable
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name  = ${tableName}
+          AND column_name = ${columnName}
+    `;
+    if (is_nullable === "NO") return;
+
     await tx`
         UPDATE ${tx(tableName)}
         SET ${tx(columnName)} = NULL

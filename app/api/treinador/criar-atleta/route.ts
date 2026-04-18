@@ -313,85 +313,110 @@ export async function POST(req: NextRequest) {
     } else if (body.email?.trim() && emailUserFound && linkedUserId) {
         // User existe na plataforma — enviar convite de vinculação à equipa
         if (body.equipa_id) {
-            if (isMenor) {
-                // Menor: convite vai diretamente para pendente_responsavel
-                await sql`
-                    INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
-                    VALUES (
-                        gen_random_uuid(),
-                        ${treinador.organization_id},
-                        ${treinador.id},
-                        ${treinador.name},
-                        ${atletaId},
-                        ${body.equipa_id},
-                        ${body.equipa_nome ?? null},
-                        'pendente_responsavel',
-                        NOW(), NOW()
-                    )
-                `.catch(() => {});
+            // Verificar se já existe convite pendente para evitar duplicado
+            const existingConvite = await sql<{ id: string; estado: string }[]>`
+                SELECT id, estado FROM convites_equipa
+                WHERE atleta_id = ${atletaId}
+                  AND organization_id = ${treinador.organization_id}
+                LIMIT 1
+            `.catch(() => []);
 
-                if (responsavelUserId) {
-                    // Notificação ao responsável para aprovar
+            const hasPendingConvite = existingConvite.some(
+                (c) =>
+                    c.estado === "pendente" ||
+                    c.estado === "pendente_responsavel",
+            );
+
+            // Limpar convites antigos (aceites/recusados) para não bloquear novo convite
+            if (existingConvite.length > 0 && !hasPendingConvite) {
+                await sql`
+                    DELETE FROM convites_equipa
+                    WHERE atleta_id = ${atletaId}
+                      AND organization_id = ${treinador.organization_id}
+                      AND estado NOT IN ('pendente', 'pendente_responsavel')
+                `.catch((err) =>
+                    console.error(
+                        "[CRIAR_ATLETA] Failed to clean old convites:",
+                        err,
+                    ),
+                );
+            }
+
+            if (!hasPendingConvite) {
+                const conviteEstado = isMenor
+                    ? "pendente_responsavel"
+                    : "pendente";
+
+                try {
                     await sql`
-                        INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                        INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
                         VALUES (
                             gen_random_uuid(),
                             ${treinador.organization_id},
-                            ${responsavelUserId},
-                            ${`Aprovação necessária: convite para equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
-                            ${`O treinador "${treinador.name}" pretende adicionar o atleta menor "${body.nome.trim()}" à equipa. Como encarregado de educação, a sua aprovação é necessária.`},
-                            'convite_equipa',
-                            false,
-                            NOW()
+                            ${treinador.id},
+                            ${treinador.name},
+                            ${atletaId},
+                            ${body.equipa_id},
+                            ${body.equipa_nome ?? null},
+                            ${conviteEstado},
+                            NOW(), NOW()
                         )
-                    `.catch(() => {});
+                    `;
+                } catch (conviteErr) {
+                    console.error(
+                        "[CRIAR_ATLETA] Failed to create convite_equipa:",
+                        conviteErr,
+                    );
+                }
+
+                if (isMenor) {
+                    if (responsavelUserId) {
+                        // Notificação ao responsável para aprovar
+                        await sql`
+                            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                            VALUES (
+                                gen_random_uuid(),
+                                ${treinador.organization_id},
+                                ${responsavelUserId},
+                                ${`Aprovação necessária: convite para equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                                ${`O treinador "${treinador.name}" pretende adicionar o atleta menor "${body.nome.trim()}" à equipa. Como encarregado de educação, a sua aprovação é necessária.`},
+                                'convite_equipa',
+                                false,
+                                NOW()
+                            )
+                        `.catch(() => {});
+                    } else {
+                        // Responsável não está na plataforma — notificar o atleta para informar o responsável
+                        await sql`
+                            INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
+                            VALUES (
+                                gen_random_uuid(),
+                                ${treinador.organization_id},
+                                ${linkedUserId},
+                                ${`Convite pendente para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                                ${`O treinador "${treinador.name}" pretende adicioná-lo à equipa. Como é menor de idade, o seu encarregado de educação precisa aprovar o convite. Peça ao seu responsável para se registar na plataforma.`},
+                                'convite_equipa',
+                                false,
+                                NOW()
+                            )
+                        `.catch(() => {});
+                    }
                 } else {
-                    // Responsável não está na plataforma — notificar o atleta para informar o responsável
+                    // Adulto: notificação direcionada ao atleta
                     await sql`
                         INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
                         VALUES (
                             gen_random_uuid(),
                             ${treinador.organization_id},
                             ${linkedUserId},
-                            ${`Convite pendente para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
-                            ${`O treinador "${treinador.name}" pretende adicioná-lo à equipa. Como é menor de idade, o seu encarregado de educação precisa aprovar o convite. Peça ao seu responsável para se registar na plataforma.`},
+                            ${`Convite para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
+                            ${`O treinador "${treinador.name}" adicionou-o como atleta e enviou um convite de vinculação.`},
                             'convite_equipa',
                             false,
                             NOW()
                         )
                     `.catch(() => {});
                 }
-            } else {
-                // Adulto: fluxo normal — convite pendente para o atleta
-                await sql`
-                    INSERT INTO convites_equipa (id, organization_id, treinador_id, treinador_nome, atleta_id, equipa_id, equipa_nome, estado, created_at, updated_at)
-                    VALUES (
-                        gen_random_uuid(),
-                        ${treinador.organization_id},
-                        ${treinador.id},
-                        ${treinador.name},
-                        ${atletaId},
-                        ${body.equipa_id},
-                        ${body.equipa_nome ?? null},
-                        'pendente',
-                        NOW(), NOW()
-                    )
-                `.catch(() => {});
-
-                // Notificação direcionada ao atleta
-                await sql`
-                    INSERT INTO notificacoes (id, organization_id, recipient_user_id, titulo, descricao, tipo, lida, created_at)
-                    VALUES (
-                        gen_random_uuid(),
-                        ${treinador.organization_id},
-                        ${linkedUserId},
-                        ${`Convite para a equipa${body.equipa_nome ? ` ${body.equipa_nome}` : ""}`},
-                        ${`O treinador "${treinador.name}" adicionou-o como atleta e enviou um convite de vinculação.`},
-                        'convite_equipa',
-                        false,
-                        NOW()
-                    )
-                `.catch(() => {});
             }
         }
 

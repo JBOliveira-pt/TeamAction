@@ -128,14 +128,14 @@ export async function fetchAtletaById(id: string) {
             }[]
         >`
             SELECT
-                COUNT(estatisticas_jogo.id) AS total_jogos,
-                COALESCE(SUM(golos), 0) AS total_golos,
-                COALESCE(SUM(assistencias), 0) AS total_assistencias,
-                COALESCE(SUM(exclusoes), 0) AS total_exclusoes,
-                COUNT(CASE WHEN cartao_amarelo THEN 1 END) AS total_cartoes_amarelos,
-                COUNT(CASE WHEN cartao_vermelho THEN 1 END) AS total_cartoes_vermelhos,
+                COUNT(DISTINCT jogo_id) AS total_jogos,
+                COUNT(CASE WHEN tipo = 'Golo Feito' THEN 1 END) AS total_golos,
+                COUNT(CASE WHEN tipo = 'Assistência' THEN 1 END) AS total_assistencias,
+                COUNT(CASE WHEN tipo = 'Falta' THEN 1 END) AS total_exclusoes,
+                COUNT(CASE WHEN tipo = 'Cartão Amarelo' THEN 1 END) AS total_cartoes_amarelos,
+                COUNT(CASE WHEN tipo = 'Cartão Vermelho' THEN 1 END) AS total_cartoes_vermelhos,
                 COALESCE(SUM(minutos_jogados), 0) AS total_minutos
-            FROM estatisticas_jogo
+            FROM eventos_jogo
             WHERE atleta_id = ${id}
         `;
 
@@ -282,11 +282,11 @@ export async function fetchAtletaAtual() {
             }[]
         >`
             SELECT
-                COUNT(estatisticas_jogo.id) AS total_jogos,
-                COALESCE(SUM(golos), 0) AS total_golos,
-                COALESCE(SUM(assistencias), 0) AS total_assistencias,
+                COUNT(DISTINCT jogo_id) AS total_jogos,
+                COUNT(CASE WHEN tipo = 'Golo Feito' THEN 1 END) AS total_golos,
+                COUNT(CASE WHEN tipo = 'Assistência' THEN 1 END) AS total_assistencias,
                 COALESCE(SUM(minutos_jogados), 0) AS total_minutos
-            FROM estatisticas_jogo
+            FROM eventos_jogo
             WHERE atleta_id = ${atleta.id}
         `;
 
@@ -521,11 +521,11 @@ export async function fetchAtletaDoResponsavel() {
                 }[]
             >`
                 SELECT
-                    COUNT(estatisticas_jogo.id) AS total_jogos,
-                    COALESCE(SUM(golos), 0) AS total_golos,
-                    COALESCE(SUM(assistencias), 0) AS total_assistencias,
+                    COUNT(DISTINCT jogo_id) AS total_jogos,
+                    COUNT(CASE WHEN tipo = 'Golo Feito' THEN 1 END) AS total_golos,
+                    COUNT(CASE WHEN tipo = 'Assistência' THEN 1 END) AS total_assistencias,
                     COALESCE(SUM(minutos_jogados), 0) AS total_minutos
-                FROM estatisticas_jogo
+                FROM eventos_jogo
                 WHERE atleta_id = ${atleta.id}
             `;
             estatisticas = stats ?? null;

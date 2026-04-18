@@ -6,11 +6,12 @@ import { Check, X } from "lucide-react";
 import {
     responderConviteEquipaAtleta,
     responderConviteClubeAtleta,
+    responderConviteTreinadorAtleta,
 } from "@/app/lib/actions/convites-atleta";
 
 type Props = {
     id: string;
-    tipo: "convite_equipa" | "convite_clube";
+    tipo: "convite_equipa" | "convite_clube" | "convite_treinador";
     titulo: string;
     descricao: string;
     createdAt: string;
@@ -41,6 +42,8 @@ export default function AutorizacaoAtletaCard({
             result = await responderConviteEquipaAtleta(id, decisao);
         } else if (tipo === "convite_clube") {
             result = await responderConviteClubeAtleta(id, decisao);
+        } else if (tipo === "convite_treinador") {
+            result = await responderConviteTreinadorAtleta(id, decisao);
         }
 
         setLoading(false);

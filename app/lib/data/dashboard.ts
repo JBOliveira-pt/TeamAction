@@ -197,13 +197,13 @@ export async function fetchTopAtletas() {
                 atletas.id AS atleta_id,
                 atletas.nome,
                 equipas.nome AS equipa_nome,
-                COALESCE(SUM(estatisticas_jogo.golos), 0) AS golos,
-                COALESCE(SUM(estatisticas_jogo.assistencias), 0) AS assistencias,
+                COUNT(DISTINCT CASE WHEN eventos_jogo.tipo = 'Golo Feito' THEN eventos_jogo.id END) AS golos,
+                COUNT(DISTINCT CASE WHEN eventos_jogo.tipo = 'Assistência' THEN eventos_jogo.id END) AS assistencias,
                 COUNT(DISTINCT assiduidade.sessao_id) AS total_treinos,
                 COUNT(DISTINCT CASE WHEN assiduidade.presente THEN assiduidade.sessao_id END) AS presencas
             FROM atletas
             LEFT JOIN equipas ON atletas.equipa_id = equipas.id
-            LEFT JOIN estatisticas_jogo ON estatisticas_jogo.atleta_id = atletas.id
+            LEFT JOIN eventos_jogo ON eventos_jogo.atleta_id = atletas.id
             LEFT JOIN assiduidade ON assiduidade.atleta_id = atletas.id
             WHERE atletas.organization_id = ${organizationId}
             GROUP BY atletas.id, atletas.nome, equipas.nome

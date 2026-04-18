@@ -295,7 +295,7 @@ export default function Calendario({
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800"
                                             >
                                                 <span className="text-xl shrink-0">
-                                                    0
+                                                    ⚽
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
@@ -348,7 +348,7 @@ export default function Calendario({
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-100 dark:border-violet-800"
                                             >
                                                 <span className="text-xl shrink-0">
-                                                    0
+                                                    📋
                                                 </span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">
@@ -388,7 +388,7 @@ export default function Calendario({
                                                 className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800"
                                             >
                                                 <span className="text-lg shrink-0 mt-0.5">
-                                                    0
+                                                    📝
                                                 </span>
                                                 <p className="flex-1 text-sm text-gray-800 dark:text-gray-100 leading-relaxed">
                                                     {n.nota}
@@ -600,7 +600,7 @@ export default function Calendario({
                                                                 className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 flex items-center gap-1 truncate"
                                                             >
                                                                 <span className="text-[10px] shrink-0">
-                                                                    ???
+                                                                    🏋️‍♂️
                                                                 </span>
                                                                 <span className="truncate">
                                                                     {s.tipo}
@@ -615,7 +615,7 @@ export default function Calendario({
                                                                 className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-rose-500 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 flex items-center gap-1 truncate"
                                                             >
                                                                 <span className="text-[10px] shrink-0">
-                                                                    ??
+                                                                    ⚽
                                                                 </span>
                                                                 <span className="truncate">
                                                                     vs{" "}
@@ -639,7 +639,7 @@ export default function Calendario({
                                                     {hasNotes && (
                                                         <div className="text-[11px] font-semibold px-2 py-0.5 rounded-lg border-l-2 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center gap-1 truncate">
                                                             <span className="text-[10px] shrink-0">
-                                                                ??
+                                                                📋
                                                             </span>
                                                             <span className="truncate">
                                                                 Anotação

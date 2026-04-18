@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
         atleta_id?: string;
         tipo: string;
         minuto?: number;
+        minutos_jogados?: number;
         observacoes?: string;
     };
 
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
         "Cartão Amarelo",
         "Cartão Vermelho",
         "Substituição",
+        "Minutos Jogados",
     ];
     if (!tiposValidos.includes(body.tipo))
         return new Response("Tipo inválido.", { status: 400 });
@@ -138,13 +140,14 @@ export async function POST(req: NextRequest) {
     await ensureTable();
 
     const [evento] = await sql<{ id: string }[]>`
-        INSERT INTO eventos_jogo (organization_id, jogo_id, atleta_id, tipo, minuto, observacoes)
+        INSERT INTO eventos_jogo (organization_id, jogo_id, atleta_id, tipo, minuto, minutos_jogados, observacoes)
         VALUES (
             ${me.organization_id},
             ${body.jogo_id},
             ${body.atleta_id ?? null},
             ${body.tipo},
             ${body.minuto ?? null},
+            ${body.minutos_jogados ?? null},
             ${body.observacoes?.trim() ?? null}
         )
         RETURNING id
@@ -162,13 +165,14 @@ export async function POST(req: NextRequest) {
             else if (body.tipo === "Golo Sofrido") mirrorTipo = "Golo Feito";
 
             await sql`
-                INSERT INTO eventos_jogo (organization_id, jogo_id, atleta_id, tipo, minuto, observacoes)
+                INSERT INTO eventos_jogo (organization_id, jogo_id, atleta_id, tipo, minuto, minutos_jogados, observacoes)
                 VALUES (
                     ${mirrorGame[0].organization_id},
                     ${mirrorGameId},
                     ${body.atleta_id ?? null},
                     ${mirrorTipo},
                     ${body.minuto ?? null},
+                    ${body.minutos_jogados ?? null},
                     ${body.observacoes?.trim() ?? null}
                 )
             `;

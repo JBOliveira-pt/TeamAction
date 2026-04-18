@@ -17,15 +17,6 @@ import {
 
 const features = [
     {
-        icon: CalendarDays,
-        title: "Agenda do Jovem Atleta",
-        description:
-            "Consulte todos os treinos, jogos e eventos do seu jovem atleta num calendário unificado e sempre atualizado.",
-        color: "from-amber-500 to-amber-600",
-        bgLight: "bg-amber-50",
-        iconColor: "text-amber-600",
-    },
-    {
         icon: Trophy,
         title: "Jogos & Resultados",
         description:
@@ -69,15 +60,6 @@ const features = [
         color: "from-cyan-500 to-cyan-600",
         bgLight: "bg-cyan-50",
         iconColor: "text-cyan-600",
-    },
-    {
-        icon: Megaphone,
-        title: "Comunicados do Clube",
-        description:
-            "Receba os comunicados e avisos do clube dirigidos aos responsáveis. Nunca perca uma informação importante sobre o seu jovem atleta.",
-        color: "from-pink-500 to-pink-600",
-        bgLight: "bg-pink-50",
-        iconColor: "text-pink-600",
     },
     {
         icon: Bell,
