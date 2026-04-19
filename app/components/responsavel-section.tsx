@@ -2,18 +2,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
     UserCheck,
-    CalendarDays,
     Bell,
     Dumbbell,
     Heart,
     Trophy,
     ShieldCheck,
     CreditCard,
-    Megaphone,
     ImageIcon,
 } from "lucide-react";
+import { ASSETS } from "@/app/lib/assets";
 
 const features = [
     {
@@ -24,6 +24,7 @@ const features = [
         color: "from-orange-500 to-orange-600",
         bgLight: "bg-orange-50",
         iconColor: "text-orange-600",
+        image: ASSETS.responsavelJogoseResultados,
     },
     {
         icon: Dumbbell,
@@ -33,6 +34,7 @@ const features = [
         color: "from-emerald-500 to-emerald-600",
         bgLight: "bg-emerald-50",
         iconColor: "text-emerald-600",
+        image: ASSETS.responsavelCondicaoFisica,
     },
     {
         icon: Heart,
@@ -42,6 +44,7 @@ const features = [
         color: "from-rose-500 to-rose-600",
         bgLight: "bg-rose-50",
         iconColor: "text-rose-600",
+        image: ASSETS.responsavelInformacaoMedica,
     },
     {
         icon: ShieldCheck,
@@ -51,6 +54,7 @@ const features = [
         color: "from-violet-500 to-violet-600",
         bgLight: "bg-violet-50",
         iconColor: "text-violet-600",
+        image: ASSETS.responsavelAutorizacoes,
     },
     {
         icon: CreditCard,
@@ -60,6 +64,7 @@ const features = [
         color: "from-cyan-500 to-cyan-600",
         bgLight: "bg-cyan-50",
         iconColor: "text-cyan-600",
+        image: ASSETS.responsavelMensalidades,
     },
     {
         icon: Bell,
@@ -69,6 +74,7 @@ const features = [
         color: "from-blue-500 to-blue-600",
         bgLight: "bg-blue-50",
         iconColor: "text-blue-600",
+        image: ASSETS.responsavelNotificacoes,
     },
 ];
 
@@ -121,11 +127,23 @@ function FeatureCard({
                 <p className="text-sm text-slate-500 leading-relaxed mb-5">
                     {feature.description}
                 </p>
-                <div className="relative w-full aspect-video rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 group-hover:border-slate-300 transition-colors">
-                    <ImageIcon className="h-8 w-8" />
-                    <span className="text-xs font-medium text-slate-400">
-                        Imagem / Vídeo
-                    </span>
+                <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                    {feature.image ? (
+                        <Image
+                            src={feature.image}
+                            alt={feature.title}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 640px) 100vw, 50vw"
+                        />
+                    ) : (
+                        <div className="relative w-full h-full bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 text-slate-300 group-hover:border-slate-300 transition-colors">
+                            <ImageIcon className="h-8 w-8" />
+                            <span className="text-xs font-medium text-slate-400">
+                                Imagem / Vídeo
+                            </span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

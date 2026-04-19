@@ -24,6 +24,12 @@ export const ASSETS = {
     atletaAvaliacoesFisicas: `${BASE}/Atleta-AvaliacoesFisicas.png`,
     atletaSaudeBemEstar: `${BASE}/Atleta-SaudeBemEstar.png`,
     atletaAutorizacoesFederativas: `${BASE}/Atleta-AutorizacoesFederativas.png`,
+    responsavelAutorizacoes: `${BASE}/Responsavel-Autorizacoes.png`,
+    responsavelCondicaoFisica: `${BASE}/Responsavel-CondicaoFisica.png`,
+    responsavelInformacaoMedica: `${BASE}/Responsavel-InformacaoMedica.png`,
+    responsavelJogoseResultados: `${BASE}/Responsavel-JogoseResultados.png`,
+    responsavelMensalidades: `${BASE}/Responsavel-Mensalidades.png`,
+    responsavelNotificacoes: `${BASE}/Responsavel-Notificacoes.png`,
 };
 
 const PROFILE_PLACEHOLDERS: Record<string, string> = {

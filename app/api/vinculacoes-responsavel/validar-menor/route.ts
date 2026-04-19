@@ -83,7 +83,9 @@ export async function POST(request: Request) {
             });
         }
 
-        // 6. Also check the encarregado_educacao field directly
+        // 6. Also check the encarregado_educacao field directly.
+        // If the athlete already stored a guardian email but the relation is
+        // still pending for the responsible signing up now, allow it.
         const guardianField = await sql<
             { encarregado_educacao: string | null }[]
         >`
@@ -92,14 +94,33 @@ export async function POST(request: Request) {
             LIMIT 1
         `;
 
-        if (
-            guardianField[0]?.encarregado_educacao &&
-            guardianField[0].encarregado_educacao.trim().length > 0
-        ) {
-            return NextResponse.json({
-                valid: false,
-                reason: "already_bound",
-            });
+        const guardianEmail = guardianField[0]?.encarregado_educacao
+            ?.trim()
+            .toLowerCase();
+
+        if (guardianEmail) {
+            if (guardianEmail === ownEmail) {
+                const pendingRelation = await sql<{ id: string }[]>`
+                    SELECT id FROM atleta_relacoes_pendentes
+                    WHERE atleta_user_id = ${athlete.user_id}
+                      AND relation_kind = 'responsavel'
+                      AND status = 'pendente'
+                      AND LOWER(alvo_email) = LOWER(${ownEmail})
+                    LIMIT 1
+                `;
+
+                if (pendingRelation.length === 0) {
+                    return NextResponse.json({
+                        valid: false,
+                        reason: "already_bound",
+                    });
+                }
+            } else {
+                return NextResponse.json({
+                    valid: false,
+                    reason: "already_bound",
+                });
+            }
         }
 
         return NextResponse.json({ valid: true });
